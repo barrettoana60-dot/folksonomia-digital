@@ -4,6 +4,8 @@ import { normalizeText } from '@/lib/core/normalize';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { EuropeanaConnector } from '@/lib/connectors/europeana';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
