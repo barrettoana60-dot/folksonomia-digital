@@ -19,9 +19,15 @@ export class IbramConnector implements OpenDataConnector {
         title: `Item de Acervo relacionado a ${query}`,
         description: `Metadados recuperados do repositório Tainacan do Instituto Brasileiro de Museus para a busca: ${query}`,
         url: 'https://museus.gov.br',
-        type: 'Cultural Artifact',
-        confidence_score: 0.75,
+        provider: 'IBRAM',
+        match_score: 0.75,
+        relation_type: 'relatedMatch',
+        raw: {}
       }
     ];
+  }
+
+  async testConnection(): Promise<boolean> {
+    return true; // Mock connection is always true
   }
 }

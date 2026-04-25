@@ -15,9 +15,15 @@ export class BrasilianaConnector implements OpenDataConnector {
         title: `Registro histórico sobre ${query}`,
         description: `Acervo Brasiliana Digital. Correspondência encontrada para: ${query}`,
         url: 'http://brasiliana.usp.br/',
-        type: 'Document / Image',
-        confidence_score: 0.8,
+        provider: 'Brasiliana',
+        match_score: 0.8,
+        relation_type: 'closeMatch',
+        raw: {}
       }
     ];
+  }
+
+  async testConnection(): Promise<boolean> {
+    return true; // Mock connection is always true
   }
 }
