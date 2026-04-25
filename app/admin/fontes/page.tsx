@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/client';
 
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
 
 async function getFontes() {
   const { data } = await supabaseAdmin

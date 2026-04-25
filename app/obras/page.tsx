@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 import ObraCard from '@/components/ObraCard';
 import { BookOpen } from 'lucide-react';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 async function getObras() {
   const { data, error } = await supabaseAdmin

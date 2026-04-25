@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { BookOpen, Plus } from 'lucide-react';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function AdminObrasPage() {
   const { data: obras } = await supabaseAdmin

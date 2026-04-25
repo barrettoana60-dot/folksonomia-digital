@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/client';
 
-export const revalidate = 10;
+export const dynamic = 'force-dynamic';
 
 async function getPendingNuclei() {
   const { data } = await supabaseAdmin

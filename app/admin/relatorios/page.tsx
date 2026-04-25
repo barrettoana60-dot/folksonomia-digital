@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/client';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 async function getRelatorioData() {
   const [tags, nucleos, obras, fontes, validacoes] = await Promise.all([

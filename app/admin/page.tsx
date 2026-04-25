@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { BookOpen, Tag, CheckCircle, Database, Activity, BarChart3 } from 'lucide-react';
 
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
 
 async function getStats() {
   const [obras, tags, nucleos, eventos, fontes] = await Promise.all([
