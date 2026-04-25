@@ -1,0 +1,73 @@
+import { supabaseAdmin } from '@/lib/supabase/client';
+
+export const revalidate = 30;
+
+async function getFontes() {
+  const { data } = await supabaseAdmin
+    .from('fontes_externas')
+    .select('*')
+    .order('nome');
+  return data || [];
+}
+
+export default async function FontesPage() {
+  const fontes = await getFontes();
+
+  return (
+    <main className="min-h-screen px-6 py-12">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold text-white">Fontes de Dados Abertos</h1>
+          <p className="text-white/50 mt-2">
+            Repositórios externos conectados ao motor semântico para enriquecer as células informacionais.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {fontes.map((fonte: any) => (
+            <div key={fonte.id} className="glass-card p-6 space-y-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-lg font-bold text-white">{fonte.nome}</h3>
+                  {fonte.tipo && (
+                    <span className="text-xs text-blue-300/70">{fonte.tipo}</span>
+                  )}
+                </div>
+                <div className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                  fonte.ativo
+                    ? 'bg-green-500/20 border-green-500/40 text-green-300'
+                    : 'bg-red-500/20 border-red-500/40 text-red-300'
+                }`}>
+                  {fonte.ativo ? 'Ativa' : 'Inativa'}
+                </div>
+              </div>
+
+              {fonte.descricao && (
+                <p className="text-white/50 text-sm leading-relaxed">{fonte.descricao}</p>
+              )}
+
+              <div className="space-y-1 text-xs">
+                {fonte.licenca && (
+                  <p className="text-white/30">Licença: <span className="text-white/60">{fonte.licenca}</span></p>
+                )}
+                {fonte.url && (
+                  <a href={fonte.url} target="_blank" rel="noopener noreferrer"
+                    className="text-blue-400/70 hover:text-blue-300 transition-colors block truncate">
+                    {fonte.url}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="glass-card p-6 mt-10">
+          <p className="text-white/40 text-sm leading-relaxed text-center">
+            A cada contribuição recebida, o motor semântico consulta automaticamente as fontes ativas 
+            para identificar registros similares e enriquecer as células informacionais com metadados externos.
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
