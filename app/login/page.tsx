@@ -17,18 +17,15 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-
-    if (authError || !data.session) {
-      setError('Credenciais inválidas. Verifique o e-mail e a senha.');
+    // Hardcoded NUGEP login as requested
+    if (email === 'nugep' && password === 'nugep123') {
+      // Simulate session creation
+      localStorage.setItem('isAdmin', 'true');
+      router.push('/admin');
+    } else {
+      setError('Credenciais inválidas. Use o usuário administrativo.');
       setLoading(false);
-      return;
     }
-
-    router.push('/admin');
   };
 
   return (
@@ -48,14 +45,14 @@ export default function LoginPage() {
         <div className="glass-card p-8">
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">E-mail institucional</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Usuário Institucional</label>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 className="liquid-input w-full px-4 py-3 text-sm placeholder:text-white/30"
-                placeholder="seu@email.com"
+                placeholder="nugep"
               />
             </div>
 

@@ -16,7 +16,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16 max-w-2xl mx-auto">
           
-          <Link href="/obras" className="glass-card p-8 group flex flex-col items-center text-center gap-4 hover:bg-white/10">
+          <Link href="/questionario" className="glass-card p-8 group flex flex-col items-center text-center gap-4 hover:bg-white/10">
             <div className="p-4 rounded-full bg-blue-500/20 text-blue-300 group-hover:scale-110 transition-transform">
               <BookOpen size={48} strokeWidth={1.5} />
             </div>

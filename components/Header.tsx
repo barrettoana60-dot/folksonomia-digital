@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BookOpen, Eye, LogIn, Home } from 'lucide-react';
@@ -13,6 +14,12 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, [pathname]);
 
   return (
     <header

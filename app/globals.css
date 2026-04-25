@@ -2,74 +2,107 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes bgAnim {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+@keyframes glowPulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.5; }
 }
 
 :root {
-  --background: #000000;
-  --foreground: #e0e0e0;
+  --background: #040404;
+  --foreground: #f0f0f0;
+  --glow-color: radial-gradient(circle at 50% 120%, rgba(255, 60, 0, 0.15) 0%, rgba(10, 10, 10, 0) 50%);
 }
 
 body {
   color: var(--foreground);
-  background: linear-gradient(-45deg, #000000 0%, #001F3F 25%, #000000 50%, #001F3F 75%, #000000 100%);
-  background-size: 400% 400%;
-  animation: bgAnim 15s ease infinite;
-  font-family: "Times New Roman", Times, serif;
+  background-color: var(--background);
+  background-image: var(--glow-color);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
   margin: 0;
   padding: 0;
   min-height: 100vh;
 }
 
+/* Add a subtle grid to the background */
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .glass-card {
-  background: rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(15, 15, 15, 0.6);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 .glass-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  border-color: rgba(255, 100, 0, 0.3);
+  box-shadow: 0 8px 32px rgba(255, 60, 0, 0.1);
 }
 
 .liquid-button {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50px;
-  transition: all 0.3s;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  background: white;
+  color: black;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+  letter-spacing: -0.02em;
 }
 
 .liquid-button:hover {
-  background: rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 25px rgba(0, 31, 63, 0.4);
-  transform: translateY(-2px) scale(1.02);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: #f0f0f0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15);
 }
 
 .liquid-input {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: white;
-  border-radius: 12px;
+  border-radius: 8px;
+  transition: border-color 0.2s;
 }
 
 .liquid-input:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 100, 0, 0.5);
+}
+
+.mono-subtitle {
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
 }
