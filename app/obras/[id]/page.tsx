@@ -37,6 +37,46 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
     synth.speak(utter);
   };
 
+  const handleSubmitTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tagInput.trim() || submitting) return;
+
+    setSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch('/api/ml/analisar-tag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tag: tagInput.trim(),
+          obra_id: resolvedParams.id,
+          visitante_hash: localStorage.getItem('visitante_hash'),
+          visitante_nome: localStorage.getItem('visitante_nome')
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setFeedback({
+          type: 'success',
+          msg: data.message || 'Tag registrada com sucesso.'
+        });
+        setTagInput('');
+      } else {
+        throw new Error(data.error || 'Falha ao registrar tag');
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        msg: 'Ocorreu um erro institucional ao processar sua contribuição. Tente novamente mais tarde.'
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#000814] text-white serif-title animate-pulse">Carregando Acervo...</div>;
   if (!obra) return <div className="min-h-screen flex items-center justify-center bg-[#000814] text-red-400 serif-title">Registro não encontrado.</div>;
 

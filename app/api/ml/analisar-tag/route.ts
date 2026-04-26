@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
     const normalized = normalizeText(tag);
 
     // 1. Run the full semantic pipeline (embedding + ontology matching + scoring)
-    const { cell, semantics } = await runSemanticPipeline(tag, obra_id, '');
+    const result = await runSemanticPipeline(tag, obra_id, '');
+    const { dna, semantics } = result;
 
     // 2. Persist the nucleus (Célula) in Supabase
     const { data: nucleo, error: nucleoError } = await supabaseAdmin
@@ -26,18 +27,18 @@ export async function POST(req: NextRequest) {
       .insert({
         tipo: 'tag',
         conteudo_original: tag,
-        conteudo_normalizado: normalized,
+        conteudo_normalizado: dna.normalized,
         origem: 'interface_publica',
-        assinatura_hash: cell.signature,
-        embedding: cell.embedding,
+        assinatura_hash: dna.signature,
+        embedding: dna.embedding,
         status_validacao: 'bruto',
-        confianca: semantics.confidence,
-        novidade: semantics.novelty,
-        tensao: semantics.tension,
-        ressonancia: semantics.resonance,
+        confianca: semantics.indicators.confidence,
+        novidade: semantics.indicators.novelty,
+        tensao: semantics.indicators.tension,
+        ressonancia: semantics.indicators.resonance,
         obra_id,
-        contexto: { encryptedPayload: cell.encryptedPayload },
-        metadados: { concepts: semantics.concepts }
+        contexto: { themeGroup: semantics.themeGroup },
+        metadados: { concepts: semantics.concepts, ontologies: semantics.ontologies }
       })
       .select()
       .single();
@@ -52,10 +53,10 @@ export async function POST(req: NextRequest) {
       obra_id,
       nucleo_id: nucleo.id,
       tag_original: tag,
-      tag_normalizada: normalized,
+      tag_normalizada: dna.normalized,
       visitante_hash: visitante_hash || null,
       visitante_nome: visitante_nome || null,
-      grupo_tematico: semantics.concepts[0] || 'Outros',
+      grupo_tematico: semantics.themeGroup || 'Outros',
       status: 'em análise'
     });
 
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
         nucleo_id: nucleo.id,
         tipo_sugestao: 'conceito_relacionado',
         sugestao: concept,
-        score: semantics.confidence / 100,
+        score: semantics.indicators.confidence / 100,
         metodo: 'ontology_match + embedding_local',
         status: 'pendente'
       }));
@@ -78,20 +79,14 @@ export async function POST(req: NextRequest) {
       tipo_execucao: 'pipeline_semantico_completo',
       resumo: `Tag "${tag}" processada. ${semantics.concepts.length} conceitos sugeridos.`,
       status: 'concluido',
-      metricas: {
-        confianca: semantics.confidence,
-        novidade: semantics.novelty,
-        tensao: semantics.tension,
-        ressonancia: semantics.resonance,
-        concepts: semantics.concepts
-      }
+      metricas: semantics.indicators
     });
 
     // 6. Async: Search external sources (don't block the response)
     (async () => {
       try {
         const europeana = new EuropeanaConnector();
-        const extResults = await europeana.searchExternalSource(normalized);
+        const extResults = await europeana.searchExternalSource(dna.normalized);
         if (extResults.length > 0) {
           await supabaseAdmin.from('resultados_externos').insert(
             extResults.map(r => ({
@@ -121,7 +116,7 @@ export async function POST(req: NextRequest) {
       entidade_id: nucleo.id,
       tipo_evento: 'tag_criada',
       resumo: `Tag "${tag}" registrada pelo visitante e processada pelo motor semântico.`,
-      hash_evento: cell.signature
+      hash_evento: dna.signature
     });
 
     // Return user-friendly response (no raw data)
@@ -129,8 +124,8 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'Tag registrada com sucesso. Essa contribuição será analisada pela equipe e poderá ampliar as leituras da obra.',
       indicadores: {
-        nivel_conexao: Math.round(semantics.confidence),
-        nivel_novidade: Math.round(semantics.novelty),
+        nivel_conexao: Math.round(semantics.indicators.confidence),
+        nivel_novidade: Math.round(semantics.indicators.novelty),
         conceitos_sugeridos: semantics.concepts.length,
         fontes_conectadas: 1
       }
@@ -141,3 +136,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Ocorreu um erro ao processar a contribuição.' }, { status: 500 });
   }
 }
+

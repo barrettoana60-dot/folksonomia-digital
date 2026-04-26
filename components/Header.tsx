@@ -3,13 +3,14 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, Eye, LogIn, Home } from 'lucide-react';
+import { BookOpen, Eye, LogIn, Home, Network } from 'lucide-react';
 
 const navLinks = [
   { href: '/', label: 'Início', icon: Home },
-  { href: '/obras', label: 'Obras', icon: BookOpen },
+  { href: '/obras', label: 'Acervo', icon: BookOpen },
+  { href: '/teia', label: 'Teia', icon: Network },
   { href: '/acessibilidade', label: 'Acessibilidade', icon: Eye },
-  { href: '/login', label: 'Área Administrativa', icon: LogIn },
+  { href: '/login', label: 'Gestão', icon: LogIn },
 ];
 
 export default function Header() {
@@ -23,34 +24,33 @@ export default function Header() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50"
-      style={{
-        background: 'rgba(0,15,40,0.7)',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        borderBottom: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.3)'
-      }}
+      className="fixed top-0 left-0 right-0 z-50 px-6 py-4"
     >
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="text-xl font-bold text-white hover:text-blue-200 transition-colors tracking-tight">
-          Sistema Folksonomia Digital
+      <div className="max-w-[95%] mx-auto glass-card !rounded-full px-8 h-16 flex items-center justify-between border-white/5">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-8 h-8 bg-[#E85002] rounded-lg flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+            <span className="text-white font-bold serif-title text-xl">F</span>
+          </div>
+          <span className="text-lg font-normal serif-title text-white tracking-tight hidden sm:block">
+            Sistema Folksonomia <span className="text-[#E85002] font-sans font-bold text-xs uppercase ml-1">Digital</span>
+          </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="flex items-center gap-1">
           {navLinks.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${
                   isActive
-                    ? 'bg-white/20 text-white border border-white/30'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                    ? 'bg-[#E85002]/20 text-[#E85002] border border-[#E85002]/30'
+                    : 'text-white/40 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon size={15} />
-                {label}
+                <Icon size={14} strokeWidth={2} />
+                <span className="hidden lg:block">{label}</span>
               </Link>
             );
           })}
