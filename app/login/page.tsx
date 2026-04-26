@@ -12,13 +12,18 @@ export default function LoginPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'nugep' && password === 'nugep 123') {
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim().toLowerCase();
+    
+    // Suportar 'nugep 123' ou 'nugep123'
+    if (cleanUser === 'nugep' && (cleanPass === 'nugep 123' || cleanPass === 'nugep123')) {
       localStorage.setItem('admin_token', 'true');
       router.push('/admin');
     } else {
       setError('Credenciais Institucionais Inválidas');
     }
   };
+
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6">

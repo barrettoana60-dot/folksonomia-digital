@@ -47,6 +47,9 @@ export default function ObraCard({ obra }: ObraCardProps) {
 
     setSubmitting(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       const res = await fetch('/api/ml/analisar-tag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,18 +57,28 @@ export default function ObraCard({ obra }: ObraCardProps) {
           tag: tagInput.trim(),
           obra_id: obra.id,
           visitante_hash: localStorage.getItem('visitante_hash')
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         setMyTag(tagInput.trim());
         setTagInput('');
+        setIsTagging(false);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Erro: ${errorData.error || 'Falha no processamento do motor semântico'}`);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Submission error:', err);
+      alert('O sistema está instável ou o tempo de resposta expirou. Tente novamente em instantes.');
     } finally {
       setSubmitting(false);
     }
   };
+
 
   return (
     <div className="flex flex-col space-y-4 animate-fade-in">

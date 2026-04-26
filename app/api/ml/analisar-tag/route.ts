@@ -73,16 +73,18 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from('ml_sugestoes').insert(suggestions);
     }
 
-    // 5. Record the ML execution log
-    await supabaseAdmin.from('ml_execucoes').insert({
-      nucleo_id: nucleo.id,
-      tipo_execucao: 'pipeline_semantico_completo',
-      resumo: `Tag "${tag}" processada. ${semantics.concepts.length} conceitos sugeridos.`,
-      status: 'concluido',
-      metricas: semantics.indicators
-    });
+    // 5. Record the ML execution log (Optional)
+    try {
+      await supabaseAdmin.from('ml_execucoes').insert({
+        nucleo_id: nucleo.id,
+        tipo_execucao: 'pipeline_semantico_completo',
+        resumo: `Tag "${tag}" processada. ${semantics.concepts.length} conceitos sugeridos.`,
+        status: 'concluido',
+        metricas: semantics.indicators
+      });
+    } catch (e) { console.warn('ML Log failed'); }
 
-    // 6. Async: Search external sources (don't block the response)
+    // 6. Async: Search external sources
     (async () => {
       try {
         const europeana = new EuropeanaConnector();
@@ -105,24 +107,23 @@ export async function POST(req: NextRequest) {
             }))
           );
         }
-      } catch (extErr) {
-        console.warn('External source search failed silently:', extErr);
-      }
+      } catch (extErr) { console.warn('External search failed'); }
     })();
 
-    // 7. Register provenance event
-    await supabaseAdmin.from('eventos').insert({
-      entidade_tipo: 'nucleo',
-      entidade_id: nucleo.id,
-      tipo_evento: 'tag_criada',
-      resumo: `Tag "${tag}" registrada pelo visitante e processada pelo motor semântico.`,
-      hash_evento: dna.signature
-    });
+    // 7. Register provenance event (Optional)
+    try {
+      await supabaseAdmin.from('eventos').insert({
+        entidade_tipo: 'nucleo',
+        entidade_id: nucleo.id,
+        tipo_evento: 'tag_criada',
+        resumo: `Tag "${tag}" registrada pelo visitante e processada pelo motor semântico.`,
+        hash_evento: dna.signature
+      });
+    } catch (e) { console.warn('Event log failed'); }
 
-    // Return user-friendly response (no raw data)
     return NextResponse.json({
       success: true,
-      message: 'Tag registrada com sucesso. Essa contribuição será analisada pela equipe e poderá ampliar as leituras da obra.',
+      message: 'Tag registrada com sucesso.',
       indicadores: {
         nivel_conexao: Math.round(semantics.indicators.confidence),
         nivel_novidade: Math.round(semantics.indicators.novelty),
@@ -130,6 +131,7 @@ export async function POST(req: NextRequest) {
         fontes_conectadas: 1
       }
     });
+
 
   } catch (err) {
     console.error('API /api/ml/analisar-tag error:', err);
