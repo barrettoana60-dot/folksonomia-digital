@@ -1,4 +1,5 @@
 import React from 'react';
+import { Amphora, Bird, Leaf, HandHeart, Landmark, Laptop } from 'lucide-react';
 
 const Logo = ({ className = "w-10 h-10" }) => {
   const createSlice = (startAngle: number, endAngle: number, color: string) => {
@@ -19,86 +20,42 @@ const Logo = ({ className = "w-10 h-10" }) => {
   };
 
   return (
-    <div className={`flex items-center justify-center ${className}`}>
-      <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-md">
-        {/* Segments */}
-        {createSlice(288, 360, '#C25925')} {/* Orange - Top Left */}
-        {createSlice(0, 72, '#962B28')}    {/* Red - Top Right */}
-        {createSlice(72, 144, '#489B59')}  {/* Green - Bottom Right */}
-        {createSlice(144, 216, '#EEA623')} {/* Yellow - Bottom Center */}
-        {createSlice(216, 288, '#1A537A')} {/* Blue - Bottom Left */}
-
-        {/* Center White Circle */}
-        <circle cx="50" cy="50" r="25" fill="#ffffff" />
+    <div className={`relative flex items-center justify-center ${className}`}>
+      {/* Background Pie Chart */}
+      <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0">
+        {createSlice(288, 360, '#d35400')} {/* Orange */}
+        {createSlice(0, 72, '#c0392b')}    {/* Red */}
+        {createSlice(72, 144, '#27ae60')}  {/* Green */}
+        {createSlice(144, 216, '#f39c12')} {/* Yellow */}
+        {createSlice(216, 288, '#2980b9')} {/* Blue */}
         
-        {/* Center Icon - Laptop + Museum Roof */}
-        <g transform="translate(32, 38) scale(0.65)" fill="#333333">
-          {/* Laptop Screen */}
-          <path d="M6 18 h44 v24 h-44 z" fill="none" stroke="#333333" strokeWidth="2" />
-          {/* Base */}
-          <path d="M-2 44 h60 l5 6 h-70 z" />
-          {/* Roof */}
-          <path d="M28 2 l-24 14 h48 z" />
-          <rect x="26" y="0" width="4" height="4" />
-        </g>
-
-        <g fill="#ffffff">
-          {/* Orange Segment (Vase) */}
-          <g transform="translate(20, 10) scale(0.55)">
-            {/* Belly */}
-            <path d="M10 15 c -15 10 -10 35 10 35 h10 c 20 0 25 -25 10 -35 z" />
-            {/* Neck */}
-            <rect x="15" y="8" width="10" height="8" />
-            {/* Lip */}
-            <path d="M13 5 h14 v3 h-14 z" />
-            {/* Lid */}
-            <path d="M17 1 h6 v4 h-6 z" />
-          </g>
-
-          {/* Red Segment (Folk Animal - Bumba Meu Boi) */}
-          <g transform="translate(60, 12) scale(0.55)">
-             {/* Horns */}
-             <path d="M10 15 c -8 -8 -5 -15 0 -15 c 2 0 5 8 5 15 z" />
-             <path d="M30 15 c 8 -8 5 -15 0 -15 c -2 0 -5 8 -5 15 z" />
-             {/* Head */}
-             <path d="M12 12 h16 v12 h-16 z" />
-             {/* Skirt/Body */}
-             <path d="M6 24 c -12 15 -5 30 14 30 h0 c 19 0 26 -15 14 -30 z" />
-             {/* Legs */}
-             <rect x="15" y="52" width="4" height="8" />
-             <rect x="21" y="52" width="4" height="8" />
-          </g>
-
-          {/* Green Segment (Leaf) */}
-          <g transform="translate(70, 48) scale(0.7)">
-            <path d="M4 22 c 0 -15 15 -20 22 -20 c 0 15 -15 20 -22 20 z" />
-            <path d="M6 20 l 15 -15" stroke="#489B59" strokeWidth="1" />
-          </g>
-
-          {/* Yellow Segment (Cupped Hands) */}
-          <g transform="translate(38, 73) scale(0.5)">
-            {/* Left Hand */}
-            <path d="M10 15 c -5 15 5 25 15 25 h4 c 0 0 -5 -15 -10 -20 z" />
-            {/* Right Hand */}
-            <path d="M38 15 c 5 15 -5 25 -15 25 h-4 c 0 0 5 -15 10 -20 z" />
-            {/* Base/Wrists */}
-            <path d="M18 38 h12 v10 h-12 z" />
-          </g>
-
-          {/* Blue Segment (Building/Facade) */}
-          <g transform="translate(15, 50) scale(0.5)">
-            <path d="M6 8 h24 v28 h-24 z" />
-            {/* Windows */}
-            <rect x="10" y="14" width="6" height="8" fill="#1A537A" />
-            <rect x="20" y="14" width="6" height="8" fill="#1A537A" />
-            <rect x="10" y="26" width="6" height="10" fill="#1A537A" />
-            <rect x="20" y="26" width="6" height="10" fill="#1A537A" />
-            {/* Roof Top */}
-            <path d="M2 4 h32 v4 h-32 z" />
-            <path d="M4 0 h28 v4 h-28 z" />
-          </g>
-        </g>
+        {/* Center White Circle */}
+        <circle cx="50" cy="50" r="23" fill="#ffffff" />
       </svg>
+
+      {/* Icons overlay using absolute positioning percentages */}
+      <div className="absolute inset-0 w-full h-full z-10 pointer-events-none">
+        {/* Center */}
+        <div className="absolute left-[50%] top-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+          <Landmark className="w-[12%] h-[12%] text-neutral-800 -mb-[2%]" strokeWidth={2} />
+          <Laptop className="w-[20%] h-[20%] text-neutral-800" strokeWidth={2} />
+        </div>
+
+        {/* Orange Segment (Top Left ~ 234 deg) */}
+        <Amphora className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '29%', top: '22%' }} strokeWidth={2} />
+
+        {/* Red Segment (Top Right ~ 306 deg) */}
+        <Bird className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '71%', top: '22%' }} strokeWidth={2} />
+
+        {/* Green Segment (Bottom Right ~ 18 deg) */}
+        <Leaf className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '83%', top: '61%' }} strokeWidth={2} />
+
+        {/* Yellow Segment (Bottom Center ~ 90 deg) */}
+        <HandHeart className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '50%', top: '85%' }} strokeWidth={2} />
+
+        {/* Blue Segment (Bottom Left ~ 162 deg) */}
+        <Landmark className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '17%', top: '61%' }} strokeWidth={2} />
+      </div>
     </div>
   );
 };
