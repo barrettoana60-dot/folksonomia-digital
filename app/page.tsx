@@ -1,42 +1,47 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-
-const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`relative flex items-center justify-center ${className}`}>
-    <div className="absolute inset-0 rounded-full bg-[#E85002] shadow-[0_0_40px_rgba(232,80,2,0.2)]" />
-    <div className="absolute inset-[25%] rounded-full bg-black/30" />
-    <div className="absolute inset-[40%] rounded-full bg-white/20" />
-  </div>
-);
+import { useEffect } from 'react';
 
 export default function LandingPage() {
   const router = useRouter();
 
+  useEffect(() => {
+    const hasQuiz = localStorage.getItem('visitante_quiz_completado');
+    if (hasQuiz) {
+      router.push('/obras');
+    }
+  }, [router]);
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
-      <div className="max-w-[800px] text-center space-y-16">
+      <div className="max-w-[800px] text-center space-y-12">
         
-        <div className="space-y-6">
-          <InstitutionalLogo className="w-24 h-24 mx-auto mb-4" />
-          <h1 className="text-5xl md:text-6xl font-normal serif-title text-white tracking-[0.05em] uppercase">
-            Sistema de Folksonomia
-          </h1>
-          <p className="text-white/30 text-[11px] uppercase tracking-[0.6em] font-bold">
-            Documentação Semântica Institucional
-          </p>
+        <div className="space-y-8">
+          <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl overflow-hidden mx-auto border border-white/10 shadow-[0_0_50px_rgba(232,80,2,0.3)] bg-white/5 backdrop-blur-xl">
+             <img src="/logo.png" alt="Institutional Logo" className="w-full h-full object-cover" />
+          </div>
+          
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-7xl font-normal serif-title text-white tracking-[0.05em] uppercase leading-tight">
+              Sistema de Folksonomia
+            </h1>
+            <p className="text-white/30 text-[10px] md:text-[12px] uppercase tracking-[0.6em] font-bold">
+              Documentação Semântica Institucional
+            </p>
+          </div>
         </div>
 
         <div className="h-[1px] w-24 bg-[#E85002] mx-auto opacity-50" />
 
-        <p className="text-white/40 text-base leading-relaxed font-light italic max-w-md mx-auto">
+        <p className="text-white/40 text-sm md:text-lg leading-relaxed font-light italic max-w-lg mx-auto">
           Participe da construção coletiva do conhecimento institucional através de percepções e tags semânticas.
         </p>
 
         <div className="pt-8">
           <button 
             onClick={() => router.push('/questionario')}
-            className="liquid-button !px-20 !py-5 !rounded-full !text-[12px] !font-black !tracking-[0.3em] !bg-white/10"
+            className="liquid-button !px-16 md:!px-24 !py-4 md:!py-6 !rounded-full !text-[11px] md:!text-[13px] !font-black !tracking-[0.3em] !bg-white/10 hover:!bg-[#E85002]/20 hover:!border-[#E85002]/40 transition-all shadow-2xl"
           >
             Acessar Sistema
           </button>
