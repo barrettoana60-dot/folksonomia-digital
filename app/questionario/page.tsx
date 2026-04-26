@@ -26,12 +26,12 @@ export default function QuestionarioPage() {
       <div className="w-full max-w-md">
         
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-5 rounded-full bg-orange-500/10 mb-6 border border-orange-500/20 shadow-[0_0_15px_rgba(255,100,0,0.2)]">
-            <ClipboardList size={40} className="text-orange-400" strokeWidth={1.5} />
+          <div className="inline-flex items-center justify-center p-6 rounded-full bg-white/5 border border-white/10 mb-8 shadow-xl">
+            <ClipboardList size={40} className="text-white" strokeWidth={1} />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Bem-vindo(a) à Plataforma</h1>
-          <p className="text-white/50 mt-3 text-sm leading-relaxed">
-            Antes de acessar o acervo e contribuir com a teia semântica, precisamos conhecer um pouco mais sobre o seu perfil de pesquisa.
+          <h1 className="text-3xl font-bold text-white tracking-tighter uppercase mb-2">Acesso Institucional</h1>
+          <p className="text-white/40 mt-3 text-sm leading-relaxed max-w-xs mx-auto">
+            Identifique-se para iniciar sua jornada curatorial e contribuir com a teia de significados.
           </p>
         </div>
 

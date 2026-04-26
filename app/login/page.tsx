@@ -34,11 +34,11 @@ export default function LoginPage() {
         
         {/* Icon & Title */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-5 rounded-full bg-purple-500/10 mb-6">
-            <LogIn size={40} className="text-purple-300" strokeWidth={1.5} />
+          <div className="inline-flex items-center justify-center p-6 rounded-full bg-white/5 border border-white/10 mb-8 shadow-xl">
+            <LogIn size={40} className="text-white" strokeWidth={1} />
           </div>
-          <h1 className="text-3xl font-bold text-white">Área Administrativa</h1>
-          <p className="text-white/50 mt-2">Acesso restrito para curadores e administradores.</p>
+          <h1 className="text-3xl font-bold text-white tracking-tighter uppercase mb-2">Curadoria NUGEP</h1>
+          <p className="text-white/40 mt-2 text-sm max-w-xs mx-auto">Acesso restrito para autenticação e gestão de núcleos informacionais.</p>
         </div>
 
         {/* Login Form */}
