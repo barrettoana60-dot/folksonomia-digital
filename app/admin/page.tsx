@@ -30,12 +30,11 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false 
 
 // Unified Logo Component
 const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`relative flex items-center justify-center ${className}`}>
-    <div className="absolute inset-0 rounded-full bg-[#E85002] shadow-[0_0_20px_rgba(232,80,2,0.5)]" />
-    <div className="absolute inset-[25%] rounded-full bg-black/30" />
-    <div className="absolute inset-[40%] rounded-full bg-white/20" />
+  <div className={`relative overflow-hidden rounded-2xl border border-white/10 ${className}`}>
+    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
   </div>
 );
+
 
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
