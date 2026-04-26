@@ -22,31 +22,33 @@ export default function QuestionarioPage() {
     localStorage.setItem('visitante_quiz_completado', 'true');
     localStorage.setItem('visitante_hash', vHash);
     
-    // Pequeno delay para garantir que o usuário veja o estado de processamento
+    // Pequeno delay para percepção de processamento
     setTimeout(() => {
       router.push('/obras');
-    }, 500);
+    }, 800);
   };
 
-
   return (
-    <main className="min-h-screen bg-[#000000] flex flex-col items-center pt-20 px-6">
+    <main className="min-h-screen flex flex-col items-center pt-24 px-6">
       
-      <h1 className="text-3xl font-normal serif-title text-white mb-16">
-        Questionário de Acesso
-      </h1>
+      <div className="text-center space-y-4 mb-16">
+        <h1 className="text-4xl font-normal serif-title text-white tracking-wide">
+          Questionário de Acesso
+        </h1>
+        <div className="h-[1px] w-12 bg-[#E85002] mx-auto opacity-40" />
+      </div>
 
       <div className="quiz-container">
-        <div className="quiz-card">
+        <div className="quiz-card glass-card">
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
             
-            <div className="space-y-8">
+            <div className="space-y-10">
               <div>
-                <label className="quiz-label">1. Qual é o seu nível de familiaridade com museus?</label>
+                <label className="quiz-label uppercase tracking-widest text-[10px] font-black opacity-40">1. Familiaridade com Museus</label>
                 <select 
                   value={formData.familiaridade}
                   onChange={e => setFormData({...formData, familiaridade: e.target.value})}
-                  className="quiz-select"
+                  className="quiz-select w-full"
                 >
                   <option>Nunca visito museus</option>
                   <option>Visito raramente</option>
@@ -56,11 +58,11 @@ export default function QuestionarioPage() {
               </div>
 
               <div>
-                <label className="quiz-label">2. Você já ouviu falar sobre documentação museológica?</label>
+                <label className="quiz-label uppercase tracking-widest text-[10px] font-black opacity-40">2. Conhecimento em Documentação</label>
                 <select 
                   value={formData.documentacao}
                   onChange={e => setFormData({...formData, documentacao: e.target.value})}
-                  className="quiz-select"
+                  className="quiz-select w-full"
                 >
                   <option>Nunca ouvi falar</option>
                   <option>Já ouvi falar, mas não sei o que é</option>
@@ -71,25 +73,24 @@ export default function QuestionarioPage() {
             </div>
 
             <div className="flex flex-col">
-              <label className="quiz-label">3. O que você entende por 'tags' ou etiquetas digitais aplicadas a acervo?</label>
+              <label className="quiz-label uppercase tracking-widest text-[10px] font-black opacity-40">3. Entendimento sobre Tags Digitais</label>
               <textarea 
                 value={formData.entendimento}
                 onChange={e => setFormData({...formData, entendimento: e.target.value})}
-                placeholder="Descreva sua compreensão sobre o conceito..."
-                className="quiz-select flex-1 min-h-[160px] resize-none"
+                placeholder="Descreva sua compreensão..."
+                className="quiz-select flex-1 min-h-[160px] resize-none w-full"
               />
             </div>
 
-            <div className="md:col-span-2 flex justify-center">
+            <div className="md:col-span-2 flex justify-center pt-6">
               <button 
                 type="submit" 
                 disabled={loading}
-                className="quiz-button"
+                className="liquid-button !px-16 !py-5 !rounded-full !bg-white/10"
               >
-                {loading ? 'Acessando...' : 'Acessar Plataforma'}
+                {loading ? 'PROCESSANDO...' : 'ACESSAR PLATAFORMA'}
               </button>
             </div>
-
 
           </form>
         </div>

@@ -18,29 +18,28 @@
 }
 
 [data-theme='claro'] {
-  --bg-color: #FFFFFF;
-  --text-color: #000000;
-  --glass-bg: rgba(0, 0, 0, 0.05);
-  --glass-border: rgba(0, 0, 0, 0.2);
-  --glass-blur: 20px;
+  --bg-color: #F5F5F7;
+  --text-color: #1D1D1F;
+  --glass-bg: rgba(0, 0, 0, 0.03);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-blur: 15px;
 }
 
 [data-theme='contraste'] {
   --bg-color: #000000;
   --text-color: #FFFF00;
-  --glass-bg: rgba(255, 255, 0, 0.1);
+  --glass-bg: rgba(255, 255, 0, 0.05);
   --glass-border: #FFFF00;
   --glass-blur: 0px;
 }
-
 
 body {
   color: var(--text-color);
   background-color: var(--bg-color);
   background-image: 
-    radial-gradient(circle at 0% 0%, rgba(193, 8, 1, 0.2) 0%, transparent 40%),
-    radial-gradient(circle at 100% 100%, rgba(241, 96, 1, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(217, 195, 171, 0.05) 0%, transparent 60%);
+    radial-gradient(circle at 0% 0%, rgba(193, 8, 1, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 100% 100%, rgba(241, 96, 1, 0.2) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(217, 195, 171, 0.08) 0%, transparent 65%);
   background-attachment: fixed;
   font-family: Arial, sans-serif !important;
   margin: 0;
@@ -48,7 +47,12 @@ body {
   min-height: 100vh;
 }
 
-/* Liquid Glass Cards - EXTREME GLOSS */
+/* Force standard background on all main containers */
+main, .admin-container {
+  background: transparent !important;
+}
+
+/* Liquid Glass Cards */
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
@@ -58,12 +62,12 @@ body {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-/* Universal Liquid Glass Buttons - WOW EFFECT */
-button, .liquid-button, .quiz-button, select, input[type="submit"] {
+/* UNIVERSAL LIQUID GLASS BUTTONS */
+button, .liquid-button, .quiz-button, select, input[type="submit"], .nav-link-active {
   background: rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
   color: inherit !important;
   padding: 14px 28px;
   border-radius: 14px;
@@ -72,54 +76,42 @@ button, .liquid-button, .quiz-button, select, input[type="submit"] {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
 }
 
 button:hover:not(:disabled), .liquid-button:hover {
   background: rgba(255, 255, 255, 0.15) !important;
   border-color: var(--branding-orange) !important;
-  box-shadow: 0 0 20px rgba(232, 80, 2, 0.4);
+  box-shadow: 0 0 25px rgba(232, 80, 2, 0.5);
   transform: translateY(-2px);
 }
 
-button:active:not(:disabled) {
-  transform: translateY(0px);
-}
-
-/* Inputs */
+/* Inputs with image-based styling */
 input[type="text"], input[type="password"], textarea, .liquid-input {
-  background: rgba(0, 0, 0, 0.4) !important;
-  border: 1px solid var(--glass-border) !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
   color: white !important;
-  border-radius: 14px !important;
-  padding: 16px 20px !important;
-  font-size: 14px !important;
+  border-radius: 18px !important;
+  padding: 16px 24px !important;
+  font-size: 15px !important;
   transition: all 0.3s ease;
+  outline: none;
 }
 
 input:focus, textarea:focus {
   border-color: var(--branding-orange) !important;
-  background: rgba(0, 0, 0, 0.6) !important;
+  box-shadow: 0 0 15px rgba(232, 80, 2, 0.3);
 }
 
 .serif-title {
   font-family: 'Times New Roman', Times, serif;
 }
 
-/* Specific Quiz Styles from Image 2 */
-.quiz-container { max-width: 950px; width: 100%; }
-.quiz-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 50px; }
-.quiz-label { font-size: 14px; margin-bottom: 12px; display: block; font-weight: 500; color: rgba(255, 255, 255, 0.9); }
-.quiz-select, .quiz-textarea {
-  background: #0D0D0F !important;
-  border: 1px solid #1F1F21 !important;
-  color: #A7A7A7 !important;
-  border-radius: 4px !important;
-  padding: 12px !important;
+.animate-fade-in {
+  animation: fadeIn 0.5s ease forwards;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--primary-black); }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--branding-orange); }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

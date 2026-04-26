@@ -1,6 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/client';
 import ObraCard from '@/components/ObraCard';
-import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,16 +22,16 @@ export default async function ObrasPage() {
       <div className="max-w-[1400px] mx-auto space-y-20">
         
         <div className="text-center space-y-6">
-          <h1 className="text-5xl font-normal serif-title text-white tracking-tight">
+          <h1 className="text-6xl font-normal serif-title text-white tracking-tight">
             Explorar Obras
           </h1>
-          <p className="text-white/30 text-[10px] uppercase tracking-[0.5em] font-bold">
-            Galeria Institucional de Folksonomia
+          <p className="text-white/30 text-[10px] uppercase tracking-[0.6em] font-black">
+            Acervo e Documentação Semântica
           </p>
-          <div className="h-[1px] w-12 bg-[#E85002] mx-auto mt-10" />
+          <div className="h-[1px] w-16 bg-[#E85002] mx-auto mt-12 opacity-50" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-20">
           {obras.length === 0 ? (
             <ObraCard 
               obra={{
@@ -40,7 +39,9 @@ export default async function ObrasPage() {
                 titulo: 'Guernica',
                 artista: 'Pablo Picasso',
                 ano: '1937',
-                imagem_url: 'https://upload.wikimedia.org/wikipedia/pt/7/74/Guernica.jpg'
+                imagem_url: 'https://upload.wikimedia.org/wikipedia/pt/7/74/Guernica.jpg',
+                descricao: 'Painel a óleo sobre tela, retratando o bombardeio de Guernica.',
+                audiodescricao: 'A pintura apresenta tons de cinza e branco, retratando o sofrimento humano em meio ao caos da guerra.'
               }} 
             />
           ) : (
@@ -49,7 +50,6 @@ export default async function ObrasPage() {
             ))
           )}
         </div>
-
 
       </div>
     </main>
