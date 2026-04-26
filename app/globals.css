@@ -1,120 +1,131 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 :root {
-  --branding-orange: #E85002;
-  --primary-black: #000000;
-  --color-1: #000000;
-  --color-2: #C10801;
-  --color-3: #F16001;
-  --color-4: #D9C3AB;
-  
+  --background: #000000;
+  --foreground: #ffffff;
   --bg-color: #000000;
-  --text-color: #F9F9F9;
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-blur: 25px;
+  --text-color: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme='claro'] {
-  --bg-color: #F5F5F7;
-  --text-color: #1D1D1F;
-  --glass-bg: rgba(0, 0, 0, 0.03);
-  --glass-border: rgba(0, 0, 0, 0.1);
-  --glass-blur: 15px;
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-[data-theme='contraste'] {
-  --bg-color: #000000;
-  --text-color: #FFFF00;
-  --glass-bg: rgba(255, 255, 0, 0.05);
-  --glass-border: #FFFF00;
-  --glass-blur: 0px;
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #000000;
+  color: #ffffff;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
 }
 
 body {
-  color: var(--text-color);
-  background-color: var(--bg-color);
   background-image: 
     radial-gradient(circle at 0% 0%, rgba(193, 8, 1, 0.25) 0%, transparent 45%),
     radial-gradient(circle at 100% 100%, rgba(241, 96, 1, 0.2) 0%, transparent 45%),
     radial-gradient(circle at 50% 50%, rgba(217, 195, 171, 0.08) 0%, transparent 65%);
   background-attachment: fixed;
   font-family: Arial, sans-serif !important;
-  margin: 0;
-  padding: 0;
   min-height: 100vh;
-  overflow-x: hidden;
-  width: 100%;
 }
 
-
-/* Force standard background on all main containers */
-main, .admin-container {
-  background: transparent !important;
+.serif-title {
+  font-family: 'Times New Roman', Times, serif !important;
 }
 
-/* Liquid Glass Cards */
 .glass-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 1.5rem;
 }
 
-/* UNIVERSAL LIQUID GLASS BUTTONS */
-button, .liquid-button, .quiz-button, select, input[type="submit"], .nav-link-active {
-  background: rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  color: inherit !important;
-  padding: 14px 28px;
-  border-radius: 14px;
-  font-weight: 600;
-  font-size: 13px;
+.liquid-button {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.8rem 2rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
-button:hover:not(:disabled), .liquid-button:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border-color: var(--branding-orange) !important;
-  box-shadow: 0 0 25px rgba(232, 80, 2, 0.5);
+.liquid-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
 }
 
-/* Inputs with image-based styling */
-input[type="text"], input[type="password"], textarea, .liquid-input {
-  background: rgba(0, 0, 0, 0.6) !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.8) !important;
-  color: white !important;
-  border-radius: 18px !important;
-  padding: 16px 24px !important;
-  font-size: 15px !important;
-  transition: all 0.3s ease;
+.liquid-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 1rem;
+  font-size: 0.9rem;
   outline: none;
+  transition: all 0.3s;
 }
 
-input:focus, textarea:focus {
-  border-color: var(--branding-orange) !important;
-  box-shadow: 0 0 15px rgba(232, 80, 2, 0.3);
+.liquid-input:focus {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(232, 80, 2, 0.4);
 }
 
-.serif-title {
-  font-family: 'Times New Roman', Times, serif;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    background-image: none !important;
+  }
+  .glass-card {
+    background: white !important;
+    border: 1px solid #ddd !important;
+    color: black !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  h1, h2, h3, h4, p, span, th, td {
+    color: black !important;
+  }
+  .liquid-button, .print-hidden, nav, header {
+    display: none !important;
+  }
+  .bg-gradient-to-t {
+    background: #E85002 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  main {
+    padding-top: 0 !important;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  animation: fade-in 0.6s ease-out forwards;
 }
