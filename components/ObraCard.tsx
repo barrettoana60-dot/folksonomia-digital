@@ -48,7 +48,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
     setSubmitting(true);
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout (Vercel free limit)
 
       const res = await fetch('/api/ml/analisar-tag', {
         method: 'POST',
@@ -69,15 +69,20 @@ export default function ObraCard({ obra }: ObraCardProps) {
         setIsTagging(false);
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(`Erro: ${errorData.error || 'Falha no processamento do motor semântico'}`);
+        alert(`O motor de IA detectou um problema: ${errorData.error || 'Falha na conexão com o banco'}.`);
       }
-    } catch (err) {
-      console.error('Submission error:', err);
-      alert('O sistema está instável ou o tempo de resposta expirou. Tente novamente em instantes.');
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        alert('O processamento semântico está levando mais tempo que o esperado devido à alta carga. Sua tag foi enviada para a fila de curadoria e aparecerá em breve.');
+      } else {
+        console.error('Submission error:', err);
+        alert('Ocorreu um erro técnico. Verifique sua conexão e tente novamente.');
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
 
 
   return (
@@ -156,8 +161,9 @@ export default function ObraCard({ obra }: ObraCardProps) {
               disabled={submitting || !tagInput.trim()}
               className="liquid-button w-full !rounded-xl !bg-[#222] !text-white !border-white/10 font-bold uppercase tracking-[0.2em] text-[11px] py-5 hover:!bg-[#333]"
             >
-              {submitting ? 'PROCESSANDO...' : 'ENVIAR PERCEPÇÃO'}
+              {submitting ? 'PROCESSANDO SEMÂNTICA...' : 'ENVIAR PERCEPÇÃO'}
             </button>
+
           </form>
         </div>
       )}

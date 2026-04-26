@@ -17,32 +17,31 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
   const signature = generateSignature({ tag, obraId, ts: Date.now() });
   const embedding = await createLocalEmbedding(norm);
 
-  // 2. Coleta de Contexto Local
-  const { data: obra } = await supabase
-    .from('obras')
-    .select('titulo, descricao')
-    .eq('id', obraId)
-    .single();
+  // 2. Coleta de Contexto Local em Paralelo
+  const [obraRes, ontologiasRes, existingTagsRes] = await Promise.all([
+    supabase.from('obras').select('titulo, descricao').eq('id', obraId).single(),
+    supabase.from('ontologias').select('*').limit(100),
+    supabase.from('tags').select('tag_normalizada').limit(200)
+  ]);
 
-  const { data: ontologias } = await supabase
-    .from('ontologias')
-    .select('*')
-    .limit(100);
+  const obra = obraRes.data;
+  const ontologias = ontologiasRes.data || [];
+  const existingTags = existingTagsRes.data || [];
 
   // 3. Processamento Semântico
-  const matchedOntologies = matchOntologies(tag, ontologias || []);
+  const matchedOntologies = matchOntologies(tag, ontologias);
   const suggestedConcepts = suggestConcepts(tag);
   const themeGroup = detectThemeGroup(tag, suggestedConcepts);
   
   // 4. Recomendações de Relações
-  const existingTags = await supabase.from('tags').select('tag_normalizada').limit(200);
-  const relations = recommendRelations(norm, (existingTags.data || []).map(t => t.tag_normalizada));
+  const relations = recommendRelations(norm, existingTags.map(t => t.tag_normalizada));
 
   // 5. Indicadores Semânticos (0-100)
   const confidence = calculateConfidence(tag, {}, suggestedConcepts.length, 0) * 100;
   const novelty = calculateNovelty(tag, 0.4, suggestedConcepts.length === 0) * 100;
   const tension = calculateTension(tag, obra?.descricao || '', 0.3) * 100;
   const resonance = calculateResonance(suggestedConcepts.length, 0) * 100;
+
 
   // 6. Preparar Resultado para Persistência e Interface
   return {
