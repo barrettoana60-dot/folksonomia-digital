@@ -118,27 +118,28 @@ export default function ObraCard({ obra }: ObraCardProps) {
               </button>
             </form>
           ) : (
-            <div className="text-center space-y-3">
-              <p className="text-green-300 text-sm font-semibold">✓ Contribuição registrada</p>
-              <p className="text-white/60 text-xs leading-relaxed">
-                Essa percepção será analisada pela equipe e poderá ampliar as leituras da obra.
+            <div className="text-center space-y-4">
+              <p className="text-[#E85002] text-sm font-bold uppercase tracking-widest">✓ Percepção Registrada</p>
+              <p className="text-white/40 text-[11px] leading-relaxed italic">
+                Sua leitura foi integrada à teia do acervo e será validada institucionalmente.
               </p>
               {indicadores && (
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <div className="bg-white/5 rounded-xl p-2 text-center">
-                    <div className="text-blue-300 text-lg font-bold">{indicadores.nivel_conexao}%</div>
-                    <div className="text-white/40 text-xs">Nível de conexão</div>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/5 text-center">
+                    <div className="text-[#E85002] text-xl font-normal serif-title">{indicadores.nivel_conexao}%</div>
+                    <div className="text-white/30 text-[9px] uppercase font-bold tracking-tighter">Nível de Conexão</div>
                   </div>
-                  <div className="bg-white/5 rounded-xl p-2 text-center">
-                    <div className="text-purple-300 text-lg font-bold">{indicadores.nivel_novidade}%</div>
-                    <div className="text-white/40 text-xs">Novidade semântica</div>
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/5 text-center">
+                    <div className="text-[#D9C3AB] text-xl font-normal serif-title">{indicadores.nivel_novidade}%</div>
+                    <div className="text-white/30 text-[9px] uppercase font-bold tracking-tighter">Originalidade</div>
                   </div>
                 </div>
               )}
-              <button onClick={() => setSuccess(false)} className="liquid-button text-xs px-4 py-2 mt-2">
-                Adicionar outra
+              <button onClick={() => setSuccess(false)} className="liquid-button text-[10px] px-6 py-2 mt-4 hover:!bg-white/10">
+                Nova Contribuição
               </button>
             </div>
+
           )}
         </div>
       </div>

@@ -27,35 +27,36 @@ export default async function ObrasPage() {
         
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center p-4 rounded-full bg-blue-500/10 mb-6">
-            <BookOpen size={40} className="text-blue-300" strokeWidth={1.5} />
+          <div className="inline-flex items-center justify-center p-4 rounded-full bg-[#E85002]/10 mb-6">
+            <BookOpen size={40} className="text-[#E85002]" strokeWidth={1.5} />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Galeria de Obras
+          <h1 className="text-4xl md:text-5xl font-normal serif-title text-white mb-4">
+            Galeria de Acervo
           </h1>
-          <p className="text-blue-100/70 text-lg max-w-2xl mx-auto leading-relaxed">
-            Explore o acervo e registre suas percepções. Cada contribuição é processada 
-            pelo motor semântico e conecta-se à teia do conhecimento.
+          <p className="text-white/60 text-lg max-w-2xl mx-auto leading-relaxed font-light">
+            Explore as obras e registre suas percepções. Cada contribuição alimenta a 
+            teia de conhecimento e amplia as leituras do acervo.
           </p>
         </div>
 
         {/* Stats Banner */}
         <div
-          className="glass-card p-6 mb-12 grid grid-cols-3 gap-6 text-center"
+          className="glass-card p-8 mb-16 grid grid-cols-3 gap-6 text-center border-[#E85002]/10"
         >
           <div>
-            <div className="text-3xl font-bold text-blue-300">{obras.length}</div>
-            <div className="text-white/50 text-sm mt-1 uppercase tracking-wider">Obras no acervo</div>
+            <div className="text-3xl font-normal serif-title text-[#E85002]">{obras.length}</div>
+            <div className="text-white/30 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold">Registros no Acervo</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-purple-300">∞</div>
-            <div className="text-white/50 text-sm mt-1 uppercase tracking-wider">Conexões possíveis</div>
+            <div className="text-3xl font-normal serif-title text-white">∞</div>
+            <div className="text-white/30 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold">Conexões Semânticas</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-green-300">6</div>
-            <div className="text-white/50 text-sm mt-1 uppercase tracking-wider">Fontes conectadas</div>
+            <div className="text-3xl font-normal serif-title text-[#D9C3AB]">6</div>
+            <div className="text-white/30 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold">Fontes Institucionais</div>
           </div>
         </div>
+
 
         {/* No obras */}
         {obras.length === 0 && (
