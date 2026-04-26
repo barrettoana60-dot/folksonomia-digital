@@ -32,24 +32,24 @@ export default async function ObrasPage() {
           <div className="h-[1px] w-12 bg-[#E85002] mx-auto mt-10" />
         </div>
 
-        {obras.length === 0 ? (
-          <div className="max-w-xl mx-auto glass-card p-16 text-center space-y-8">
-            <p className="text-white/40 text-sm font-light italic">
-              O acervo digital está sendo sincronizado pela curadoria.
-            </p>
-            <div className="pt-4">
-              <Link href="/obras/picasso-test" className="liquid-button !text-white/60 hover:!text-white">
-                Visualizar Obra Demonstrativa (Guernica)
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
-            {obras.map(obra => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-12">
+          {obras.length === 0 ? (
+            <ObraCard 
+              obra={{
+                id: 'picasso-test',
+                titulo: 'Guernica',
+                artista: 'Pablo Picasso',
+                ano: '1937',
+                imagem_url: 'https://upload.wikimedia.org/wikipedia/pt/7/74/Guernica.jpg'
+              }} 
+            />
+          ) : (
+            obras.map(obra => (
               <ObraCard key={obra.id} obra={obra} />
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
+
 
       </div>
     </main>

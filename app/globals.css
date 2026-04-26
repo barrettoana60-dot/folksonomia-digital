@@ -5,34 +5,42 @@
 :root {
   --branding-orange: #E85002;
   --primary-black: #000000;
-  --white: #F9F9F9;
+  --color-1: #000000;
+  --color-2: #C10801;
+  --color-3: #F16001;
+  --color-4: #D9C3AB;
   
-  /* Default Theme (Escuro) */
   --bg-color: #000000;
   --text-color: #F9F9F9;
-  --glass-bg: rgba(30, 30, 30, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-blur: 25px;
 }
 
 [data-theme='claro'] {
-  --bg-color: #f5f5f7;
-  --text-color: #1a1a1c;
-  --glass-bg: rgba(255, 255, 255, 0.9);
-  --glass-border: rgba(0, 0, 0, 0.1);
+  --bg-color: #FFFFFF;
+  --text-color: #000000;
+  --glass-bg: rgba(0, 0, 0, 0.05);
+  --glass-border: rgba(0, 0, 0, 0.2);
+  --glass-blur: 20px;
 }
 
 [data-theme='contraste'] {
   --bg-color: #000000;
-  --text-color: #ffff00;
-  --glass-bg: rgba(0, 0, 0, 1);
-  --glass-border: #ffff00;
+  --text-color: #FFFF00;
+  --glass-bg: rgba(255, 255, 0, 0.1);
+  --glass-border: #FFFF00;
+  --glass-blur: 0px;
 }
+
 
 body {
   color: var(--text-color);
   background-color: var(--bg-color);
-  /* Lighter gradient for performance */
-  background-image: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(193, 8, 1, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(241, 96, 1, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(217, 195, 171, 0.05) 0%, transparent 60%);
   background-attachment: fixed;
   font-family: Arial, sans-serif !important;
   margin: 0;
@@ -40,47 +48,78 @@ body {
   min-height: 100vh;
 }
 
-/* HIGH PERFORMANCE LIQUID GLASS */
+/* Liquid Glass Cards - EXTREME GLOSS */
 .glass-card {
   background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-.liquid-button, button, select, .quiz-select, .quiz-textarea {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid var(--glass-border) !important;
-  color: var(--text-color) !important;
+/* Universal Liquid Glass Buttons - WOW EFFECT */
+button, .liquid-button, .quiz-button, select, input[type="submit"] {
+  background: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: inherit !important;
   padding: 14px 28px;
-  border-radius: 8px;
+  border-radius: 14px;
   font-weight: 600;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  transition: all 0.2s ease;
-  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.liquid-button:hover, button:hover:not(:disabled) {
-  background: var(--branding-orange) !important;
-  color: white !important;
+button:hover:not(:disabled), .liquid-button:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
   border-color: var(--branding-orange) !important;
+  box-shadow: 0 0 20px rgba(232, 80, 2, 0.4);
+  transform: translateY(-2px);
 }
 
-.liquid-input, textarea, input[type="text"], input[type="password"] {
-  background: rgba(255, 255, 255, 0.05) !important;
+button:active:not(:disabled) {
+  transform: translateY(0px);
+}
+
+/* Inputs */
+input[type="text"], input[type="password"], textarea, .liquid-input {
+  background: rgba(0, 0, 0, 0.4) !important;
   border: 1px solid var(--glass-border) !important;
   color: white !important;
-  border-radius: 8px !important;
+  border-radius: 14px !important;
   padding: 16px 20px !important;
   font-size: 14px !important;
+  transition: all 0.3s ease;
 }
 
-.liquid-input:focus {
+input:focus, textarea:focus {
   border-color: var(--branding-orange) !important;
+  background: rgba(0, 0, 0, 0.6) !important;
 }
 
 .serif-title {
   font-family: 'Times New Roman', Times, serif;
 }
+
+/* Specific Quiz Styles from Image 2 */
+.quiz-container { max-width: 950px; width: 100%; }
+.quiz-card { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 10px; padding: 50px; }
+.quiz-label { font-size: 14px; margin-bottom: 12px; display: block; font-weight: 500; color: rgba(255, 255, 255, 0.9); }
+.quiz-select, .quiz-textarea {
+  background: #0D0D0F !important;
+  border: 1px solid #1F1F21 !important;
+  color: #A7A7A7 !important;
+  border-radius: 4px !important;
+  padding: 12px !important;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--primary-black); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--branding-orange); }

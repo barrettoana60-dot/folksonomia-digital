@@ -41,9 +41,11 @@ export default function ObraCard({ obra }: ObraCardProps) {
         </div>
         
         <div className="px-6 pb-6 mt-auto">
-          <div className="h-[1px] w-8 bg-white/10 group-hover:w-full transition-all duration-500" />
-          <p className="text-[9px] text-white/20 uppercase tracking-[0.3em] mt-4 group-hover:text-white transition-colors">Ver detalhes</p>
+          <button className="liquid-button w-full !py-3 !text-[10px] !rounded-lg !bg-white/5 group-hover:!bg-white/10 group-hover:!border-[#E85002]/50 transition-all">
+            Explorar Obra
+          </button>
         </div>
+
 
       </div>
     </Link>

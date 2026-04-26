@@ -17,17 +17,21 @@ export default function AcessibilidadePage() {
 
   const changeTheme = (theme: string) => {
     setActiveTheme(theme);
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+    }
   };
 
   const stopAudio = () => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
+      // Feedback visual momentâneo
       setAudioEnabled(false);
-      setTimeout(() => setAudioEnabled(true), 100);
+      setTimeout(() => setAudioEnabled(true), 1500);
     }
   };
+
 
   const themes = [
     { id: 'escuro', label: 'Modo Escuro', desc: 'Fundo preto, texto branco' },
@@ -78,11 +82,12 @@ export default function AcessibilidadePage() {
               </h2>
               <button 
                 onClick={stopAudio}
-                className="liquid-button w-full !bg-white/5"
+                className={`liquid-button w-full transition-all ${!audioEnabled ? '!bg-red-500/20 !border-red-500/50' : '!bg-white/5'}`}
               >
-                Interromper Audiodescrição
+                {!audioEnabled ? 'Áudio Interrompido' : 'Interromper Audiodescrição'}
               </button>
               <p className="text-[10px] opacity-40 italic text-center">Cessa imediatamente qualquer narração em andamento.</p>
+
             </div>
 
             <div className="space-y-6 pt-6 border-t border-white/5">
