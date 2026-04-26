@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Eye } from 'lucide-react';
+import { useState } from 'react';
+import { Eye, VolumeX, Type, Sun } from 'lucide-react';
 
 export default function AcessibilidadePage() {
-  const [fontSize, setFontSize] = useState(18);
-  const [theme, setTheme] = useState<'escuro' | 'claro' | 'contraste'>('escuro');
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [highContrast, setHighContrast] = useState(false);
+  const [fontSize, setFontSize] = useState('medium');
 
-  useEffect(() => {
-    document.documentElement.style.setProperty('--base-font-size', `${fontSize}px`);
-  }, [fontSize]);
+  const stopAudio = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setAudioEnabled(false);
+    }
+  };
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6 py-16">
