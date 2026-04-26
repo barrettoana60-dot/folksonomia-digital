@@ -1,96 +1,67 @@
-import { normalizeText } from '../core/normalize';
+import { normalizeText } from './embeddings';
 
 /**
- * Calcula o nível de confiança (0 a 1) baseado na robustez da informação.
+ * Calcula a Confiança da tag (0 a 1)
  */
-export function calculateConfidence(tag: string, context?: any, externalMatchesCount: number = 0, existingFrequency: number = 0): number {
-  let score = 0.4; // Base confidence
+export function calculateConfidence(
+  text: string, 
+  context: any, 
+  externalMatches: number, 
+  humanValidations: number
+): number {
+  let score = 0.4; // Base score
   
-  const norm = normalizeText(tag);
+  if (externalMatches > 0) score += 0.2;
+  if (humanValidations > 0) score += 0.3;
+  if (text.length > 3) score += 0.1;
   
-  // Palavras muito curtas têm menor confiança intrínseca
-  if (norm.length > 3) score += 0.1;
-  if (norm.length > 6) score += 0.05;
-  
-  // Validação cruzada com open data aumenta drasticamente a confiança
-  if (externalMatchesCount > 0) {
-    score += Math.min(0.3, externalMatchesCount * 0.1);
-  }
-  
-  // Concordância (frequência histórica)
-  if (existingFrequency > 0) {
-    score += Math.min(0.2, existingFrequency * 0.05);
-  }
-  
-  // Se veio com contexto rico estruturado
-  if (context && Object.keys(context).length > 1) {
-    score += 0.05;
-  }
-  
-  return Math.min(0.99, Number(score.toFixed(3)));
+  return Math.min(score, 1.0);
 }
 
 /**
- * Calcula o índice de novidade (0 a 1).
- * Quão disruptiva ou inédita é essa tag em relação ao corpus atual.
+ * Calcula a Novidade (0 a 1)
  */
-export function calculateNovelty(tag: string, maxSimilarityToExisting: number, isNewToken: boolean = false): number {
-  let novelty = 0.5; // Base
+export function calculateNovelty(
+  text: string, 
+  internalSimilarityMax: number, 
+  isConceptMissing: boolean
+): number {
+  let score = 0.5;
   
-  // Se é muito parecida com algo que já existe, novidade é baixa
-  novelty -= maxSimilarityToExisting * 0.4;
+  if (internalSimilarityMax < 0.3) score += 0.3;
+  if (isConceptMissing) score += 0.2;
   
-  // Se é um token que nunca foi visto
-  if (isNewToken) {
-    novelty += 0.4;
-  }
-  
-  // Se a tag é longa (possível descrição complexa), costuma ser mais "nova"
-  const wordCount = normalizeText(tag).split(/\s+/).length;
-  if (wordCount > 1) {
-    novelty += Math.min(0.2, (wordCount - 1) * 0.05);
-  }
-  
-  return Math.min(0.99, Math.max(0.01, Number(novelty.toFixed(3))));
+  return Math.min(score, 1.0);
 }
 
 /**
- * Calcula a tensão documental (0 a 1).
- * Indica se a tag de folksonomia popular entra em conflito com descrições formais (ontologias institucionais).
+ * Calcula a Tensão Documental (0 a 1)
+ * Alta quando a tag aponta sentido não presente na descrição institucional.
  */
-export function calculateTension(tag: string, ontologyMatchesCount: number, institutionalMetadataSimilarity: number): number {
-  let tension = 0.2; // Base de atrito inerente da folksonomia
+export function calculateTension(
+  tagText: string, 
+  institutionalDesc: string, 
+  semanticOverlap: number
+): number {
+  const normTag = normalizeText(tagText);
+  const normDesc = normalizeText(institutionalDesc);
   
-  // Se a tag bate perfeitamente com a ontologia formal, tensão é baixíssima
-  if (ontologyMatchesCount > 0) {
-    tension -= 0.15;
-  } else {
-    // Se não bate com nada formal, aumenta a tensão (pode ser gíria, visão nova)
-    tension += 0.3;
-  }
+  if (normDesc.includes(normTag)) return 0.2; // Baixa tensão, já está previsto
   
-  // Se a tag tem pouquíssima similaridade com a descrição institucional, é uma leitura subversiva ou divergente
-  if (institutionalMetadataSimilarity < 0.2) {
-    tension += 0.3;
-  } else if (institutionalMetadataSimilarity > 0.7) {
-    tension -= 0.2; // Está apenas ecoando a voz institucional
-  }
+  let score = 0.6; // Tensão média por padrão para novas leituras
+  if (semanticOverlap < 0.2) score += 0.3; // Alta tensão se o sentido for muito diferente
   
-  return Math.min(0.99, Math.max(0.01, Number(tension.toFixed(3))));
+  return Math.min(score, 1.0);
 }
 
 /**
- * Calcula a ressonância (0 a 1).
- * A capacidade deste núcleo de conectar informações (densidade de arestas no grafo).
+ * Calcula a Ressonância (0 a 1)
+ * Alta quando conecta muitas obras, tags e fontes.
  */
-export function calculateResonance(tag: string, internalConnectionsCount: number, externalMatchesCount: number): number {
-  let resonance = 0.1;
-  
-  // Conexões dentro do próprio acervo
-  resonance += Math.min(0.5, internalConnectionsCount * 0.05);
-  
-  // Conexões com o mundo exterior (open data)
-  resonance += Math.min(0.4, externalMatchesCount * 0.1);
-  
-  return Math.min(0.99, Math.max(0.01, Number(resonance.toFixed(3))));
+export function calculateResonance(
+  connectionsCount: number, 
+  externalSourcesCount: number
+): number {
+  let score = connectionsCount * 0.1 + externalSourcesCount * 0.15;
+  return Math.min(score, 1.0);
 }

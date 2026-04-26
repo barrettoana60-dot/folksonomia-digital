@@ -2,16 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes glowPulse {
-  0% { opacity: 0.5; }
-  50% { opacity: 0.8; }
-  100% { opacity: 0.5; }
-}
-
 :root {
-  --background: #000000;
-  --foreground: #f0f0f0;
-  --accent-blue: #001F3F;
+  --branding-orange: #E85002;
+  --primary-black: #000000;
+  --gradient-1: #000000;
+  --gradient-2: #C10801;
+  --gradient-3: #F16001;
+  --gradient-4: #D9C3AB;
+  --light-gray: #A7A7A7;
+  --white: #F9F9F9;
+  --gray: #646464;
+  --dark-gray: #333333;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 @keyframes gradientMove {
@@ -20,95 +23,106 @@
   100% { background-position: 0% 50%; }
 }
 
-@keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-}
-
 body {
-  color: var(--foreground);
-  background: radial-gradient(circle at top right, #001f3f 0%, #000814 100%);
-  background-attachment: fixed;
-  font-family: Arial, sans-serif !important;
+  color: var(--white);
+  background: linear-gradient(-45deg, var(--gradient-1), #050505, var(--gradient-2), #0a0a0a);
+  background-size: 400% 400%;
+  animation: gradientMove 20s ease infinite;
+  font-family: Arial, Inter, sans-serif !important;
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Add a subtle grid to the background */
-body::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 80px 80px;
-  pointer-events: none;
-  z-index: -1;
-}
-
+/* Liquid Glass Cards */
 .glass-card {
-  background: rgba(16, 24, 39, 0.6);
-  backdrop-filter: blur(12px);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid var(--glass-border);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
+.glass-card:hover {
+  border-color: rgba(232, 80, 2, 0.4);
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px 0 rgba(232, 80, 2, 0.15);
+}
+
+/* Liquid Glass Buttons */
 .liquid-button {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  padding: 12px 24px;
-  font-weight: 500;
-  transition: all 0.3s;
-  text-transform: none;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--white);
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  items-center: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .liquid-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--branding-orange);
+  color: var(--white);
+  border-color: var(--branding-orange);
+  box-shadow: 0 0 20px rgba(232, 80, 2, 0.4);
+  transform: scale(1.02);
 }
 
-.liquid-input, .liquid-select, .liquid-textarea {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
-  border-radius: 6px;
-  padding: 12px;
-  width: 100%;
-}
-
+/* Specific Admin Tabs style */
 .admin-tab {
-  padding: 10px 20px;
-  color: rgba(255, 255, 255, 0.6);
-  border-bottom: 2px solid transparent;
-  transition: all 0.3s;
-  font-size: 0.85rem;
+  padding: 12px 24px;
+  color: var(--light-gray);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.75rem;
 }
 
 .admin-tab.active {
-  color: white;
-  border-bottom: 2px solid var(--accent);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--branding-orange);
+  border-bottom-color: var(--branding-orange);
+  background: rgba(232, 80, 2, 0.05);
 }
 
-h1, h2, h3 {
-  letter-spacing: -0.02em;
-}
-
+/* Typography styles */
 .serif-title {
   font-family: 'Times New Roman', Times, serif;
 }
 
-.mono-subtitle {
-  font-family: 'Courier New', Courier, monospace;
-  letter-spacing: 0.05em;
-  color: rgba(255, 255, 255, 0.6);
+.institutional-text {
+  line-height: 1.8;
+  font-weight: 300;
+  color: var(--light-gray);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--primary-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--dark-gray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--branding-orange);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

@@ -1,33 +1,31 @@
--- Obras
-INSERT INTO obras (titulo, artista, ano, tipo, descricao, publicado) VALUES
-('Guernica', 'Pablo Picasso', '1937', 'Pintura', 'Pintura monumental associada à guerra civil espanhola.', true),
-('A Noite Estrelada', 'Vincent van Gogh', '1889', 'Pintura', 'Paisagem noturna com cipreste e vilarejo.', true),
-('Mona Lisa', 'Leonardo da Vinci', '1503', 'Pintura', 'Retrato renascentista.', true),
-('Escultura Mãe e Filho', 'Desconhecido', '1920', 'Escultura', 'Escultura representando afeto e maternidade.', true),
-('Objeto Museológico Experimental', 'Sistema Folksonomia', '2026', 'Instalação', 'Objeto de estudo semântico.', true);
+-- Seed Obras
+INSERT INTO obras (titulo, artista, ano, tipo, descricao) VALUES 
+('Guernica', 'Pablo Picasso', '1937', 'Pintura', 'Uma das obras mais famosas de Picasso, retratando o bombardeio de Guernica durante a Guerra Civil Espanhola.'),
+('A Noite Estrelada', 'Vincent van Gogh', '1889', 'Pintura', 'Obra-prima do pós-impressionismo, retratando a vista da janela do asilo de Van Gogh em Saint-Rémy-de-Provence.'),
+('Mona Lisa', 'Leonardo da Vinci', '1503', 'Pintura', 'O retrato mais famoso do mundo, conhecido pelo sorriso enigmático da modelo.'),
+('Escultura Mãe e Filho', 'Artista Institucional', '1950', 'Escultura', 'Representação clássica do vínculo maternal e cuidado.'),
+('Objeto Museológico Experimental', 'Curadoria Digital', '2024', 'Mídia Digital', 'Objeto de teste para validação de fluxos semânticos e interoperabilidade.');
 
--- Fontes Externas (Sem Wikidata)
-INSERT INTO fontes_externas (nome, url, endpoint, tipo, licenca) VALUES
-('Europeana', 'https://pro.europeana.eu', 'https://api.europeana.eu/record/v2/search.json', 'Agregador', 'Mista'),
-('Brasiliana Museus', 'https://brasiliana.museus.gov.br', 'https://brasiliana.museus.gov.br/api/items', 'Acervo', 'Aberta'),
-('Brasiliana Fotográfica', 'https://brasilianafotografica.bn.gov.br', 'https://brasilianafotografica.bn.gov.br/api', 'Acervo Fotográfico', 'Aberta'),
-('IBRAM Dados Abertos', 'https://dados.gov.br', 'https://dados.gov.br/api/3/action/package_search', 'Dados Governamentais', 'Aberta'),
-('Portal Brasileiro de Dados Abertos', 'https://dados.gov.br', 'https://dados.gov.br/api/3/action/package_search', 'Dados Governamentais', 'Aberta'),
-('Tainacan API', 'https://tainacan.org', '/wp-json/tainacan/v2/items', 'Repositório', 'Aberta');
+-- Seed Ontologias
+INSERT INTO ontologias (nome, categoria, descricao, termos) VALUES 
+('Religioso', 'Temático', 'Conceitos ligados à religiosidade e fé.', '{fé, sagrado, oração, divindade}'),
+('Guerra', 'Histórico', 'Conceitos ligados a conflitos e batalhas.', '{combate, destruição, exército, paz}'),
+('Cor', 'Estético', 'Atributos cromáticos das obras.', '{vermelho, azul, vibrante, sombrio}'),
+('Natureza', 'Temático', 'Elementos do mundo natural.', '{árvore, mar, céu, animal}'),
+('Corpo', 'Anatômico', 'Representações da figura humana.', '{rosto, mãos, gesto, movimento}'),
+('Afeto', 'Psicológico', 'Expressões de sentimentos e emoções.', '{amor, tristeza, alegria, medo}'),
+('Família', 'Social', 'Relações de parentesco e convivência.', '{pai, mãe, filho, casa}'),
+('Memória', 'Histórico', 'Preservação do passado e lembranças.', '{passado, arquivo, saudade, registro}'),
+('Maternidade', 'Social', 'Conceitos ligados ao ato de ser mãe.', '{mãe, cuidado, amamentação, proteção}'),
+('Cuidado', 'Social', 'Ações de zelo e atenção.', '{proteção, ajuda, atenção, zelo}'),
+('Materialidade', 'Técnico', 'Atributos físicos do objeto.', '{madeira, metal, pedra, tecido}'),
+('Técnica', 'Técnico', 'Modos de fazer e produzir.', '{óleo, cinzel, moldagem, fotografia}');
 
--- Núcleos Base (Conceitos)
--- Não preenchemos embeddings aqui pois o seed SQL não passa pela engine de ML do Node.
-INSERT INTO nucleos (tipo, conteudo_original, conteudo_normalizado, status_validacao) VALUES
-('conceito', 'Mãe', 'mae', 'validado'),
-('conceito', 'Maternidade', 'maternidade', 'validado'),
-('conceito', 'Cuidado', 'cuidado', 'validado'),
-('conceito', 'Família', 'familia', 'validado'),
-('conceito', 'Afeto', 'afeto', 'validado'),
-('conceito', 'Memória', 'memoria', 'validado'),
-('conceito', 'Corpo', 'corpo', 'validado'),
-('conceito', 'Escultura', 'escultura', 'validado'),
-('conceito', 'Guerra', 'guerra', 'validado'),
-('conceito', 'Religiosidade', 'religiosidade', 'validado'),
-('conceito', 'Cor', 'cor', 'validado'),
-('conceito', 'Técnica', 'tecnica', 'validado'),
-('conceito', 'Materialidade', 'materialidade', 'validado');
+-- Seed Fontes Externas
+INSERT INTO fontes_externas (nome, url, endpoint, tipo, descricao) VALUES 
+('Europeana', 'https://www.europeana.eu', 'https://api.europeana.eu/record/v2/search.json', 'Open Data', 'Portal europeu de patrimônio cultural.'),
+('Brasiliana Museus', 'https://brasilianamuseus.cultura.gov.br', 'https://brasilianamuseus.cultura.gov.br/wp-json/tainacan/v2/items', 'Open Data', 'Agregador de acervos museológicos brasileiros.'),
+('Brasiliana Fotográfica', 'https://brasilianafotografica.bn.gov.br', 'https://brasilianafotografica.bn.gov.br/api', 'Open Data', 'Portal de fotografia histórica brasileira.'),
+('IBRAM Dados Abertos', 'https://dados.museus.gov.br', 'https://dados.museus.gov.br/api/3/action', 'Open Data', 'Plataforma de dados abertos do Instituto Brasileiro de Museus.'),
+('Portal Brasileiro de Dados Abertos', 'https://dados.gov.br', 'https://dados.gov.br/api/3/action', 'Open Data', 'Infraestrutura Nacional de Dados Abertos (INDA).'),
+('Tainacan API', 'https://tainacan.org', '', 'Protocolo', 'API padrão para repositórios culturais digitais.');

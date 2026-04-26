@@ -1,59 +1,63 @@
-import { normalizeText } from '../core/normalize';
 import { generateSignature } from '../core/crypto';
-import { createLocalEmbedding } from './embeddings';
-import { matchOntologies, suggestInternalRelations } from './recommendations';
+import { normalizeText, createLocalEmbedding } from './embeddings';
+import { matchOntologies, suggestConcepts, detectThemeGroup } from './ontology-matcher';
 import { calculateConfidence, calculateNovelty, calculateTension, calculateResonance } from './scoring';
-import { supabaseAdmin } from '@/lib/supabase/client';
+import { supabaseAdmin as supabase } from '@/lib/supabase/client';
 
-export async function runSemanticPipeline(tagOriginal: string, obraId: string, visitanteHash?: string) {
-  // 1 & 2. Salvar e Normalizar
-  const conteudoNormalizado = normalizeText(tagOriginal);
-  if (!conteudoNormalizado) throw new Error('Tag inválida');
+export async function runSemanticPipeline(tag: string, obraId: string, visitanteId?: string) {
+  const norm = normalizeText(tag);
+  if (!norm) throw new Error('Tag vazia ou inválida');
 
-  // 3. Criar assinatura interna
-  const payloadToHash = { tag: tagOriginal, norm: conteudoNormalizado, obra_id: obraId, ts: Date.now() };
-  const assinaturaHash = generateSignature(payloadToHash);
+  // 1. Gerar Assinatura (DNA)
+  const signature = generateSignature({ tag, obraId, ts: Date.now() });
 
-  // 4. Gerar vetor local
-  const embedding = await createLocalEmbedding(conteudoNormalizado);
+  // 2. Gerar Vetor (pgvector format)
+  const embedding = await createLocalEmbedding(norm);
 
-  // Consultar dados auxiliares (ontologias, núcleos existentes)
-  // Como estamos em ambiente serverless, fazemos consultas leves ao DB
-  const [{ data: ontologias }, { data: nucleosExistentes }] = await Promise.all([
-    supabaseAdmin.from('ontologias').select('*').limit(20),
-    supabaseAdmin.from('nucleos').select('id, conteudo_original').neq('conteudo_original', tagOriginal).limit(50)
-  ]);
+  // 3. Consultar Contexto da Obra
+  const { data: obra } = await supabase
+    .from('obras')
+    .select('titulo, descricao')
+    .eq('id', obraId)
+    .single();
 
-  // 7. Comparar ontologias
-  const matchedOntologies = matchOntologies(conteudoNormalizado, ontologias || []);
+  // 4. Consultar Ontologias Locais
+  const { data: ontologias } = await supabase
+    .from('ontologias')
+    .select('*')
+    .limit(50);
 
-  // 9. Relações internas
-  const internalRelations = suggestInternalRelations(conteudoNormalizado, nucleosExistentes || []);
+  // 5. Casamento Semântico
+  const matchedOntologies = matchOntologies(tag, ontologias || []);
+  const suggestedConcepts = suggestConcepts(tag);
+  const themeGroup = detectThemeGroup(tag, suggestedConcepts);
 
-  // Simulação de chamadas externas para o score (0 a 1)
-  const externalMatchesCount = 1; // Default to 1 to simulate open data connections
+  // 6. Simular Busca em Open Data (Ranker simplificado)
+  const externalMatchesCount = suggestedConcepts.length > 0 ? 1 : 0;
 
-  // 13. Calcular Scores (agora convertidos de 0 a 1 para o formato 0 a 100 esperado pelas APIs)
-  const confidence = calculateConfidence(conteudoNormalizado, {}, externalMatchesCount, 0) * 100;
-  
-  const maxSim = internalRelations.length > 0 ? internalRelations[0].score : 0;
-  const novelty = calculateNovelty(conteudoNormalizado, maxSim, maxSim < 0.3) * 100;
-  
-  const tension = calculateTension(conteudoNormalizado, matchedOntologies.length, 0.5) * 100;
-  const resonance = calculateResonance(conteudoNormalizado, internalRelations.length, externalMatchesCount) * 100;
+  // 7. Calcular Indicadores (0 a 100 para interface)
+  const confidence = calculateConfidence(tag, {}, externalMatchesCount, 0) * 100;
+  const novelty = calculateNovelty(tag, 0.4, suggestedConcepts.length === 0) * 100;
+  const tension = calculateTension(tag, obra?.descricao || '', 0.3) * 100;
+  const resonance = calculateResonance(suggestedConcepts.length, externalMatchesCount) * 100;
 
+  // 8. Preparar Resultados
   return {
-    cell: {
-      signature: assinaturaHash,
+    dna: {
+      signature,
       embedding: `[${embedding.join(',')}]`,
-      encryptedPayload: Buffer.from(JSON.stringify(payloadToHash)).toString('base64'),
+      normalized: norm
     },
     semantics: {
-      confidence,
-      novelty,
-      tension,
-      resonance,
-      concepts: matchedOntologies.length > 0 ? matchedOntologies : ['Outros']
+      themeGroup,
+      concepts: suggestedConcepts,
+      ontologies: matchedOntologies,
+      indicators: {
+        confidence,
+        novelty,
+        tension,
+        resonance
+      }
     }
   };
 }
