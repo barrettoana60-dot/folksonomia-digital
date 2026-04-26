@@ -6,8 +6,8 @@ import { useEffect, useState } from 'react';
 
 // Unified Logo Component
 const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`relative overflow-hidden rounded-2xl border border-white/10 ${className}`}>
-    <img src="/logo.png?v=4" alt="Logo" className="w-full h-full object-cover" />
+  <div className={`relative overflow-hidden ${className}`}>
+    <img src="/logo.png?v=7" alt="Logo" className="w-full h-full object-cover" />
   </div>
 );
 
@@ -38,8 +38,9 @@ export default function Header() {
         onClick={() => handleNav('/')} 
         className="flex items-center gap-3 md:gap-5 group cursor-pointer"
       >
-        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden border border-white/10 shadow-[0_0_30px_rgba(232,80,2,0.2)] group-hover:border-[#E85002]/40 transition-all">
-          <img src="/logo.png?v=6" alt="Institutional Logo" className="w-full h-full object-cover" />
+        <div className="w-10 h-10 md:w-12 md:h-12 overflow-hidden">
+          <img src="/logo.png?v=7" alt="Institutional Logo" className="w-full h-full object-cover" />
+
         </div>
 
         <div className="flex flex-col">

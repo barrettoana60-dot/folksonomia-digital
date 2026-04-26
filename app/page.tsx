@@ -18,10 +18,8 @@ export default function LandingPage() {
       <div className="max-w-[800px] text-center space-y-12">
         
         <div className="space-y-8">
-          <div className="w-24 h-24 md:w-32 md:h-32 rounded-3xl overflow-hidden mx-auto border border-white/10 shadow-[0_0_50px_rgba(232,80,2,0.3)] bg-white/5 backdrop-blur-xl">
-             <img src="/logo.png?v=6" alt="Institutional Logo" className="w-full h-full object-cover" />
-
-
+          <div className="w-24 h-24 md:w-32 md:h-32 overflow-hidden mx-auto">
+             <img src="/logo.png?v=7" alt="Institutional Logo" className="w-full h-full object-cover" />
           </div>
           
           <div className="space-y-4">

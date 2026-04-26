@@ -30,10 +30,8 @@ const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false 
 
 // Unified Logo Component
 const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`relative overflow-hidden rounded-2xl border border-white/10 ${className}`}>
-    <img src="/logo.png?v=6" alt="Logo" className="w-full h-full object-cover" />
-
-
+  <div className={`relative overflow-hidden ${className}`}>
+    <img src="/logo.png?v=7" alt="Logo" className="w-full h-full object-cover" />
   </div>
 );
 
