@@ -3,7 +3,6 @@ import { normalizeText, createLocalEmbedding } from './embeddings';
 import { matchOntologies, suggestConcepts, detectThemeGroup } from './ontology-matcher';
 import { calculateConfidence, calculateNovelty, calculateTension, calculateResonance } from './scoring';
 import { recommendRelations } from './recommendations';
-import { rankOpenData } from './open-data-ranker';
 import { supabaseAdmin as supabase } from '@/lib/supabase/client';
 
 /**
@@ -17,18 +16,27 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
   const signature = generateSignature({ tag, obraId, ts: Date.now() });
   const embedding = await createLocalEmbedding(norm);
 
-  // 2. Coleta de Contexto Local em Paralelo
-  const [obraRes, ontologiasRes, existingTagsRes] = await Promise.all([
-    supabase.from('obras').select('titulo, descricao').eq('id', obraId).single(),
-    supabase.from('ontologias').select('*').limit(100),
-    supabase.from('tags').select('tag_normalizada').limit(200)
-  ]);
+  // 2. Coleta de Contexto Local (Resiliente)
+  // Tentamos carregar dados do banco, mas não travamos se algo falhar
+  let obra = null;
+  let ontologias: any[] = [];
+  let existingTags: any[] = [];
 
-  const obra = obraRes.data;
-  const ontologias = ontologiasRes.data || [];
-  const existingTags = existingTagsRes.data || [];
+  try {
+    const results = await Promise.allSettled([
+      supabase.from('obras').select('titulo, descricao').eq('id', obraId).single(),
+      supabase.from('ontologias').select('*').limit(50),
+      supabase.from('tags').select('tag_normalizada').limit(100)
+    ]);
 
-  // 3. Processamento Semântico
+    if (results[0].status === 'fulfilled' && !results[0].value.error) obra = results[0].value.data;
+    if (results[1].status === 'fulfilled' && !results[1].value.error) ontologias = results[1].value.data || [];
+    if (results[2].status === 'fulfilled' && !results[2].value.error) existingTags = results[2].value.data || [];
+  } catch (dbErr) {
+    console.warn('Database context fetch failed, using fallback logic:', dbErr);
+  }
+
+  // 3. Processamento Semântico (Motor Local)
   const matchedOntologies = matchOntologies(tag, ontologias);
   const suggestedConcepts = suggestConcepts(tag);
   const themeGroup = detectThemeGroup(tag, suggestedConcepts);
@@ -42,8 +50,6 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
   const tension = calculateTension(tag, obra?.descricao || '', 0.3) * 100;
   const resonance = calculateResonance(suggestedConcepts.length, 0) * 100;
 
-
-  // 6. Preparar Resultado para Persistência e Interface
   return {
     dna: {
       signature,

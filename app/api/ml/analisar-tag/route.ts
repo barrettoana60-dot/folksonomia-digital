@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runSemanticPipeline } from '@/lib/ml/pipeline';
 import { normalizeText } from '@/lib/core/normalize';
 import { supabaseAdmin } from '@/lib/supabase/client';
-import { EuropeanaConnector } from '@/lib/connectors/europeana';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30; // Aumentar tempo de execução no Vercel
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,14 +17,16 @@ export async function POST(req: NextRequest) {
 
     const normalized = normalizeText(tag);
 
-    // 1. Run the full semantic pipeline (embedding + ontology matching + scoring)
+    // 1. Run the semantic pipeline
+    // O pipeline já lida com o ID de teste internamente ou falha graciosamente
     const result = await runSemanticPipeline(tag, obra_id, '');
     const { dna, semantics } = result;
 
     // 2. Persist the nucleus (Célula) in Supabase
-    // Handle demo ID to avoid foreign key violations
-    const finalObraId = obra_id === 'picasso-test' ? null : obra_id;
+    // Handle demo ID to avoid foreign key violations if the record doesn't exist
+    const finalObraId = (obra_id === 'picasso-test' || !obra_id) ? null : obra_id;
 
+    // Tentar inserir o núcleo semântico
     const { data: nucleo, error: nucleoError } = await supabaseAdmin
       .from('nucleos')
       .insert({
@@ -49,25 +51,24 @@ export async function POST(req: NextRequest) {
     if (nucleoError) {
       console.error('Nucleus insert error:', nucleoError);
       return NextResponse.json({ 
-        error: `Falha na sincronização: ${nucleoError.message}. Verifique se a tabela 'nucleos' existe no Supabase.` 
+        error: `Erro no banco de dados: ${nucleoError.message}. Certifique-se de que o SQL de configuração foi executado no Supabase.` 
       }, { status: 500 });
     }
 
+    // 3. Persist public tag and suggestions in parallel for speed
+    const inserts = [
+      supabaseAdmin.from('tags').insert({
+        obra_id: finalObraId,
+        nucleo_id: nucleo.id,
+        tag_original: tag,
+        tag_normalizada: dna.normalized,
+        visitante_hash: visitante_hash || null,
+        visitante_nome: visitante_nome || null,
+        grupo_tematico: semantics.themeGroup || 'Outros',
+        status: 'em análise'
+      })
+    ];
 
-    // 3. Persist the public tag record
-    await supabaseAdmin.from('tags').insert({
-      obra_id: finalObraId,
-      nucleo_id: nucleo.id,
-      tag_original: tag,
-      tag_normalizada: dna.normalized,
-      visitante_hash: visitante_hash || null,
-      visitante_nome: visitante_nome || null,
-      grupo_tematico: semantics.themeGroup || 'Outros',
-      status: 'em análise'
-    });
-
-
-    // 4. Save ML suggestions (concepts as suggestions)
     if (semantics.concepts.length > 0) {
       const suggestions = semantics.concepts.map((concept: string) => ({
         nucleo_id: nucleo.id,
@@ -77,56 +78,12 @@ export async function POST(req: NextRequest) {
         metodo: 'ontology_match + embedding_local',
         status: 'pendente'
       }));
-      await supabaseAdmin.from('ml_sugestoes').insert(suggestions);
+      inserts.push(supabaseAdmin.from('ml_sugestoes').insert(suggestions));
     }
 
-    // 5. Record the ML execution log (Optional)
-    try {
-      await supabaseAdmin.from('ml_execucoes').insert({
-        nucleo_id: nucleo.id,
-        tipo_execucao: 'pipeline_semantico_completo',
-        resumo: `Tag "${tag}" processada. ${semantics.concepts.length} conceitos sugeridos.`,
-        status: 'concluido',
-        metricas: semantics.indicators
-      });
-    } catch (e) { console.warn('ML Log failed'); }
-
-    // 6. Async: Search external sources
-    (async () => {
-      try {
-        const europeana = new EuropeanaConnector();
-        const extResults = await europeana.searchExternalSource(dna.normalized);
-        if (extResults.length > 0) {
-          await supabaseAdmin.from('resultados_externos').insert(
-            extResults.map(r => ({
-              nucleo_id: nucleo.id,
-              fonte: r.source,
-              external_id: r.external_id,
-              titulo: r.title,
-              descricao: r.description,
-              url: r.url,
-              rights: r.rights,
-              provider: r.provider,
-              match_score: r.match_score,
-              tipo_relacao: r.relation_type,
-              status: 'sugerido',
-              dados: r.raw
-            }))
-          );
-        }
-      } catch (extErr) { console.warn('External search failed'); }
-    })();
-
-    // 7. Register provenance event (Optional)
-    try {
-      await supabaseAdmin.from('eventos').insert({
-        entidade_tipo: 'nucleo',
-        entidade_id: nucleo.id,
-        tipo_evento: 'tag_criada',
-        resumo: `Tag "${tag}" registrada pelo visitante e processada pelo motor semântico.`,
-        hash_evento: dna.signature
-      });
-    } catch (e) { console.warn('Event log failed'); }
+    // Aguardar inserções secundárias sem travar a resposta principal se possível
+    // Mas para garantir consistência agora, vamos aguardar
+    await Promise.all(inserts);
 
     return NextResponse.json({
       success: true,
@@ -139,10 +96,10 @@ export async function POST(req: NextRequest) {
       }
     });
 
-
-  } catch (err) {
+  } catch (err: any) {
     console.error('API /api/ml/analisar-tag error:', err);
-    return NextResponse.json({ error: 'Ocorreu um erro ao processar a contribuição.' }, { status: 500 });
+    return NextResponse.json({ 
+      error: `Erro no processamento IA: ${err.message || 'Erro desconhecido'}. Verifique as variáveis de ambiente (SERVICE_ROLE_KEY) no Vercel.` 
+    }, { status: 500 });
   }
 }
-
