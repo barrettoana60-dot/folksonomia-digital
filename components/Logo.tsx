@@ -33,19 +33,19 @@ const Logo = ({ className = "w-10 h-10" }) => {
       {/* Icons overlay using absolute positioning percentages */}
       <div className="absolute inset-0 w-full h-full z-10 pointer-events-none">
         {/* Orange Segment (Top Left ~ 234 deg) */}
-        <Coffee className="absolute text-white w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '32%', top: '32%' }} strokeWidth={1.5} />
+        <Coffee className="absolute text-black w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '32%', top: '32%' }} strokeWidth={1.5} />
 
         {/* Red Segment (Top Right ~ 306 deg) */}
-        <Bird className="absolute text-white w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '68%', top: '32%' }} strokeWidth={1.5} />
+        <Bird className="absolute text-black w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '68%', top: '32%' }} strokeWidth={1.5} />
 
         {/* Green Segment (Bottom Right ~ 18 deg) */}
-        <Leaf className="absolute text-white w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '78%', top: '65%' }} strokeWidth={1.5} />
+        <Leaf className="absolute text-black w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '78%', top: '65%' }} strokeWidth={1.5} />
 
         {/* Yellow Segment (Bottom Center ~ 90 deg) */}
-        <HandHeart className="absolute text-white w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '50%', top: '78%' }} strokeWidth={1.5} />
+        <HandHeart className="absolute text-black w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '50%', top: '78%' }} strokeWidth={1.5} />
 
         {/* Blue Segment (Bottom Left ~ 162 deg) */}
-        <Landmark className="absolute text-white w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '22%', top: '65%' }} strokeWidth={1.5} />
+        <Landmark className="absolute text-black w-[22%] h-[22%] -translate-x-1/2 -translate-y-1/2" style={{ left: '22%', top: '65%' }} strokeWidth={1.5} />
       </div>
     </div>
   );
