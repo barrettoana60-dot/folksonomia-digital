@@ -4,6 +4,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+// Unified Logo Component
+const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
+  <div className={`relative overflow-hidden rounded-2xl border border-white/10 ${className}`}>
+    <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
+  </div>
+);
+
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
@@ -22,12 +29,6 @@ export default function Header() {
     }
   };
 
-  const links = [
-    { href: '/', label: 'Home' },
-    { href: '/obras', label: 'Explorar Obras' },
-    { href: '/acessibilidade', label: 'Acessibilidade' },
-  ];
-
   return (
     <header className="fixed top-0 left-0 w-full z-50 h-20 md:h-24 flex items-center justify-between px-6 md:px-12 bg-black/40 backdrop-blur-xl border-b border-white/5 print:hidden">
       
@@ -36,9 +37,7 @@ export default function Header() {
         onClick={() => handleNav('/')} 
         className="flex items-center gap-3 md:gap-5 group cursor-pointer"
       >
-        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden border border-white/10 shadow-[0_0_30px_rgba(232,80,2,0.2)] group-hover:border-[#E85002]/40 transition-all">
-          <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
-        </div>
+        <InstitutionalLogo className="w-10 h-10 md:w-12 md:h-12 shadow-[0_0_30px_rgba(232,80,2,0.2)] group-hover:border-[#E85002]/40 transition-all" />
         <div className="flex flex-col">
           <span className="text-white text-sm md:text-lg font-normal serif-title tracking-tight uppercase leading-none">
             Sistema de Folksonomia
@@ -51,17 +50,26 @@ export default function Header() {
 
       {/* Nav */}
       <nav className="flex items-center gap-4 md:gap-12">
-        {links.map(link => (
+        {/* Only show Explorar Obras if quiz is completed */}
+        {hasQuiz && (
           <button 
-            key={link.href}
-            onClick={() => handleNav(link.href)}
+            onClick={() => router.push('/obras')}
             className={`hidden md:block text-[10px] uppercase font-black tracking-[0.25em] transition-all hover:text-[#E85002] ${
-              (pathname === link.href || (pathname === '/obras' && link.href === '/')) ? 'text-[#E85002]' : 'text-white/40'
+              pathname === '/obras' ? 'text-[#E85002]' : 'text-white/40'
             }`}
           >
-            {link.label}
+            Explorar Obras
           </button>
-        ))}
+        )}
+
+        <button 
+          onClick={() => router.push('/acessibilidade')}
+          className={`hidden md:block text-[10px] uppercase font-black tracking-[0.25em] transition-all hover:text-[#E85002] ${
+            pathname === '/acessibilidade' ? 'text-[#E85002]' : 'text-white/40'
+          }`}
+        >
+          Acessibilidade
+        </button>
         
         <Link 
           href="/login" 

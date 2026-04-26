@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 :root {
-
   --background: #000000;
   --foreground: #ffffff;
   --bg-color: #000000;
@@ -18,18 +17,27 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Custom Elegant Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(232, 80, 2, 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(232, 80, 2, 0.5);
+}
+
 html, body {
   margin: 0;
   padding: 0;
   background-color: #000000;
   color: #ffffff;
   overflow-x: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-body::-webkit-scrollbar {
-  display: none;
 }
 
 body {
