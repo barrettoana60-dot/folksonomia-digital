@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
     const { dna, semantics } = result;
 
     // 2. Persist the nucleus (Célula) in Supabase
+    // Handle demo ID to avoid foreign key violations
+    const finalObraId = obra_id === 'picasso-test' ? null : obra_id;
+
     const { data: nucleo, error: nucleoError } = await supabaseAdmin
       .from('nucleos')
       .insert({
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
         novidade: semantics.indicators.novelty,
         tensao: semantics.indicators.tension,
         ressonancia: semantics.indicators.resonance,
-        obra_id,
+        obra_id: finalObraId,
         contexto: { themeGroup: semantics.themeGroup },
         metadados: { concepts: semantics.concepts, ontologies: semantics.ontologies }
       })
@@ -45,12 +48,15 @@ export async function POST(req: NextRequest) {
 
     if (nucleoError) {
       console.error('Nucleus insert error:', nucleoError);
-      return NextResponse.json({ error: 'Erro interno ao registrar a contribuição.' }, { status: 500 });
+      return NextResponse.json({ 
+        error: `Falha na sincronização: ${nucleoError.message}. Verifique se a tabela 'nucleos' existe no Supabase.` 
+      }, { status: 500 });
     }
+
 
     // 3. Persist the public tag record
     await supabaseAdmin.from('tags').insert({
-      obra_id,
+      obra_id: finalObraId,
       nucleo_id: nucleo.id,
       tag_original: tag,
       tag_normalizada: dna.normalized,
@@ -59,6 +65,7 @@ export async function POST(req: NextRequest) {
       grupo_tematico: semantics.themeGroup || 'Outros',
       status: 'em análise'
     });
+
 
     // 4. Save ML suggestions (concepts as suggestions)
     if (semantics.concepts.length > 0) {
