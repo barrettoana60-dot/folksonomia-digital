@@ -5,105 +5,82 @@
 :root {
   --branding-orange: #E85002;
   --primary-black: #000000;
-  --gradient-1: #000000;
-  --gradient-2: #C10801;
-  --gradient-3: #F16001;
-  --gradient-4: #D9C3AB;
   --white: #F9F9F9;
   
   /* Default Theme (Escuro) */
   --bg-color: #000000;
   --text-color: #F9F9F9;
-  --glass-bg: rgba(255, 255, 255, 0.07);
-  --glass-border: rgba(255, 255, 255, 0.15);
-  --glass-blur: 20px;
+  --glass-bg: rgba(30, 30, 30, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme='claro'] {
   --bg-color: #f5f5f7;
   --text-color: #1a1a1c;
-  --glass-bg: rgba(0, 0, 0, 0.05);
+  --glass-bg: rgba(255, 255, 255, 0.9);
   --glass-border: rgba(0, 0, 0, 0.1);
-  --glass-blur: 15px;
 }
 
 [data-theme='contraste'] {
   --bg-color: #000000;
   --text-color: #ffff00;
-  --glass-bg: rgba(255, 255, 0, 0.15);
+  --glass-bg: rgba(0, 0, 0, 1);
   --glass-border: #ffff00;
-  --glass-blur: 5px;
 }
 
 body {
   color: var(--text-color);
   background-color: var(--bg-color);
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(193, 8, 1, 0.2) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(241, 96, 1, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(217, 195, 171, 0.05) 0%, transparent 60%);
+  /* Lighter gradient for performance */
+  background-image: linear-gradient(135deg, #000000 0%, #0a0a0a 100%);
   background-attachment: fixed;
   font-family: Arial, sans-serif !important;
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* UNIVERSAL INTENSE LIQUID GLASS */
+/* HIGH PERFORMANCE LIQUID GLASS */
 .glass-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .liquid-button, button, select, .quiz-select, .quiz-textarea {
-  background: var(--glass-bg) !important;
-  backdrop-filter: blur(var(--glass-blur)) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
   border: 1px solid var(--glass-border) !important;
   color: var(--text-color) !important;
   padding: 14px 28px;
-  border-radius: 14px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .liquid-button:hover, button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: var(--branding-orange) !important;
+  color: white !important;
   border-color: var(--branding-orange) !important;
-  box-shadow: 0 0 25px rgba(232, 80, 2, 0.4);
-  transform: translateY(-2px);
 }
 
 .liquid-input, textarea, input[type="text"], input[type="password"] {
-  background: rgba(0, 0, 0, 0.4) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid var(--glass-border) !important;
   color: white !important;
-  border-radius: 14px !important;
+  border-radius: 8px !important;
   padding: 16px 20px !important;
   font-size: 14px !important;
-  backdrop-filter: blur(10px);
 }
 
 .liquid-input:focus {
   border-color: var(--branding-orange) !important;
-  background: rgba(0, 0, 0, 0.6) !important;
 }
 
 .serif-title {
   font-family: 'Times New Roman', Times, serif;
 }
-
-/* Quiz Style Improvements */
-.quiz-container { max-width: 960px; }
-.quiz-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 50px; }
-.quiz-label { font-size: 14px; margin-bottom: 15px; opacity: 0.9; }
