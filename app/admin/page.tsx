@@ -28,22 +28,7 @@ import dynamic from 'next/dynamic';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
-// Unified SVG Logo Component (Minimalist & Modern)
-const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`flex items-center justify-center ${className}`}>
-    <svg viewBox="0 0 100 100" className="w-full h-full">
-      <text 
-        x="50%" 
-        y="65%" 
-        textAnchor="middle" 
-        fill="#E85002" 
-        style={{ fontFamily: "'Times New Roman', serif", fontSize: '80px', fontWeight: 'normal' }}
-      >
-        f
-      </text>
-    </svg>
-  </div>
-);
+import Logo from '@/components/Logo';
 
 
 
@@ -99,7 +84,7 @@ export default function AdminPage() {
         
         {/* LOGO INSTITUCIONAL (Visível no Print e UI) */}
         <div className="flex items-center gap-6 pb-6 border-b border-white/5 print:border-black/10 print:pb-10 print:mb-10">
-          <InstitutionalLogo className="w-12 h-12 md:w-16 md:h-16" />
+          <Logo className="w-12 h-12 md:w-16 md:h-16" />
           <div>
             <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-tighter print:text-black">
               Sistema de Folksonomia Digital

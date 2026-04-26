@@ -3,23 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
-// Unified SVG Logo Component (Minimalist & Modern)
-const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`flex items-center justify-center ${className}`}>
-    <svg viewBox="0 0 100 100" className="w-full h-full">
-      <text 
-        x="50%" 
-        y="65%" 
-        textAnchor="middle" 
-        fill="#E85002" 
-        style={{ fontFamily: "'Times New Roman', serif", fontSize: '80px', fontWeight: 'normal' }}
-      >
-        f
-      </text>
-    </svg>
-  </div>
-);
+import Logo from '@/components/Logo';
 
 export default function Header() {
   const pathname = usePathname();
@@ -47,7 +31,7 @@ export default function Header() {
         onClick={() => handleNav('/')} 
         className="flex items-center gap-3 md:gap-5 group cursor-pointer"
       >
-        <InstitutionalLogo className="w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-110" />
+        <Logo className="w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-110" />
         <div className="flex flex-col">
           <span className="text-white text-sm md:text-lg font-normal serif-title tracking-tight uppercase leading-none">
             Sistema de Folksonomia
