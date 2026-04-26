@@ -21,11 +21,21 @@ import {
   ShieldCheck,
   Network,
   Globe,
-  Search
+  Search,
+  ArrowUpRight
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
+
+// Unified Logo Component
+const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
+  <div className={`relative flex items-center justify-center ${className}`}>
+    <div className="absolute inset-0 rounded-full bg-[#E85002] shadow-[0_0_20px_rgba(232,80,2,0.5)]" />
+    <div className="absolute inset-[25%] rounded-full bg-black/30" />
+    <div className="absolute inset-[40%] rounded-full bg-white/20" />
+  </div>
+);
 
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
@@ -43,21 +53,23 @@ export default function AdminPage() {
 
   const stats = [
     { label: 'Obras no Sistema', value: '42', icon: Database, color: '#E85002' },
-    { label: 'Visitantes Ativos', value: '1.2k', icon: Users, color: '#E85002' },
+    { label: 'Visitantes Ativos', value: '1,248', icon: Users, color: '#E85002' },
     { label: 'Percepções Registradas', value: '3,840', icon: TagIcon, color: '#E85002' },
     { label: 'Aguardando Curadoria', value: '156', icon: Clock, color: '#C10801' },
   ];
 
   const graphData = useMemo(() => ({
     nodes: [
-      { id: 'Solidão', val: 20 }, { id: 'Melancolia', val: 15 }, { id: 'Guerra', val: 25 },
-      { id: 'Paz', val: 12 }, { id: 'Esperança', val: 18 }, { id: 'Caos', val: 22 },
-      { id: 'Fragmento', val: 14 }, { id: 'Cubismo', val: 16 }
+      { id: 'Solidão', val: 25 }, { id: 'Melancolia', val: 18 }, { id: 'Guerra', val: 30 },
+      { id: 'Paz', val: 15 }, { id: 'Esperança', val: 20 }, { id: 'Caos', val: 28 },
+      { id: 'Fragmento', val: 16 }, { id: 'Cubismo', val: 22 }, { id: 'Luta', val: 12 },
+      { id: 'Pânico', val: 14 }
     ],
     links: [
       { source: 'Solidão', target: 'Melancolia' }, { source: 'Guerra', target: 'Caos' },
       { source: 'Guerra', target: 'Fragmento' }, { source: 'Caos', target: 'Cubismo' },
-      { source: 'Esperança', target: 'Paz' }, { source: 'Melancolia', target: 'Fragmento' }
+      { source: 'Esperança', target: 'Paz' }, { source: 'Melancolia', target: 'Fragmento' },
+      { source: 'Guerra', target: 'Luta' }, { source: 'Caos', target: 'Pânico' }
     ]
   }), []);
 
@@ -74,14 +86,16 @@ export default function AdminPage() {
     <main className="min-h-screen pt-24 pb-20 px-4 md:px-8 print:pt-0">
       <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-12">
         
-        {/* LOGO INSTITUCIONAL (Visível no Print) */}
-        <div className="hidden print:flex items-center gap-6 border-b border-black/10 pb-10 mb-10">
-          <div className="w-16 h-16 rounded-full bg-[#E85002] flex items-center justify-center">
-            <div className="w-3 h-3 rounded-full bg-black/30" />
-          </div>
+        {/* LOGO INSTITUCIONAL (Visível no Print e UI) */}
+        <div className="flex items-center gap-6 pb-6 border-b border-white/5 print:border-black/10 print:pb-10 print:mb-10">
+          <InstitutionalLogo className="w-12 h-12 md:w-16 md:h-16" />
           <div>
-            <h1 className="text-3xl font-bold uppercase tracking-tighter">Sistema de Folksonomia Digital</h1>
-            <p className="text-xs uppercase font-black tracking-[0.3em] text-black/50">Relatório de Gestão Semântica — NUGEP</p>
+            <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-tighter print:text-black">
+              Sistema de Folksonomia Digital
+            </h1>
+            <p className="text-[8px] md:text-[10px] uppercase font-black tracking-[0.4em] text-white/30 print:text-black/50">
+              Gestão Semântica Institucional — NUGEP
+            </p>
           </div>
         </div>
 
@@ -93,7 +107,7 @@ export default function AdminPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`whitespace-nowrap px-6 md:px-8 py-3 rounded-xl text-[9px] md:text-[11px] font-bold uppercase tracking-widest transition-all ${
                 activeTab === tab.id 
-                  ? 'bg-white/10 text-white border border-white/30' 
+                  ? 'bg-white/10 text-white border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
                   : 'text-white/40 border-transparent hover:text-white hover:bg-white/5'
               }`}
             >
@@ -124,10 +138,10 @@ export default function AdminPage() {
               <h2 className="text-2xl md:text-3xl font-normal serif-title uppercase tracking-widest">Business Intelligence</h2>
               <div className="flex gap-3 w-full md:w-auto">
                 <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center">
-                  <FileText size={16} /> PDF
+                  <FileText size={16} /> Exportar PDF
                 </button>
                 <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
-                  <Download size={16} /> Planilha
+                  <Download size={16} /> Planilha Excel
                 </button>
               </div>
             </div>
@@ -139,30 +153,33 @@ export default function AdminPage() {
                 </h3>
                 <div className="h-64 w-full flex items-end gap-3 border-b border-white/10 pb-2">
                   {[45, 60, 30, 85, 50, 100, 75].map((val, i) => (
-                    <div key={i} className="flex-1 bg-[#E85002] rounded-t-lg relative group" style={{ height: `${val}%` }} />
+                    <div key={i} className="flex-1 bg-gradient-to-t from-[#E85002] to-[#F16001] rounded-t-lg relative group" style={{ height: `${val}%` }} />
                   ))}
                 </div>
-                <div className="flex justify-between text-[10px] font-black text-white/30 uppercase">
+                <div className="flex justify-between text-[10px] font-black text-white/30 uppercase tracking-widest">
                   <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
                 </div>
               </div>
 
               <div className="glass-card p-8 md:p-12 space-y-8">
-                <h3 className="text-sm font-bold uppercase tracking-widest">Top Tags</h3>
+                <h3 className="text-sm font-bold uppercase tracking-widest">Principais Conceitos</h3>
                 <div className="space-y-6">
-                  {['Solidão', 'Guerra', 'Paz', 'Caos'].map((t, i) => (
+                  {['Solidão', 'Guerra', 'Paz', 'Caos', 'Esperança'].map((t, i) => (
                     <div key={i} className="space-y-2">
-                      <div className="flex justify-between text-[11px] font-bold uppercase"><span>{t}</span><span className="text-white/40">{100 - i * 15}</span></div>
-                      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#E85002]" style={{ width: `${100 - i * 15}%` }} />
+                      <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest">
+                        <span>{t}</span>
+                        <span className="text-white/40">{100 - i * 12}</span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-[#E85002] transition-all duration-1000" style={{ width: `${100 - i * 12}%` }} />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="lg:col-span-3 glass-card p-8 md:p-12 space-y-8 overflow-hidden h-[500px] relative">
-                <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-3">
+              <div className="lg:col-span-3 glass-card p-8 md:p-12 space-y-8 overflow-hidden h-[550px] relative">
+                <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-3 relative z-10">
                   <Network className="text-[#E85002]" size={18} /> Mapa de Correlação Semântica
                 </h3>
                 <div className="absolute inset-0 pt-20">
@@ -170,14 +187,14 @@ export default function AdminPage() {
                     graphData={graphData}
                     nodeLabel="id"
                     backgroundColor="transparent"
-                    linkColor={() => '#ffffff20'}
+                    linkColor={() => 'rgba(255,255,255,0.1)'}
                     nodeCanvasObject={(node: any, ctx) => {
                       ctx.fillStyle = '#E85002';
-                      ctx.beginPath(); ctx.arc(node.x, node.y, 4, 0, 2 * Math.PI, false); ctx.fill();
-                      ctx.fillStyle = 'white'; ctx.font = '10px Arial'; ctx.fillText(node.id, node.x, node.y + 12);
+                      ctx.beginPath(); ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI, false); ctx.fill();
+                      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = '10px Inter'; ctx.fillText(node.id, node.x, node.y + 14);
                     }}
                     width={1300}
-                    height={400}
+                    height={450}
                   />
                 </div>
               </div>
@@ -187,10 +204,46 @@ export default function AdminPage() {
 
         {activeTab === 'validacao' && (
           <div className="space-y-8 animate-fade-in">
-             <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Sistema de Validação</h2>
-             <div className="glass-card p-12 text-center space-y-6">
-                <ShieldCheck size={64} className="mx-auto text-[#E85002] opacity-50" />
-                <p className="text-white/50 max-w-md mx-auto">Nenhuma percepção pendente de validação crítica no momento. Todas as tags foram processadas pelo motor Llama 3.3.</p>
+             <div className="flex justify-between items-center">
+                <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Sistema de Validação</h2>
+                <div className="flex gap-2">
+                   <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] uppercase font-bold tracking-widest">Fila: 156 pendentes</span>
+                </div>
+             </div>
+             <div className="glass-card p-4 md:p-8 overflow-x-auto no-scrollbar">
+                <table className="w-full text-left text-sm min-w-[900px]">
+                  <thead className="bg-white/5 border-b border-white/10 uppercase text-[10px] font-black text-white/40 tracking-widest">
+                    <tr>
+                      <th className="px-6 py-6">Percepção Original</th>
+                      <th className="px-6 py-6"> डीएनए DNA Semântico</th>
+                      <th className="px-6 py-6">Confiança IA</th>
+                      <th className="px-6 py-6">Ações Curador</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {[
+                      { original: 'Grito de dor mudo', dna: 'trauma; angústia; pânico', conf: '94%' },
+                      { original: 'Esperança no amanhã', dna: 'futuro; luz; otimismo', conf: '88%' },
+                      { original: 'Caos geométrico', dna: 'abstração; desordem; cubismo', conf: '91%' }
+                    ].map((row, i) => (
+                      <tr key={i} className="hover:bg-white/5 transition-all">
+                        <td className="px-6 py-8 italic font-serif text-lg">"{row.original}"</td>
+                        <td className="px-6 py-8">
+                           <div className="flex gap-2">
+                              {row.dna.split('; ').map(t => <span key={t} className="px-3 py-1 bg-[#E85002]/10 text-[#E85002] rounded-full text-[9px] uppercase font-black">{t}</span>)}
+                           </div>
+                        </td>
+                        <td className="px-6 py-8 font-mono text-[#E85002] font-bold">{row.conf}</td>
+                        <td className="px-6 py-8">
+                           <div className="flex gap-3">
+                              <button className="px-4 py-2 bg-white/10 rounded-lg text-[9px] uppercase font-bold hover:bg-white/20 transition-all">Validar</button>
+                              <button className="px-4 py-2 border border-white/5 rounded-lg text-[9px] uppercase font-bold hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 transition-all">Descartar</button>
+                           </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
              </div>
           </div>
         )}
@@ -198,17 +251,28 @@ export default function AdminPage() {
         {activeTab === 'ontologia' && (
           <div className="space-y-8 animate-fade-in">
              <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Ontologias Institucionais</h2>
-                <button className="liquid-button !bg-[#E85002]">Nova Ontologia</button>
+                <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Ontologias & Vocabulários</h2>
+                <button className="liquid-button !bg-[#E85002] flex items-center gap-2"><Plus size={16} /> Nova Ontologia</button>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {['AAT - Getty', 'EuroVoc', 'NUGEP Core', 'UNESCO Thesaurus'].map((o, i) => (
-                  <div key={i} className="glass-card p-8 space-y-4 hover:border-[#E85002]/40 transition-all">
-                    <h3 className="text-lg font-bold">{o}</h3>
-                    <p className="text-xs text-white/40 leading-relaxed uppercase tracking-wider font-bold">Vocabulário controlado para indexação semântica e interoperabilidade.</p>
-                    <div className="flex gap-2">
-                       <span className="px-3 py-1 bg-white/5 rounded text-[9px] uppercase font-black tracking-widest">Ativo</span>
-                       <span className="px-3 py-1 bg-white/5 rounded text-[9px] uppercase font-black tracking-widest text-[#E85002]">Linked Data</span>
+                {[
+                  { name: 'AAT - Art & Architecture Thesaurus', provider: 'Getty Research', terms: '350k' },
+                  { name: 'UNESCO Thesaurus', provider: 'UNESCO', terms: '7k' },
+                  { name: 'Iconclass', provider: 'Iconclass', terms: '28k' },
+                  { name: 'NUGEP Internal Core', provider: 'Institucional', terms: '4.2k' }
+                ].map((o, i) => (
+                  <div key={i} className="glass-card p-8 space-y-6 hover:border-[#E85002]/40 group transition-all cursor-pointer">
+                    <div className="flex justify-between items-start">
+                       <InstitutionalLogo className="w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity" />
+                       <ArrowUpRight size={18} className="text-white/20 group-hover:text-[#E85002]" />
+                    </div>
+                    <div className="space-y-2">
+                       <h3 className="text-lg font-bold leading-tight">{o.name}</h3>
+                       <p className="text-[9px] uppercase tracking-widest font-black text-white/30">{o.provider}</p>
+                    </div>
+                    <div className="pt-4 border-t border-white/5 flex justify-between items-center text-[10px] uppercase font-black tracking-widest">
+                       <span className="text-green-500">Conectado via SPARQL</span>
+                       <span className="text-white/40">{o.terms} termos</span>
                     </div>
                   </div>
                 ))}
@@ -218,18 +282,27 @@ export default function AdminPage() {
 
         {activeTab === 'interoperabilidade' && (
           <div className="space-y-8 animate-fade-in">
-             <h2 className="text-3xl font-normal serif-title uppercase tracking-widest text-center">Conexões Externas (Open Data)</h2>
+             <div className="flex flex-col items-center text-center space-y-4 max-w-2xl mx-auto">
+                <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Conexões Globais (Open Data)</h2>
+                <p className="text-white/40 text-xs uppercase tracking-widest font-bold">Monitoramento de interoperabilidade em tempo real com fontes de dados culturais externos.</p>
+             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { name: 'Europeana', status: 'Online', delay: '124ms' },
-                  { name: 'IBRAM', status: 'Online', delay: '210ms' },
-                  { name: 'Getty Museum', status: 'Offline', delay: '-' },
-                  { name: 'DBPedia', status: 'Online', delay: '89ms' }
+                  { name: 'Europeana API', status: 'Online', delay: '124ms', region: 'EU' },
+                  { name: 'IBRAM (Tainacan)', status: 'Online', delay: '210ms', region: 'BR' },
+                  { name: 'Getty Museum API', status: 'Offline', delay: '-', region: 'US' },
+                  { name: 'DBPedia Sparql', status: 'Online', delay: '89ms', region: 'Global' }
                 ].map((conn, i) => (
-                  <div key={i} className="glass-card p-8 flex flex-col items-center gap-4 text-center">
-                    <Globe size={32} className={conn.status === 'Online' ? 'text-green-500' : 'text-red-500'} />
-                    <p className="font-bold">{conn.name}</p>
-                    <div className="text-[10px] uppercase font-black tracking-widest flex gap-2">
+                  <div key={i} className="glass-card p-8 flex flex-col items-center gap-6 text-center group hover:bg-white/[0.04]">
+                    <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border ${conn.status === 'Online' ? 'border-green-500/20' : 'border-red-500/20'}`}>
+                       <Globe size={32} className={conn.status === 'Online' ? 'text-green-500' : 'text-red-500'} />
+                       {conn.status === 'Online' && <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full animate-pulse" />}
+                    </div>
+                    <div>
+                       <p className="font-bold text-lg">{conn.name}</p>
+                       <p className="text-[9px] uppercase font-black tracking-widest text-white/30">{conn.region}</p>
+                    </div>
+                    <div className="text-[10px] uppercase font-black tracking-widest flex items-center justify-center gap-4 w-full pt-4 border-t border-white/5">
                        <span className={conn.status === 'Online' ? 'text-green-500' : 'text-red-500'}>{conn.status}</span>
                        <span className="text-white/20">|</span>
                        <span className="text-white/40">{conn.delay}</span>
@@ -240,31 +313,35 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* Previous modules (Obras and Tags) preserved with updated styles */}
         {activeTab === 'obras' && (
           <div className="space-y-8 animate-fade-in">
              <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Gestão de Obras</h2>
-                <button onClick={() => setShowAddForm(!showAddForm)} className="liquid-button !bg-[#E85002]">Adicionar Obra</button>
+                <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Gestão de Acervo</h2>
+                <button onClick={() => setShowAddForm(!showAddForm)} className="liquid-button !bg-[#E85002] flex items-center gap-2"><Plus size={16} /> Nova Obra</button>
              </div>
-             <div className="glass-card p-12 text-center text-white/30 uppercase tracking-widest font-black text-xs">Carregando acervo institucional...</div>
+             <div className="glass-card p-12 text-center">
+                <Search size={48} className="mx-auto text-white/10 mb-6" />
+                <p className="text-white/30 uppercase tracking-widest font-black text-xs">Acessando banco de dados Supabase...</p>
+             </div>
           </div>
         )}
 
         {activeTab === 'tags' && (
           <div className="space-y-8 animate-fade-in">
-             <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Gestão de Percepções</h2>
+             <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Curadoria de Percepções</h2>
              <div className="glass-card overflow-x-auto no-scrollbar">
                 <table className="w-full text-left text-sm min-w-[800px]">
                   <thead className="bg-white/5 border-b border-white/10 uppercase text-[10px] font-black text-white/40 tracking-widest">
-                    <tr><th className="px-10 py-6">Visitante</th><th className="px-10 py-6">Tag</th><th className="px-10 py-6">Status</th><th className="px-10 py-6">Ação</th></tr>
+                    <tr><th className="px-10 py-6">Visitante</th><th className="px-10 py-6">Percepção</th><th className="px-10 py-6">Status Semântico</th><th className="px-10 py-6">Ações</th></tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {['#A2', '#B5', '#C1', '#D4'].map((v, i) => (
                       <tr key={i} className="hover:bg-white/5 transition-all">
-                        <td className="px-10 py-8 font-bold">Visitante {v}</td>
-                        <td className="px-10 py-8 serif-title text-lg">Percepção Simulada {i}</td>
-                        <td className="px-10 py-8"><span className="px-3 py-1 bg-white/5 rounded text-[9px] uppercase font-black tracking-widest">Processado</span></td>
-                        <td className="px-10 py-8"><button className="liquid-button !py-2 !px-4 !text-[10px]">Ver DNA</button></td>
+                        <td className="px-10 py-8 font-bold">Participante {v}</td>
+                        <td className="px-10 py-8 serif-title text-xl">"A geometria do medo"</td>
+                        <td className="px-10 py-8"><span className="px-4 py-1.5 bg-green-500/10 text-green-400 rounded-full text-[9px] uppercase font-black tracking-widest border border-green-500/20">Vinculado</span></td>
+                        <td className="px-10 py-8"><button className="liquid-button !py-2 !px-4 !text-[10px]">Ver Detalhes</button></td>
                       </tr>
                     ))}
                   </tbody>

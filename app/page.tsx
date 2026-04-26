@@ -2,6 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 
+const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
+  <div className={`relative flex items-center justify-center ${className}`}>
+    <div className="absolute inset-0 rounded-full bg-[#E85002] shadow-[0_0_40px_rgba(232,80,2,0.2)]" />
+    <div className="absolute inset-[25%] rounded-full bg-black/30" />
+    <div className="absolute inset-[40%] rounded-full bg-white/20" />
+  </div>
+);
+
 export default function LandingPage() {
   const router = useRouter();
 
@@ -10,9 +18,7 @@ export default function LandingPage() {
       <div className="max-w-[800px] text-center space-y-16">
         
         <div className="space-y-6">
-          <div className="w-20 h-20 rounded-full border border-white/10 flex items-center justify-center bg-white/5 backdrop-blur-xl mx-auto shadow-[0_0_40px_rgba(232,80,2,0.2)]">
-            <div className="w-4 h-4 rounded-full bg-[#E85002] shadow-[0_0_20px_rgba(232,80,2,0.8)]" />
-          </div>
+          <InstitutionalLogo className="w-24 h-24 mx-auto mb-4" />
           <h1 className="text-5xl md:text-6xl font-normal serif-title text-white tracking-[0.05em] uppercase">
             Sistema de Folksonomia
           </h1>

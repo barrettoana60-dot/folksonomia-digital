@@ -3,7 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+// Unified Logo Component
+const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
+  <div className={`relative flex items-center justify-center ${className}`}>
+    <div className="absolute inset-0 rounded-full bg-[#E85002] shadow-[0_0_20px_rgba(232,80,2,0.5)]" />
+    <div className="absolute inset-[25%] rounded-full bg-black/30" />
+    <div className="absolute inset-[40%] rounded-full bg-white/20" />
+  </div>
+);
+
 export default function Header() {
+
   const pathname = usePathname();
 
   const links = [
@@ -28,10 +38,9 @@ export default function Header() {
       
       {/* Branding */}
       <Link href="/" onClick={handleLogoClick} className="flex items-center gap-3 md:gap-4 group">
-        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#E85002] flex items-center justify-center shadow-[0_0_20px_rgba(232,80,2,0.5)]">
-          <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black/40" />
-        </div>
+        <InstitutionalLogo className="w-8 h-8 md:w-10 md:h-10" />
         <div className="flex flex-col">
+
           <span className="text-white text-sm md:text-lg font-normal serif-title tracking-tight uppercase leading-none">
             Sistema de Folksonomia
           </span>
