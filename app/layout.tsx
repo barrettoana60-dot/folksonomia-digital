@@ -6,8 +6,8 @@ export const metadata: Metadata = {
   title: "Sistema de Folksonomia",
   description: "Plataforma Institucional de Documentação Semântica e Participativa",
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
+    icon: '/logo.svg',
+    apple: '/logo.svg',
   }
 };
 
