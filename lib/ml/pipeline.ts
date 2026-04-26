@@ -1,5 +1,5 @@
 import { normalizeText } from '../core/normalize';
-import { createEntitySignature } from '../core/crypto';
+import { generateSignature } from '../core/crypto';
 import { createLocalEmbedding } from './embeddings';
 import { matchOntologies, suggestInternalRelations } from './recommendations';
 import { calculateConfidence, calculateNovelty, calculateTension, calculateResonance } from './scoring';
@@ -12,7 +12,7 @@ export async function runSemanticPipeline(tagOriginal: string, obraId: string, v
 
   // 3. Criar assinatura interna
   const payloadToHash = { tag: tagOriginal, norm: conteudoNormalizado, obra_id: obraId, ts: Date.now() };
-  const assinaturaHash = createEntitySignature(payloadToHash);
+  const assinaturaHash = generateSignature(payloadToHash);
 
   // 4. Gerar vetor local
   const embedding = await createLocalEmbedding(conteudoNormalizado);
