@@ -1,48 +1,59 @@
-import { normalizeText, tokenize } from '../core/normalize';
-import { createLocalEmbedding } from './engine';
-import { suggestConceptsFromOntologies } from './ontology-matcher';
-import { encryptPayload, generateSignature } from '../core/crypto';
-import { calculateConfidence, calculateNovelty, calculateResonance, calculateTension } from './scoring';
+import { normalizeText } from '../core/normalize';
+import { createEntitySignature } from '../core/crypto';
+import { createLocalEmbedding } from './embeddings';
+import { matchOntologies, suggestInternalRelations } from './recommendations';
+import { calculateConfidence, calculateNovelty, calculateTension, calculateResonance } from './scoring';
+import { supabaseAdmin } from '@/lib/supabase/client';
 
-export async function runSemanticPipeline(tag: string, obraId: string, contextoObra: string = '') {
-  // 1. Normalization
-  const normalized = normalizeText(tag);
+export async function runSemanticPipeline(tagOriginal: string, obraId: string, visitanteHash?: string) {
+  // 1 & 2. Salvar e Normalizar
+  const conteudoNormalizado = normalizeText(tagOriginal);
+  if (!conteudoNormalizado) throw new Error('Tag inválida');
+
+  // 3. Criar assinatura interna
+  const payloadToHash = { tag: tagOriginal, norm: conteudoNormalizado, obra_id: obraId, ts: Date.now() };
+  const assinaturaHash = createEntitySignature(payloadToHash);
+
+  // 4. Gerar vetor local
+  const embedding = await createLocalEmbedding(conteudoNormalizado);
+
+  // Consultar dados auxiliares (ontologias, núcleos existentes)
+  // Como estamos em ambiente serverless, fazemos consultas leves ao DB
+  const [{ data: ontologias }, { data: nucleosExistentes }] = await Promise.all([
+    supabaseAdmin.from('ontologias').select('*').limit(20),
+    supabaseAdmin.from('nucleos').select('id, conteudo_original').neq('conteudo_original', tagOriginal).limit(50)
+  ]);
+
+  // 7. Comparar ontologias
+  const matchedOntologies = matchOntologies(conteudoNormalizado, ontologias || []);
+
+  // 9. Relações internas
+  const internalRelations = suggestInternalRelations(conteudoNormalizado, nucleosExistentes || []);
+
+  // Simulação de chamadas externas para o score (0 a 1)
+  const externalMatchesCount = 1; // Default to 1 to simulate open data connections
+
+  // 13. Calcular Scores (agora convertidos de 0 a 1 para o formato 0 a 100 esperado pelas APIs)
+  const confidence = calculateConfidence(conteudoNormalizado, {}, externalMatchesCount, 0) * 100;
   
-  // 2. Embedding Generation (Vectorization)
-  const embedding = await createLocalEmbedding(normalized);
+  const maxSim = internalRelations.length > 0 ? internalRelations[0].score : 0;
+  const novelty = calculateNovelty(conteudoNormalizado, maxSim, maxSim < 0.3) * 100;
   
-  // 3. Ontology Matching
-  const ontologies = suggestConceptsFromOntologies(normalized);
-  
-  // 4. Crypto sealing
-  const payload = { tag, normalized, obraId, timestamp: new Date().toISOString() };
-  const encryptedPayload = encryptPayload(payload);
-  const signature = generateSignature(payload);
-  
-  // 5. Scoring
-  const confidence = calculateConfidence(1, ontologies.length > 0, false);
-  const novelty = calculateNovelty(ontologies.length > 0, 0.2); // mock similarity
-  
-  // Dummy institutional vector to calculate tension (in real app, fetched from Obra)
-  const dummyInstVector = await createLocalEmbedding(contextoObra || 'arte');
-  const tension = calculateTension(embedding, dummyInstVector);
-  
-  const resonance = calculateResonance(ontologies.length);
-  
+  const tension = calculateTension(conteudoNormalizado, matchedOntologies.length, 0.5) * 100;
+  const resonance = calculateResonance(conteudoNormalizado, internalRelations.length, externalMatchesCount) * 100;
+
   return {
     cell: {
-      original: tag,
-      normalized,
-      signature,
-      encryptedPayload,
-      embedding
+      signature: assinaturaHash,
+      embedding: `[${embedding.join(',')}]`,
+      encryptedPayload: Buffer.from(JSON.stringify(payloadToHash)).toString('base64'),
     },
     semantics: {
-      concepts: ontologies,
       confidence,
       novelty,
       tension,
-      resonance
+      resonance,
+      concepts: matchedOntologies.length > 0 ? matchedOntologies : ['Outros']
     }
   };
 }
