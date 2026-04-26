@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Volume2, VolumeX, CheckCircle, Info, Tag as TagIcon, X } from 'lucide-react';
+import { Volume2, VolumeX, CheckCircle, Tag as TagIcon } from 'lucide-react';
 
 interface ObraCardProps {
   obra: {
@@ -19,7 +19,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
   const [isTagging, setIsTagging] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [myTag, setMyTag] = useState<string | null>(null);
+  const [tagsSentCount, setTagsSentCount] = useState(0);
   const [speaking, setSpeaking] = useState(false);
 
   const handleSpeech = (e: React.MouseEvent) => {
@@ -64,20 +64,17 @@ export default function ObraCard({ obra }: ObraCardProps) {
       clearTimeout(timeoutId);
 
       if (res.ok) {
-        setMyTag(tagInput.trim());
+        setTagsSentCount(prev => prev + 1);
         setTagInput('');
         setIsTagging(false);
+        alert('Sua percepção foi integrada ao núcleo semântico com sucesso!');
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(`O motor de IA detectou um problema: ${errorData.error || 'Falha na conexão com o banco'}.`);
+        alert(`Erro: ${errorData.error || 'Falha na conexão com o banco'}.`);
       }
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-        alert('O processamento semântico está levando mais tempo que o esperado. Sua tag será processada em breve.');
-      } else {
-        console.error('Submission error:', err);
-        alert('Erro técnico ao enviar a tag.');
-      }
+      console.error('Submission error:', err);
+      alert('Erro técnico ao enviar a tag.');
     } finally {
       setSubmitting(false);
     }
@@ -111,25 +108,24 @@ export default function ObraCard({ obra }: ObraCardProps) {
           <p className="text-[9px] md:text-[10px] text-white/30 uppercase tracking-widest">{obra.ano}</p>
           
           <div className="pt-4 md:pt-6">
-            {!myTag ? (
-              <button 
-                onClick={() => setIsTagging(!isTagging)}
-                className="liquid-button w-full !rounded-full !bg-white/5 hover:!bg-white/10 !text-[10px] md:!text-[11px] !py-3 md:!py-4 font-black"
-              >
-                {isTagging ? 'CANCELAR' : 'ADICIONAR TAG'}
-              </button>
-            ) : (
-              <div className="flex items-center justify-center gap-3 py-3 md:py-4 bg-green-500/5 rounded-xl border border-green-500/10">
-                <CheckCircle size={14} className="text-green-400" />
-                <span className="text-[9px] md:text-[10px] uppercase font-black tracking-widest text-green-400">TAG: {myTag}</span>
-              </div>
+            <button 
+              onClick={() => setIsTagging(!isTagging)}
+              className="liquid-button w-full !rounded-full !bg-white/5 hover:!bg-white/10 !text-[10px] md:!text-[11px] !py-3 md:!py-4 font-black"
+            >
+              {isTagging ? 'CANCELAR' : 'ADICIONAR TAG'}
+            </button>
+            
+            {tagsSentCount > 0 && (
+              <p className="text-center text-[8px] uppercase tracking-widest text-green-400/60 mt-3 font-bold">
+                {tagsSentCount === 1 ? '1 Percepção Registrada' : `${tagsSentCount} Percepções Registradas`}
+              </p>
             )}
           </div>
         </div>
       </div>
 
       {/* Inline Tagging Form */}
-      {isTagging && !myTag && (
+      {isTagging && (
         <div className="glass-card p-6 md:p-10 bg-[#0A0A0C] border-white/10 space-y-6 md:space-y-8 animate-fade-in shadow-2xl">
           <div className="flex items-start gap-4 md:gap-5">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#E85002]/10 flex items-center justify-center shrink-0 border border-[#E85002]/20">

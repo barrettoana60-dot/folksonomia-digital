@@ -11,11 +11,20 @@ export default function Header() {
     { href: '/acessibilidade', label: 'Acessibilidade' },
   ];
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    const hasCompletedQuiz = typeof window !== 'undefined' && localStorage.getItem('visitante_quiz_completado');
+    if (hasCompletedQuiz) {
+      e.preventDefault();
+      window.location.href = '/obras';
+    }
+  };
+
   return (
     <header className="fixed top-0 left-0 w-full z-50 h-20 md:h-24 flex items-center justify-between px-6 md:px-12 bg-black/40 backdrop-blur-xl border-b border-white/5">
       
       {/* Branding */}
-      <Link href="/" className="flex items-center gap-3 md:gap-4 group">
+      <Link href="/" onClick={handleLogoClick} className="flex items-center gap-3 md:gap-4 group">
+
         <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-[#E85002] flex items-center justify-center shadow-[0_0_20px_rgba(232,80,2,0.5)]">
           <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-black/40" />
         </div>
@@ -35,6 +44,13 @@ export default function Header() {
           <Link 
             key={link.href}
             href={link.href}
+            onClick={(e) => {
+              const hasCompletedQuiz = typeof window !== 'undefined' && localStorage.getItem('visitante_quiz_completado');
+              if (hasCompletedQuiz && link.href === '/') {
+                e.preventDefault();
+                window.location.href = '/obras';
+              }
+            }}
             className={`hidden md:block text-[10px] uppercase font-black tracking-[0.25em] transition-all hover:text-[#E85002] ${
               pathname === link.href ? 'text-[#E85002]' : 'text-white/40'
             }`}
