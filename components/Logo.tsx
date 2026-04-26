@@ -1,5 +1,5 @@
 import React from 'react';
-import { Amphora, Bird, Leaf, HandHeart, Landmark, Laptop } from 'lucide-react';
+import { Coffee, Bird, Leaf, HandHeart, Landmark, Laptop } from 'lucide-react';
 
 const Logo = ({ className = "w-10 h-10" }) => {
   const createSlice = (startAngle: number, endAngle: number, color: string) => {
@@ -42,7 +42,7 @@ const Logo = ({ className = "w-10 h-10" }) => {
         </div>
 
         {/* Orange Segment (Top Left ~ 234 deg) */}
-        <Amphora className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '29%', top: '22%' }} strokeWidth={2} />
+        <Coffee className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '29%', top: '22%' }} strokeWidth={2} />
 
         {/* Red Segment (Top Right ~ 306 deg) */}
         <Bird className="absolute text-white w-[15%] h-[15%] -translate-x-1/2 -translate-y-1/2" style={{ left: '71%', top: '22%' }} strokeWidth={2} />

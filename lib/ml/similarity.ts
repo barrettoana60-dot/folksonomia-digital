@@ -1,5 +1,5 @@
 import { normalizeText } from '../core/normalize';
-import { tokenizeText } from './embeddings';
+import { tokenize } from './embeddings';
 
 /**
  * Calcula a similaridade de cosseno entre dois vetores de 384 dimensões.
@@ -63,8 +63,8 @@ export function levenshteinDistance(a: string, b: string): number {
  * Mede quão próximos dois textos são baseados em seus n-gramas e tokens.
  */
 export function tokenSimilarity(a: string, b: string): number {
-  const tokensA = new Set(tokenizeText(a));
-  const tokensB = new Set(tokenizeText(b));
+  const tokensA = new Set(tokenize(a));
+  const tokensB = new Set(tokenize(b));
   
   if (tokensA.size === 0 && tokensB.size === 0) return 1.0;
   if (tokensA.size === 0 || tokensB.size === 0) return 0.0;
