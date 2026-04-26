@@ -5,7 +5,12 @@ import Header from "@/components/Header";
 export const metadata: Metadata = {
   title: "Sistema de Folksonomia",
   description: "Plataforma Institucional de Documentação Semântica e Participativa",
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  }
 };
+
 
 export const viewport: Viewport = {
   width: "device-width",
