@@ -3,7 +3,8 @@ import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "Sistema Folksonomia Digital",
+  title: "Sistema de Folksonomia",
+
   description: "Plataforma avançada de folksonomia, validação e interoperabilidade semântica para acervos museológicos.",
 };
 

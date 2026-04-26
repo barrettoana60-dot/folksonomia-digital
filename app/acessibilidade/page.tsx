@@ -31,7 +31,8 @@ export default function AcessibilidadePage() {
             <Eye size={48} className="text-white" strokeWidth={1} />
           </div>
           <h1 className="text-4xl font-normal serif-title tracking-tight uppercase">Acessibilidade</h1>
-          <p className="text-white/40 max-w-md mx-auto text-sm">Personalize sua experiência de navegação no Sistema Folksonomia Digital.</p>
+          <p className="text-white/40 max-w-md mx-auto text-sm">Personalize sua experiência de navegação no Sistema de Folksonomia.</p>
+
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

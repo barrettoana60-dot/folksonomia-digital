@@ -2,46 +2,49 @@ import { generateSignature } from '../core/crypto';
 import { normalizeText, createLocalEmbedding } from './embeddings';
 import { matchOntologies, suggestConcepts, detectThemeGroup } from './ontology-matcher';
 import { calculateConfidence, calculateNovelty, calculateTension, calculateResonance } from './scoring';
+import { recommendRelations } from './recommendations';
+import { rankOpenData } from './open-data-ranker';
 import { supabaseAdmin as supabase } from '@/lib/supabase/client';
 
+/**
+ * Pipeline Semântico Completo do Sistema Folksonomia Digital
+ */
 export async function runSemanticPipeline(tag: string, obraId: string, visitanteId?: string) {
   const norm = normalizeText(tag);
   if (!norm) throw new Error('Tag vazia ou inválida');
 
-  // 1. Gerar Assinatura (DNA)
+  // 1. DNA Semântico (Assinatura e Vetor 384d)
   const signature = generateSignature({ tag, obraId, ts: Date.now() });
-
-  // 2. Gerar Vetor (pgvector format)
   const embedding = await createLocalEmbedding(norm);
 
-  // 3. Consultar Contexto da Obra
+  // 2. Coleta de Contexto Local
   const { data: obra } = await supabase
     .from('obras')
     .select('titulo, descricao')
     .eq('id', obraId)
     .single();
 
-  // 4. Consultar Ontologias Locais
   const { data: ontologias } = await supabase
     .from('ontologias')
     .select('*')
-    .limit(50);
+    .limit(100);
 
-  // 5. Casamento Semântico
+  // 3. Processamento Semântico
   const matchedOntologies = matchOntologies(tag, ontologias || []);
   const suggestedConcepts = suggestConcepts(tag);
   const themeGroup = detectThemeGroup(tag, suggestedConcepts);
+  
+  // 4. Recomendações de Relações
+  const existingTags = await supabase.from('tags').select('tag_normalizada').limit(200);
+  const relations = recommendRelations(norm, (existingTags.data || []).map(t => t.tag_normalizada));
 
-  // 6. Simular Busca em Open Data (Ranker simplificado)
-  const externalMatchesCount = suggestedConcepts.length > 0 ? 1 : 0;
-
-  // 7. Calcular Indicadores (0 a 100 para interface)
-  const confidence = calculateConfidence(tag, {}, externalMatchesCount, 0) * 100;
+  // 5. Indicadores Semânticos (0-100)
+  const confidence = calculateConfidence(tag, {}, suggestedConcepts.length, 0) * 100;
   const novelty = calculateNovelty(tag, 0.4, suggestedConcepts.length === 0) * 100;
   const tension = calculateTension(tag, obra?.descricao || '', 0.3) * 100;
-  const resonance = calculateResonance(suggestedConcepts.length, externalMatchesCount) * 100;
+  const resonance = calculateResonance(suggestedConcepts.length, 0) * 100;
 
-  // 8. Preparar Resultados
+  // 6. Preparar Resultado para Persistência e Interface
   return {
     dna: {
       signature,
@@ -52,6 +55,7 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
       themeGroup,
       concepts: suggestedConcepts,
       ontologies: matchedOntologies,
+      relations,
       indicators: {
         confidence,
         novelty,

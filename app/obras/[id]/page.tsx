@@ -2,7 +2,8 @@
 
 import { useState, useEffect, use } from 'react';
 import { supabaseClient } from '@/lib/supabase/client';
-import { Tag, Volume2, CheckCircle, Search, AlertCircle, Play, Info } from 'lucide-react';
+import { Volume2, VolumeX, CheckCircle, AlertCircle, Info, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ObraDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -11,6 +12,7 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
   const [tagInput, setTagInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+  const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
     async function fetchObra() {
@@ -26,15 +28,28 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
       setLoading(false);
     }
     fetchObra();
+    
+    return () => {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
   }, [resolvedParams.id]);
 
   const handleSpeech = () => {
-    if (!obra) return;
-    const synth = window.speechSynthesis;
-    const text = `Audiodescrição da obra ${obra.titulo}, de ${obra.artista}. ${obra.audiodescricao || obra.descricao}`;
+    if (!obra || !window.speechSynthesis) return;
+    
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+
+    const text = `Esta obra é de ${obra.artista || 'artista desconhecido'}, chamada ${obra.titulo}. Foi produzida no ano de ${obra.ano || 'desconhecido'}. Descrição: ${obra.audiodescricao || obra.descricao || 'Sem descrição adicional disponível.'}`;
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'pt-BR';
-    synth.speak(utter);
+    utter.onend = () => setSpeaking(false);
+    
+    window.speechSynthesis.speak(utter);
+    setSpeaking(true);
   };
 
   const handleSubmitTag = async (e: React.FormEvent) => {
@@ -59,111 +74,107 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
       const data = await res.json();
 
       if (res.ok) {
-        setFeedback({
-          type: 'success',
-          msg: data.message || 'Tag registrada com sucesso.'
-        });
+        setFeedback({ type: 'success', msg: 'Sua percepção foi integrada ao sistema.' });
         setTagInput('');
       } else {
-        throw new Error(data.error || 'Falha ao registrar tag');
+        throw new Error(data.error);
       }
     } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        msg: 'Ocorreu um erro institucional ao processar sua contribuição. Tente novamente mais tarde.'
-      });
+      setFeedback({ type: 'error', msg: 'Erro ao registrar. Tente novamente.' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#000814] text-white serif-title animate-pulse">Carregando Acervo...</div>;
-  if (!obra) return <div className="min-h-screen flex items-center justify-center bg-[#000814] text-red-400 serif-title">Registro não encontrado.</div>;
+  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white/20 uppercase tracking-widest text-xs">Carregando...</div>;
+  if (!obra) return <div className="min-h-screen bg-black flex items-center justify-center text-red-500/50 uppercase tracking-widest text-xs">Não encontrado</div>;
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-6 md:px-24 bg-[#000814] text-white font-sans selection:bg-blue-500/30">
-      <div className="max-w-5xl mx-auto space-y-12">
+    <div className="min-h-screen bg-black text-white pt-32 pb-20 px-6">
+      <div className="max-w-[1200px] mx-auto space-y-12">
         
-        {/* Main Display */}
-        <div className="glass-card p-10 md:p-16 space-y-10 relative overflow-hidden">
-          <div className="space-y-4">
-            <h1 className="text-4xl md:text-6xl font-normal serif-title text-white tracking-tight">{obra.titulo}</h1>
-            <div className="flex items-center gap-4 text-white/50 text-sm uppercase tracking-widest font-bold">
-              <span>{obra.artista}</span>
-              <span className="w-1 h-1 bg-white/30 rounded-full" />
-              <span>{obra.ano}</span>
-              <span className="w-1 h-1 bg-white/30 rounded-full" />
-              <span>{obra.tipo}</span>
-            </div>
-          </div>
+        <Link href="/obras" className="inline-flex items-center gap-2 text-white/30 hover:text-white transition-colors text-[10px] uppercase tracking-widest mb-4">
+          <ArrowLeft size={14} /> Voltar para Galeria
+        </Link>
 
-          <div className="prose prose-invert max-w-none">
-            <div className="bg-black/30 p-8 rounded-xl border border-white/5 leading-relaxed text-lg text-white/80 font-light italic">
-              "{obra.descricao}"
-            </div>
-          </div>
-
-          {/* Audio Description Block - MANDATORY BELOW WORK INFO */}
-          <div className="border-t border-white/10 pt-10 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold uppercase tracking-tighter flex items-center gap-3">
-                <Volume2 size={24} className="text-white/70" />
-                Audiodescrição do Acervo
-              </h2>
-              <button 
-                onClick={handleSpeech}
-                className="liquid-button flex items-center gap-2 hover:scale-105"
-              >
-                <Play size={16} fill="currentColor" />
-                Ouvir Descrição
-              </button>
-            </div>
-            <div className="bg-white/5 p-6 rounded-lg border border-white/5 text-sm text-white/60 leading-relaxed">
-              <p className="font-bold text-white/80 mb-2">Descrevendo a obra:</p>
-              {obra.audiodescricao || `Esta obra de ${obra.artista}, intitulada "${obra.titulo}", é apresentada aqui em seu contexto institucional para análise semântica colaborativa.`}
-            </div>
-          </div>
-        </div>
-
-        {/* Tagging Interaction */}
-        <div className="glass-card p-10 md:p-16 border-t-4 border-t-blue-500/20">
-          <div className="space-y-6 max-w-2xl">
-            <h2 className="text-3xl font-normal serif-title flex items-center gap-3">
-              <Info size={32} strokeWidth={1} className="text-blue-400" />
-              Sua percepção importa
-            </h2>
-            <p className="text-white/50 leading-relaxed">
-              Como você descreveria esta obra em uma palavra? Sua contribuição será processada por nosso motor de **Machine Learning** e integrada à teia semântica global.
-            </p>
-
-            <form onSubmit={handleSubmitTag} className="flex gap-4 flex-col sm:flex-row pt-4">
-              <input 
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Ex: Família, Liberdade, Conflito..."
-                className="liquid-input flex-1 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                disabled={submitting}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          
+          {/* Obra Visual */}
+          <div className="space-y-8">
+            <div className="glass-card p-4 bg-white/[0.02] border-white/5 overflow-hidden">
+              <img 
+                src={obra.imagem_url} 
+                alt={obra.titulo} 
+                className="w-full h-auto rounded-xl object-contain shadow-2xl"
               />
-              <button 
-                type="submit"
-                disabled={submitting}
-                className="liquid-button bg-white !text-black font-bold uppercase tracking-widest hover:bg-white/80"
-              >
-                {submitting ? 'Analisando...' : 'Registrar Tag'}
-              </button>
-            </form>
-
-            {feedback && (
-              <div className={`mt-6 p-4 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${feedback.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                {feedback.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-                <p className="text-sm font-medium">{feedback.msg}</p>
-              </div>
-            )}
+            </div>
+            
+            <button 
+              onClick={handleSpeech}
+              className={`liquid-button w-full flex items-center justify-center gap-3 py-5 !rounded-xl transition-all ${speaking ? 'bg-[#E85002] border-[#E85002]' : ''}`}
+            >
+              {speaking ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              {speaking ? 'Parar Audiodescrição' : 'Ouvir Audiodescrição'}
+            </button>
           </div>
+
+          {/* Obra Info & Tagging */}
+          <div className="space-y-12">
+            <div className="space-y-4">
+              <h1 className="text-5xl font-normal serif-title leading-tight">{obra.titulo}</h1>
+              <div className="flex items-center gap-6 text-[#E85002] text-xs font-bold uppercase tracking-[0.2em]">
+                <span>{obra.artista}</span>
+                <span className="w-1 h-1 bg-white/20 rounded-full" />
+                <span>{obra.ano}</span>
+              </div>
+              <div className="h-[1px] w-20 bg-white/10 my-8" />
+              <p className="text-white/50 leading-relaxed text-sm font-light italic">
+                "{obra.descricao}"
+              </p>
+            </div>
+
+            <div className="glass-card p-10 bg-white/[0.01] border-white/5 space-y-8">
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#E85002]/10 flex items-center justify-center shrink-0">
+                  <Info size={20} className="text-[#E85002]" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-lg font-normal serif-title">Sua Percepção</h2>
+                  <p className="text-white/30 text-xs leading-relaxed">
+                    O que esta obra evoca em você? Sua tag será analisada pelo motor semântico.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmitTag} className="space-y-4">
+                <input 
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  placeholder="Ex: Família, Liberdade, Solidão..."
+                  className="liquid-input w-full !bg-black/60"
+                  disabled={submitting}
+                />
+                <button 
+                  type="submit"
+                  disabled={submitting}
+                  className="liquid-button w-full !rounded-lg !bg-white !text-black font-bold hover:!bg-white/90"
+                >
+                  {submitting ? 'Analisando...' : 'Registrar Percepção'}
+                </button>
+              </form>
+
+              {feedback && (
+                <div className={`p-4 rounded-lg flex items-center gap-3 ${feedback.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'} text-[11px] font-medium`}>
+                  {feedback.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                  {feedback.msg}
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   );
 }
-

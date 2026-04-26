@@ -1,6 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase/client';
 import ObraCard from '@/components/ObraCard';
-import { BookOpen } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,65 +21,44 @@ export default async function ObrasPage() {
   const obras = await getObras();
 
   return (
-    <main className="min-h-screen">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+    <main className="min-h-screen bg-black pt-32 pb-20 px-8">
+      <div className="max-w-[1400px] mx-auto space-y-16">
         
         {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center p-4 rounded-full bg-[#E85002]/10 mb-6">
-            <BookOpen size={40} className="text-[#E85002]" strokeWidth={1.5} />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-normal serif-title text-white mb-4">
-            Galeria de Acervo
+        <div className="text-center space-y-4">
+          <h1 className="text-5xl font-normal serif-title text-white tracking-tight">
+            Explorar Obras
           </h1>
-          <p className="text-white/60 text-lg max-w-2xl mx-auto leading-relaxed font-light">
-            Explore as obras e registre suas percepções. Cada contribuição alimenta a 
-            teia de conhecimento e amplia as leituras do acervo.
+          <p className="text-white/30 text-xs uppercase tracking-[0.4em] font-medium">
+            Acervo Institucional de Folksonomia
+          </p>
+          <div className="h-[1px] w-12 bg-[#E85002] mx-auto mt-8" />
+        </div>
+
+        {/* Info Banner */}
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-white/40 text-sm leading-relaxed font-light italic">
+            Selecione uma obra para ver detalhes e registrar suas percepções semânticas. 
+            Sua contribuição é fundamental para o enriquecimento do nosso sistema.
           </p>
         </div>
 
-        {/* Stats Banner */}
-        <div
-          className="glass-card p-8 mb-16 grid grid-cols-3 gap-6 text-center border-[#E85002]/10"
-        >
-          <div>
-            <div className="text-3xl font-normal serif-title text-[#E85002]">{obras.length}</div>
-            <div className="text-white/30 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold">Registros no Acervo</div>
-          </div>
-          <div>
-            <div className="text-3xl font-normal serif-title text-white">∞</div>
-            <div className="text-white/30 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold">Conexões Semânticas</div>
-          </div>
-          <div>
-            <div className="text-3xl font-normal serif-title text-[#D9C3AB]">6</div>
-            <div className="text-white/30 text-[10px] mt-2 uppercase tracking-[0.2em] font-bold">Fontes Institucionais</div>
-          </div>
-        </div>
-
-
         {/* No obras */}
         {obras.length === 0 && (
-          <div className="glass-card p-16 text-center">
-            <p className="text-white/50 text-lg">
-              Nenhuma obra cadastrada ainda. O curador pode adicionar obras na área administrativa.
+          <div className="py-20 text-center">
+            <p className="text-white/20 uppercase tracking-[0.2em] text-[10px]">
+              Nenhuma obra disponível no momento.
             </p>
           </div>
         )}
 
         {/* Obras Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {obras.map(obra => (
             <ObraCard key={obra.id} obra={obra} />
           ))}
         </div>
 
-        {/* Footer Info */}
-        <div className="glass-card p-6 mt-16 text-center">
-          <p className="text-white/40 text-sm leading-relaxed">
-            Cada percepção registrada alimenta a teia semântica. O motor de inteligência do sistema 
-            identifica conexões com outros acervos, ontologias institucionais e fontes abertas.
-          </p>
-        </div>
       </div>
     </main>
   );

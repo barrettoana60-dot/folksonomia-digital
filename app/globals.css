@@ -5,124 +5,120 @@
 :root {
   --branding-orange: #E85002;
   --primary-black: #000000;
-  --gradient-1: #000000;
-  --gradient-2: #C10801;
-  --gradient-3: #F16001;
-  --gradient-4: #D9C3AB;
-  --light-gray: #A7A7A7;
-  --white: #F9F9F9;
-  --gray: #646464;
-  --dark-gray: #333333;
-  --glass-bg: rgba(255, 255, 255, 0.05);
+  --dark-bg: #050505;
+  --glass-card-bg: rgba(20, 20, 20, 0.7);
   --glass-border: rgba(255, 255, 255, 0.1);
-}
-
-@keyframes gradientMove {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  --white: #F9F9F9;
+  --text-muted: rgba(255, 255, 255, 0.4);
 }
 
 body {
   color: var(--white);
-  background: linear-gradient(-45deg, var(--gradient-1), #050505, var(--gradient-2), #0a0a0a);
-  background-size: 400% 400%;
-  animation: gradientMove 20s ease infinite;
-  font-family: Arial, Inter, sans-serif !important;
+  background: var(--primary-black);
+  font-family: Arial, sans-serif !important;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* Liquid Glass Cards */
+/* Glassmorphism inspired by Projector App style */
 .glass-card {
-  background: var(--glass-bg);
-  backdrop-filter: blur(16px) saturate(180%);
+  background: var(--glass-card-bg);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border-radius: 28px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(232, 80, 2, 0.4);
-  transform: translateY(-5px);
-  box-shadow: 0 12px 40px 0 rgba(232, 80, 2, 0.15);
+  border-color: rgba(232, 80, 2, 0.2);
 }
 
-/* Liquid Glass Buttons */
 .liquid-button {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
   color: var(--white);
-  padding: 12px 28px;
+  padding: 14px 32px;
   border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
   display: inline-flex;
-  items-center: center;
+  align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 
 .liquid-button:hover {
-  background: var(--branding-orange);
-  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
   border-color: var(--branding-orange);
-  box-shadow: 0 0 20px rgba(232, 80, 2, 0.4);
-  transform: scale(1.02);
 }
 
-/* Specific Admin Tabs style */
-.admin-tab {
-  padding: 12px 24px;
-  color: var(--light-gray);
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-  font-weight: bold;
-  text-transform: uppercase;
-  font-size: 0.75rem;
+.liquid-input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  font-size: 14px !important;
+  outline: none !important;
 }
 
-.admin-tab.active {
-  color: var(--branding-orange);
-  border-bottom-color: var(--branding-orange);
-  background: rgba(232, 80, 2, 0.05);
+.liquid-input:focus {
+  border-color: var(--branding-orange) !important;
 }
 
-/* Typography styles */
+/* Questionario Style from Image */
+.quiz-container {
+  max-width: 900px;
+  width: 100%;
+}
+
+.quiz-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 40px;
+}
+
+.quiz-label {
+  font-size: 14px;
+  color: white;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.quiz-select, .quiz-textarea {
+  width: 100%;
+  background: #1a1a1c;
+  border: 1px solid #2a2a2c;
+  color: #ccc;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13px;
+}
+
+.quiz-button {
+  width: 100%;
+  max-width: 400px;
+  background: #0d0d0f;
+  border: 1px solid #1f1f21;
+  color: #999;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-top: 30px;
+  transition: all 0.2s;
+}
+
+.quiz-button:hover {
+  background: #151517;
+  color: white;
+}
+
 .serif-title {
   font-family: 'Times New Roman', Times, serif;
-}
-
-.institutional-text {
-  line-height: 1.8;
-  font-weight: 300;
-  color: var(--light-gray);
-}
-
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--primary-black);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--dark-gray);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--branding-orange);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
 }

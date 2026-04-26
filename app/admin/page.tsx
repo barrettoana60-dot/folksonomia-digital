@@ -52,7 +52,8 @@ export default function AdminPage() {
       <div className="max-w-[95%] mx-auto mb-12 flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-normal serif-title tracking-tight">Área Administrativa</h1>
-          <p className="text-white/40 text-xs uppercase tracking-[0.3em] mt-2">Sistema Folksonomia Digital • Gestão Institucional</p>
+          <p className="text-white/40 text-xs uppercase tracking-[0.3em] mt-2">Sistema de Folksonomia • Gestão Institucional</p>
+
         </div>
         <div className="flex gap-4">
           <button className="liquid-button text-xs py-3">

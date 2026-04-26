@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { supabaseClient as supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { LogIn, AlertCircle } from 'lucide-react';
+import { ShieldCheck, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [user, setUser] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -18,75 +17,73 @@ export default function LoginPage() {
     setError('');
 
     // Hardcoded NUGEP login as requested
-    if (email === 'nugep' && password === 'nugep123') {
-      // Simulate session creation
+    // Permitindo com ou sem espaço conforme a mensagem do usuário
+    if (user === 'nugep' && (password === 'nugep123' || password === 'nugep 123')) {
       localStorage.setItem('isAdmin', 'true');
       router.push('/admin');
     } else {
-      setError('Credenciais inválidas. Use o usuário administrativo.');
+      setError('Credenciais institucionais inválidas.');
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen bg-black flex items-center justify-center px-6">
+      <div className="w-full max-w-[400px] space-y-10">
         
-        {/* Icon & Title */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-6 rounded-full bg-white/5 border border-white/10 mb-8 shadow-xl">
-            <LogIn size={40} className="text-white" strokeWidth={1} />
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/5 border border-white/10 mb-6">
+            <ShieldCheck size={32} className="text-[#E85002]" strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tighter uppercase mb-2">Curadoria NUGEP</h1>
-          <p className="text-white/40 mt-2 text-sm max-w-xs mx-auto">Acesso restrito para autenticação e gestão de núcleos informacionais.</p>
+          <h1 className="text-2xl font-normal serif-title text-white tracking-wide uppercase">Curadoria NUGEP</h1>
+          <p className="text-white/30 mt-2 text-[10px] uppercase tracking-[0.2em]">Acesso Administrativo Restrito</p>
         </div>
 
-        {/* Login Form */}
-        <div className="glass-card p-8">
-          <form onSubmit={handleLogin} className="space-y-5">
+        <div className="glass-card p-8 border-white/5 bg-white/[0.02]">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Usuário Institucional</label>
+              <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">Identificação</label>
               <input
                 type="text"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={user}
+                onChange={e => setUser(e.target.value)}
                 required
-                className="liquid-input w-full px-4 py-3 text-sm placeholder:text-white/30"
+                className="liquid-input w-full bg-black/40"
                 placeholder="nugep"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Senha</label>
+              <label className="block text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">Senha Institucional</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="liquid-input w-full px-4 py-3 text-sm placeholder:text-white/30"
+                className="liquid-input w-full bg-black/40"
                 placeholder="••••••••"
               />
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
-                <AlertCircle size={16} className="text-red-400 shrink-0" />
-                <p className="text-red-300 text-sm">{error}</p>
+              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
+                <AlertCircle size={14} className="text-red-400 shrink-0" />
+                <p className="text-red-300 text-[11px] font-medium">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="liquid-button w-full py-4 text-sm font-bold disabled:opacity-50 mt-2"
+              className="liquid-button w-full py-4 !rounded-lg text-[11px] font-bold"
             >
-              {loading ? 'Verificando acesso...' : 'Entrar no sistema'}
+              {loading ? 'Validando...' : 'Acessar Sistema'}
             </button>
           </form>
         </div>
 
-        <p className="text-center text-white/30 text-xs mt-6">
-          O acesso público à galeria não requer autenticação.
+        <p className="text-center text-white/20 text-[10px] uppercase tracking-widest">
+          Sistema de Folksonomia • 2024
         </p>
       </div>
     </main>

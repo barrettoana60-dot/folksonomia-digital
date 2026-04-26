@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { Volume2, VolumeX } from 'lucide-react';
 
 interface ObraCardProps {
   obra: {
@@ -10,139 +8,44 @@ interface ObraCardProps {
     titulo: string;
     artista?: string;
     ano?: string;
-    descricao?: string;
     imagem_url?: string;
-    audio_descricao?: string;
   };
 }
 
 export default function ObraCard({ obra }: ObraCardProps) {
-  const [tag, setTag] = useState('');
-  const [sending, setSending] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
-  const [speaking, setSpeaking] = useState(false);
-  const [indicadores, setIndicadores] = useState<any>(null);
-
-  const handleTagSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tag.trim()) return;
-    setSending(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/ml/analisar-tag', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag: tag.trim(), obra_id: obra.id })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSuccess(true);
-        setIndicadores(data.indicadores);
-        setTag('');
-      } else {
-        setError(data.error || 'Erro ao registrar contribuição.');
-      }
-    } catch {
-      setError('Não foi possível enviar. Tente novamente.');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleAudio = () => {
-    if (!window.speechSynthesis) return;
-    if (speaking) {
-      window.speechSynthesis.cancel();
-      setSpeaking(false);
-      return;
-    }
-    const text = obra.audio_descricao || `Obra: ${obra.titulo}. Artista: ${obra.artista || 'desconhecido'}. Ano: ${obra.ano || 'desconhecido'}. ${obra.descricao || ''}`;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'pt-BR';
-    utterance.onend = () => setSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-    setSpeaking(true);
-  };
-
   return (
-    <div className="glass-card p-0 overflow-hidden flex flex-col">
-      {/* Image */}
-      {obra.imagem_url && (
-        <div className="relative w-full h-52 overflow-hidden">
-          <img
-            src={obra.imagem_url}
-            alt={`Obra: ${obra.titulo}`}
-            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-        </div>
-      )}
-
-      {/* Info */}
-      <div className="p-6 flex flex-col gap-4 flex-1">
-        <div>
-          <h3 className="text-xl font-bold text-white">{obra.titulo}</h3>
-          {obra.artista && <p className="text-blue-200/80 text-sm mt-1">{obra.artista}{obra.ano ? ` — ${obra.ano}` : ''}</p>}
-          {obra.descricao && <p className="text-white/60 text-sm mt-2 leading-relaxed line-clamp-2">{obra.descricao}</p>}
-        </div>
-
-        {/* Audiodescrição */}
-        <button onClick={handleAudio} className="liquid-button w-full flex items-center justify-center gap-2 text-sm py-2">
-          {speaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
-          {speaking ? 'Parar audiodescrição' : 'Ouvir audiodescrição'}
-        </button>
-
-        {/* Tag Form */}
-        <div className="border-t border-white/10 pt-4">
-          <p className="text-white/50 text-xs mb-3 uppercase tracking-wider">Sua contribuição</p>
-          {!success ? (
-            <form onSubmit={handleTagSubmit} className="flex flex-col gap-3">
-              <input
-                type="text"
-                value={tag}
-                onChange={e => setTag(e.target.value)}
-                placeholder="O que esta obra evoca para você?"
-                className="liquid-input w-full px-4 py-3 text-sm placeholder:text-white/40"
-                maxLength={80}
-              />
-              {error && <p className="text-red-300/90 text-xs">{error}</p>}
-              <button
-                type="submit"
-                disabled={sending}
-                className="liquid-button w-full py-3 text-sm disabled:opacity-50"
-              >
-                {sending ? 'Registrando...' : 'Adicionar percepção'}
-              </button>
-            </form>
+    <Link href={`/obras/${obra.id}`} className="group">
+      <div className="glass-card overflow-hidden bg-white/[0.02] border-white/5 hover:border-[#E85002]/30 flex flex-col h-full transition-all duration-500">
+        
+        {/* Image Container */}
+        <div className="relative aspect-[4/5] overflow-hidden bg-black/40">
+          {obra.imagem_url ? (
+            <img
+              src={obra.imagem_url}
+              alt={obra.titulo}
+              className="w-full h-full object-cover grayscale-[40%] group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+            />
           ) : (
-            <div className="text-center space-y-4">
-              <p className="text-[#E85002] text-sm font-bold uppercase tracking-widest">✓ Percepção Registrada</p>
-              <p className="text-white/40 text-[11px] leading-relaxed italic">
-                Sua leitura foi integrada à teia do acervo e será validada institucionalmente.
-              </p>
-              {indicadores && (
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="bg-white/5 rounded-xl p-3 border border-white/5 text-center">
-                    <div className="text-[#E85002] text-xl font-normal serif-title">{indicadores.nivel_conexao}%</div>
-                    <div className="text-white/30 text-[9px] uppercase font-bold tracking-tighter">Nível de Conexão</div>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-3 border border-white/5 text-center">
-                    <div className="text-[#D9C3AB] text-xl font-normal serif-title">{indicadores.nivel_novidade}%</div>
-                    <div className="text-white/30 text-[9px] uppercase font-bold tracking-tighter">Originalidade</div>
-                  </div>
-                </div>
-              )}
-              <button onClick={() => setSuccess(false)} className="liquid-button text-[10px] px-6 py-2 mt-4 hover:!bg-white/10">
-                Nova Contribuição
-              </button>
+            <div className="w-full h-full flex items-center justify-center text-white/10 uppercase tracking-widest text-[10px]">
+              Sem Imagem
             </div>
-
           )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
         </div>
+
+        {/* Info */}
+        <div className="p-6 space-y-2">
+          <p className="text-[10px] text-[#E85002] uppercase font-bold tracking-[0.2em]">{obra.artista || 'Artista Desconhecido'}</p>
+          <h3 className="text-lg font-normal serif-title text-white group-hover:text-[#E85002] transition-colors">{obra.titulo}</h3>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest">{obra.ano || 'S.D.'}</p>
+        </div>
+        
+        <div className="px-6 pb-6 mt-auto">
+          <div className="h-[1px] w-8 bg-white/10 group-hover:w-full transition-all duration-500" />
+          <p className="text-[9px] text-white/20 uppercase tracking-[0.3em] mt-4 group-hover:text-white transition-colors">Ver detalhes</p>
+        </div>
+
       </div>
-    </div>
+    </Link>
   );
 }

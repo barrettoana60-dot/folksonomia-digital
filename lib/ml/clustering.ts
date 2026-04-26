@@ -1,89 +1,44 @@
-import { normalizeText } from '../core/normalize';
-import { hybridSemanticSimilarity } from './similarity';
+import { cosineSimilarity } from './similarity';
 
-export interface ClusterNode {
-  id: string;
-  label: string;
-  group?: string;
-}
-
-export interface ClusterEdge {
-  source: string;
-  target: string;
-  weight: number;
-}
-
-export interface ClusterResult {
-  clusters: Array<{ id: string, members: string[] }>;
-  edges: ClusterEdge[];
+interface Nucleus {
+  centroid: number[];
+  tags: string[];
+  theme: string;
 }
 
 /**
- * Agrupa uma lista de tags/termos baseando-se em similaridade semântica.
- * Usado para a tela /admin/teia (Grafo).
+ * Agrupa tags em núcleos temáticos baseados nos vetores de 384 dimensões.
+ * Utiliza uma versão simplificada de centroides.
  */
-export function generateClusters(tags: string[], threshold: number = 0.45): ClusterResult {
-  // Limpar e normalizar
-  const uniqueTags = Array.from(new Set(tags.map(t => normalizeText(t)).filter(t => t.length > 0)));
-  const edges: ClusterEdge[] = [];
+export function clusterTags(tags: { text: string, vector: number[] }[], existingNuclei: Nucleus[]): Nucleus[] {
+  const result = [...existingNuclei];
   
-  // Calcular todas as conexões acima do threshold
-  for (let i = 0; i < uniqueTags.length; i++) {
-    for (let j = i + 1; j < uniqueTags.length; j++) {
-      const sim = hybridSemanticSimilarity(uniqueTags[i], uniqueTags[j]);
-      if (sim >= threshold) {
-        edges.push({
-          source: uniqueTags[i],
-          target: uniqueTags[j],
-          weight: Number(sim.toFixed(3))
-        });
+  for (const tag of tags) {
+    let bestMatch: Nucleus | null = null;
+    let maxSim = -1;
+    
+    for (const nucleus of result) {
+      const sim = cosineSimilarity(tag.vector, nucleus.centroid);
+      if (sim > maxSim) {
+        maxSim = sim;
+        bestMatch = nucleus;
       }
     }
-  }
-  
-  // Agrupamento Simples via Disjoint Set (Union-Find)
-  const parent: Record<string, string> = {};
-  uniqueTags.forEach(t => { parent[t] = t; });
-  
-  function find(i: string): string {
-    if (parent[i] === i) return i;
-    return find(parent[i]);
-  }
-  
-  function union(i: string, j: string) {
-    const rootI = find(i);
-    const rootJ = find(j);
-    if (rootI !== rootJ) {
-      parent[rootI] = rootJ;
-    }
-  }
-  
-  // Conectar usando as arestas fortes
-  for (const edge of edges) {
-    if (edge.weight >= threshold + 0.1) { // Apenas ligações fortes definem os clusters
-      union(edge.source, edge.target);
-    }
-  }
-  
-  // Montar clusters
-  const clusterMap: Record<string, string[]> = {};
-  for (const tag of uniqueTags) {
-    const root = find(tag);
-    if (!clusterMap[root]) {
-      clusterMap[root] = [];
-    }
-    clusterMap[root].push(tag);
-  }
-  
-  const clusters = Object.keys(clusterMap)
-    .map((key, idx) => ({
-      id: `cluster_${idx + 1}`,
-      members: clusterMap[key].sort()
-    }))
-    .filter(c => c.members.length > 1); // Ignorar clusters de um único elemento
     
-  // Sort edges by weight descending
-  edges.sort((a, b) => b.weight - a.weight);
+    // Se a similaridade for alta o suficiente (> 0.7), adiciona ao núcleo existente
+    if (bestMatch && maxSim > 0.7) {
+      bestMatch.tags.push(tag.text);
+      // Atualiza levemente o centroide (média móvel)
+      bestMatch.centroid = bestMatch.centroid.map((val, i) => (val + tag.vector[i]) / 2);
+    } else {
+      // Cria um novo núcleo se não houver match
+      result.push({
+        centroid: tag.vector,
+        tags: [tag.text],
+        theme: 'Novo Núcleo'
+      });
+    }
+  }
   
-  return { clusters, edges };
+  return result;
 }

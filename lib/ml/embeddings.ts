@@ -18,18 +18,26 @@ export function tokenize(text: string): string[] {
   const norm = normalizeText(text);
   if (!norm) return [];
   
-  // Unigramas
-  const unigrams = norm.split(' ').filter(t => t.length > 2);
-  
-  // Bigramas para contexto
-  const bigrams: string[] = [];
+  // 1. Unigramas
   const words = norm.split(' ');
+  const unigrams = words.filter(t => t.length > 2);
+  
+  // 2. Bigramas para contexto
+  const bigrams: string[] = [];
   for (let i = 0; i < words.length - 1; i++) {
     bigrams.push(`${words[i]} ${words[i+1]}`);
   }
+
+  // 3. N-gramas de caracteres (trigramas) para similaridade ortográfica/n-gramas
+  const charNgrams: string[] = [];
+  const clean = norm.replace(/\s/g, '');
+  for (let i = 0; i < clean.length - 2; i++) {
+    charNgrams.push(clean.substring(i, i + 3));
+  }
   
-  return [...unigrams, ...bigrams];
+  return [...unigrams, ...bigrams, ...charNgrams];
 }
+
 
 /**
  * Gera um vetor de 384 dimensões usando hashing de tokens.
