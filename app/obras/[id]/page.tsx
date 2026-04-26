@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { supabaseClient } from '@/lib/supabase/client';
-import { Tag, Play, CheckCircle, Search, AlertCircle } from 'lucide-react';
+import { Tag, Volume2, CheckCircle, Search, AlertCircle, Play, Info } from 'lucide-react';
 
 export default function ObraDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -28,84 +28,102 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
     fetchObra();
   }, [resolvedParams.id]);
 
-  const handleSubmitTag = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tagInput.trim()) return;
-
-    setSubmitting(true);
-    setFeedback(null);
-
-    try {
-      // 1. Submit tag to API to create the informational nucleus
-      const response = await fetch('/api/ml/analisar-tag', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          obra_id: resolvedParams.id, 
-          tag: tagInput.trim(),
-          contexto_usuario: 'web_visitor' // anonymized
-        })
-      });
-
-      if (!response.ok) throw new Error('Erro na análise');
-      
-      setFeedback({ type: 'success', msg: 'Palavra-chave enviada e processada pelo motor semântico com sucesso!' });
-      setTagInput('');
-    } catch (err: any) {
-      setFeedback({ type: 'error', msg: 'Ocorreu um erro ao enviar a palavra-chave. Tente novamente.' });
-    } finally {
-      setSubmitting(false);
-    }
+  const handleSpeech = () => {
+    if (!obra) return;
+    const synth = window.speechSynthesis;
+    const text = `Audiodescrição da obra ${obra.titulo}, de ${obra.artista}. ${obra.audiodescricao || obra.descricao}`;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'pt-BR';
+    synth.speak(utter);
   };
 
-  if (loading) return <div className="p-24 text-center text-white font-serif">Carregando obra...</div>;
-  if (!obra) return <div className="p-24 text-center text-red-500 font-serif">Obra não encontrada.</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#000814] text-white serif-title animate-pulse">Carregando Acervo...</div>;
+  if (!obra) return <div className="min-h-screen flex items-center justify-center bg-[#000814] text-red-400 serif-title">Registro não encontrado.</div>;
 
   return (
-    <div className="min-h-screen pt-24 px-6 md:px-24 bg-black text-white font-serif relative">
-      <div className="max-w-4xl mx-auto backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">{obra.titulo}</h1>
-        <p className="text-xl text-gray-400 mb-8">{obra.artista} ({obra.ano}) - {obra.tipo}</p>
+    <div className="min-h-screen pt-24 pb-20 px-6 md:px-24 bg-[#000814] text-white font-sans selection:bg-blue-500/30">
+      <div className="max-w-5xl mx-auto space-y-12">
         
-        <div className="mb-8 p-6 bg-black/40 rounded-xl border border-white/5 leading-relaxed text-lg">
-          {obra.descricao}
+        {/* Main Display */}
+        <div className="glass-card p-10 md:p-16 space-y-10 relative overflow-hidden">
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-6xl font-normal serif-title text-white tracking-tight">{obra.titulo}</h1>
+            <div className="flex items-center gap-4 text-white/50 text-sm uppercase tracking-widest font-bold">
+              <span>{obra.artista}</span>
+              <span className="w-1 h-1 bg-white/30 rounded-full" />
+              <span>{obra.ano}</span>
+              <span className="w-1 h-1 bg-white/30 rounded-full" />
+              <span>{obra.tipo}</span>
+            </div>
+          </div>
+
+          <div className="prose prose-invert max-w-none">
+            <div className="bg-black/30 p-8 rounded-xl border border-white/5 leading-relaxed text-lg text-white/80 font-light italic">
+              "{obra.descricao}"
+            </div>
+          </div>
+
+          {/* Audio Description Block - MANDATORY BELOW WORK INFO */}
+          <div className="border-t border-white/10 pt-10 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold uppercase tracking-tighter flex items-center gap-3">
+                <Volume2 size={24} className="text-white/70" />
+                Audiodescrição do Acervo
+              </h2>
+              <button 
+                onClick={handleSpeech}
+                className="liquid-button flex items-center gap-2 hover:scale-105"
+              >
+                <Play size={16} fill="currentColor" />
+                Ouvir Descrição
+              </button>
+            </div>
+            <div className="bg-white/5 p-6 rounded-lg border border-white/5 text-sm text-white/60 leading-relaxed">
+              <p className="font-bold text-white/80 mb-2">Descrevendo a obra:</p>
+              {obra.audiodescricao || `Esta obra de ${obra.artista}, intitulada "${obra.titulo}", é apresentada aqui em seu contexto institucional para análise semântica colaborativa.`}
+            </div>
+          </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 mt-8">
-          <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-            <Tag size={24} />
-            Como você descreveria esta obra?
-          </h2>
-          <p className="text-gray-400 mb-6">
-            Sua palavra-chave será analisada por nosso motor semântico e conectada a bases de dados internacionais para enriquecimento cultural.
-          </p>
+        {/* Tagging Interaction */}
+        <div className="glass-card p-10 md:p-16 border-t-4 border-t-blue-500/20">
+          <div className="space-y-6 max-w-2xl">
+            <h2 className="text-3xl font-normal serif-title flex items-center gap-3">
+              <Info size={32} strokeWidth={1} className="text-blue-400" />
+              Sua percepção importa
+            </h2>
+            <p className="text-white/50 leading-relaxed">
+              Como você descreveria esta obra em uma palavra? Sua contribuição será processada por nosso motor de **Machine Learning** e integrada à teia semântica global.
+            </p>
 
-          <form onSubmit={handleSubmitTag} className="flex gap-4 flex-col md:flex-row">
-            <input 
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              placeholder="Digite uma palavra-chave (ex: família, conflito, esperança)"
-              className="flex-1 bg-black border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-white/60 transition-colors"
-              disabled={submitting}
-            />
-            <button 
-              type="submit"
-              disabled={submitting}
-              className="bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {submitting ? 'Analisando...' : 'Enviar'}
-            </button>
-          </form>
+            <form onSubmit={handleSubmitTag} className="flex gap-4 flex-col sm:flex-row pt-4">
+              <input 
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Ex: Família, Liberdade, Conflito..."
+                className="liquid-input flex-1 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                disabled={submitting}
+              />
+              <button 
+                type="submit"
+                disabled={submitting}
+                className="liquid-button bg-white !text-black font-bold uppercase tracking-widest hover:bg-white/80"
+              >
+                {submitting ? 'Analisando...' : 'Registrar Tag'}
+              </button>
+            </form>
 
-          {feedback && (
-            <div className={`mt-6 p-4 rounded-lg flex items-center gap-3 ${feedback.type === 'success' ? 'bg-green-900/30 text-green-400 border border-green-900/50' : 'bg-red-900/30 text-red-400 border border-red-900/50'}`}>
-              {feedback.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-              {feedback.msg}
-            </div>
-          )}
+            {feedback && (
+              <div className={`mt-6 p-4 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${feedback.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                {feedback.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                <p className="text-sm font-medium">{feedback.msg}</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+

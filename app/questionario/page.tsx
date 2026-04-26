@@ -2,75 +2,103 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ClipboardList, ArrowRight } from 'lucide-react';
 
 export default function QuestionarioPage() {
-  const [nome, setNome] = useState('');
-  const [area, setArea] = useState('');
+  const [familiaridade, setFamiliaridade] = useState('Nunca visito museus');
+  const [conhecimento, setConhecimento] = useState('Nunca ouvi falar');
+  const [entendimento, setEntendimento] = useState('');
   const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim() || !area.trim()) return;
+    if (!entendimento.trim()) return;
 
-    // Simulate saving visitor session
-    localStorage.setItem('visitante_nome', nome);
-    localStorage.setItem('visitante_area', area);
+    // Salvar no localStorage para persistência da sessão do visitante
+    localStorage.setItem('visitante_quiz_completado', 'true');
+    localStorage.setItem('visitante_familiaridade', familiaridade);
+    localStorage.setItem('visitante_conhecimento', conhecimento);
+    localStorage.setItem('visitante_entendimento', entendimento);
     
-    // Redirect to gallery
+    // Redirecionar para galeria de obras
     router.push('/obras');
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen flex flex-col items-center justify-center px-4 bg-[#000814]">
+      <div className="w-full max-w-5xl">
         
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-6 rounded-full bg-white/5 border border-white/10 mb-8 shadow-xl">
-            <ClipboardList size={40} className="text-white" strokeWidth={1} />
-          </div>
-          <h1 className="text-3xl font-bold text-white tracking-tighter uppercase mb-2">Acesso Institucional</h1>
-          <p className="text-white/40 mt-3 text-sm leading-relaxed max-w-xs mx-auto">
-            Identifique-se para iniciar sua jornada curatorial e contribuir com a teia de significados.
-          </p>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-normal text-white serif-title">Questionário de Acesso</h1>
         </div>
 
-        <div className="glass-card p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Nome Completo</label>
-              <input
-                type="text"
-                value={nome}
-                onChange={e => setNome(e.target.value)}
-                required
-                className="liquid-input w-full px-4 py-3 text-sm placeholder:text-white/30"
-                placeholder="Ex: João Silva"
-              />
+        <div className="glass-card p-10">
+          <form onSubmit={handleSubmit} className="space-y-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+              
+              {/* Coluna 1 */}
+              <div className="space-y-8">
+                <div>
+                  <label className="block text-sm font-light text-white/90 mb-3">
+                    1. Qual é o seu nível de familiaridade com museus?
+                  </label>
+                  <select 
+                    value={familiaridade}
+                    onChange={e => setFamiliaridade(e.target.value)}
+                    className="liquid-select"
+                  >
+                    <option>Nunca visito museus</option>
+                    <option>Visito raramente</option>
+                    <option>Visito ocasionalmente</option>
+                    <option>Visito com frequência</option>
+                    <option>Sou profissional da área</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-light text-white/90 mb-3">
+                    2. Você já ouviu falar sobre documentação museológica?
+                  </label>
+                  <select 
+                    value={conhecimento}
+                    onChange={e => setConhecimento(e.target.value)}
+                    className="liquid-select"
+                  >
+                    <option>Nunca ouvi falar</option>
+                    <option>Já ouvi falar vagamente</option>
+                    <option>Conheço um pouco</option>
+                    <option>Conheço bem</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Coluna 2 */}
+              <div>
+                <label className="block text-sm font-light text-white/90 mb-3">
+                  3. O que você entende por 'tags' ou etiquetas digitais aplicadas a acervo?
+                </label>
+                <textarea 
+                  rows={6}
+                  value={entendimento}
+                  onChange={e => setEntendimento(e.target.value)}
+                  className="liquid-textarea h-[160px]"
+                  placeholder="Descreva sua compreensão sobre o conceito..."
+                />
+              </div>
+
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Área de Pesquisa ou Interesse</label>
-              <input
-                type="text"
-                value={area}
-                onChange={e => setArea(e.target.value)}
-                required
-                className="liquid-input w-full px-4 py-3 text-sm placeholder:text-white/30"
-                placeholder="Ex: História da Arte, Design, Museologia..."
-              />
+            <div className="flex justify-center pt-4">
+              <button
+                type="submit"
+                className="liquid-button px-16 py-3 text-sm tracking-wide bg-[#1a1f2e] border-[#2a2f3e]"
+              >
+                Acessar Plataforma
+              </button>
             </div>
-
-            <button
-              type="submit"
-              className="liquid-button w-full py-4 text-sm font-bold mt-4 flex items-center justify-center gap-2 group"
-            >
-              Acessar Acervo
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </button>
           </form>
         </div>
       </div>
     </main>
   );
 }
+

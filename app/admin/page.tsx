@@ -1,82 +1,100 @@
-import { supabaseAdmin } from '@/lib/supabase/client';
-import Link from 'next/link';
-import { BookOpen, Tag, CheckCircle, Database, Activity, BarChart3 } from 'lucide-react';
+'use client';
 
-export const dynamic = 'force-dynamic';
+import { useState, useEffect } from 'react';
+import { supabaseClient as supabase } from '@/lib/supabase/client';
+import { 
+  Activity, Tag, Users, BookOpen, BarChart3, 
+  Search, Link as LinkIcon, ClipboardList, Settings, 
+  CheckCircle, Network, Download 
+} from 'lucide-react';
 
-async function getStats() {
-  const [obras, tags, nucleos, eventos, fontes] = await Promise.all([
-    supabaseAdmin.from('obras').select('id', { count: 'exact', head: true }),
-    supabaseAdmin.from('tags').select('id', { count: 'exact', head: true }),
-    supabaseAdmin.from('nucleos').select('id, status_validacao'),
-    supabaseAdmin.from('eventos').select('id', { count: 'exact', head: true }),
-    supabaseAdmin.from('fontes_externas').select('id', { count: 'exact', head: true })
-  ]);
+export default function AdminPage() {
+  const [activeTab, setActiveTab] = useState('Visão Geral');
+  const [stats, setStats] = useState({
+    totalTags: 0,
+    tagsUnicas: 0,
+    participantes: 1,
+    obras: 3,
+    media: 0.0
+  });
 
-  const allNucleos = nucleos.data || [];
-  return {
-    obras: obras.count || 0,
-    tags: tags.count || 0,
-    emAnalise: allNucleos.filter(n => n.status_validacao === 'bruto').length,
-    validados: allNucleos.filter(n => n.status_validacao === 'validado' || n.status_validacao === 'publicado').length,
-    eventos: eventos.count || 0,
-    fontes: fontes.count || 0
-  };
-}
-
-export default async function AdminPage() {
-  const stats = await getStats();
-
-  const metrics = [
-    { label: 'Obras no Acervo', value: stats.obras, icon: BookOpen, color: 'text-blue-300', bg: 'bg-blue-500/10' },
-    { label: 'Contribuições', value: stats.tags, icon: Tag, color: 'text-purple-300', bg: 'bg-purple-500/10' },
-    { label: 'Aguardando Validação', value: stats.emAnalise, icon: Activity, color: 'text-amber-300', bg: 'bg-amber-500/10' },
-    { label: 'Registros Validados', value: stats.validados, icon: CheckCircle, color: 'text-green-300', bg: 'bg-green-500/10' },
-    { label: 'Fontes Conectadas', value: stats.fontes, icon: Database, color: 'text-cyan-300', bg: 'bg-cyan-500/10' },
-    { label: 'Eventos Registrados', value: stats.eventos, icon: BarChart3, color: 'text-pink-300', bg: 'bg-pink-500/10' }
-  ];
-
-  const adminLinks = [
-    { href: '/admin/obras', label: 'Gestão de Obras', desc: 'Cadastrar, editar e publicar obras do acervo.' },
-    { href: '/admin/tags', label: 'Contribuições & Células', desc: 'Visualizar todas as percepções e os núcleos informacionais gerados.' },
-    { href: '/admin/validacao', label: 'Painel de Validação', desc: 'Validar, revisar ou rejeitar contribuições pendentes.' },
-    { href: '/admin/ontologias', label: 'Ontologias', desc: 'Gerenciar vocabulários e grupos temáticos.' },
-    { href: '/admin/fontes', label: 'Fontes Open Data', desc: 'Configurar conexões com Europeana, IBRAM, Brasiliana e outros.' },
-    { href: '/admin/eventos', label: 'Trilha de Eventos', desc: 'Histórico criptografado de todas as ações do sistema.' },
-    { href: '/admin/relatorios', label: 'Relatórios', desc: 'Exportar dados, conexões e análises semânticas.' }
+  const tabs = [
+    'Visão Geral', 'Análise de Tags', 'Conexões de Tags', 
+    'Usuários & Questionário', 'Ontologias', 'Validação & Auditoria', 
+    'Grafo & Open Data', 'Obras', 'Exportar'
   ];
 
   return (
-    <main className="min-h-screen px-6 py-12">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-white">Painel Administrativo</h1>
-          <p className="text-white/50 mt-2">Visão geral do Sistema Folksonomia Digital</p>
-        </div>
+    <main className="min-h-screen bg-[#000814] text-white font-sans">
+      
+      {/* Header Info */}
+      <div className="pt-10 pb-6 text-center">
+        <p className="text-sm font-light text-white/60">Bem-vindo, <span className="font-bold text-white">nugep</span></p>
+      </div>
 
-        {/* Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-12">
-          {metrics.map(({ label, value, icon: Icon, color, bg }) => (
-            <div key={label} className="glass-card p-5 text-center">
-              <div className={`inline-flex items-center justify-center p-3 rounded-full ${bg} mb-3`}>
-                <Icon size={20} className={color} />
-              </div>
-              <div className={`text-3xl font-bold ${color}`}>{value}</div>
-              <div className="text-white/40 text-xs mt-1 uppercase tracking-wider leading-tight">{label}</div>
+      {/* Tab Navigation */}
+      <div className="max-w-[95%] mx-auto mb-10">
+        <div className="glass-card flex flex-wrap items-center justify-between px-2 py-2 overflow-x-auto no-scrollbar">
+          {tabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`admin-tab ${activeTab === tab ? 'active' : ''}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-[95%] mx-auto space-y-10">
+        
+        <div>
+          <h2 className="text-2xl font-bold mb-8 tracking-tight">Métricas Gerais do Sistema</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            
+            <div className="glass-card p-8 flex flex-col items-center justify-center text-center space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Total de Tags</p>
+              <h3 className="text-5xl font-light text-blue-200">{stats.totalTags}</h3>
+              <p className="text-[10px] text-white/30 uppercase">registros</p>
             </div>
-          ))}
+
+            <div className="glass-card p-8 flex flex-col items-center justify-center text-center space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Tags Únicas</p>
+              <h3 className="text-5xl font-light text-purple-200">{stats.tagsUnicas}</h3>
+              <p className="text-[10px] text-white/30 uppercase">—</p>
+            </div>
+
+            <div className="glass-card p-8 flex flex-col items-center justify-center text-center space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Participantes</p>
+              <h3 className="text-5xl font-light text-green-200">{stats.participantes}</h3>
+              <p className="text-[10px] text-white/30 uppercase">usuários ativos</p>
+            </div>
+
+            <div className="glass-card p-8 flex flex-col items-center justify-center text-center space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Obras Cadastradas</p>
+              <h3 className="text-5xl font-light text-yellow-200">{stats.obras}</h3>
+              <p className="text-[10px] text-white/30 uppercase">0 com tags</p>
+            </div>
+
+            <div className="glass-card p-8 flex flex-col items-center justify-center text-center space-y-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">Média Tags/Usuário</p>
+              <h3 className="text-5xl font-light text-blue-300">{stats.media.toFixed(1)}</h3>
+              <p className="text-[10px] text-white/30 uppercase">por participante</p>
+            </div>
+
+          </div>
         </div>
 
-        {/* Nav Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {adminLinks.map(({ href, label, desc }) => (
-            <Link key={href} href={href} className="glass-card p-6 hover:bg-white/10 group">
-              <h3 className="text-lg font-bold text-white group-hover:text-blue-200 transition-colors">{label}</h3>
-              <p className="text-white/50 text-sm mt-2 leading-relaxed">{desc}</p>
-            </Link>
-          ))}
+        {/* Dynamic content placeholder based on activeTab */}
+        <div className="pt-10 border-t border-white/5">
+          <p className="text-center text-white/20 uppercase tracking-[0.3em] text-xs">Exibindo: {activeTab}</p>
         </div>
+
       </div>
     </main>
   );
 }
+
