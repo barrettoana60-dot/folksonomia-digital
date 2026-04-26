@@ -28,12 +28,23 @@ import dynamic from 'next/dynamic';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
-// Unified Logo Component
+// Unified SVG Logo Component (Minimalist & Modern)
 const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`relative overflow-hidden ${className}`}>
-    <img src="/logo.png?v=7" alt="Logo" className="w-full h-full object-cover" />
+  <div className={`flex items-center justify-center ${className}`}>
+    <svg viewBox="0 0 100 100" className="w-full h-full">
+      <text 
+        x="50%" 
+        y="65%" 
+        textAnchor="middle" 
+        fill="#E85002" 
+        style={{ fontFamily: "'Times New Roman', serif", fontSize: '80px', fontWeight: 'normal' }}
+      >
+        f
+      </text>
+    </svg>
   </div>
 );
+
 
 
 

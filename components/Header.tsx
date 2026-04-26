@@ -4,13 +4,22 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-// Unified Logo Component
+// Unified SVG Logo Component (Minimalist & Modern)
 const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
-  <div className={`relative overflow-hidden ${className}`}>
-    <img src="/logo.png?v=7" alt="Logo" className="w-full h-full object-cover" />
+  <div className={`flex items-center justify-center ${className}`}>
+    <svg viewBox="0 0 100 100" className="w-full h-full">
+      <text 
+        x="50%" 
+        y="65%" 
+        textAnchor="middle" 
+        fill="#E85002" 
+        style={{ fontFamily: "'Times New Roman', serif", fontSize: '80px', fontWeight: 'normal' }}
+      >
+        f
+      </text>
+    </svg>
   </div>
 );
-
 
 export default function Header() {
   const pathname = usePathname();
@@ -38,11 +47,7 @@ export default function Header() {
         onClick={() => handleNav('/')} 
         className="flex items-center gap-3 md:gap-5 group cursor-pointer"
       >
-        <div className="w-10 h-10 md:w-12 md:h-12 overflow-hidden">
-          <img src="/logo.png?v=7" alt="Institutional Logo" className="w-full h-full object-cover" />
-
-        </div>
-
+        <InstitutionalLogo className="w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-110" />
         <div className="flex flex-col">
           <span className="text-white text-sm md:text-lg font-normal serif-title tracking-tight uppercase leading-none">
             Sistema de Folksonomia
@@ -55,7 +60,6 @@ export default function Header() {
 
       {/* Nav */}
       <nav className="flex items-center gap-4 md:gap-12">
-        {/* Only show Explorar Obras if quiz is completed */}
         {hasQuiz && (
           <button 
             onClick={() => router.push('/obras')}

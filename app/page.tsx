@@ -3,6 +3,22 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+const InstitutionalLogo = ({ className = "w-10 h-10" }) => (
+  <div className={`flex items-center justify-center ${className}`}>
+    <svg viewBox="0 0 100 100" className="w-full h-full">
+      <text 
+        x="50%" 
+        y="65%" 
+        textAnchor="middle" 
+        fill="#E85002" 
+        style={{ fontFamily: "'Times New Roman', serif", fontSize: '80px', fontWeight: 'normal' }}
+      >
+        f
+      </text>
+    </svg>
+  </div>
+);
+
 export default function LandingPage() {
   const router = useRouter();
 
@@ -18,9 +34,7 @@ export default function LandingPage() {
       <div className="max-w-[800px] text-center space-y-12">
         
         <div className="space-y-8">
-          <div className="w-24 h-24 md:w-32 md:h-32 overflow-hidden mx-auto">
-             <img src="/logo.png?v=7" alt="Institutional Logo" className="w-full h-full object-cover" />
-          </div>
+          <InstitutionalLogo className="w-24 h-24 md:w-32 md:h-32 mx-auto" />
           
           <div className="space-y-4">
             <h1 className="text-4xl md:text-7xl font-normal serif-title text-white tracking-[0.05em] uppercase leading-tight">
