@@ -10,84 +10,100 @@
   --gradient-3: #F16001;
   --gradient-4: #D9C3AB;
   --white: #F9F9F9;
+  
+  /* Default Theme (Escuro) */
   --bg-color: #000000;
   --text-color: #F9F9F9;
+  --glass-bg: rgba(255, 255, 255, 0.07);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-blur: 20px;
 }
 
 [data-theme='claro'] {
-  --bg-color: #f0f0f0;
-  --text-color: #111111;
+  --bg-color: #f5f5f7;
+  --text-color: #1a1a1c;
   --glass-bg: rgba(0, 0, 0, 0.05);
   --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-blur: 15px;
 }
 
 [data-theme='contraste'] {
   --bg-color: #000000;
   --text-color: #ffff00;
-  --glass-bg: rgba(255, 255, 0, 0.1);
+  --glass-bg: rgba(255, 255, 0, 0.15);
   --glass-border: #ffff00;
+  --glass-blur: 5px;
 }
 
 body {
   color: var(--text-color);
   background-color: var(--bg-color);
-  /* Static gradient for performance */
   background-image: 
-    radial-gradient(circle at 0% 0%, rgba(193, 8, 1, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(241, 96, 1, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 10% 20%, rgba(193, 8, 1, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(241, 96, 1, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(217, 195, 171, 0.05) 0%, transparent 60%);
   background-attachment: fixed;
   font-family: Arial, sans-serif !important;
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* UNIVERSAL INTENSE LIQUID GLASS */
 .glass-card {
-  background: rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-/* Universal Liquid Glass Button Style */
-.liquid-button, button, input[type="submit"], select {
-  background: rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: inherit !important;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: 500;
+.liquid-button, button, select, .quiz-select, .quiz-textarea {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(var(--glass-blur)) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--text-color) !important;
+  padding: 14px 28px;
+  border-radius: 14px;
+  font-weight: 600;
   font-size: 13px;
-  transition: all 0.2s ease;
-  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .liquid-button:hover, button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
   border-color: var(--branding-orange) !important;
-  transform: translateY(-1px);
+  box-shadow: 0 0 25px rgba(232, 80, 2, 0.4);
+  transform: translateY(-2px);
 }
 
 .liquid-input, textarea, input[type="text"], input[type="password"] {
-  background: rgba(0, 0, 0, 0.3) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid var(--glass-border) !important;
   color: white !important;
-  border-radius: 12px !important;
-  padding: 14px 18px !important;
+  border-radius: 14px !important;
+  padding: 16px 20px !important;
   font-size: 14px !important;
+  backdrop-filter: blur(10px);
 }
 
 .liquid-input:focus {
   border-color: var(--branding-orange) !important;
+  background: rgba(0, 0, 0, 0.6) !important;
 }
 
 .serif-title {
   font-family: 'Times New Roman', Times, serif;
 }
 
-/* Specific Quiz Styles */
-.quiz-container { max-width: 900px; width: 100%; }
-.quiz-card { background: rgba(255, 255, 255, 0.015); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 40px; }
-.quiz-label { font-size: 14px; margin-bottom: 12px; display: block; font-weight: 400; }
+/* Quiz Style Improvements */
+.quiz-container { max-width: 960px; }
+.quiz-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 50px; }
+.quiz-label { font-size: 14px; margin-bottom: 15px; opacity: 0.9; }

@@ -13,12 +13,25 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme') || 'escuro';
+                  document.documentElement.setAttribute('data-theme', theme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased min-h-screen">
         <Header />
-        <div className="pt-16">
-          {children}
-        </div>
+        {children}
       </body>
     </html>
   );
 }
+

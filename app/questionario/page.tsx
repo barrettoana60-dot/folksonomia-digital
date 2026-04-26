@@ -24,7 +24,8 @@ export default function QuestionarioPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#000000] flex flex-col items-center pt-20 px-6">
+    <main className="min-h-screen flex flex-col items-center pt-20 pb-20 px-6">
+
       
       <h1 className="text-3xl font-normal serif-title text-white mb-16">
         Questionário de Acesso
