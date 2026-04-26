@@ -5,8 +5,7 @@ import { supabaseClient } from '@/lib/supabase/client';
 import { Volume2, VolumeX, CheckCircle, Info, ArrowLeft, Tag as TagIcon } from 'lucide-react';
 import Link from 'next/link';
 
-export default function ObraDetalhePage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+export default function ObraDetalhePage({ params }: { params: { id: string } }) {
   const [obra, setObra] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tagInput, setTagInput] = useState('');
@@ -19,14 +18,15 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
       const { data, error } = await supabaseClient
         .from('obras')
         .select('*')
-        .eq('id', resolvedParams.id)
+        .eq('id', params.id)
         .single();
       
       if (!error && data) {
         setObra(data);
       } else {
         // Fallback para teste se o banco estiver vazio
-        if (resolvedParams.id === 'picasso-test') {
+        if (params.id === 'picasso-test') {
+
           setObra({
             id: 'picasso-test',
             titulo: 'Guernica',
@@ -43,13 +43,13 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
     fetchObra();
     
     // Recuperar tag enviada nesta sessão se houver
-    const savedTag = localStorage.getItem(`tag_${resolvedParams.id}`);
+    const savedTag = localStorage.getItem(`tag_${params.id}`);
     if (savedTag) setMyTag(savedTag);
 
     return () => {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     };
-  }, [resolvedParams.id]);
+  }, [params.id]);
 
   const handleSpeech = () => {
     if (!obra || !window.speechSynthesis) return;
@@ -82,7 +82,7 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tag: tagInput.trim(),
-          obra_id: resolvedParams.id,
+          obra_id: params.id,
           visitante_hash: localStorage.getItem('visitante_hash'),
           visitante_nome: localStorage.getItem('visitante_nome')
         })
@@ -90,7 +90,7 @@ export default function ObraDetalhePage({ params }: { params: Promise<{ id: stri
 
       if (res.ok) {
         setMyTag(tagInput.trim());
-        localStorage.setItem(`tag_${resolvedParams.id}`, tagInput.trim());
+        localStorage.setItem(`tag_${params.id}`, tagInput.trim());
       }
     } catch (err) {
       console.error(err);

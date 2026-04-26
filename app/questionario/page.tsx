@@ -10,18 +10,24 @@ export default function QuestionarioPage() {
     entendimento: ''
   });
   
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
     // Salvar estado e hash anônimo
     const vHash = Math.random().toString(36).substring(2, 10);
     localStorage.setItem('visitante_quiz_completado', 'true');
     localStorage.setItem('visitante_hash', vHash);
     
-    router.push('/obras');
+    // Pequeno delay para garantir que o usuário veja o estado de processamento
+    setTimeout(() => {
+      router.push('/obras');
+    }, 500);
   };
+
 
   return (
     <main className="min-h-screen bg-[#000000] flex flex-col items-center pt-20 px-6">
@@ -75,10 +81,15 @@ export default function QuestionarioPage() {
             </div>
 
             <div className="md:col-span-2 flex justify-center">
-              <button type="submit" className="quiz-button">
-                Acessar Plataforma
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="quiz-button"
+              >
+                {loading ? 'Acessando...' : 'Acessar Plataforma'}
               </button>
             </div>
+
 
           </form>
         </div>
