@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
 import Logo from '@/components/Logo';
+import IACuradora from '@/components/IACuradora';
 
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
@@ -667,6 +668,7 @@ export default function AdminPage() {
           </>
         )}
       </div>
+      <IACuradora />
     </main>
   );
 }

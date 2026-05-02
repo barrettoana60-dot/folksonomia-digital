@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
+import { dispatchEvent } from '@/lib/ml/event-bus';
 
 export const dynamic = 'force-dynamic';
 
@@ -194,11 +195,25 @@ export async function POST(req: NextRequest) {
     }
 
     // PASSO 2: A tag EXISTE. Agora buscamos nas 3 APIs externas em paralelo.
+    // Dispara evento CONSULTA no barramento
+    dispatchEvent({ tipo: 'CONSULTA', origem: 'relatorio-semantico', payload: { query, tags_encontradas: dbTags.length } });
+
     const [europeana, ibram, brasiliana] = await Promise.all([
       searchEuropeana(query),
       searchIBRAM(query),
       searchBrasiliana(query)
     ]);
+
+    // Dispara evento INGESTAO para cada API que retornou dados
+    if (europeana.length > 0) {
+      dispatchEvent({ tipo: 'INGESTAO', origem: 'europeana', payload: { source: 'europeana', query, items: europeana } });
+    }
+    if (ibram.length > 0) {
+      dispatchEvent({ tipo: 'INGESTAO', origem: 'ibram', payload: { source: 'ibram', query, items: ibram } });
+    }
+    if (brasiliana.length > 0) {
+      dispatchEvent({ tipo: 'INGESTAO', origem: 'bndigital', payload: { source: 'brasiliana', query, items: brasiliana } });
+    }
 
     // PASSO 3: Gerar análise semântica profunda com IA
     const brainText = await generateAIAnalysis(query, europeana, ibram, brasiliana, dbTags);
