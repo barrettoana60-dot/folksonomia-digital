@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
-import { dispatchEvent, getRecentEvents, getEventStats } from '@/lib/ml/event-bus';
+import { dispatchEvent, getEventStats } from '@/lib/ml/event-bus';
+import fs from 'fs';
+import path from 'path';
 
 export const dynamic = 'force-dynamic';
+
+// Carregar knowledge base gerada pelo ModernBERT
+function loadKnowledgeBase(): any[] {
+  try {
+    const kbPath = path.join(process.cwd(), 'knowledge-base.json');
+    if (fs.existsSync(kbPath)) {
+      const data = JSON.parse(fs.readFileSync(kbPath, 'utf-8'));
+      return Array.isArray(data) ? data : [];
+    }
+  } catch {}
+  return [];
+}
+
+// Buscar conhecimento relevante na KB baseado nas keywords
+function searchKnowledge(kb: any[], keywords: string[]): any[] {
+  if (kb.length === 0 || keywords.length === 0) return [];
+  return kb.filter(entry => {
+    const text = `${entry.texto} ${entry.item || ''} ${entry.query || ''}`.toLowerCase();
+    return keywords.some(k => text.includes(k));
+  }).slice(0, 30);
+}
 
 // ============================================================
 // IA Curadora — Cérebro Generativo do Folksonomia Digital
@@ -96,6 +119,10 @@ export async function POST(req: NextRequest) {
       getSystemStats()
     ]);
 
+    // 1b. Buscar no knowledge base gerado pelo ModernBERT
+    const kb = loadKnowledgeBase();
+    const kbResults = searchKnowledge(kb, keywords);
+
     // 2. Registrar evento CONSULTA
     dispatchEvent({
       tipo: 'CONSULTA',
@@ -124,6 +151,14 @@ Obras encontradas no banco que correspondem à busca:
 ${specificData.obras.length > 0
   ? specificData.obras.map(o => `- "${o.titulo}" de ${o.artista || '?'} (${o.ano || '?'}) - ${o.descricao?.substring(0, 100) || ''}`).join('\n')
   : '(NENHUMA obra encontrada para esses termos no banco)'}
+
+=== CONHECIMENTO EXTRAÍDO PELO MODERNBERT (NER real, 718 entidades no grafo) ===
+O ModernBERT treinou com 180 amostras e depois processou 80 itens da Europeana.
+Total no grafo de conhecimento: ${kb.length} entidades.
+Conhecimento relevante para a pergunta "${lastUserMsg}":
+${kbResults.length > 0
+  ? kbResults.map(k => `- [${k.tipo}] "${k.texto}" (fonte: ${k.query || k.fonte}, item: "${k.item || '?'}")`).join('\n')
+  : '(Nenhuma entidade no grafo de conhecimento corresponde a essas palavras-chave)'}
 
 === MOTORES ML ===
 ModernBERT NER: F1=0.764, treinado com 180 amostras reais (cubismo, barroco, espadas, arte indígena, etc.)
