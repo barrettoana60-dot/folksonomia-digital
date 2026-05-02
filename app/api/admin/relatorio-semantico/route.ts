@@ -102,7 +102,8 @@ Retorne APENAS o texto corrido da análise. Não use markdown pesado, apenas tex
     });
     
     if (!res.ok) throw new Error('Falha no motor AI');
-    return await res.text();
+    const json = await res.json();
+    return json?.choices?.[0]?.message?.content || await res.text();
   } catch (error) {
     console.error("Pollinations error:", error);
     return null;
