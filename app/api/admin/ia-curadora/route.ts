@@ -6,34 +6,77 @@ export const dynamic = 'force-dynamic';
 
 // ============================================================
 // IA Curadora — Cérebro Generativo do Folksonomia Digital
-// Chat inteligente com acesso a todo o banco de dados,
-// barramento de eventos ML e APIs externas.
+// Consulta ATIVAMENTE o banco baseado na pergunta do curador.
 // ============================================================
 
-async function getSystemContext() {
-  // Carregar contexto real do banco
+/** Extrai palavras-chave relevantes da última mensagem do curador */
+function extractKeywords(text: string): string[] {
+  const stopwords = new Set([
+    'o','a','os','as','um','uma','de','do','da','dos','das','em','no','na','nos','nas',
+    'que','e','é','para','com','por','se','não','como','mais','mas','foi','são','está',
+    'tem','ser','ter','seu','sua','seus','suas','isso','esse','essa','este','esta',
+    'me','te','nos','lhe','quero','queria','pode','sobre','qual','quais','quantas',
+    'quantos','existe','existem','dados','tag','tags','obra','obras','informações',
+    'informação','diga','fale','mostre','busque','pesquise','procure','dê','dar',
+    'toda','todo','todas','todos','muito','muita','muitos','muitas','aqui','ali',
+    'lá','ele','ela','eles','elas','meu','minha','tudo','nada','sim','certo',
+    'olá','oi','hey','bom','boa','dia','noite','tarde'
+  ]);
+  
+  return text.toLowerCase()
+    .replace(/[^\w\sàáâãéêíóôõúüç]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !stopwords.has(w));
+}
+
+/** Busca específica no banco de dados baseada nas keywords */
+async function searchDatabase(keywords: string[]) {
+  if (keywords.length === 0) return { tags: [], obras: [] };
+
+  // Buscar tags que contenham qualquer das keywords
+  const tagFilters = keywords.slice(0, 5).map(k => 
+    `tag_original.ilike.%${k}%,tag_normalizada.ilike.%${k}%,grupo_tematico.ilike.%${k}%`
+  ).join(',');
+  
+  const { data: tags } = await supabaseAdmin
+    .from('tags')
+    .select('id, tag_original, tag_normalizada, grupo_tematico, obra_id, created_at')
+    .or(tagFilters)
+    .limit(20);
+
+  // Buscar obras que contenham qualquer das keywords
+  const obraFilters = keywords.slice(0, 5).map(k => 
+    `titulo.ilike.%${k}%,artista.ilike.%${k}%,descricao.ilike.%${k}%`
+  ).join(',');
+
+  const { data: obras } = await supabaseAdmin
+    .from('obras')
+    .select('id, titulo, artista, ano, descricao')
+    .or(obraFilters)
+    .limit(20);
+
+  return { tags: tags || [], obras: obras || [] };
+}
+
+/** Contexto geral do sistema (números totais) */
+async function getSystemStats() {
   const [
-    { data: tags },
-    { data: obras },
     { count: totalTags },
-    { count: totalObras }
+    { count: totalObras },
+    { data: allTags }
   ] = await Promise.all([
-    supabaseAdmin.from('tags').select('tag_original, grupo_tematico, obra_id').order('created_at', { ascending: false }).limit(30),
-    supabaseAdmin.from('obras').select('titulo, artista, ano').limit(20),
     supabaseAdmin.from('tags').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('obras').select('*', { count: 'exact', head: true })
+    supabaseAdmin.from('obras').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('tags').select('tag_original, grupo_tematico').order('created_at', { ascending: false }).limit(50)
   ]);
 
   const eventStats = await getEventStats();
-  const recentEvents = await getRecentEvents(10);
 
   return {
-    tags: tags || [],
-    obras: obras || [],
     totalTags: totalTags || 0,
     totalObras: totalObras || 0,
-    eventStats,
-    recentEvents
+    allTags: allTags || [],
+    eventStats
   };
 }
 
@@ -44,54 +87,57 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Mensagens inválidas' }, { status: 400 });
     }
 
-    // 1. Carregar contexto do banco
-    const ctx = await getSystemContext();
+    const lastUserMsg = messages[messages.length - 1]?.content || '';
+    const keywords = extractKeywords(lastUserMsg);
 
-    // 2. Registrar evento de CONSULTA no barramento
-    await dispatchEvent({
+    // 1. Buscar dados ESPECÍFICOS baseado na pergunta
+    const [specificData, stats] = await Promise.all([
+      searchDatabase(keywords),
+      getSystemStats()
+    ]);
+
+    // 2. Registrar evento CONSULTA
+    dispatchEvent({
       tipo: 'CONSULTA',
       origem: 'ia-curadora',
-      payload: {
-        query: messages[messages.length - 1]?.content || '',
-        origem_consulta: 'chat_curador',
-        contexto: 'ia_generativa'
-      }
+      payload: { query: lastUserMsg, keywords, origem_consulta: 'chat_curador' }
     });
 
-    // 3. Construir system prompt com todo o contexto
-    const systemPrompt = `Você é a IA Curadora do sistema Folksonomia Digital 2.0 — uma plataforma de gestão semântica institucional para museus brasileiros, desenvolvida pelo NUCEP.
+    // 3. System prompt com dados REAIS e ESPECÍFICOS
+    const systemPrompt = `Você é a IA Curadora do sistema Folksonomia Digital 2.0 — o cérebro da plataforma de gestão semântica do NUCEP.
 
-VOCÊ TEM ACESSO AOS SEGUINTES DADOS REAIS DO SISTEMA (não invente nada que não esteja aqui):
+=== ESTADO ATUAL DO BANCO DE DADOS ===
+Total de obras: ${stats.totalObras}
+Total de tags: ${stats.totalTags}
+Todas as tags no sistema (listagem completa): ${stats.allTags.map(t => `"${t.tag_original}" (grupo: ${t.grupo_tematico || 'não classificado'})`).join(', ') || 'Nenhuma tag cadastrada'}
 
-BANCO DE DADOS:
-- Total de obras catalogadas: ${ctx.totalObras}
-- Total de tags criadas por visitantes: ${ctx.totalTags}
-- Últimas tags: ${ctx.tags.slice(0, 15).map(t => `"${t.tag_original}" (grupo: ${t.grupo_tematico || 'não classificado'})`).join(', ')}
-- Obras recentes: ${ctx.obras.slice(0, 10).map(o => `"${o.titulo}" de ${o.artista || 'autor desconhecido'} (${o.ano || '?'})`).join(', ')}
+=== BUSCA ESPECÍFICA PARA A PERGUNTA DO CURADOR ===
+O curador perguntou: "${lastUserMsg}"
+Palavras-chave extraídas: [${keywords.join(', ')}]
 
-MOTORES DE ML ATIVOS:
-1. ModernBERT (NER): Treinado com 180 amostras reais do vocabulário museal brasileiro. F1-Score: 0.764. Classifica tokens em: AUTORIA, TÉCNICA, DATA, GEO, MATERIAL, PROVENIÊNCIA, QUALIFICADOR.
-2. RotatE (Knowledge Graph): Predição de relações no espaço complexo entre entidades do grafo.
-3. GAT (Graph Attention Networks): Resolução de fronteiras fluidas e multi-membership em grupos temáticos.
+Tags encontradas no banco que correspondem à busca:
+${specificData.tags.length > 0 
+  ? specificData.tags.map(t => `- Tag: "${t.tag_original}" | Grupo: ${t.grupo_tematico || 'não classificado'} | Obra ID: ${t.obra_id} | Criada em: ${t.created_at}`).join('\n')
+  : '(NENHUMA tag encontrada para esses termos no banco)'}
 
-BARRAMENTO DE EVENTOS:
-- Total de eventos processados: ${ctx.eventStats.total}
-- Eventos por tipo: ${JSON.stringify(ctx.eventStats.por_tipo)}
-- Últimos eventos: ${ctx.recentEvents.slice(0, 5).map(e => `[${e.tipo}] ${e.origem} → ${e.status}`).join(' | ')}
+Obras encontradas no banco que correspondem à busca:
+${specificData.obras.length > 0
+  ? specificData.obras.map(o => `- "${o.titulo}" de ${o.artista || '?'} (${o.ano || '?'}) - ${o.descricao?.substring(0, 100) || ''}`).join('\n')
+  : '(NENHUMA obra encontrada para esses termos no banco)'}
 
-APIS EXTERNAS CONECTADAS:
-- Europeana (API v2) — funcional
-- IBRAM (Tainacan, museus federais) — conectado
-- BNDigital (Biblioteca Nacional) — conectado
+=== MOTORES ML ===
+ModernBERT NER: F1=0.764, treinado com 180 amostras reais (cubismo, barroco, espadas, arte indígena, etc.)
+RotatE: Ativo — predição de relações no grafo
+GAT: Ativo — multi-membership em grupos temáticos
+Eventos processados: ${stats.eventStats.total}
 
-INSTRUÇÕES:
+=== REGRAS ABSOLUTAS ===
 1. Responda SEMPRE em português do Brasil.
-2. Você TEM acesso real ao banco. Use os dados acima para fundamentar suas respostas.
-3. Quando o curador perguntar sobre tags, obras ou conexões, analise os dados reais.
-4. Mostre seu raciocínio quando fizer correlações complexas (pense em voz alta).
-5. Se o curador pedir para fazer algo (ex: agrupar tags, sugerir conexões), explique passo a passo o que o sistema faria.
-6. NUNCA invente dados que não existam no sistema. Se não souber, diga que não tem essa informação.
-7. Você é parte do sistema — não é um assistente externo. Fale como se fosse o cérebro da plataforma.`;
+2. Use EXCLUSIVAMENTE os dados acima. Se a busca retornou tags ou obras, CITE-AS pelo nome exato.
+3. Se a busca retornou ZERO tags/obras para o termo, diga claramente: "A tag X existe no sistema" ou "A tag X NÃO existe no sistema", baseando-se nos resultados acima.
+4. NUNCA diga "não tenho acesso" — você TEM os dados completos acima.
+5. NUNCA invente tags, obras ou dados que não aparecem nos resultados acima.
+6. Fale como se fosse o próprio cérebro da plataforma, não um assistente externo.`;
 
     // 4. Enviar para Pollinations
     const aiResponse = await fetch('https://text.pollinations.ai/openai', {
@@ -107,28 +153,24 @@ INSTRUÇÕES:
       signal: AbortSignal.timeout(30000)
     });
 
-    if (!aiResponse.ok) {
-      throw new Error('Falha na comunicação com o motor de IA');
-    }
+    if (!aiResponse.ok) throw new Error('Falha na comunicação com o motor de IA');
 
     const raw = await aiResponse.text();
     let content = raw;
-    
-    // Parsear formato OpenAI
     try {
       const parsed = JSON.parse(raw);
       content = parsed?.choices?.[0]?.message?.content || raw;
-    } catch {
-      // Se não for JSON, usa texto bruto
-    }
+    } catch { /* texto bruto */ }
 
     return NextResponse.json({
       success: true,
       message: content,
       context: {
-        totalTags: ctx.totalTags,
-        totalObras: ctx.totalObras,
-        eventosProcessados: ctx.eventStats.total
+        totalTags: stats.totalTags,
+        totalObras: stats.totalObras,
+        tagsEncontradas: specificData.tags.length,
+        obrasEncontradas: specificData.obras.length,
+        keywords
       }
     });
   } catch (error: any) {
