@@ -191,15 +191,15 @@ def main():
     print("\n[4/5] Iniciando fine-tuning...")
     training_args = TrainingArguments(
         output_dir="./modernbert-museal-ner",
-        num_train_epochs=10,
+        num_train_epochs=2,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
         learning_rate=3e-5,
         weight_decay=0.01,
         warmup_ratio=0.1,
         eval_strategy="epoch",
-        save_strategy="epoch",
-        load_best_model_at_end=True,
+        save_strategy="no",
+        load_best_model_at_end=False,
         metric_for_best_model="f1",
         logging_steps=10,
         fp16=torch.cuda.is_available(),
