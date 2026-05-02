@@ -259,7 +259,7 @@ export default function AdminPage() {
                 ].map((o, i) => (
                   <div key={i} className="glass-card p-8 space-y-6 hover:border-[#E85002]/40 group transition-all cursor-pointer">
                     <div className="flex justify-between items-start">
-                       <InstitutionalLogo className="w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity" />
+                       <Logo className="w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity" />
                        <ArrowUpRight size={18} className="text-white/20 group-hover:text-[#E85002]" />
                     </div>
                     <div className="space-y-2">
