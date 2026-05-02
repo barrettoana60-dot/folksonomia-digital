@@ -147,7 +147,18 @@ BEGIN
 END;
 $$;
 
--- 8. Função de busca de entidades no grafo por similaridade
+-- 8. Tabela de Modelos ML Autônomos
+CREATE TABLE IF NOT EXISTS ml_models (
+    model_name TEXT PRIMARY KEY,
+    version TEXT NOT NULL,
+    trained_at TIMESTAMPTZ NOT NULL,
+    total_samples INTEGER NOT NULL,
+    accuracy FLOAT NOT NULL,
+    model_data JSONB NOT NULL,
+    is_active BOOLEAN DEFAULT true
+);
+
+-- 9. Função de busca de entidades no grafo por similaridade
 CREATE OR REPLACE FUNCTION search_graph_neighbors(
     entity_name TEXT,
     max_depth INT DEFAULT 2
