@@ -276,61 +276,7 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'relatorios' && (
-              <div className="space-y-8 animate-fade-in">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
-                  <h2 className="text-2xl md:text-3xl font-normal serif-title uppercase tracking-widest">Relatório Semântico</h2>
-                  <div className="flex gap-3 w-full md:w-auto">
-                    <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center">
-                      <FileText size={16} /> Exportar PDF
-                    </button>
-                    <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
-                      <Download size={16} /> Exportar CSV
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="glass-card p-8 md:p-12 space-y-8">
-                    <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-3">
-                      <TrendingUp className="text-[#E85002]" size={18} /> Tags criadas nos últimos 7 dias
-                    </h3>
-                    <div className="h-64 w-full flex items-end gap-3 border-b border-white/10 pb-2">
-                      {dashboardData?.relatorioSemantico?.fluxoTemporal?.map((val: number, i: number) => {
-                        const maxVal = Math.max(...dashboardData.relatorioSemantico.fluxoTemporal, 1);
-                        const percent = (val / maxVal) * 100;
-                        return (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-[#E85002] to-[#F16001] rounded-t-lg relative group" style={{ height: `${percent}%` }}>
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">{val}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="flex justify-between text-[10px] font-black text-white/30 uppercase tracking-widest">
-                      <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-                    </div>
-                  </div>
-
-                  <div className="glass-card p-8 md:p-12 space-y-8">
-                    <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-3">
-                      <AlertCircle className="text-[#E85002]" size={18} /> Análise de Comportamento
-                    </h3>
-                    <div className="space-y-6">
-                      <div className="p-4 border border-white/10 rounded-lg flex justify-between items-center bg-white/5">
-                        <span className="text-xs uppercase font-bold tracking-widest text-white/70">Usuários com {'>'} 1 Tag</span>
-                        <span className="text-xl font-bold font-serif text-[#E85002]">{Math.floor((dashboardData?.visaoGeral?.usuarios || 0) * 0.4)}</span>
-                      </div>
-                      <div className="p-4 border border-white/10 rounded-lg flex justify-between items-center bg-white/5">
-                        <span className="text-xs uppercase font-bold tracking-widest text-white/70">Divergências na mesma obra</span>
-                        <span className="text-xl font-bold font-serif text-[#E85002]">12</span>
-                      </div>
-                      <div className="p-4 border border-white/10 rounded-lg flex justify-between items-center bg-white/5">
-                        <span className="text-xs uppercase font-bold tracking-widest text-white/70">Taxa de Validação Positiva</span>
-                        <span className="text-xl font-bold font-serif text-[#00FF00]">88%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <RelatorioSemanticoTab dashboardData={dashboardData} handleExportCSV={handleExportCSV} />
             )}
 
             {activeTab === 'validacao' && (
@@ -441,5 +387,234 @@ export default function AdminPage() {
         )}
       </div>
     </main>
+  );
+}
+
+// ============================================================
+// Componente: Relatório Semântico (Motor de Análise Profunda)
+// ============================================================
+
+function RelatorioSemanticoTab({ dashboardData, handleExportCSV }: { dashboardData: any; handleExportCSV: () => void }) {
+  const [searchTag, setSearchTag] = useState('');
+  const [analiseData, setAnaliseData] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedAnalise, setSelectedAnalise] = useState<any>(null);
+
+  const runAnalise = async (query?: string) => {
+    setIsAnalyzing(true);
+    setSelectedAnalise(null);
+    try {
+      const params = query ? `?tag=${encodeURIComponent(query)}` : '';
+      const res = await fetch(`/api/admin/relatorio-semantico${params}`);
+      const json = await res.json();
+      if (json.success) {
+        setAnaliseData(json.data);
+        if (json.data.analises.length > 0) {
+          setSelectedAnalise(json.data.analises[0]);
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao analisar:', err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  useEffect(() => { runAnalise(); }, []);
+
+  const sourceColors: Record<string, string> = {
+    europeana: '#4A90D9',
+    ibram: '#27AE60',
+    brasiliana: '#E67E22'
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-normal serif-title uppercase tracking-widest">Relatório Semântico</h2>
+          <p className="text-[10px] uppercase tracking-widest font-bold text-white/30 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
+        </div>
+        <div className="flex gap-3 w-full md:w-auto">
+          <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center">
+            <FileText size={16} /> PDF
+          </button>
+          <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
+            <Download size={16} /> CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
+      <div className="glass-card p-6 flex gap-4">
+        <div className="flex-1 relative">
+          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+          <input
+            value={searchTag}
+            onChange={e => setSearchTag(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && runAnalise(searchTag)}
+            placeholder="Buscar tag para análise semântica profunda (ex: espada, liturgia, barroco...)"
+            className="w-full bg-white/5 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-sm focus:border-[#E85002] outline-none placeholder:text-white/20"
+          />
+        </div>
+        <button onClick={() => runAnalise(searchTag)} disabled={isAnalyzing} className="liquid-button !bg-[#E85002] px-8">
+          {isAnalyzing ? 'Analisando...' : 'Analisar'}
+        </button>
+      </div>
+
+      {/* ML Models Status */}
+      {analiseData?.metaAnalise && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {analiseData.metaAnalise.modelosUtilizados.map((m: any, i: number) => (
+            <div key={i} className="glass-card p-6 flex items-center gap-4">
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+              <div>
+                <p className="text-sm font-bold">{m.nome}</p>
+                <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">{m.funcao}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isAnalyzing && (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-12 h-12 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin" />
+          <p className="text-white/40 text-xs uppercase tracking-widest font-bold">Cruzando dados com Europeana, IBRAM e Brasiliana...</p>
+        </div>
+      )}
+
+      {!isAnalyzing && analiseData && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left: Tag List */}
+          <div className="glass-card p-6 space-y-4 max-h-[700px] overflow-y-auto">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-2">
+              Tags Analisadas ({analiseData.analises.length})
+            </h3>
+            {analiseData.analises.map((a: any, i: number) => (
+              <button
+                key={i}
+                onClick={() => setSelectedAnalise(a)}
+                className={`w-full text-left p-4 rounded-lg border transition-all ${
+                  selectedAnalise === a 
+                    ? 'bg-[#E85002]/10 border-[#E85002]/40' 
+                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                }`}
+              >
+                <p className="font-serif italic text-lg text-[#E85002]">"{a.tag.original}"</p>
+                <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">{a.tag.obra}</p>
+                <div className="flex gap-2 mt-2">
+                  {a.dnaSemantico.fontesDeCruzamento.map((f: string) => (
+                    <span key={f} className="px-2 py-0.5 rounded text-[8px] font-bold uppercase" style={{ backgroundColor: `${sourceColors[f.toLowerCase()] || '#666'}20`, color: sourceColors[f.toLowerCase()] || '#666' }}>
+                      {f}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[9px] font-bold mt-2 text-white/30">{a.conexoes.total} conexões detectadas</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Right: Deep Analysis */}
+          <div className="lg:col-span-2 space-y-6">
+            {selectedAnalise ? (
+              <>
+                {/* DNA Header */}
+                <div className="glass-card p-8 border-l-4 border-[#E85002]">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-2xl font-serif italic">"{selectedAnalise.tag.original}"</h3>
+                      <p className="text-sm text-white/50 mt-1">Obra: <span className="text-white/80">{selectedAnalise.tag.obra}</span></p>
+                      {selectedAnalise.tag.grupo && (
+                        <p className="text-sm text-white/50">Grupo Temático: <span className="text-[#E85002]">{selectedAnalise.tag.grupo}</span></p>
+                      )}
+                    </div>
+                    <div className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
+                      selectedAnalise.dnaSemantico.profundidade === 'alta' ? 'bg-green-500/10 text-green-500 border border-green-500/30' :
+                      selectedAnalise.dnaSemantico.profundidade === 'média' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30' :
+                      'bg-red-500/10 text-red-500 border border-red-500/30'
+                    }`}>
+                      Profundidade: {selectedAnalise.dnaSemantico.profundidade}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <span className="text-[9px] uppercase tracking-widest text-white/30 font-bold">Palavras-chave extraídas:</span>
+                    {selectedAnalise.keywords.map((kw: string) => (
+                      <span key={kw} className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-mono">{kw}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Conexões por Fonte */}
+                {['europeana', 'ibram', 'brasiliana'].map(source => {
+                  const hits = selectedAnalise.conexoes[source];
+                  if (!hits || hits.length === 0) return null;
+                  const color = sourceColors[source];
+                  const label = source === 'europeana' ? 'Europeana' : source === 'ibram' ? 'IBRAM' : 'Brasiliana';
+                  
+                  return (
+                    <div key={source} className="glass-card p-6 space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+                        <h4 className="text-sm font-bold uppercase tracking-widest">{label}</h4>
+                        <span className="text-[10px] text-white/30 font-bold">{hits.length} resultado(s)</span>
+                      </div>
+                      
+                      {hits.map((hit: any, j: number) => (
+                        <div key={j} className="border border-white/10 rounded-lg p-5 space-y-3 bg-white/[0.02]">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-bold text-lg">{hit.titulo}</p>
+                              <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold">
+                                {hit.tipo} · {hit.periodo} · {hit.colecao || hit.acervo || ''}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xl font-bold" style={{ color }}>{Math.round(hit.relevancia * 100)}%</p>
+                              <p className="text-[9px] text-white/30 uppercase font-bold">Relevância</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2 flex-wrap">
+                            {hit.palavrasCorrelacionadas.map((p: string) => (
+                              <span key={p} className="px-2 py-0.5 rounded text-[9px] font-bold uppercase" style={{ backgroundColor: `${color}20`, color }}>
+                                {p}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          {/* ANÁLISE ESCRITA DETALHADA */}
+                          <div className="bg-white/5 rounded-lg p-4 border-l-2 mt-2" style={{ borderColor: color }}>
+                            <p className="text-[9px] uppercase tracking-widest font-bold text-white/30 mb-2">Análise Semântica (ModernBERT + RotatE)</p>
+                            <p className="text-sm text-white/70 leading-relaxed font-serif italic">{hit.analise}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+
+                {/* DNA Evolution Note */}
+                <div className="glass-card p-6 border border-[#E85002]/20 bg-[#E85002]/5">
+                  <div className="flex items-start gap-4">
+                    <Network size={24} className="text-[#E85002] mt-1 shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest text-[#E85002] mb-2">DNA Semântico em Evolução</p>
+                      <p className="text-sm text-white/60 leading-relaxed">{selectedAnalise.dnaSemantico.evolucao}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="glass-card p-20 text-center">
+                <Search size={48} className="mx-auto text-white/10 mb-6" />
+                <p className="text-white/30 text-xs uppercase tracking-widest font-bold">Selecione uma tag ou busque para ver a análise semântica profunda</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
