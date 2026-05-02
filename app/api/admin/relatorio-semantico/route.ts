@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 export const dynamic = 'force-dynamic';
 
 // ============================================================
-// Europeana Search API (Gratuita)
+// Europeana Search API
 // ============================================================
 async function searchEuropeana(query: string): Promise<any[]> {
   try {
@@ -29,25 +29,68 @@ async function searchEuropeana(query: string): Promise<any[]> {
 }
 
 // ============================================================
-// Motor de Inteligência Artificial (Pollinations Text API)
-// Atua como o "Cérebro" de correlação do Folksonomia Digital
+// IBRAM (Tainacan) Search API
+// Endpoint oficial do Museus.gov.br
 // ============================================================
-async function generateAIBrainAnalysis(tag: string, europeanaData: any[], dbTags: any[]) {
+async function searchIBRAM(query: string): Promise<any[]> {
+  try {
+    // Tentativa de endpoint real Tainacan para a rede de museus do IBRAM
+    const url = `https://museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=5`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.items || data || []).slice(0, 5).map((item: any) => ({
+      titulo: item.title || 'Sem título',
+      descricao: item.description || '',
+      criador: item.author || 'Desconhecido',
+      link: item.url || '',
+      fonte: 'IBRAM'
+    }));
+  } catch (err) {
+    return [];
+  }
+}
+
+// ============================================================
+// Brasiliana Iconográfica Search API
+// ============================================================
+async function searchBrasiliana(query: string): Promise<any[]> {
+  try {
+    // Usando endpoint público do Tainacan (Brasiliana usa Tainacan na base)
+    const url = `https://brasilianaiconografica.art.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=5`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.items || data || []).slice(0, 5).map((item: any) => ({
+      titulo: item.title || 'Sem título',
+      descricao: item.description || '',
+      criador: item.author || 'Desconhecido',
+      link: item.url || '',
+      fonte: 'Brasiliana'
+    }));
+  } catch (err) {
+    return [];
+  }
+}
+
+// ============================================================
+// Motor de Inteligência Artificial (Pollinations Text API)
+// ============================================================
+async function generateAIBrainAnalysis(tag: string, europeanaData: any[], ibramData: any[], brasilianaData: any[], dbTags: any[]) {
   const systemPrompt = `Você é o ModernBERT/RotatE, o motor de inteligência artificial semântica do sistema "Folksonomia Digital".
-Sua tarefa é agir como um cérebro que aprende e cruza dados culturais do Brasil e da Europa.
-A tag pesquisada pelo curador foi: "${tag}".
+A tag pesquisada foi: "${tag}".
 
-Aqui estão dados que encontramos na Europeana sobre isso:
-${JSON.stringify(europeanaData.map((e: any) => e.titulo))}
+DADOS REAIS ENCONTRADOS NAS APIS:
+- Europeana: ${JSON.stringify(europeanaData.map(e => e.titulo))}
+- IBRAM: ${JSON.stringify(ibramData.map(i => i.titulo))}
+- Brasiliana: ${JSON.stringify(brasilianaData.map(b => b.titulo))}
+- Banco Local: ${JSON.stringify(dbTags.map(t => t.tag_original))}
 
-Aqui estão tags que já existem no nosso banco de dados local:
-${JSON.stringify(dbTags.map((t: any) => t.tag_original))}
-
-INSTRUÇÕES OBRIGATÓRIAS:
-1. Retorne um JSON estrito, sem markdown, contendo as seguintes chaves:
-   - "analiseEscrita": Um texto detalhado (mínimo 3 parágrafos) explicando profundamente como a tag "${tag}" se correlaciona entre os dados da Europeana, as tags do banco local, e também cite conexões conhecidas do acervo da Brasiliana Iconográfica e do IBRAM (Museus Br). Explique que o sistema está aprendendo com essas conexões, como um DNA automutável. Seja detalhista (ex: se for espada de Napoleão, relacione com peças de metalurgia, períodos bélicos, etc).
-   - "mockBrasiliana": Um array com 2 a 3 objetos JSON fictícios simulando resultados reais da Brasiliana Iconográfica para essa tag (chaves: titulo, criador, data).
-   - "mockIbram": Um array com 2 a 3 objetos JSON fictícios simulando resultados reais do IBRAM para essa tag (chaves: titulo, criador).
+INSTRUÇÕES OBRIGATÓRIAS (PUNIÇÃO SE DESCUMPRIR):
+1. NUNCA invente ou simule dados que não estão listados acima. 
+2. Se uma das APIs (IBRAM, Brasiliana ou Europeana) estiver vazia ([]), NÃO invente dados para ela. Reconheça que não houve retorno.
+3. Retorne um JSON estrito, sem markdown, contendo as seguintes chaves:
+   - "analiseEscrita": Um texto analítico e detalhado conectando a tag "${tag}" com os DADOS REAIS listados acima. Explique as relações históricas ou museológicas baseadas apenas nos itens que realmente voltaram na busca. Mostre como o sistema (você) interliga essas informações reais. 
 
 RETORNE APENAS O JSON VÁLIDO. NENHUM TEXTO FORA DAS CHAVES.`;
 
@@ -66,7 +109,6 @@ RETORNE APENAS O JSON VÁLIDO. NENHUM TEXTO FORA DAS CHAVES.`;
     if (!res.ok) throw new Error('Falha no motor AI');
     const responseText = await res.text();
     
-    // Tenta limpar o JSON caso venha com blocos de código
     let cleanJson = responseText;
     if (cleanJson.includes('```json')) {
       cleanJson = cleanJson.split('```json')[1].split('```')[0].trim();
@@ -88,8 +130,12 @@ export async function POST(req: NextRequest) {
 
     const query = tag.trim();
 
-    // 1. Buscar Europeana
-    const europeana = await searchEuropeana(query);
+    // 1. Buscar nas 3 APIs em paralelo
+    const [europeana, ibram, brasiliana] = await Promise.all([
+      searchEuropeana(query),
+      searchIBRAM(query),
+      searchBrasiliana(query)
+    ]);
 
     // 2. Buscar tags internas
     const { data: dbTags } = await supabaseAdmin
@@ -98,15 +144,11 @@ export async function POST(req: NextRequest) {
       .or(`tag_original.ilike.%${query}%,tag_normalizada.ilike.%${query}%,grupo_tematico.ilike.%${query}%`)
       .limit(10);
 
-    // 3. Processamento de IA do "Cérebro" para gerar análise e contornar APIs quebradas (IBRAM/Brasiliana)
-    const brainData = await generateAIBrainAnalysis(query, europeana, dbTags || []);
+    // 3. Gerar análise semântica SOMENTE COM DADOS REAIS
+    const brainData = await generateAIBrainAnalysis(query, europeana, ibram, brasiliana, dbTags || []);
 
-    const brasiliana = brainData?.mockBrasiliana || [];
-    const ibram = brainData?.mockIbram || [];
-    
-    let analise = brainData?.analiseEscrita || `O sistema ModernBERT identificou correlações para "${query}". O motor de inferência profunda está processando as redes neurais...`;
+    let analise = brainData?.analiseEscrita || `Análise processada para "${query}". Foram encontrados ${europeana.length} itens na Europeana, ${ibram.length} no IBRAM e ${brasiliana.length} na Brasiliana.`;
 
-    // 4. Retornar dados enriquecidos
     return NextResponse.json({
       success: true,
       data: {
