@@ -99,19 +99,19 @@ export default function ValidacaoPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
                       <p className="text-[10px] text-white/30 uppercase mb-1">Confiança</p>
-                      <p className="text-2xl font-light text-green-400">{(item.confianca * 100).toFixed(0)}%</p>
+                      <p className="text-2xl font-light text-green-400">{((item.confianca ?? 0) * 100).toFixed(0)}%</p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
                       <p className="text-[10px] text-white/30 uppercase mb-1">Novidade</p>
-                      <p className="text-2xl font-light text-blue-400">{(item.novidade * 100).toFixed(0)}%</p>
+                      <p className="text-2xl font-light text-blue-400">{((item.novidade ?? 0) * 100).toFixed(0)}%</p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
                       <p className="text-[10px] text-white/30 uppercase mb-1">Tensão</p>
-                      <p className="text-2xl font-light text-yellow-400">{(item.tensao * 100).toFixed(0)}%</p>
+                      <p className="text-2xl font-light text-yellow-400">{((item.tensao ?? 0) * 100).toFixed(0)}%</p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
                       <p className="text-[10px] text-white/30 uppercase mb-1">Ressonância</p>
-                      <p className="text-2xl font-light text-purple-400">{(item.ressonancia * 100).toFixed(0)}%</p>
+                      <p className="text-2xl font-light text-purple-400">{((item.ressonancia ?? 0) * 100).toFixed(0)}%</p>
                     </div>
                   </div>
                 </div>
