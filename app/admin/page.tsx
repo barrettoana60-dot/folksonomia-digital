@@ -35,6 +35,10 @@ export default function AdminPage() {
   const [obraForm, setObraForm] = useState({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Modals UI State
+  const [showOntologiaForm, setShowOntologiaForm] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+
   // Relatório Semântico State
   const [searchTag, setSearchTag] = useState('');
   const [semanticResult, setSemanticResult] = useState<any>(null);
@@ -262,7 +266,7 @@ export default function AdminPage() {
                            </div>
                            <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">Agrupado como: Admiração Religiosa</p>
                          </div>
-                         <button className="px-3 py-1 bg-white/10 rounded text-[9px] uppercase font-bold">Ver Grupo</button>
+                         <button onClick={() => setSelectedGroup('Admiração Religiosa')} className="px-3 py-1 bg-white/10 hover:bg-[#E85002] transition-colors rounded text-[9px] uppercase font-bold">Ver Grupo</button>
                        </div>
                        
                        <div className="p-4 bg-white/5 rounded-lg border border-white/10 flex justify-between items-center">
@@ -274,10 +278,42 @@ export default function AdminPage() {
                            </div>
                            <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">Agrupado como: Angústia</p>
                          </div>
-                         <button className="px-3 py-1 bg-white/10 rounded text-[9px] uppercase font-bold">Ver Grupo</button>
+                         <button onClick={() => setSelectedGroup('Angústia')} className="px-3 py-1 bg-white/10 hover:bg-[#E85002] transition-colors rounded text-[9px] uppercase font-bold">Ver Grupo</button>
                        </div>
                      </div>
                    </div>
+
+                   {/* Modal Ver Grupo */}
+                   {selectedGroup && (
+                     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                       <div className="glass-card p-8 w-full max-w-xl relative animate-fade-in">
+                         <button onClick={() => setSelectedGroup(null)} className="absolute top-6 right-6 text-white/50 hover:text-white">
+                           <X size={24} />
+                         </button>
+                         <h3 className="text-2xl serif-title uppercase mb-2">Grupo Temático</h3>
+                         <p className="text-[#E85002] font-bold uppercase tracking-widest text-xs mb-6">{selectedGroup}</p>
+                         <div className="space-y-4">
+                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
+                             <p className="text-xs uppercase font-bold text-white/50 mb-2">Tags neste grupo</p>
+                             <div className="flex flex-wrap gap-2">
+                               <span className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"meu deus"</span>
+                               <span className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"deus lindo"</span>
+                               <span className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"divindade"</span>
+                             </div>
+                           </div>
+                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
+                             <p className="text-xs uppercase font-bold text-white/50 mb-2">Rede GAT (Acurácia)</p>
+                             <div className="flex items-center gap-2">
+                               <div className="h-2 flex-1 bg-white/10 rounded-full overflow-hidden">
+                                 <div className="h-full bg-[#E85002] w-[94%]"></div>
+                               </div>
+                               <span className="text-xs font-bold">94%</span>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   )}
                    
                    <div className="glass-card p-8">
                      <h3 className="text-sm font-bold uppercase tracking-widest mb-6">Volume por Grupo Temático</h3>
@@ -300,19 +336,55 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'relatorios' && (
-              <div className="space-y-8 animate-fade-in">
+              <div className="space-y-8 animate-fade-in print-section">
+                {/* Estilos para impressão limpa */}
+                <style dangerouslySetInnerHTML={{__html: `
+                  @media print {
+                    body { background: white !important; color: black !important; }
+                    .glass-card { border: 1px solid #ccc !important; box-shadow: none !important; background: transparent !important; page-break-inside: avoid; }
+                    .print\\:hidden { display: none !important; }
+                    .text-white\\/80, .text-white\\/40, .text-white\\/30 { color: #333 !important; }
+                    .text-\\[\\#E85002\\] { color: #000 !important; font-weight: bold; }
+                    .bg-\\[\\#E85002\\]\\/10 { background: #f0f0f0 !important; border: 1px solid #ddd !important; }
+                    .prose { color: black !important; }
+                  }
+                `}} />
+
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
                   <div>
                     <h2 className="text-2xl md:text-3xl font-normal serif-title uppercase tracking-widest">Relatório Semântico</h2>
                     <p className="text-[9px] uppercase tracking-widest font-bold text-white/30 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
-                    <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center">
-                      <FileText size={16} /> PDF
+                    <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white">
+                      <FileText size={16} /> Exportar PDF
                     </button>
                     <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
                       <Download size={16} /> CSV
                     </button>
+                  </div>
+                </div>
+
+                {/* GRÁFICO TEMPORAL RESTAURADO */}
+                <div className="glass-card p-8 md:p-12 space-y-8 print:hidden">
+                  <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-3">
+                    <TrendingUp className="text-[#E85002]" size={18} /> Fluxo Temporal de Tags (Últimos 7 dias)
+                  </h3>
+                  <div className="h-48 w-full flex items-end gap-3 border-b border-white/10 pb-2">
+                    {dashboardData?.relatorioSemantico?.fluxoTemporal?.map((val: number, i: number) => {
+                      const maxVal = Math.max(...(dashboardData?.relatorioSemantico?.fluxoTemporal || [1]), 1);
+                      const percent = (val / maxVal) * 100;
+                      return (
+                        <div key={i} className="flex-1 bg-gradient-to-t from-[#E85002] to-[#F16001] rounded-t-lg relative group transition-all duration-500" style={{ height: `${percent}%` }}>
+                          <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">{val}</span>
+                        </div>
+                      )
+                    }) || (
+                      <div className="w-full h-full flex items-center justify-center text-white/30 text-xs font-bold uppercase tracking-widest">Carregando dados temporais...</div>
+                    )}
+                  </div>
+                  <div className="flex justify-between text-[10px] font-black text-white/30 uppercase tracking-widest">
+                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
                   </div>
                 </div>
 
@@ -493,12 +565,41 @@ export default function AdminPage() {
               </div>
             )}
 
-            {activeTab === 'ontologia' && (
+             {activeTab === 'ontologia' && (
               <div className="space-y-8 animate-fade-in">
                  <div className="flex justify-between items-center">
                     <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Ontologias & Vocabulários</h2>
-                    <button onClick={() => alert('Modal para adicionar Ontologia')} className="liquid-button !bg-[#E85002] flex items-center gap-2"><Plus size={16} /> Nova Ontologia</button>
+                    <button onClick={() => setShowOntologiaForm(true)} className="liquid-button !bg-[#E85002] flex items-center gap-2"><Plus size={16} /> Nova Ontologia</button>
                  </div>
+
+                 {/* MODAL NOVA ONTOLOGIA */}
+                 {showOntologiaForm && (
+                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                     <div className="glass-card p-8 w-full max-w-lg relative animate-fade-in">
+                       <button onClick={() => setShowOntologiaForm(false)} className="absolute top-6 right-6 text-white/50 hover:text-white">
+                         <X size={24} />
+                       </button>
+                       <h3 className="text-2xl serif-title uppercase mb-6">Mapear Nova Ontologia</h3>
+                       <form onSubmit={(e) => { e.preventDefault(); alert('Ontologia mapeada com sucesso!'); setShowOntologiaForm(false); }} className="space-y-4">
+                         <div>
+                           <label className="text-[10px] uppercase font-bold text-white/50 tracking-widest">Nome da Ontologia / Padrão</label>
+                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Dublin Core" />
+                         </div>
+                         <div>
+                           <label className="text-[10px] uppercase font-bold text-white/50 tracking-widest">Provedor / Instituição</label>
+                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: DCMI" />
+                         </div>
+                         <div>
+                           <label className="text-[10px] uppercase font-bold text-white/50 tracking-widest">URL do Endpoint (SPARQL/API)</label>
+                           <input type="url" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="https://..." />
+                         </div>
+                         <button type="submit" className="w-full liquid-button !bg-[#E85002] mt-4 flex justify-center items-center gap-2">
+                           <Database size={16} /> Iniciar Mapeamento Neural
+                         </button>
+                       </form>
+                     </div>
+                   </div>
+                 )}
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
                       { name: 'CIDOC-CRM', provider: 'ICOM', terms: 'Conceitos Museais' },
