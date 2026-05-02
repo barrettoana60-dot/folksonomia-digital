@@ -37,9 +37,9 @@ export async function addTriple(
     mechanism = 'heuristic'
   } = options;
 
-  // Gerar embeddings (384d → truncar para 256d)
-  const headEmb = (await createLocalEmbedding(head)).slice(0, 256);
-  const tailEmb = (await createLocalEmbedding(tail)).slice(0, 256);
+  // Gerar embeddings (384d)
+  const headEmb = (await createLocalEmbedding(head));
+  const tailEmb = (await createLocalEmbedding(tail));
 
   const triple: KnowledgeTriple = {
     id: `kg_${Date.now()}`,
@@ -153,8 +153,8 @@ export async function inferRelations(
   entityA: string,
   entityB: string
 ): Promise<{ relation: MusealRelation; confidence: number }[]> {
-  const embA = (await createLocalEmbedding(entityA)).slice(0, 256);
-  const embB = (await createLocalEmbedding(entityB)).slice(0, 256);
+  const embA = (await createLocalEmbedding(entityA));
+  const embB = (await createLocalEmbedding(entityB));
 
   const sim = cosineSimilarity(embA, embB);
   const results: { relation: MusealRelation; confidence: number }[] = [];
