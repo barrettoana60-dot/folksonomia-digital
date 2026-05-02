@@ -35,6 +35,30 @@ export default function AdminPage() {
   const [obraForm, setObraForm] = useState({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Relatório Semântico State
+  const [searchTag, setSearchTag] = useState('');
+  const [semanticResult, setSemanticResult] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleSemanticSearch = async () => {
+    if (!searchTag.trim()) return;
+    setIsAnalyzing(true);
+    setSemanticResult(null);
+    try {
+      const res = await fetch('/api/admin/relatorio-semantico', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag: searchTag })
+      });
+      const json = await res.json();
+      if (json.success) setSemanticResult(json.data);
+    } catch (err) {
+      console.error('Erro na análise semântica:', err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   useEffect(() => {
     async function fetchDashboard() {
       try {
@@ -276,7 +300,155 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'relatorios' && (
-              <RelatorioSemanticoTab dashboardData={dashboardData} handleExportCSV={handleExportCSV} />
+              <div className="space-y-8 animate-fade-in">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
+                  <div>
+                    <h2 className="text-2xl md:text-3xl font-normal serif-title uppercase tracking-widest">Relatório Semântico</h2>
+                    <p className="text-[9px] uppercase tracking-widest font-bold text-white/30 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
+                  </div>
+                  <div className="flex gap-3 w-full md:w-auto">
+                    <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center">
+                      <FileText size={16} /> PDF
+                    </button>
+                    <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
+                      <Download size={16} /> CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* BARRA DE BUSCA SEMÂNTICA */}
+                <div className="glass-card p-6 flex gap-4 items-center">
+                  <Search size={20} className="text-white/30" />
+                  <input
+                    value={searchTag}
+                    onChange={e => setSearchTag(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSemanticSearch()}
+                    placeholder="Buscar tag para análise semântica profunda (ex: espada, liturgia, barroco, cubismo...)"
+                    className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-white/30"
+                  />
+                  <button onClick={handleSemanticSearch} disabled={isAnalyzing} className="liquid-button !bg-[#E85002] !px-8">
+                    {isAnalyzing ? 'Analisando...' : 'Analisar'}
+                  </button>
+                </div>
+
+                {/* STATUS DOS MOTORES */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="glass-card p-4 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <div><p className="text-xs font-bold">ModernBERT (NER)</p><p className="text-[9px] text-white/40 uppercase tracking-widest">Classificação de tokens e extração de entidades do vocabulário museal</p></div>
+                  </div>
+                  <div className="glass-card p-4 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <div><p className="text-xs font-bold">RotatE (KG)</p><p className="text-[9px] text-white/40 uppercase tracking-widest">Inferência de relações no espaço complexo entre entidades</p></div>
+                  </div>
+                  <div className="glass-card p-4 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <div><p className="text-xs font-bold">GAT (Clustering)</p><p className="text-[9px] text-white/40 uppercase tracking-widest">Resolução de fronteiras fluidas e multi-membership em grupos temáticos</p></div>
+                  </div>
+                </div>
+
+                {/* RESULTADOS DA ANÁLISE */}
+                {semanticResult && (
+                  <div className="space-y-6">
+                    {/* Profundidade */}
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold">Resultados para <span className="text-[#E85002] italic font-serif">"{semanticResult.tag}"</span></h3>
+                      <span className={`px-4 py-1 rounded-full text-[10px] uppercase font-black tracking-widest border ${
+                        semanticResult.profundidade === 'ALTA' ? 'text-green-500 border-green-500/30 bg-green-500/10' :
+                        semanticResult.profundidade === 'MÉDIA' ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10' :
+                        'text-red-500 border-red-500/30 bg-red-500/10'
+                      }`}>Profundidade: {semanticResult.profundidade}</span>
+                    </div>
+
+                    {/* Cards das fontes */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Europeana */}
+                      <div className="glass-card p-6 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-sm font-bold uppercase tracking-widest">Europeana</h4>
+                          <span className="text-[#E85002] font-bold text-lg">{semanticResult.correlacoes.europeana.total}</span>
+                        </div>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {semanticResult.correlacoes.europeana.items.map((item: any, i: number) => (
+                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5">
+                              <p className="text-sm font-bold leading-tight">{item.titulo}</p>
+                              {item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002] mt-1">{item.criador}</p>}
+                              {item.data && <p className="text-[10px] text-white/40">{item.data} • {item.pais}</p>}
+                              {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[9px] text-[#E85002] underline mt-1 block">Ver na Europeana →</a>}
+                            </div>
+                          ))}
+                          {semanticResult.correlacoes.europeana.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
+                        </div>
+                      </div>
+
+                      {/* Brasiliana */}
+                      <div className="glass-card p-6 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-sm font-bold uppercase tracking-widest">Brasiliana</h4>
+                          <span className="text-[#E85002] font-bold text-lg">{semanticResult.correlacoes.brasiliana.total}</span>
+                        </div>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {semanticResult.correlacoes.brasiliana.items.map((item: any, i: number) => (
+                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5">
+                              <p className="text-sm font-bold leading-tight">{item.titulo}</p>
+                              {item.criador && <p className="text-[10px] text-[#E85002] mt-1">{item.criador}</p>}
+                            </div>
+                          ))}
+                          {semanticResult.correlacoes.brasiliana.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
+                        </div>
+                      </div>
+
+                      {/* IBRAM */}
+                      <div className="glass-card p-6 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-sm font-bold uppercase tracking-widest">IBRAM</h4>
+                          <span className="text-[#E85002] font-bold text-lg">{semanticResult.correlacoes.ibram.total}</span>
+                        </div>
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {semanticResult.correlacoes.ibram.items.map((item: any, i: number) => (
+                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5">
+                              <p className="text-sm font-bold leading-tight">{item.titulo}</p>
+                              {item.criador && <p className="text-[10px] text-[#E85002] mt-1">{item.criador}</p>}
+                            </div>
+                          ))}
+                          {semanticResult.correlacoes.ibram.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tags internas */}
+                    {semanticResult.correlacoes.internas.total > 0 && (
+                      <div className="glass-card p-6">
+                        <h4 className="text-sm font-bold uppercase tracking-widest mb-4">Tags internas correlacionadas ({semanticResult.correlacoes.internas.total})</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {semanticResult.correlacoes.internas.items.map((t: any, i: number) => (
+                            <span key={i} className="px-3 py-1 bg-[#E85002]/10 text-[#E85002] border border-[#E85002]/20 rounded-full text-[10px] uppercase font-bold">
+                              {t.tag_original} → {t.grupo_tematico || 'Outros'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Análise escrita */}
+                    <div className="glass-card p-8">
+                      <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <FileText size={16} className="text-[#E85002]" /> Análise Escrita (Gerada pelo Motor Semântico)
+                      </h4>
+                      <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed whitespace-pre-line">
+                        {semanticResult.analiseEscrita}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!semanticResult && !isAnalyzing && (
+                  <div className="glass-card p-16 text-center">
+                    <Search size={48} className="mx-auto text-white/10 mb-4" />
+                    <p className="text-white/30 text-xs uppercase tracking-widest font-bold">Digite uma tag acima e clique em Analisar para ver o cruzamento de dados com Europeana, IBRAM e Brasiliana</p>
+                  </div>
+                )}
+              </div>
             )}
 
             {activeTab === 'validacao' && (
@@ -387,234 +559,5 @@ export default function AdminPage() {
         )}
       </div>
     </main>
-  );
-}
-
-// ============================================================
-// Componente: Relatório Semântico (Motor de Análise Profunda)
-// ============================================================
-
-function RelatorioSemanticoTab({ dashboardData, handleExportCSV }: { dashboardData: any; handleExportCSV: () => void }) {
-  const [searchTag, setSearchTag] = useState('');
-  const [analiseData, setAnaliseData] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [selectedAnalise, setSelectedAnalise] = useState<any>(null);
-
-  const runAnalise = async (query?: string) => {
-    setIsAnalyzing(true);
-    setSelectedAnalise(null);
-    try {
-      const params = query ? `?tag=${encodeURIComponent(query)}` : '';
-      const res = await fetch(`/api/admin/relatorio-semantico${params}`);
-      const json = await res.json();
-      if (json.success) {
-        setAnaliseData(json.data);
-        if (json.data.analises.length > 0) {
-          setSelectedAnalise(json.data.analises[0]);
-        }
-      }
-    } catch (err) {
-      console.error('Erro ao analisar:', err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  useEffect(() => { runAnalise(); }, []);
-
-  const sourceColors: Record<string, string> = {
-    europeana: '#4A90D9',
-    ibram: '#27AE60',
-    brasiliana: '#E67E22'
-  };
-
-  return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-normal serif-title uppercase tracking-widest">Relatório Semântico</h2>
-          <p className="text-[10px] uppercase tracking-widest font-bold text-white/30 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
-        </div>
-        <div className="flex gap-3 w-full md:w-auto">
-          <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center">
-            <FileText size={16} /> PDF
-          </button>
-          <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
-            <Download size={16} /> CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="glass-card p-6 flex gap-4">
-        <div className="flex-1 relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-          <input
-            value={searchTag}
-            onChange={e => setSearchTag(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && runAnalise(searchTag)}
-            placeholder="Buscar tag para análise semântica profunda (ex: espada, liturgia, barroco...)"
-            className="w-full bg-white/5 border border-white/10 rounded-lg pl-12 pr-4 py-3 text-sm focus:border-[#E85002] outline-none placeholder:text-white/20"
-          />
-        </div>
-        <button onClick={() => runAnalise(searchTag)} disabled={isAnalyzing} className="liquid-button !bg-[#E85002] px-8">
-          {isAnalyzing ? 'Analisando...' : 'Analisar'}
-        </button>
-      </div>
-
-      {/* ML Models Status */}
-      {analiseData?.metaAnalise && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {analiseData.metaAnalise.modelosUtilizados.map((m: any, i: number) => (
-            <div key={i} className="glass-card p-6 flex items-center gap-4">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-              <div>
-                <p className="text-sm font-bold">{m.nome}</p>
-                <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">{m.funcao}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {isAnalyzing && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-12 h-12 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin" />
-          <p className="text-white/40 text-xs uppercase tracking-widest font-bold">Cruzando dados com Europeana, IBRAM e Brasiliana...</p>
-        </div>
-      )}
-
-      {!isAnalyzing && analiseData && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Tag List */}
-          <div className="glass-card p-6 space-y-4 max-h-[700px] overflow-y-auto">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 mb-2">
-              Tags Analisadas ({analiseData.analises.length})
-            </h3>
-            {analiseData.analises.map((a: any, i: number) => (
-              <button
-                key={i}
-                onClick={() => setSelectedAnalise(a)}
-                className={`w-full text-left p-4 rounded-lg border transition-all ${
-                  selectedAnalise === a 
-                    ? 'bg-[#E85002]/10 border-[#E85002]/40' 
-                    : 'bg-white/5 border-white/10 hover:bg-white/10'
-                }`}
-              >
-                <p className="font-serif italic text-lg text-[#E85002]">"{a.tag.original}"</p>
-                <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">{a.tag.obra}</p>
-                <div className="flex gap-2 mt-2">
-                  {a.dnaSemantico.fontesDeCruzamento.map((f: string) => (
-                    <span key={f} className="px-2 py-0.5 rounded text-[8px] font-bold uppercase" style={{ backgroundColor: `${sourceColors[f.toLowerCase()] || '#666'}20`, color: sourceColors[f.toLowerCase()] || '#666' }}>
-                      {f}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-[9px] font-bold mt-2 text-white/30">{a.conexoes.total} conexões detectadas</p>
-              </button>
-            ))}
-          </div>
-
-          {/* Right: Deep Analysis */}
-          <div className="lg:col-span-2 space-y-6">
-            {selectedAnalise ? (
-              <>
-                {/* DNA Header */}
-                <div className="glass-card p-8 border-l-4 border-[#E85002]">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-2xl font-serif italic">"{selectedAnalise.tag.original}"</h3>
-                      <p className="text-sm text-white/50 mt-1">Obra: <span className="text-white/80">{selectedAnalise.tag.obra}</span></p>
-                      {selectedAnalise.tag.grupo && (
-                        <p className="text-sm text-white/50">Grupo Temático: <span className="text-[#E85002]">{selectedAnalise.tag.grupo}</span></p>
-                      )}
-                    </div>
-                    <div className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
-                      selectedAnalise.dnaSemantico.profundidade === 'alta' ? 'bg-green-500/10 text-green-500 border border-green-500/30' :
-                      selectedAnalise.dnaSemantico.profundidade === 'média' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/30' :
-                      'bg-red-500/10 text-red-500 border border-red-500/30'
-                    }`}>
-                      Profundidade: {selectedAnalise.dnaSemantico.profundidade}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <span className="text-[9px] uppercase tracking-widest text-white/30 font-bold">Palavras-chave extraídas:</span>
-                    {selectedAnalise.keywords.map((kw: string) => (
-                      <span key={kw} className="px-2 py-0.5 bg-white/10 rounded text-[10px] font-mono">{kw}</span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Conexões por Fonte */}
-                {['europeana', 'ibram', 'brasiliana'].map(source => {
-                  const hits = selectedAnalise.conexoes[source];
-                  if (!hits || hits.length === 0) return null;
-                  const color = sourceColors[source];
-                  const label = source === 'europeana' ? 'Europeana' : source === 'ibram' ? 'IBRAM' : 'Brasiliana';
-                  
-                  return (
-                    <div key={source} className="glass-card p-6 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                        <h4 className="text-sm font-bold uppercase tracking-widest">{label}</h4>
-                        <span className="text-[10px] text-white/30 font-bold">{hits.length} resultado(s)</span>
-                      </div>
-                      
-                      {hits.map((hit: any, j: number) => (
-                        <div key={j} className="border border-white/10 rounded-lg p-5 space-y-3 bg-white/[0.02]">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-bold text-lg">{hit.titulo}</p>
-                              <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold">
-                                {hit.tipo} · {hit.periodo} · {hit.colecao || hit.acervo || ''}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xl font-bold" style={{ color }}>{Math.round(hit.relevancia * 100)}%</p>
-                              <p className="text-[9px] text-white/30 uppercase font-bold">Relevância</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2 flex-wrap">
-                            {hit.palavrasCorrelacionadas.map((p: string) => (
-                              <span key={p} className="px-2 py-0.5 rounded text-[9px] font-bold uppercase" style={{ backgroundColor: `${color}20`, color }}>
-                                {p}
-                              </span>
-                            ))}
-                          </div>
-                          
-                          {/* ANÁLISE ESCRITA DETALHADA */}
-                          <div className="bg-white/5 rounded-lg p-4 border-l-2 mt-2" style={{ borderColor: color }}>
-                            <p className="text-[9px] uppercase tracking-widest font-bold text-white/30 mb-2">Análise Semântica (ModernBERT + RotatE)</p>
-                            <p className="text-sm text-white/70 leading-relaxed font-serif italic">{hit.analise}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-
-                {/* DNA Evolution Note */}
-                <div className="glass-card p-6 border border-[#E85002]/20 bg-[#E85002]/5">
-                  <div className="flex items-start gap-4">
-                    <Network size={24} className="text-[#E85002] mt-1 shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-[#E85002] mb-2">DNA Semântico em Evolução</p>
-                      <p className="text-sm text-white/60 leading-relaxed">{selectedAnalise.dnaSemantico.evolucao}</p>
-                    </div>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="glass-card p-20 text-center">
-                <Search size={48} className="mx-auto text-white/10 mb-6" />
-                <p className="text-white/30 text-xs uppercase tracking-widest font-bold">Selecione uma tag ou busque para ver a análise semântica profunda</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
   );
 }

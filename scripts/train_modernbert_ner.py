@@ -191,7 +191,7 @@ def main():
     print("\n[4/5] Iniciando fine-tuning...")
     training_args = TrainingArguments(
         output_dir="./modernbert-museal-ner",
-        num_train_epochs=2,
+        num_train_epochs=5,
         per_device_train_batch_size=8,
         per_device_eval_batch_size=8,
         learning_rate=3e-5,
