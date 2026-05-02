@@ -77,22 +77,18 @@ async function searchBrasiliana(query: string): Promise<any[]> {
 // Motor de Inteligência Artificial (Pollinations Text API)
 // ============================================================
 async function generateAIBrainAnalysis(tag: string, europeanaData: any[], ibramData: any[], brasilianaData: any[], dbTags: any[]) {
-  const systemPrompt = `Você é o ModernBERT/RotatE, o motor de inteligência artificial semântica do sistema "Folksonomia Digital".
-A tag pesquisada foi: "${tag}".
+  const systemPrompt = `Aja como o "Cérebro Semântico" do Folksonomia Digital. 
+O curador pesquisou a palavra-chave/tag: "${tag}".
 
-DADOS REAIS ENCONTRADOS NAS APIS:
-- Europeana: ${JSON.stringify(europeanaData.map(e => e.titulo))}
-- IBRAM: ${JSON.stringify(ibramData.map(i => i.titulo))}
-- Brasiliana: ${JSON.stringify(brasilianaData.map(b => b.titulo))}
-- Banco Local: ${JSON.stringify(dbTags.map(t => t.tag_original))}
+Resultados brutos retornados pelas APIs neste exato momento:
+- Europeana: ${europeanaData.length} itens. ${europeanaData.length > 0 ? `Exemplos: ${europeanaData.slice(0,3).map(e=>e.titulo).join(' | ')}` : ''}
+- IBRAM: ${ibramData.length} itens.
+- Brasiliana: ${brasilianaData.length} itens.
+- Banco Local (Tags): ${dbTags.length} conexões.
 
-INSTRUÇÕES OBRIGATÓRIAS (PUNIÇÃO SE DESCUMPRIR):
-1. NUNCA invente ou simule dados que não estão listados acima. 
-2. Se uma das APIs (IBRAM, Brasiliana ou Europeana) estiver vazia ([]), NÃO invente dados para ela. Reconheça que não houve retorno.
-3. Retorne um JSON estrito, sem markdown, contendo as seguintes chaves:
-   - "analiseEscrita": Um texto analítico e detalhado conectando a tag "${tag}" com os DADOS REAIS listados acima. Explique as relações históricas ou museológicas baseadas apenas nos itens que realmente voltaram na busca. Mostre como o sistema (você) interliga essas informações reais. 
-
-RETORNE APENAS O JSON VÁLIDO. NENHUM TEXTO FORA DAS CHAVES.`;
+Sua tarefa: Escrever uma Análise Semântica Profunda (em português, 3 a 4 parágrafos) agindo como uma rede neural que interliga conceitos.
+REGRA DE OURO: Se o IBRAM ou Brasiliana retornaram 0 itens, NÃO invente obras falsas para eles. Reconheça que a busca direta na API falhou ou não encontrou a chave. No entanto, aja como um cérebro: explique as vastas conexões conceituais, históricas e museológicas que a tag "${tag}" possui no ecossistema global e brasileiro. Mostre como as obras da Europeana (se encontradas) se interligam ao conceito geral, e explique como o sistema está "aprendendo" e mapeando esse DNA automutável a partir dessa palavra-chave.
+Retorne APENAS o texto corrido da análise. Não use markdown pesado, apenas texto limpo e direto.`;
 
   try {
     const res = await fetch('https://text.pollinations.ai/openai', {
@@ -100,21 +96,13 @@ RETORNE APENAS O JSON VÁLIDO. NENHUM TEXTO FORA DAS CHAVES.`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [{ role: 'user', content: systemPrompt }],
-        model: 'openai',
-        jsonMode: true
+        model: 'openai'
       }),
       signal: AbortSignal.timeout(20000)
     });
     
     if (!res.ok) throw new Error('Falha no motor AI');
-    const responseText = await res.text();
-    
-    let cleanJson = responseText;
-    if (cleanJson.includes('```json')) {
-      cleanJson = cleanJson.split('```json')[1].split('```')[0].trim();
-    }
-    
-    return JSON.parse(cleanJson);
+    return await res.text();
   } catch (error) {
     console.error("Pollinations error:", error);
     return null;
@@ -145,9 +133,9 @@ export async function POST(req: NextRequest) {
       .limit(10);
 
     // 3. Gerar análise semântica SOMENTE COM DADOS REAIS
-    const brainData = await generateAIBrainAnalysis(query, europeana, ibram, brasiliana, dbTags || []);
+    const brainText = await generateAIBrainAnalysis(query, europeana, ibram, brasiliana, dbTags || []);
 
-    let analise = brainData?.analiseEscrita || `Análise processada para "${query}". Foram encontrados ${europeana.length} itens na Europeana, ${ibram.length} no IBRAM e ${brasiliana.length} na Brasiliana.`;
+    let analise = brainText || `Análise processada para "${query}". Foram encontrados ${europeana.length} itens na Europeana, ${ibram.length} no IBRAM e ${brasiliana.length} na Brasiliana.`;
 
     return NextResponse.json({
       success: true,
