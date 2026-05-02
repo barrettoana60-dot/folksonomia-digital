@@ -211,7 +211,7 @@ def main():
         args=training_args,
         train_dataset=train_tokenized,
         eval_dataset=eval_tokenized,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=DataCollatorForTokenClassification(tokenizer),
         compute_metrics=compute_metrics
     )

@@ -34,3 +34,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+/venv
+__pycache__
+
+# pytorch model outputs
+/modernbert-museal-ner/
+/modernbert-museal-ner-final/
