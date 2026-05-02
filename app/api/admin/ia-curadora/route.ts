@@ -56,29 +56,48 @@ function extractKeywords(text: string): string[] {
 async function searchDatabase(keywords: string[]) {
   if (keywords.length === 0) return { tags: [], obras: [] };
 
-  // Buscar tags que contenham qualquer das keywords
-  const tagFilters = keywords.slice(0, 5).map(k => 
-    `tag_original.ilike.%${k}%,tag_normalizada.ilike.%${k}%,grupo_tematico.ilike.%${k}%`
-  ).join(',');
-  
-  const { data: tags } = await supabaseAdmin
-    .from('tags')
-    .select('id, tag_original, tag_normalizada, grupo_tematico, obra_id, created_at')
-    .or(tagFilters)
-    .limit(20);
+  let tags: any[] = [];
+  let obras: any[] = [];
 
-  // Buscar obras que contenham qualquer das keywords
-  const obraFilters = keywords.slice(0, 5).map(k => 
-    `titulo.ilike.%${k}%,artista.ilike.%${k}%,descricao.ilike.%${k}%`
-  ).join(',');
+  // Buscar tags — query simples por keyword
+  for (const k of keywords.slice(0, 3)) {
+    const { data, error } = await supabaseAdmin
+      .from('tags')
+      .select('id, tag_original, tag_normalizada, grupo_tematico, obra_id, created_at')
+      .ilike('tag_original', `%${k}%`)
+      .limit(10);
+    
+    if (error) {
+      console.error(`[IA Curadora] Erro ao buscar tag "${k}":`, error.message);
+    }
+    if (data && data.length > 0) {
+      tags.push(...data);
+    }
+  }
 
-  const { data: obras } = await supabaseAdmin
-    .from('obras')
-    .select('id, titulo, artista, ano, descricao')
-    .or(obraFilters)
-    .limit(20);
+  // Buscar obras
+  for (const k of keywords.slice(0, 3)) {
+    const { data, error } = await supabaseAdmin
+      .from('obras')
+      .select('id, titulo, artista, ano, descricao')
+      .ilike('titulo', `%${k}%`)
+      .limit(10);
+    
+    if (error) {
+      console.error(`[IA Curadora] Erro ao buscar obra "${k}":`, error.message);
+    }
+    if (data && data.length > 0) {
+      obras.push(...data);
+    }
+  }
 
-  return { tags: tags || [], obras: obras || [] };
+  // Remover duplicatas
+  const uniqueTags = tags.filter((t, i, self) => self.findIndex(x => x.id === t.id) === i);
+  const uniqueObras = obras.filter((o, i, self) => self.findIndex(x => x.id === o.id) === i);
+
+  console.log(`[IA Curadora] Keywords: [${keywords.join(',')}] -> Tags: ${uniqueTags.length}, Obras: ${uniqueObras.length}`);
+
+  return { tags: uniqueTags, obras: uniqueObras };
 }
 
 /** Contexto geral do sistema (números totais) */
