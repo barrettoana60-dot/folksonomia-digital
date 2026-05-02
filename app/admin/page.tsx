@@ -420,7 +420,15 @@ export default function AdminPage() {
                 </div>
 
                 {/* RESULTADOS DA ANÁLISE */}
-                {semanticResult && (
+                {semanticResult && semanticResult.tagNaoExiste && (
+                  <div className="glass-card p-12 text-center border-red-500/30 border">
+                    <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
+                    <h3 className="text-xl font-bold mb-2">Tag não encontrada no sistema</h3>
+                    <p className="text-white/50 text-sm max-w-lg mx-auto">A tag <span className="text-red-400 font-bold">"{semanticResult.tag}"</span> não foi criada por nenhum visitante sobre nenhuma obra. O Relatório Semântico só analisa tags que existem no banco de dados. Crie a tag primeiro através da interface pública de tagging.</p>
+                  </div>
+                )}
+
+                {semanticResult && !semanticResult.tagNaoExiste && (
                   <div className="space-y-6">
                     {/* Profundidade */}
                     <div className="flex items-center justify-between">
