@@ -105,7 +105,12 @@ export async function POST(req: NextRequest) {
       if (tagError.message.includes('foreign key') || tagError.message.includes('violates')) {
         delete tagPayload.obra_id;
         const { error: tagRetry } = await supabaseAdmin.from('tags').insert(tagPayload);
-        if (tagRetry) console.error('Tag retry also failed:', tagRetry);
+        if (tagRetry) {
+          console.error('Tag retry also failed:', tagRetry);
+          return NextResponse.json({ error: `Tag Retry DB Error: ${JSON.stringify(tagRetry)}` }, { status: 500 });
+        }
+      } else {
+        return NextResponse.json({ error: `Tag DB Error: ${JSON.stringify(tagError)}` }, { status: 500 });
       }
     }
 
