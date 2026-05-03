@@ -133,11 +133,13 @@ export default function AdminPage() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'relatorio_folksonomia.csv'; a.click();
+    a.href = url; 
+    a.download = 'relatorio_folksonomia.csv'; 
+    a.click();
   };
 
   return (
-    <main className="min-h-screen pt-24 pb-20 px-4 md:px-8 print:pt-0">
+    <div className="min-h-screen pt-24 pb-20 px-4 md:px-8 print:pt-0">
       <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-12">
         
         {/* LOGO INSTITUCIONAL */}
@@ -664,6 +666,6 @@ export default function AdminPage() {
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }
