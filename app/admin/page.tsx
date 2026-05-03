@@ -135,21 +135,56 @@ export default function AdminPage() {
     { label: 'Registros Validados', value: dashboardData?.visaoGeral.validados || 0, icon: ShieldCheck, color: '#00FF00' },
   ];
 
-  const graphData = useMemo(() => ({
-    nodes: [
-      { id: 'Cálice Colonial', group: 1, val: 20 }, 
-      { id: 'Liturgia', group: 2, val: 30 }, 
-      { id: 'Jesuítico', group: 2, val: 25 },
-      { id: 'Ouro', group: 3, val: 15 }, 
-      { id: 'Cruz Processional', group: 1, val: 18 }
-    ],
-    links: [
-      { source: 'Cálice Colonial', target: 'Liturgia' }, 
-      { source: 'Cálice Colonial', target: 'Jesuítico' },
-      { source: 'Cruz Processional', target: 'Liturgia' }, 
-      { source: 'Cálice Colonial', target: 'Ouro' }
-    ]
-  }), []);
+  // Estado do modal do grafo
+  const [graphNodeSelected, setGraphNodeSelected] = useState<any>(null);
+
+  const graphData = useMemo(() => {
+    const nodes: any[] = [];
+    const links: any[] = [];
+    const addedNodes = new Set<string>();
+
+    const recentTags = dashboardData?.relatorioSemantico?.recentTags || [];
+    
+    for (const tagObj of recentTags) {
+      const tagName = tagObj.tag;
+      if (!addedNodes.has(tagName)) {
+        nodes.push({ id: tagName, group: 1, val: 20 });
+        addedNodes.add(tagName);
+      }
+      // Conectar tag ao seu grupo (se não for "Outros")
+      if (tagObj.grupo && tagObj.grupo !== 'Outros') {
+        if (!addedNodes.has(tagObj.grupo)) {
+          nodes.push({ id: tagObj.grupo, group: 2, val: 30 });
+          addedNodes.add(tagObj.grupo);
+        }
+        links.push({ source: tagName, target: tagObj.grupo });
+      }
+    }
+
+    // Conectar tags do mesmo grupo entre si
+    const groupMap: Record<string, string[]> = {};
+    for (const tagObj of recentTags) {
+      const g = tagObj.grupo || 'Outros';
+      if (g !== 'Outros') {
+        if (!groupMap[g]) groupMap[g] = [];
+        groupMap[g].push(tagObj.tag);
+      }
+    }
+    for (const members of Object.values(groupMap)) {
+      for (let i = 0; i < members.length; i++) {
+        for (let j = i + 1; j < members.length; j++) {
+          links.push({ source: members[i], target: members[j] });
+        }
+      }
+    }
+
+    // Fallback se não houver dados
+    if (nodes.length === 0) {
+      nodes.push({ id: 'Aguardando dados...', group: 3, val: 10 });
+    }
+
+    return { nodes, links };
+  }, [dashboardData]);
 
   const handleExportCSV = () => {
     const data = [['ID', 'Obra', 'Tag', 'Visitante', 'Data'], ['1', 'Guernica', 'Caos', 'Visitante #A2', '2026-04-26']];
@@ -853,12 +888,90 @@ export default function AdminPage() {
                        ctx.fillText(label, node.x + 10, node.y + (fontSize/3));
                      }}
                      onNodeClick={(node: any) => {
-                       alert(`[Ação do Curador via Grafo] - Modal de validação abriria aqui para o nó: ${node.id}`);
+                       // Executar análise cerebral do nó clicado
+                       handleTagAnalysis(node.id);
+                       setGraphNodeSelected(node.id);
                      }}
                      width={1300}
                      height={600}
                    />
                  </div>
+
+                 {/* Modal de Análise Neural do Nó Clicado */}
+                 {graphNodeSelected && tagAnalysisResult && !isAnalyzingTag && (
+                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setGraphNodeSelected(null)}>
+                     <div className="glass-card p-8 w-full max-w-2xl relative animate-fade-in max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                       <button onClick={() => setGraphNodeSelected(null)} className="absolute top-6 right-6 text-white/50 hover:text-white">
+                         <X size={24} />
+                       </button>
+                       <h3 className="text-2xl serif-title uppercase mb-1">Análise Neural</h3>
+                       <p className="text-[#E85002] font-bold font-serif italic text-lg mb-6">&quot;{graphNodeSelected}&quot;</p>
+                       
+                       {/* Família */}
+                       {tagAnalysisResult.family && (
+                         <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg mb-4">
+                           <p className="text-[10px] uppercase font-black tracking-widest text-purple-400 mb-2">Família: {tagAnalysisResult.family.name}</p>
+                           <div className="flex flex-wrap gap-2">
+                             {tagAnalysisResult.family.members.slice(0, 10).map((m: string, i: number) => (
+                               <span key={i} className="px-2 py-1 bg-purple-500/10 text-purple-300 rounded text-[10px] font-bold">{m}</span>
+                             ))}
+                           </div>
+                         </div>
+                       )}
+
+                       {/* Conexões */}
+                       {(tagAnalysisResult.siblings?.length > 0 || tagAnalysisResult.duplicates?.length > 0) && (
+                         <div className="p-4 bg-white/5 border border-white/10 rounded-lg mb-4 space-y-2">
+                           <p className="text-[10px] uppercase font-black tracking-widest text-white/50 mb-2">Conexões ({tagAnalysisResult.totalRelated})</p>
+                           {[...(tagAnalysisResult.duplicates || []), ...(tagAnalysisResult.siblings || [])].slice(0, 6).map((s: any, i: number) => (
+                             <div key={i} className="flex items-center justify-between text-sm">
+                               <span className="text-white/80 font-serif italic">&quot;{s.tag}&quot;</span>
+                               <span className="text-[9px] text-white/40 italic">{s.reason}</span>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+
+                       {/* DNA */}
+                       {tagAnalysisResult.dna && Object.values(tagAnalysisResult.dna).some((v: any) => v > 0) && (
+                         <div className="p-4 bg-white/5 border border-white/10 rounded-lg mb-4 space-y-2">
+                           <p className="text-[10px] uppercase font-black tracking-widest text-white/50 mb-2">DNA Semântico</p>
+                           {Object.entries(tagAnalysisResult.dna).filter(([,v]) => (v as number) > 0).sort(([,a],[,b]) => (b as number) - (a as number)).map(([k,v]) => {
+                             const labels: Record<string,string> = { period:'Período', technique:'Técnica', geography:'Geografia', material:'Material', theme:'Temática', movement:'Movimento', provenance:'Proveniência' };
+                             return (
+                               <div key={k} className="flex items-center gap-2">
+                                 <span className="text-[9px] text-white/40 w-20 text-right uppercase font-bold">{labels[k]||k}</span>
+                                 <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                   <div className="h-full bg-[#E85002]" style={{ width: `${(v as number)*100}%` }} />
+                                 </div>
+                                 <span className="text-[8px] text-white/30 font-bold">{Math.round((v as number)*100)}%</span>
+                               </div>
+                             );
+                           })}
+                         </div>
+                       )}
+
+                       {/* Ações */}
+                       <div className="flex gap-3 mt-4">
+                         <button onClick={() => { setSearchTag(graphNodeSelected); setActiveTab('relatorios'); setGraphNodeSelected(null); setTimeout(() => handleSemanticSearch(), 300); }} className="flex-1 liquid-button !bg-[#E85002] text-[10px]">
+                           Relatório Semântico Completo
+                         </button>
+                         <button onClick={() => { setActiveTab('tags'); setGraphNodeSelected(null); }} className="flex-1 liquid-button !bg-white/10 text-[10px]">
+                           Ver na Análise de Tags
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 )}
+
+                 {graphNodeSelected && isAnalyzingTag && (
+                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                     <div className="glass-card p-12 text-center">
+                       <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                       <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Cérebro analisando &quot;{graphNodeSelected}&quot;...</p>
+                     </div>
+                   </div>
+                 )}
               </div>
             )}
 
