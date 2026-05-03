@@ -424,77 +424,156 @@ export default function AdminPage() {
                   <div className="glass-card p-12 text-center border-red-500/30 border">
                     <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
                     <h3 className="text-xl font-bold mb-2">Tag não encontrada no sistema</h3>
-                    <p className="text-white/50 text-sm max-w-lg mx-auto">A tag <span className="text-red-400 font-bold">"{semanticResult.tag}"</span> não foi criada por nenhum visitante sobre nenhuma obra. O Relatório Semântico só analisa tags que existem no banco de dados. Crie a tag primeiro através da interface pública de tagging.</p>
+                    <p className="text-white/50 text-sm max-w-lg mx-auto">A tag <span className="text-red-400 font-bold">&quot;{semanticResult.tag}&quot;</span> não foi criada por nenhum visitante. Crie a tag primeiro pela interface pública.</p>
                   </div>
                 )}
 
                 {semanticResult && !semanticResult.tagNaoExiste && (
                   <div className="space-y-6">
-                    {/* Profundidade */}
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold">Resultados para <span className="text-[#E85002] italic font-serif">"{semanticResult.tag}"</span></h3>
-                      <span className={`px-4 py-1 rounded-full text-[10px] uppercase font-black tracking-widest border ${
-                        semanticResult.profundidade === 'ALTA' ? 'text-green-500 border-green-500/30 bg-green-500/10' :
-                        semanticResult.profundidade === 'MÉDIA' ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10' :
-                        'text-red-500 border-red-500/30 bg-red-500/10'
-                      }`}>Profundidade: {semanticResult.profundidade}</span>
+                    {/* Header + Profundidade + Camadas */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                      <h3 className="text-lg font-bold">Resultados para <span className="text-[#E85002] italic font-serif">&quot;{semanticResult.tag}&quot;</span></h3>
+                      <div className="flex items-center gap-3">
+                        {semanticResult.layers && (
+                          <div className="flex gap-2">
+                            <span className="px-2 py-1 rounded text-[8px] uppercase font-black tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20">Factual: {semanticResult.layers.factual}</span>
+                            <span className="px-2 py-1 rounded text-[8px] uppercase font-black tracking-widest bg-[#E85002]/10 text-[#E85002] border border-[#E85002]/20">Inferida: {semanticResult.layers.inferred}</span>
+                            <span className="px-2 py-1 rounded text-[8px] uppercase font-black tracking-widest bg-green-500/10 text-green-400 border border-green-500/20">Validada: {semanticResult.layers.validated}</span>
+                          </div>
+                        )}
+                        <span className={`px-4 py-1 rounded-full text-[10px] uppercase font-black tracking-widest border ${
+                          semanticResult.profundidade === 'ALTA' ? 'text-green-500 border-green-500/30 bg-green-500/10' :
+                          semanticResult.profundidade === 'MÉDIA' ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10' :
+                          'text-red-500 border-red-500/30 bg-red-500/10'
+                        }`}>Profundidade: {semanticResult.profundidade}</span>
+                      </div>
                     </div>
 
-                    {/* Cards das fontes */}
+                    {/* CORRELAÇÃO INTER-TAGS: duplicatas, erros, famílias */}
+                    {semanticResult.tagAnalysis && (semanticResult.tagAnalysis.duplicates?.length > 0 || semanticResult.tagAnalysis.siblings?.length > 0 || semanticResult.tagAnalysis.family) && (
+                      <div className="glass-card p-6 border border-purple-500/20 space-y-4">
+                        <h4 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                          <Network size={16} className="text-purple-400" /> Análise Inter-Tags (ML)
+                        </h4>
+
+                        {/* Duplicatas / Erros ortográficos */}
+                        {semanticResult.tagAnalysis.duplicates?.length > 0 && (
+                          <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-lg">
+                            <p className="text-[10px] uppercase font-black tracking-widest text-red-400 mb-2">Tags Duplicatas / Variantes Detectadas</p>
+                            <div className="space-y-2">
+                              {semanticResult.tagAnalysis.duplicates.map((d: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between text-sm">
+                                  <span className="text-white/80">&quot;{d.tag}&quot;</span>
+                                  <span className="text-[9px] text-white/40 italic max-w-[60%] text-right">{d.reason}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Família temática */}
+                        {semanticResult.tagAnalysis.family && (
+                          <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg">
+                            <p className="text-[10px] uppercase font-black tracking-widest text-purple-400 mb-2">Família: {semanticResult.tagAnalysis.family.name}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {semanticResult.tagAnalysis.family.members.slice(0, 10).map((m: string, i: number) => (
+                                <span key={i} className="px-2 py-1 bg-purple-500/10 text-purple-300 rounded text-[10px] font-bold">{m}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Siblings semânticos */}
+                        {semanticResult.tagAnalysis.siblings?.length > 0 && (
+                          <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                            <p className="text-[10px] uppercase font-black tracking-widest text-blue-400 mb-2">Tags Semanticamente Próximas</p>
+                            <div className="space-y-2">
+                              {semanticResult.tagAnalysis.siblings.slice(0, 5).map((s: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between text-sm">
+                                  <span className="text-white/80">&quot;{s.tag}&quot; <span className="text-[9px] text-white/30">({Math.round(s.score * 100)}%)</span></span>
+                                  <span className="text-[9px] text-white/40 italic max-w-[50%] text-right">{s.reason}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Sugestões */}
+                        {semanticResult.tagAnalysis.suggestions?.length > 0 && (
+                          <div className="space-y-1">
+                            {semanticResult.tagAnalysis.suggestions.map((s: string, i: number) => (
+                              <p key={i} className="text-[10px] text-white/50 italic">→ {s}</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Cards das fontes COM correlações explicadas */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Europeana */}
-                      <div className="glass-card p-6 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-sm font-bold uppercase tracking-widest">Europeana</h4>
-                          <span className="text-[#E85002] font-bold text-lg">{semanticResult.correlacoes.europeana.total}</span>
-                        </div>
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {semanticResult.correlacoes.europeana.items.map((item: any, i: number) => (
-                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5">
-                              <p className="text-sm font-bold leading-tight">{item.titulo}</p>
-                              {item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002] mt-1">{item.criador}</p>}
-                              {item.data && <p className="text-[10px] text-white/40">{item.data} • {item.pais}</p>}
-                              {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[9px] text-[#E85002] underline mt-1 block">Ver na Europeana →</a>}
+                      {['europeana', 'brasiliana', 'ibram'].map(fonte => {
+                        const data = semanticResult.correlacoes[fonte];
+                        const label = fonte === 'europeana' ? 'Europeana' : fonte === 'brasiliana' ? 'Brasiliana' : 'IBRAM';
+                        return (
+                          <div key={fonte} className="glass-card p-6 space-y-4">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-bold uppercase tracking-widest">{label}</h4>
+                              <span className="text-[#E85002] font-bold text-lg">{data.total}</span>
                             </div>
-                          ))}
-                          {semanticResult.correlacoes.europeana.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
-                        </div>
-                      </div>
-
-                      {/* Brasiliana */}
-                      <div className="glass-card p-6 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-sm font-bold uppercase tracking-widest">Brasiliana</h4>
-                          <span className="text-[#E85002] font-bold text-lg">{semanticResult.correlacoes.brasiliana.total}</span>
-                        </div>
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {semanticResult.correlacoes.brasiliana.items.map((item: any, i: number) => (
-                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5">
-                              <p className="text-sm font-bold leading-tight">{item.titulo}</p>
-                              {item.criador && <p className="text-[10px] text-[#E85002] mt-1">{item.criador}</p>}
+                            <div className="space-y-3 max-h-80 overflow-y-auto">
+                              {data.items.map((item: any, i: number) => {
+                                const corr = data.correlations?.[i];
+                                return (
+                                  <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
+                                    <p className="text-sm font-bold leading-tight">{item.titulo}</p>
+                                    {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002]">{item.criador}</p>}
+                                    {item.data && <p className="text-[10px] text-white/40">{item.data}{item.pais ? ` • ${item.pais}` : ''}</p>}
+                                    {/* Razões da correlação */}
+                                    {corr?.reasons?.length > 0 && (
+                                      <div className="pt-2 border-t border-white/5 space-y-1">
+                                        {corr.reasons.slice(0, 3).map((r: any, ri: number) => (
+                                          <p key={ri} className="text-[9px] text-green-400/80">✓ {r.description}</p>
+                                        ))}
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                            <div className="h-full bg-[#E85002]" style={{ width: `${(corr.score || 0) * 100}%` }} />
+                                          </div>
+                                          <span className="text-[8px] text-white/40 font-bold">{Math.round((corr.score || 0) * 100)}%</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[9px] text-[#E85002] underline block">Ver na fonte →</a>}
+                                  </div>
+                                );
+                              })}
+                              {data.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
                             </div>
-                          ))}
-                          {semanticResult.correlacoes.brasiliana.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
-                        </div>
-                      </div>
-
-                      {/* IBRAM */}
-                      <div className="glass-card p-6 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-sm font-bold uppercase tracking-widest">IBRAM</h4>
-                          <span className="text-[#E85002] font-bold text-lg">{semanticResult.correlacoes.ibram.total}</span>
-                        </div>
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {semanticResult.correlacoes.ibram.items.map((item: any, i: number) => (
-                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5">
-                              <p className="text-sm font-bold leading-tight">{item.titulo}</p>
-                              {item.criador && <p className="text-[10px] text-[#E85002] mt-1">{item.criador}</p>}
-                            </div>
-                          ))}
-                          {semanticResult.correlacoes.ibram.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
-                        </div>
-                      </div>
+                          </div>
+                        );
+                      })}
                     </div>
+
+                    {/* CONEXÕES CRUZADAS ENTRE FONTES */}
+                    {semanticResult.crossConnections?.length > 0 && (
+                      <div className="glass-card p-6 border border-[#E85002]/20">
+                        <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                          <Share2 size={16} className="text-[#E85002]" /> Conexões Cruzadas Entre Fontes ({semanticResult.crossConnections.length})
+                        </h4>
+                        <div className="space-y-3">
+                          {semanticResult.crossConnections.slice(0, 5).map((conn: any, i: number) => (
+                            <div key={i} className="p-4 bg-white/5 rounded-lg border border-white/5">
+                              <div className="flex items-center gap-3 mb-2">
+                                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[9px] font-bold uppercase rounded">{conn.sourceA}</span>
+                                <span className="text-white/20">↔</span>
+                                <span className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[9px] font-bold uppercase rounded">{conn.sourceB}</span>
+                                <span className="text-[9px] text-white/30 ml-auto">{Math.round(conn.confidence * 100)}% confiança</span>
+                              </div>
+                              <p className="text-[11px] text-white/70 leading-relaxed">{conn.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Tags internas */}
                     {semanticResult.correlacoes.internas.total > 0 && (
@@ -506,6 +585,25 @@ export default function AdminPage() {
                               {t.tag_original} → {t.grupo_tematico || 'Outros'}
                             </span>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Conhecimento acumulado */}
+                    {semanticResult.knowledge && (semanticResult.knowledge.previousCorrelations > 0 || semanticResult.knowledge.learningEvents > 0) && (
+                      <div className="glass-card p-6 border border-green-500/10">
+                        <h4 className="text-sm font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <TrendingUp size={16} className="text-green-400" /> Conhecimento Acumulado
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                            <p className="text-2xl font-bold text-green-400">{semanticResult.knowledge.previousCorrelations}</p>
+                            <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">Correlações Prévias</p>
+                          </div>
+                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                            <p className="text-2xl font-bold text-green-400">{semanticResult.knowledge.learningEvents}</p>
+                            <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">Eventos de Aprendizado</p>
+                          </div>
                         </div>
                       </div>
                     )}
