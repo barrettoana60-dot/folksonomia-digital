@@ -56,7 +56,7 @@ export async function GET() {
       gruposCount[grupoName] = (gruposCount[grupoName] || 0) + 1;
       
       // 4. Adicionar aos recentes (apenas uma versão de cada tag normalizada)
-      if (!recentTagsMap.has(norm) && recentTagsMap.size < 12) {
+      if (!recentTagsMap.has(norm) && recentTagsMap.size < 50) {
         recentTagsMap.set(norm, {
           id: g.id,
           tag: g.tag_original.toLowerCase(), // Normaliza a visualização
