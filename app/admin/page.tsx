@@ -400,12 +400,89 @@ export default function AdminPage() {
                          {/* Sugestões do ML */}
                          {tagAnalysisResult.suggestions?.length > 0 && (
                            <div className="glass-card p-6 space-y-2">
-                             <h3 className="text-sm font-bold uppercase tracking-widest mb-3">Sugestões do Motor ML</h3>
+                             <h3 className="text-sm font-bold uppercase tracking-widest mb-3">Sugestões do Cérebro</h3>
                              {tagAnalysisResult.suggestions.map((s: string, i: number) => (
                                <p key={i} className="text-[11px] text-white/60 leading-relaxed flex items-start gap-2">
                                  <span className="text-[#E85002] mt-0.5">→</span> {s}
                                </p>
                              ))}
+                           </div>
+                         )}
+
+                         {/* Conexões Propagadas (A→B + B→C = A↔C) */}
+                         {tagAnalysisResult.propagated?.length > 0 && (
+                           <div className="glass-card p-6 border border-green-500/20 space-y-3">
+                             <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                               <TrendingUp size={16} className="text-green-400" /> Conexões Propagadas ({tagAnalysisResult.propagated.length})
+                             </h3>
+                             <p className="text-[9px] text-white/30 uppercase tracking-widest">Inferidas automaticamente: se A→B e B→C, então A↔C</p>
+                             {tagAnalysisResult.propagated.map((p: any, i: number) => (
+                               <div key={i} className="p-3 bg-green-500/5 rounded-lg">
+                                 <div className="flex items-center justify-between">
+                                   <span className="text-white/80 font-serif italic">&quot;{p.tag}&quot;</span>
+                                   <span className="text-[9px] text-green-400/80 font-bold">{Math.round(p.score * 100)}% confiança</span>
+                                 </div>
+                                 <p className="text-[9px] text-white/40 italic mt-1">{p.reason}</p>
+                               </div>
+                             ))}
+                           </div>
+                         )}
+
+                         {/* DNA Semântico */}
+                         {tagAnalysisResult.dna && (
+                           <div className="glass-card p-6 space-y-4">
+                             <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                               <Database size={16} className="text-[#E85002]" /> DNA Semântico
+                             </h3>
+                             <div className="space-y-2">
+                               {Object.entries(tagAnalysisResult.dna)
+                                 .filter(([, val]) => (val as number) > 0)
+                                 .sort(([, a], [, b]) => (b as number) - (a as number))
+                                 .map(([key, val]) => {
+                                   const labels: Record<string, string> = { period: 'Período', technique: 'Técnica', geography: 'Geografia', material: 'Material', theme: 'Temática', provenance: 'Proveniência', movement: 'Movimento' };
+                                   return (
+                                     <div key={key} className="flex items-center gap-3">
+                                       <span className="text-[9px] uppercase tracking-widest text-white/40 w-24 text-right font-bold">{labels[key] || key}</span>
+                                       <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                         <div className="h-full bg-gradient-to-r from-[#E85002] to-[#F16001] transition-all duration-700" style={{ width: `${(val as number) * 100}%` }} />
+                                       </div>
+                                       <span className="text-[9px] text-white/30 font-bold w-10">{Math.round((val as number) * 100)}%</span>
+                                     </div>
+                                   );
+                                 })}
+                             </div>
+                           </div>
+                         )}
+
+                         {/* Rastro Neural (Tráfego de Informação) */}
+                         {tagAnalysisResult.traces?.length > 0 && (
+                           <div className="glass-card p-6 space-y-3">
+                             <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                               <Clock size={16} className="text-white/50" /> Rastro Neural ({tagAnalysisResult.totalTraces || tagAnalysisResult.traces.length} eventos)
+                             </h3>
+                             <p className="text-[9px] text-white/30 uppercase tracking-widest">De onde veio → Para onde vai</p>
+                             <div className="space-y-2 max-h-48 overflow-y-auto">
+                               {tagAnalysisResult.traces.slice(0, 10).map((t: any, i: number) => {
+                                 const actionColors: Record<string, string> = {
+                                   'INGESTAO': 'text-blue-400 bg-blue-500/10',
+                                   'CORRELACAO': 'text-purple-400 bg-purple-500/10',
+                                   'PROPAGACAO': 'text-green-400 bg-green-500/10',
+                                   'APRENDIZADO': 'text-yellow-400 bg-yellow-500/10',
+                                   'VALIDACAO': 'text-emerald-400 bg-emerald-500/10',
+                                   'CONEXAO': 'text-[#E85002] bg-[#E85002]/10'
+                                 };
+                                 const colorClass = actionColors[t.action] || 'text-white/50 bg-white/5';
+                                 return (
+                                   <div key={t.id || i} className="flex items-center gap-2 text-[10px]">
+                                     <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-black tracking-widest ${colorClass}`}>{t.action}</span>
+                                     <span className="text-white/30">{t.origin}</span>
+                                     <span className="text-white/15">→</span>
+                                     <span className="text-white/50">{t.destination}</span>
+                                     <span className="text-white/15 ml-auto">{Math.round(t.confidence * 100)}%</span>
+                                   </div>
+                                 );
+                               })}
+                             </div>
                            </div>
                          )}
 
