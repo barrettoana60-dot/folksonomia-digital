@@ -256,30 +256,26 @@ export default function AdminPage() {
                        <TagIcon className="text-[#E85002]" size={18} /> Correlações Recentes
                      </h3>
                      <div className="space-y-4">
-                       {/* Simulação de correlação requerida pelo usuário */}
-                       <div className="p-4 bg-white/5 rounded-lg border border-white/10 flex justify-between items-center">
-                         <div>
-                           <div className="flex items-center gap-2">
-                             <span className="text-[#E85002] font-serif italic text-lg">"meu deus"</span>
-                             <span className="text-white/40 text-xs font-mono">≈</span>
-                             <span className="text-[#E85002] font-serif italic text-lg">"deus lindo"</span>
-                           </div>
-                           <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">Agrupado como: Admiração Religiosa</p>
-                         </div>
-                         <button onClick={() => setSelectedGroup('Admiração Religiosa')} className="px-3 py-1 bg-white/10 hover:bg-[#E85002] transition-colors rounded text-[9px] uppercase font-bold">Ver Grupo</button>
-                       </div>
-                       
-                       <div className="p-4 bg-white/5 rounded-lg border border-white/10 flex justify-between items-center">
-                         <div>
-                           <div className="flex items-center gap-2">
-                             <span className="text-[#E85002] font-serif italic text-lg">"sofrimento"</span>
-                             <span className="text-white/40 text-xs font-mono">≈</span>
-                             <span className="text-[#E85002] font-serif italic text-lg">"grito de dor mudo"</span>
-                           </div>
-                           <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">Agrupado como: Angústia</p>
-                         </div>
-                         <button onClick={() => setSelectedGroup('Angústia')} className="px-3 py-1 bg-white/10 hover:bg-[#E85002] transition-colors rounded text-[9px] uppercase font-bold">Ver Grupo</button>
-                       </div>
+                        {/* Dinâmico: tags recentes da API */}
+                        {dashboardData?.relatorioSemantico?.recentTags?.length > 0 ? (
+                          dashboardData.relatorioSemantico.recentTags.map((tagObj: any, i: number) => (
+                            <div key={tagObj.id || i} className="p-4 bg-white/5 rounded-lg border border-white/10 flex justify-between items-center">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[#E85002] font-serif italic text-lg">"{tagObj.tag}"</span>
+                                </div>
+                                <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">
+                                  Agrupado como: {tagObj.grupo}
+                                </p>
+                              </div>
+                              <button onClick={() => setSelectedGroup(tagObj.grupo)} className="px-3 py-1 bg-white/10 hover:bg-[#E85002] transition-colors rounded text-[9px] uppercase font-bold">Ver Grupo</button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-white/40 text-[10px] uppercase tracking-widest border border-white/5 rounded-lg">
+                            Nenhuma tag criada ainda
+                          </div>
+                        )}
                      </div>
                    </div>
 
@@ -293,15 +289,16 @@ export default function AdminPage() {
                          <h3 className="text-2xl serif-title uppercase mb-2">Grupo Temático</h3>
                          <p className="text-[#E85002] font-bold uppercase tracking-widest text-xs mb-6">{selectedGroup}</p>
                          <div className="space-y-4">
-                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
-                             <p className="text-xs uppercase font-bold text-white/50 mb-2">Tags neste grupo</p>
-                             <div className="flex flex-wrap gap-2">
-                               <span className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"meu deus"</span>
-                               <span className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"deus lindo"</span>
-                               <span className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"divindade"</span>
-                             </div>
-                           </div>
-                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
+                            <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
+                              <p className="text-xs uppercase font-bold text-white/50 mb-2">Tags neste grupo</p>
+                              <div className="flex flex-wrap gap-2">
+                                {dashboardData?.relatorioSemantico?.recentTags
+                                  ?.filter((t: any) => t.grupo === selectedGroup)
+                                  .map((t: any, i: number) => (
+                                    <span key={i} className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"{t.tag}"</span>
+                                  ))}
+                              </div>
+                            </div>
                              <p className="text-xs uppercase font-bold text-white/50 mb-2">Rede GAT (Acurácia)</p>
                              <div className="flex items-center gap-2">
                                <div className="h-2 flex-1 bg-white/10 rounded-full overflow-hidden">

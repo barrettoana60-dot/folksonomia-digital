@@ -38,11 +38,21 @@ export async function GET() {
     });
 
     // 3. Análise de Tags (Conceitos Principais / Grupos Temáticos)
-    const { data: gruposData } = await supabaseAdmin.from('tags').select('grupo_tematico').not('grupo_tematico', 'is', null);
+    const { data: gruposData } = await supabaseAdmin.from('tags').select('id, tag_original, grupo_tematico, criado_em').order('criado_em', { ascending: false }).limit(50);
     const gruposCount: Record<string, number> = {};
+    const recentTags: any[] = [];
+    
     gruposData?.forEach(g => {
       const grupo = g.grupo_tematico || 'Outros';
       gruposCount[grupo] = (gruposCount[grupo] || 0) + 1;
+      
+      if (recentTags.length < 10) {
+        recentTags.push({
+          id: g.id,
+          tag: g.tag_original,
+          grupo: grupo
+        });
+      }
     });
 
     const topConceitos = Object.entries(gruposCount)
@@ -63,7 +73,8 @@ export async function GET() {
         },
         relatorioSemantico: {
           fluxoTemporal: tagsPorDia,
-          topConceitos
+          topConceitos,
+          recentTags
         }
       }
     });
