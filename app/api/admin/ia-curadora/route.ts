@@ -4,7 +4,7 @@ import { dispatchEvent, getEventStats } from '@/lib/ml/event-bus';
 
 // Importação estática do JSON para garantir que o Vercel inclua no bundle
 // e evitar erros de build com o módulo 'fs'
-import kbData from '@/lib/ml/knowledge-base.json';
+import kbData from '../../../../lib/ml/knowledge-base.json';
 
 export const dynamic = 'force-dynamic';
 
