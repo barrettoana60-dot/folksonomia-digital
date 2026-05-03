@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { dispatchEvent, getEventStats } from '@/lib/ml/event-bus';
-import fs from 'fs';
-import path from 'path';
+
+// Importação estática do JSON para garantir que o Vercel inclua no bundle
+// e evitar erros de build com o módulo 'fs'
+import kbData from '../../../../knowledge-base.json';
 
 export const dynamic = 'force-dynamic';
 
-// Carregar knowledge base gerada pelo ModernBERT
 function loadKnowledgeBase(): any[] {
-  try {
-    const kbPath = path.join(process.cwd(), 'knowledge-base.json');
-    if (fs.existsSync(kbPath)) {
-      const data = JSON.parse(fs.readFileSync(kbPath, 'utf-8'));
-      return Array.isArray(data) ? data : [];
-    }
-  } catch {}
-  return [];
+  return Array.isArray(kbData) ? kbData : [];
 }
 
 // Buscar conhecimento relevante na KB baseado nas keywords
