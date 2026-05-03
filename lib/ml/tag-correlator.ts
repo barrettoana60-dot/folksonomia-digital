@@ -417,14 +417,23 @@ export function detectTagFamily(tag: string): TagFamily | null {
     }
 
     // Match parcial: a tag contém ou é contida por um membro
-    for (const member of normalizedMembers) {
-      if (normalized.includes(member) || member.includes(normalized)) {
-        return {
-          name: family.name,
-          type: family.type,
-          members: family.members,
-          confidence: 0.7
-        };
+    // Proteção: apenas considerar match parcial se a palavra tiver pelo menos 4 caracteres
+    // Isso evita que tags como "m" ou "x" deem match em "cubismo" só por conter a letra
+    if (normalized.length > 3) {
+      for (const member of normalizedMembers) {
+        if (member.length > 3 && (normalized.includes(member) || member.includes(normalized))) {
+          // Garantia extra: o match deve ser significativo (evita que "arte" dê match em "martelo")
+          const minLen = Math.min(normalized.length, member.length);
+          const maxLen = Math.max(normalized.length, member.length);
+          if (minLen / maxLen > 0.4) {
+            return {
+              name: family.name,
+              type: family.type,
+              members: family.members,
+              confidence: 0.7
+            };
+          }
+        }
       }
     }
   }
