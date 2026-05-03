@@ -44,6 +44,30 @@ export default function AdminPage() {
   const [semanticResult, setSemanticResult] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  // Análise de Tags State (ML)
+  const [tagAnalysisResult, setTagAnalysisResult] = useState<any>(null);
+  const [selectedTagForAnalysis, setSelectedTagForAnalysis] = useState<string | null>(null);
+  const [isAnalyzingTag, setIsAnalyzingTag] = useState(false);
+
+  const handleTagAnalysis = async (tagText: string) => {
+    setSelectedTagForAnalysis(tagText);
+    setIsAnalyzingTag(true);
+    setTagAnalysisResult(null);
+    try {
+      const res = await fetch('/api/admin/tag-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag: tagText })
+      });
+      const json = await res.json();
+      if (json.success) setTagAnalysisResult(json.data);
+    } catch (err) {
+      console.error('Erro na análise de tag:', err);
+    } finally {
+      setIsAnalyzingTag(false);
+    }
+  };
+
   const handleSemanticSearch = async () => {
     if (!searchTag.trim()) return;
     setIsAnalyzing(true);
@@ -249,28 +273,34 @@ export default function AdminPage() {
             {activeTab === 'tags' && (
               <div className="space-y-8 animate-fade-in">
                  <div className="flex justify-between items-center">
-                   <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Análise de Tags</h2>
+                   <div>
+                     <h2 className="text-3xl font-normal serif-title uppercase tracking-widest">Análise de Tags</h2>
+                     <p className="text-[9px] uppercase tracking-widest font-bold text-white/30 mt-1">Motor ML: deduplicação, famílias temáticas, erros ortográficos, correlações inter-tags</p>
+                   </div>
+                   <button onClick={() => { setTagAnalysisResult(null); setSelectedTagForAnalysis(null); }} className="liquid-button !bg-white/5 text-[10px]">Limpar Análise</button>
                  </div>
                  
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                   {/* Lista de tags recentes */}
                    <div className="glass-card p-8">
                      <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-3 mb-6">
-                       <TagIcon className="text-[#E85002]" size={18} /> Correlações Recentes
+                       <TagIcon className="text-[#E85002]" size={18} /> Tags no Sistema
                      </h3>
-                     <div className="space-y-4">
-                        {/* Dinâmico: tags recentes da API */}
+                     <div className="space-y-3 max-h-[500px] overflow-y-auto">
                         {dashboardData?.relatorioSemantico?.recentTags?.length > 0 ? (
                           dashboardData.relatorioSemantico.recentTags.map((tagObj: any, i: number) => (
-                            <div key={tagObj.id || i} className="p-4 bg-white/5 rounded-lg border border-white/10 flex justify-between items-center">
+                            <div key={tagObj.id || i} className={`p-4 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
+                              selectedTagForAnalysis === tagObj.tag 
+                                ? 'bg-[#E85002]/10 border-[#E85002]/40' 
+                                : 'bg-white/5 border-white/10 hover:border-white/20'
+                            }`} onClick={() => handleTagAnalysis(tagObj.tag)}>
                               <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[#E85002] font-serif italic text-lg">"{tagObj.tag}"</span>
-                                </div>
+                                <span className="text-[#E85002] font-serif italic text-lg">&quot;{tagObj.tag}&quot;</span>
                                 <p className="text-[10px] uppercase tracking-widest font-bold text-white/40 mt-1">
-                                  Agrupado como: {tagObj.grupo}
+                                  {tagObj.grupo !== 'Outros' ? tagObj.grupo : 'Clique para analisar'}
                                 </p>
                               </div>
-                              <button onClick={() => setSelectedGroup(tagObj.grupo)} className="px-3 py-1 bg-white/10 hover:bg-[#E85002] transition-colors rounded text-[9px] uppercase font-bold">Ver Grupo</button>
+                              <ChevronRight size={16} className="text-white/30" />
                             </div>
                           ))
                         ) : (
@@ -281,55 +311,139 @@ export default function AdminPage() {
                      </div>
                    </div>
 
-                   {/* Modal Ver Grupo */}
-                   {selectedGroup && (
-                     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-                       <div className="glass-card p-8 w-full max-w-xl relative animate-fade-in">
-                         <button onClick={() => setSelectedGroup(null)} className="absolute top-6 right-6 text-white/50 hover:text-white">
-                           <X size={24} />
-                         </button>
-                         <h3 className="text-2xl serif-title uppercase mb-2">Grupo Temático</h3>
-                         <p className="text-[#E85002] font-bold uppercase tracking-widest text-xs mb-6">{selectedGroup}</p>
-                         <div className="space-y-4">
-                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
-                             <p className="text-xs uppercase font-bold text-white/50 mb-2">Tags neste grupo</p>
-                             <div className="flex flex-wrap gap-2">
-                               {dashboardData?.relatorioSemantico?.recentTags
-                                 ?.filter((t: any) => t.grupo === selectedGroup)
-                                 .map((t: any, i: number) => (
-                                   <span key={i} className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"{t.tag}"</span>
-                                 ))}
-                             </div>
-                           </div>
-                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
-                             <p className="text-xs uppercase font-bold text-white/50 mb-2">Rede GAT (Acurácia)</p>
-                             <div className="flex items-center gap-2">
-                               <div className="h-2 flex-1 bg-white/10 rounded-full overflow-hidden">
-                                 <div className="h-full bg-[#E85002] w-[94%]"></div>
-                               </div>
-                               <span className="text-xs font-bold">94%</span>
-                             </div>
-                           </div>
-                         </div>
+                   {/* Resultado da análise ML da tag selecionada */}
+                   <div className="space-y-4">
+                     {isAnalyzingTag && (
+                       <div className="glass-card p-12 text-center">
+                         <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                         <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Analisando tag com motor ML...</p>
                        </div>
-                     </div>
-                   )}
-                   
-                   <div className="glass-card p-8">
-                     <h3 className="text-sm font-bold uppercase tracking-widest mb-6">Volume por Grupo Temático</h3>
-                     <div className="space-y-4">
-                       {dashboardData?.relatorioSemantico?.topConceitos?.map((c: any, i: number) => (
+                     )}
+
+                     {tagAnalysisResult && !isAnalyzingTag && (
+                       <>
+                         {/* Identidade da Tag */}
+                         <div className="glass-card p-6 space-y-4">
+                           <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                             <Network size={16} className="text-[#E85002]" /> Identidade Semântica
+                           </h3>
+                           <div className="flex items-center gap-3">
+                             <span className="text-2xl font-serif italic text-[#E85002]">&quot;{tagAnalysisResult.tag}&quot;</span>
+                             {tagAnalysisResult.family && (
+                               <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-[9px] uppercase font-black tracking-widest text-purple-400">
+                                 {tagAnalysisResult.family.name}
+                               </span>
+                             )}
+                             {!tagAnalysisResult.family && (
+                               <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] uppercase font-black tracking-widest text-white/40">
+                                 Sem família detectada
+                               </span>
+                             )}
+                           </div>
+                           {tagAnalysisResult.family && (
+                             <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg">
+                               <p className="text-[10px] uppercase font-black tracking-widest text-purple-400 mb-3">Membros desta família</p>
+                               <div className="flex flex-wrap gap-2">
+                                 {tagAnalysisResult.family.members.slice(0, 12).map((m: string, i: number) => (
+                                   <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold ${
+                                     m.toLowerCase() === tagAnalysisResult.tag.toLowerCase() 
+                                       ? 'bg-[#E85002]/20 text-[#E85002] border border-[#E85002]/30' 
+                                       : 'bg-purple-500/10 text-purple-300'
+                                   }`}>{m}</span>
+                                 ))}
+                               </div>
+                             </div>
+                           )}
+                         </div>
+
+                         {/* Duplicatas e erros */}
+                         {tagAnalysisResult.duplicates?.length > 0 && (
+                           <div className="glass-card p-6 border border-red-500/20 space-y-3">
+                             <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                               <AlertCircle size={16} className="text-red-400" /> Duplicatas / Erros Detectados ({tagAnalysisResult.duplicates.length})
+                             </h3>
+                             {tagAnalysisResult.duplicates.map((d: any, i: number) => (
+                               <div key={i} className="p-3 bg-red-500/5 rounded-lg flex items-center justify-between">
+                                 <div>
+                                   <span className="text-white/80 font-serif italic">&quot;{d.tag}&quot;</span>
+                                   <span className="text-[9px] text-white/30 ml-2">({Math.round(d.score * 100)}% similar)</span>
+                                 </div>
+                                 <span className="text-[9px] text-red-400/80 italic max-w-[50%] text-right">{d.reason}</span>
+                               </div>
+                             ))}
+                           </div>
+                         )}
+
+                         {/* Tags relacionadas */}
+                         {tagAnalysisResult.siblings?.length > 0 && (
+                           <div className="glass-card p-6 border border-blue-500/20 space-y-3">
+                             <h3 className="text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+                               <Share2 size={16} className="text-blue-400" /> Tags Relacionadas ({tagAnalysisResult.siblings.length})
+                             </h3>
+                             {tagAnalysisResult.siblings.slice(0, 8).map((s: any, i: number) => (
+                               <div key={i} className="p-3 bg-blue-500/5 rounded-lg flex items-center justify-between">
+                                 <div className="flex items-center gap-2">
+                                   <span className="text-white/80 font-serif italic">&quot;{s.tag}&quot;</span>
+                                   <div className="flex items-center gap-1">
+                                     <div className="h-1 w-16 bg-white/5 rounded-full overflow-hidden">
+                                       <div className="h-full bg-blue-400" style={{ width: `${s.score * 100}%` }} />
+                                     </div>
+                                     <span className="text-[8px] text-white/30 font-bold">{Math.round(s.score * 100)}%</span>
+                                   </div>
+                                 </div>
+                                 <span className="text-[9px] text-blue-400/80 italic max-w-[45%] text-right">{s.reason}</span>
+                               </div>
+                             ))}
+                           </div>
+                         )}
+
+                         {/* Sugestões do ML */}
+                         {tagAnalysisResult.suggestions?.length > 0 && (
+                           <div className="glass-card p-6 space-y-2">
+                             <h3 className="text-sm font-bold uppercase tracking-widest mb-3">Sugestões do Motor ML</h3>
+                             {tagAnalysisResult.suggestions.map((s: string, i: number) => (
+                               <p key={i} className="text-[11px] text-white/60 leading-relaxed flex items-start gap-2">
+                                 <span className="text-[#E85002] mt-0.5">→</span> {s}
+                               </p>
+                             ))}
+                           </div>
+                         )}
+
+                         {/* Botão para análise completa no Relatório Semântico */}
+                         <button onClick={() => { setSearchTag(tagAnalysisResult.tag); setActiveTab('relatorios'); setTimeout(() => handleSemanticSearch(), 300); }} className="w-full liquid-button !bg-[#E85002] flex items-center justify-center gap-2">
+                           <Globe size={16} /> Análise Completa (Europeana + IBRAM + Brasiliana)
+                         </button>
+                       </>
+                     )}
+
+                     {!tagAnalysisResult && !isAnalyzingTag && (
+                       <div className="glass-card p-12 text-center">
+                         <TagIcon size={48} className="mx-auto text-white/10 mb-4" />
+                         <p className="text-white/30 text-xs uppercase tracking-widest font-bold">Clique em uma tag à esquerda para ver a análise ML completa</p>
+                         <p className="text-white/20 text-[9px] uppercase tracking-widest mt-2">Família temática • Duplicatas • Erros ortográficos • Tags relacionadas</p>
+                       </div>
+                     )}
+                   </div>
+                 </div>
+
+                 {/* Volume por grupo */}
+                 <div className="glass-card p-8">
+                   <h3 className="text-sm font-bold uppercase tracking-widest mb-6">Volume por Grupo Temático</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     {dashboardData?.relatorioSemantico?.topConceitos?.map((c: any, i: number) => {
+                       const maxVal = Math.max(...(dashboardData?.relatorioSemantico?.topConceitos?.map((x: any) => x.valor) || [1]));
+                       return (
                          <div key={i} className="space-y-2">
                            <div className="flex justify-between text-[11px] font-bold uppercase tracking-widest">
                              <span>{c.nome}</span>
                              <span className="text-white/40">{c.valor} tags</span>
                            </div>
                            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                             <div className="h-full bg-[#E85002]" style={{ width: `${Math.min((c.valor / 100) * 100, 100)}%` }} />
+                             <div className="h-full bg-[#E85002] transition-all duration-700" style={{ width: `${(c.valor / maxVal) * 100}%` }} />
                            </div>
                          </div>
-                       ))}
-                     </div>
+                       );
+                     })}
                    </div>
                  </div>
               </div>
