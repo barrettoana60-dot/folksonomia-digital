@@ -668,7 +668,6 @@ export default function AdminPage() {
           </>
         )}
       </div>
-      <IACuradora />
     </main>
   );
 }

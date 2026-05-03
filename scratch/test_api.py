@@ -14,7 +14,7 @@ req = urllib.request.Request(
 )
 
 try:
-    with urllib.request.urlopen(req, timeout=15) as res:
+    with urllib.request.urlopen(req, timeout=45) as res:
         response = json.loads(res.read().decode("utf-8"))
         print(json.dumps(response, indent=2))
 except Exception as e:
