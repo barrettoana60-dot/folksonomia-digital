@@ -291,16 +291,17 @@ export default function AdminPage() {
                          <h3 className="text-2xl serif-title uppercase mb-2">Grupo Temático</h3>
                          <p className="text-[#E85002] font-bold uppercase tracking-widest text-xs mb-6">{selectedGroup}</p>
                          <div className="space-y-4">
-                            <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
-                              <p className="text-xs uppercase font-bold text-white/50 mb-2">Tags neste grupo</p>
-                              <div className="flex flex-wrap gap-2">
-                                {dashboardData?.relatorioSemantico?.recentTags
-                                  ?.filter((t: any) => t.grupo === selectedGroup)
-                                  .map((t: any, i: number) => (
-                                    <span key={i} className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"{t.tag}"</span>
-                                  ))}
-                              </div>
-                            </div>
+                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
+                             <p className="text-xs uppercase font-bold text-white/50 mb-2">Tags neste grupo</p>
+                             <div className="flex flex-wrap gap-2">
+                               {dashboardData?.relatorioSemantico?.recentTags
+                                 ?.filter((t: any) => t.grupo === selectedGroup)
+                                 .map((t: any, i: number) => (
+                                   <span key={i} className="px-2 py-1 bg-white/10 rounded text-xs font-serif italic">"{t.tag}"</span>
+                                 ))}
+                             </div>
+                           </div>
+                           <div className="p-4 border border-white/10 bg-white/5 rounded-lg">
                              <p className="text-xs uppercase font-bold text-white/50 mb-2">Rede GAT (Acurácia)</p>
                              <div className="flex items-center gap-2">
                                <div className="h-2 flex-1 bg-white/10 rounded-full overflow-hidden">
