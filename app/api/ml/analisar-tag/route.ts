@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
         metodo: 'ontology_match + embedding_local',
         status: 'pendente'
       }));
-      await supabaseAdmin.from('ml_sugestoes').insert(suggestions).catch(() => {});
+      try { await supabaseAdmin.from('ml_sugestoes').insert(suggestions); } catch (_) {}
     }
 
     return NextResponse.json({
