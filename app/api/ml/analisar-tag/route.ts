@@ -89,8 +89,6 @@ export async function POST(req: NextRequest) {
       nucleo_id: nucleoId,
       tag_original: tag,
       tag_normalizada: dna.normalized,
-      visitante_hash: visitante_hash || null,
-      visitante_nome: visitante_nome || null,
       grupo_tematico: semantics.themeGroup || 'Outros',
       status: 'em análise'
     };

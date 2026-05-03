@@ -20,9 +20,8 @@ export async function GET() {
       supabaseAdmin.from('nucleos').select('*', { count: 'exact', head: true }).eq('status_validacao', 'validado'),
     ]);
 
-    // Calcular usuários únicos (visitantes que deixaram tags)
-    const { data: usersData } = await supabaseAdmin.from('tags').select('visitante_hash').not('visitante_hash', 'is', null);
-    const uniqueUsers = new Set(usersData?.map(u => u.visitante_hash)).size;
+    // Calcular usuários únicos (visitantes)
+    const { count: uniqueUsers } = await supabaseAdmin.from('visitantes').select('*', { count: 'exact', head: true });
 
     const totalDados = (obrasCount || 0) + (tagsCount || 0) + (nucleosCount || 0) + (ontologiasCount || 0);
 
