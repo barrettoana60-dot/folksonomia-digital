@@ -3,7 +3,7 @@ import json
 
 url = "https://folksonomia-digital-j1rm.vercel.app/api/admin/ia-curadora"
 data = json.dumps({
-    "messages": [{"role": "user", "content": "cubismo"}]
+    "messages": [{"role": "user", "content": "cubismo agora vai funcionar"}]
 }).encode("utf-8")
 
 req = urllib.request.Request(

@@ -238,11 +238,13 @@ def run_ingestion():
     print(f"  Entidades extraídas:  {total_entities}")
     print(f"  Salvos no Supabase:   {total_saved}")
     
-    # Salvar conhecimento localmente também
-    output_file = os.path.join(os.path.dirname(__file__), '..', 'lib', 'ml', 'knowledge-base.json')
+    # Salvar conhecimento localmente como arquivo TypeScript para evitar erros no Vercel
+    output_file = os.path.join(os.path.dirname(__file__), '..', 'lib', 'ml', 'knowledge-base.ts')
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("export const kbData = ")
         json.dump(all_knowledge, f, ensure_ascii=False, indent=2)
+        f.write(";\n")
     print(f"\n[4/5] Knowledge base salva em: {output_file}")
     
     # Estatísticas por tipo de entidade

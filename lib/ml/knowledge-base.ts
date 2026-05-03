@@ -1,4 +1,4 @@
-[
+export const kbData = [
   {
     "texto": "Di",
     "tipo": "AUTORIA",
@@ -5025,4 +5025,4 @@
     "query": "katana japonesa samurai",
     "item": "Sable"
   }
-]
+];
