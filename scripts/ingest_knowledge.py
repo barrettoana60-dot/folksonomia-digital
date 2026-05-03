@@ -239,7 +239,8 @@ def run_ingestion():
     print(f"  Salvos no Supabase:   {total_saved}")
     
     # Salvar conhecimento localmente também
-    output_file = os.path.join(os.path.dirname(__file__), '..', 'knowledge-base.json')
+    output_file = os.path.join(os.path.dirname(__file__), '..', 'lib', 'ml', 'knowledge-base.json')
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(all_knowledge, f, ensure_ascii=False, indent=2)
     print(f"\n[4/5] Knowledge base salva em: {output_file}")
