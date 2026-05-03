@@ -23,67 +23,106 @@ export async function POST(req: NextRequest) {
     const { dna, semantics } = result;
 
     // 2. Persist the nucleus (Célula) in Supabase
-    // Handle demo ID to avoid foreign key violations if the record doesn't exist
-    const finalObraId = (obra_id === 'picasso-test' || !obra_id) ? null : obra_id;
+    // Handle demo ID to avoid foreign key violations
+    const isTestId = (obra_id === 'picasso-test' || !obra_id);
+    const finalObraId = isTestId ? null : obra_id;
 
     // Tentar inserir o núcleo semântico
+    const nucleoPayload: any = {
+      tipo: 'tag',
+      conteudo_original: tag,
+      conteudo_normalizado: dna.normalized,
+      origem: 'interface_publica',
+      assinatura_hash: dna.signature,
+      embedding: dna.embedding,
+      status_validacao: 'bruto',
+      confianca: semantics.indicators.confidence,
+      novidade: semantics.indicators.novelty,
+      tensao: semantics.indicators.tension,
+      ressonancia: semantics.indicators.resonance,
+      contexto: { themeGroup: semantics.themeGroup },
+      metadados: { concepts: semantics.concepts, ontologies: semantics.ontologies }
+    };
+
+    // Só incluir obra_id se não for null (evita FK constraint)
+    if (finalObraId) {
+      nucleoPayload.obra_id = finalObraId;
+    }
+
     const { data: nucleo, error: nucleoError } = await supabaseAdmin
       .from('nucleos')
-      .insert({
-        tipo: 'tag',
-        conteudo_original: tag,
-        conteudo_normalizado: dna.normalized,
-        origem: 'interface_publica',
-        assinatura_hash: dna.signature,
-        embedding: dna.embedding,
-        status_validacao: 'bruto',
-        confianca: semantics.indicators.confidence,
-        novidade: semantics.indicators.novelty,
-        tensao: semantics.indicators.tension,
-        ressonancia: semantics.indicators.resonance,
-        obra_id: finalObraId,
-        contexto: { themeGroup: semantics.themeGroup },
-        metadados: { concepts: semantics.concepts, ontologies: semantics.ontologies }
-      })
+      .insert(nucleoPayload)
       .select()
       .single();
 
     if (nucleoError) {
       console.error('Nucleus insert error:', nucleoError);
-      return NextResponse.json({ 
-        error: `Erro no banco de dados: ${nucleoError.message}. Certifique-se de que o SQL de configuração foi executado no Supabase.` 
-      }, { status: 500 });
+      // Se falhou por FK, tentar sem obra_id
+      if (nucleoError.message.includes('foreign key') || nucleoError.message.includes('violates')) {
+        delete nucleoPayload.obra_id;
+        const { data: nucleoRetry, error: retryError } = await supabaseAdmin
+          .from('nucleos')
+          .insert(nucleoPayload)
+          .select()
+          .single();
+        if (retryError) {
+          return NextResponse.json({ 
+            error: `Erro no banco de dados: ${retryError.message}` 
+          }, { status: 500 });
+        }
+        // Usar o resultado do retry
+        Object.assign(nucleo || {}, nucleoRetry);
+      } else {
+        return NextResponse.json({ 
+          error: `Erro no banco de dados: ${nucleoError.message}. Certifique-se de que o SQL de configuração foi executado no Supabase.` 
+        }, { status: 500 });
+      }
     }
 
-    // 3. Persist public tag and suggestions in parallel for speed
-    const inserts = [
-      supabaseAdmin.from('tags').insert({
-        obra_id: finalObraId,
-        nucleo_id: nucleo.id,
-        tag_original: tag,
-        tag_normalizada: dna.normalized,
-        visitante_hash: visitante_hash || null,
-        visitante_nome: visitante_nome || null,
-        grupo_tematico: semantics.themeGroup || 'Outros',
-        status: 'em análise'
-      })
-    ];
+    const nucleoId = nucleo?.id;
+    if (!nucleoId) {
+      return NextResponse.json({ error: 'Falha ao criar núcleo semântico.' }, { status: 500 });
+    }
 
+    // 3. Persist public tag — SEMPRE salva, com ou sem obra_id
+    const tagPayload: any = {
+      nucleo_id: nucleoId,
+      tag_original: tag,
+      tag_normalizada: dna.normalized,
+      visitante_hash: visitante_hash || null,
+      visitante_nome: visitante_nome || null,
+      grupo_tematico: semantics.themeGroup || 'Outros',
+      status: 'em análise'
+    };
+
+    // Só incluir obra_id se existir e não for teste
+    if (finalObraId) {
+      tagPayload.obra_id = finalObraId;
+    }
+
+    const { error: tagError } = await supabaseAdmin.from('tags').insert(tagPayload);
+    if (tagError) {
+      console.error('Tag insert error:', tagError);
+      // Se falhou por FK, tentar sem obra_id
+      if (tagError.message.includes('foreign key') || tagError.message.includes('violates')) {
+        delete tagPayload.obra_id;
+        const { error: tagRetry } = await supabaseAdmin.from('tags').insert(tagPayload);
+        if (tagRetry) console.error('Tag retry also failed:', tagRetry);
+      }
+    }
+
+    // 4. Sugestões ML
     if (semantics.concepts.length > 0) {
       const suggestions = semantics.concepts.map((concept: string) => ({
-        nucleo_id: nucleo.id,
+        nucleo_id: nucleoId,
         tipo_sugestao: 'conceito_relacionado',
         sugestao: concept,
         score: semantics.indicators.confidence / 100,
         metodo: 'ontology_match + embedding_local',
         status: 'pendente'
       }));
-      inserts.push(supabaseAdmin.from('ml_sugestoes').insert(suggestions));
+      await supabaseAdmin.from('ml_sugestoes').insert(suggestions).catch(() => {});
     }
-
-    // Aguardar inserções secundárias sem travar a resposta principal se possível
-    // Mas para garantir consistência agora, vamos aguardar
-    await Promise.all(inserts);
 
     return NextResponse.json({
       success: true,

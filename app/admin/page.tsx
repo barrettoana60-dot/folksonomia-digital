@@ -87,21 +87,29 @@ export default function AdminPage() {
     }
   };
 
-  useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        const res = await fetch('/api/admin/dashboard');
-        const json = await res.json();
-        if (json.success) {
-          setDashboardData(json.data);
-        }
-      } catch (err) {
-        console.error('Erro ao buscar analytics:', err);
-      } finally {
-        setIsLoading(false);
+  const fetchDashboard = async () => {
+    try {
+      const res = await fetch('/api/admin/dashboard');
+      const json = await res.json();
+      if (json.success) {
+        setDashboardData(json.data);
       }
+    } catch (err) {
+      console.error('Erro ao buscar analytics:', err);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  // Carregar dados na montagem E quando trocar de aba
+  useEffect(() => {
     fetchDashboard();
+  }, [activeTab]);
+
+  // Auto-refresh a cada 30 segundos
+  useEffect(() => {
+    const interval = setInterval(fetchDashboard, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAddObra = async (e: React.FormEvent) => {
