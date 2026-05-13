@@ -70,11 +70,14 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
     setSpeaking(true);
   };
 
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   const handleSubmitTag = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tagInput.trim() || submitting) return;
 
     setSubmitting(true);
+    setSubmitError(null);
 
     try {
       const res = await fetch('/api/ml/analisar-tag', {
@@ -88,11 +91,17 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
         })
       });
 
-      if (res.ok) {
+      const data = await res.json();
+
+      if (res.ok && data.success) {
         setMyTag(tagInput.trim());
         localStorage.setItem(`tag_${params.id}`, tagInput.trim());
+      } else {
+        setSubmitError(data.error || `Erro ${res.status}: Falha ao salvar tag.`);
+        console.error('Tag submit error:', data);
       }
-    } catch (err) {
+    } catch (err: any) {
+      setSubmitError(`Erro de rede: ${err.message}`);
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -174,6 +183,11 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
                   >
                     {submitting ? 'Processando...' : 'Enviar Percepção'}
                   </button>
+                  {submitError && (
+                    <p className="text-red-400 text-[10px] leading-relaxed bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                      {submitError}
+                    </p>
+                  )}
                 </form>
               ) : (
                 <div className="text-center p-8 space-y-6">
