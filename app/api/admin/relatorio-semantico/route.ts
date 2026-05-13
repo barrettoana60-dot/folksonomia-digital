@@ -104,7 +104,7 @@ async function loadPreviousCorrelations(tagNormalized: string) {
       .select('*')
       .eq('tag_normalizada', tagNormalized)
       .order('correlation_score', { ascending: false })
-      .limit(20);
+      .limit(100);
     return data || [];
   } catch {
     return [];
@@ -121,7 +121,7 @@ async function loadLearningHistory(tagNormalized: string) {
       .select('*')
       .eq('tag_normalizada', tagNormalized)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(100);
     return data || [];
   } catch {
     return [];
