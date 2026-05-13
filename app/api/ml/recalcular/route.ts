@@ -18,20 +18,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Registro não encontrado.' }, { status: 404 });
     }
 
-    const { cell, semantics } = await runSemanticPipeline(
+    const result = await runSemanticPipeline(
       nucleo.conteudo_original,
-      nucleo.obra_id,
+      nucleo.obra_id || '',
       ''
     );
+
+    // Formatar embedding para pgvector
+    const embeddingVector = Array.isArray(result.dna.embedding)
+      ? `[${result.dna.embedding.join(',')}]`
+      : null;
 
     await supabaseAdmin
       .from('nucleos')
       .update({
-        embedding: cell.embedding,
-        confianca: semantics.confidence,
-        novidade: semantics.novelty,
-        tensao: semantics.tension,
-        ressonancia: semantics.resonance,
+        embedding: embeddingVector,
+        confianca: result.semantics.indicators.confidence,
+        novidade: result.semantics.indicators.novelty,
+        tensao: result.semantics.indicators.tension,
+        ressonancia: result.semantics.indicators.resonance,
         atualizado_em: new Date().toISOString()
       })
       .eq('id', nucleo_id);
@@ -39,18 +44,23 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from('ml_execucoes').insert({
       nucleo_id,
       tipo_execucao: 'recalculo_semantico',
-      resumo: `Recálculo solicitado pelo curador. ${semantics.concepts.length} conceitos identificados.`,
+      resumo: `Recálculo v3 calibrado. Motor: ${result.meta.motors.tokenClassifier}. Confiança: ${result.confidence.status}.`,
       status: 'concluido',
-      metricas: { confianca: semantics.confidence, novidade: semantics.novelty }
+      metricas: { 
+        confianca: result.confidence.calibrated,
+        novidade: result.semantics.indicators.novelty,
+        motor: result.meta.motors.tokenClassifier,
+        evidencias: result.evidence.total
+      }
     });
 
     return NextResponse.json({
       success: true,
       message: 'Análise semântica recalculada com sucesso.',
       indicadores: {
-        nivel_conexao: Math.round(semantics.confidence),
-        nivel_novidade: Math.round(semantics.novelty),
-        conceitos_sugeridos: semantics.concepts
+        nivel_conexao: Math.round(result.semantics.indicators.confidence),
+        nivel_novidade: Math.round(result.semantics.indicators.novelty),
+        conceitos_sugeridos: result.semantics.concepts
       }
     });
   } catch (err) {

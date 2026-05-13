@@ -56,9 +56,6 @@ export async function createSemanticTag(
   const concepts = suggestConcepts(rawTag);
   const themeGroup = detectThemeGroup(rawTag, concepts);
   const embedding = await createLocalEmbedding(normalized);
-  
-  // A base de dados Supabase espera VECTOR(384)
-  const embedding384 = embedding;
 
   // Gerar relações inferidas por heurística
   const inferredRelations: InferredRelation[] = concepts.map((concept, i) => ({
@@ -104,7 +101,7 @@ export async function createSemanticTag(
     inferred: {
       relations: inferredRelations,
       clusters,
-      embedding: embedding384
+      embedding: embedding
     },
 
     validated: {

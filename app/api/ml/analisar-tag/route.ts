@@ -27,6 +27,11 @@ export async function POST(req: NextRequest) {
     const isTestId = (obra_id === 'picasso-test' || !obra_id);
     const finalObraId = isTestId ? null : obra_id;
 
+    // Formatar embedding para pgvector: deve ser string '[0.1,0.2,...]'
+    const embeddingVector = Array.isArray(dna.embedding) 
+      ? `[${dna.embedding.join(',')}]` 
+      : null;
+
     // Tentar inserir o núcleo semântico
     const nucleoPayload: any = {
       tipo: 'tag',
@@ -34,7 +39,7 @@ export async function POST(req: NextRequest) {
       conteudo_normalizado: dna.normalized,
       origem: 'interface_publica',
       assinatura_hash: dna.signature,
-      embedding: dna.embedding,
+      embedding: embeddingVector,
       status_validacao: 'bruto',
       confianca: semantics.indicators.confidence,
       novidade: semantics.indicators.novelty,

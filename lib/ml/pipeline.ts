@@ -276,7 +276,8 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
     // DNA para compatibilidade com v1
     dna: {
       signature: semanticTag.dna,
-      embedding: `[${semanticTag.inferred.embedding.slice(0, 10).join(',')}...]`, // truncado para log
+      embedding: semanticTag.inferred.embedding, // vetor real para inserção no banco
+      embeddingPreview: `[${semanticTag.inferred.embedding.slice(0, 5).join(',')}... (${semanticTag.inferred.embedding.length}d)]`,
       normalized: norm
     },
 
