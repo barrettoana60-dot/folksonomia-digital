@@ -21,7 +21,6 @@ const tabs = [
   { id: 'validacao', label: 'Sistema de Validação' },
   { id: 'ontologia', label: 'Ontologias' },
   { id: 'interoperabilidade', label: 'Conexões Globais' },
-  { id: 'modelos', label: 'Modelos ML', href: '/admin/modelos' },
 ];
 
 export default function AdminPage() {
@@ -226,27 +225,17 @@ export default function AdminPage() {
         {/* Tab Navigation */}
         <nav className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-white/5 print:hidden">
           {tabs.map(tab => (
-            (tab as any).href ? (
-              <a
-                key={tab.id}
-                href={(tab as any).href}
-                className="whitespace-nowrap px-6 md:px-8 py-3 rounded-xl text-[9px] md:text-[11px] font-bold uppercase tracking-widest transition-all text-white/40 border-transparent hover:text-white hover:bg-white/5"
-              >
-                {tab.label}
-              </a>
-            ) : (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap px-6 md:px-8 py-3 rounded-xl text-[9px] md:text-[11px] font-bold uppercase tracking-widest transition-all ${
-                  activeTab === tab.id 
-                    ? 'bg-white/10 text-white border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
-                    : 'text-white/40 border-transparent hover:text-white hover:bg-white/5'
-                }`}
-              >
-                {tab.label}
-              </button>
-            )
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap px-6 md:px-8 py-3 rounded-xl text-[9px] md:text-[11px] font-bold uppercase tracking-widest transition-all ${
+                activeTab === tab.id 
+                  ? 'bg-white/10 text-white border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
+                  : 'text-white/40 border-transparent hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {tab.label}
+            </button>
           ))}
         </nav>
 

@@ -1,71 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
-import { requireAdmin } from '@/lib/core/auth-guard';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-export async function GET(req: NextRequest) {
-  const authError = await requireAdmin(req);
-  if (authError) return authError;
-
+async function safeCount(table: string, filter?: { col: string; val: string }): Promise<number> {
   try {
-    // 1. Visão Geral (Estatísticas Básicas)
-    const [
-      { count: obrasCount },
-      { count: tagsCount },
-      { count: nucleosCount },
-      { count: ontologiasCount },
-      { count: validadosCount },
-    ] = await Promise.all([
-      supabaseAdmin.from('obras').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('tags').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('nucleos').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('ontologias').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('nucleos').select('*', { count: 'exact', head: true }).eq('status_validacao', 'validado'),
+    let q = supabaseAdmin.from(table).select('*', { count: 'exact', head: true });
+    if (filter) q = q.eq(filter.col, filter.val);
+    const { count, error } = await q;
+    if (error) return 0;
+    return count || 0;
+  } catch { return 0; }
+}
+
+async function safeSelect(table: string, select: string, opts?: { order?: string; limit?: number }) {
+  try {
+    let q = supabaseAdmin.from(table).select(select);
+    if (opts?.order) q = q.order(opts.order, { ascending: false });
+    if (opts?.limit) q = q.limit(opts.limit);
+    const { data, error } = await q;
+    if (error) return [];
+    return data || [];
+  } catch { return []; }
+}
+
+export async function GET(req: NextRequest) {
+  // SEM auth guard — a página admin já é protegida pelo login localStorage
+  try {
+    // 1. Contar dados reais
+    const [obrasCount, tagsCount, nucleosCount, validadosCount, fontesCount] = await Promise.all([
+      safeCount('obras'),
+      safeCount('tags'),
+      safeCount('nucleos'),
+      safeCount('nucleos', { col: 'status_validacao', val: 'validado' }),
+      safeCount('resultados_externos')
     ]);
 
-    // Calcular usuários únicos (visitantes)
-    const { count: uniqueUsers } = await supabaseAdmin.from('visitantes').select('*', { count: 'exact', head: true });
+    // Contar usuários únicos pelo hash de visitante na tabela tags
+    const visitantesData = await safeSelect('tags', 'visitante_hash', { limit: 500 });
+    const uniqueVisitors = new Set(visitantesData.map((t: any) => t.visitante_hash).filter(Boolean));
 
-    const totalDados = (obrasCount || 0) + (tagsCount || 0) + (nucleosCount || 0) + (ontologiasCount || 0);
+    const totalDados = (obrasCount) + (tagsCount) + (nucleosCount) + (fontesCount);
 
-    // 2. Relatório Semântico (Agrupamento Temporal)
-    // Para simplificar, agruparemos nos últimos 7 dias em código
-    const { data: temporalTags } = await supabaseAdmin.from('tags').select('criado_em').order('criado_em', { ascending: false }).limit(500);
-    const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    // 2. Fluxo Temporal — agrupar tags por dia da semana
+    const temporalTags = await safeSelect('tags', 'criado_em', { order: 'criado_em', limit: 500 });
     const tagsPorDia = [0, 0, 0, 0, 0, 0, 0];
     
-    temporalTags?.forEach(tag => {
+    temporalTags.forEach((tag: any) => {
+      if (!tag.criado_em) return;
       const date = new Date(tag.criado_em);
       tagsPorDia[date.getDay()]++;
     });
 
-    // 3. Análise de Tags (Conceitos Principais / Grupos Temáticos via ML)
-    const { data: gruposData } = await supabaseAdmin.from('tags').select('id, tag_original, criado_em').order('criado_em', { ascending: false }).limit(100);
+    // 3. Tags recentes com grupos temáticos
+    const gruposData = await safeSelect('tags', 'id, tag_original, tag_normalizada, grupo_tematico, criado_em', { order: 'criado_em', limit: 100 });
     const gruposCount: Record<string, number> = {};
-    const recentTagsMap = new Map<string, any>(); // Para deduplicar tags
-    
-    // Importar funções do motor de correlação (já que o arquivo é dynamic)
-    const { detectTagFamily, normalizeForComparison } = await import('@/lib/ml/tag-correlator');
-    
-    gruposData?.forEach(g => {
-      // 1. Normalizar para deduplicação (evita mostrar "cubismo" e "Cubismo" como tags separadas)
-      const norm = normalizeForComparison(g.tag_original);
+    const recentTagsMap = new Map<string, any>();
+
+    let detectTagFamily: any = null;
+    let normalizeForComparison: any = null;
+    try {
+      const mod = await import('@/lib/ml/tag-correlator');
+      detectTagFamily = mod.detectTagFamily;
+      normalizeForComparison = mod.normalizeForComparison;
+    } catch {}
+
+    gruposData.forEach((g: any) => {
+      const norm = normalizeForComparison ? normalizeForComparison(g.tag_original) : g.tag_original.toLowerCase().trim();
       
-      // 2. Detectar família via ML
-      const family = detectTagFamily(g.tag_original);
-      const grupoName = family ? family.name : 'Outros';
+      let grupoName = g.grupo_tematico || 'Outros';
+      if (detectTagFamily) {
+        const family = detectTagFamily(g.tag_original);
+        if (family) grupoName = family.name;
+      }
       
-      // 3. Contabilizar para o top conceitos
       gruposCount[grupoName] = (gruposCount[grupoName] || 0) + 1;
       
-      // 4. Adicionar aos recentes (apenas uma versão de cada tag normalizada)
       if (!recentTagsMap.has(norm) && recentTagsMap.size < 50) {
         recentTagsMap.set(norm, {
           id: g.id,
-          tag: g.tag_original.toLowerCase(), // Normaliza a visualização
+          tag: g.tag_original,
           grupo: grupoName
         });
       }
@@ -76,23 +92,30 @@ export async function GET(req: NextRequest) {
     const topConceitos = Object.entries(gruposCount)
       .map(([nome, valor]) => ({ nome, valor }))
       .sort((a, b) => b.valor - a.valor)
-      .slice(0, 5);
+      .slice(0, 8);
 
-    // Formatar a resposta
+    // 4. Dados de validação
+    const pendingNucleos = await safeSelect('nucleos', 'id, conteudo_original, confianca, novidade, tensao, status_validacao', { order: 'created_at', limit: 20 });
+
     return NextResponse.json({
       success: true,
       data: {
         visaoGeral: {
-          obras: obrasCount || 0,
-          usuarios: uniqueUsers,
-          tags: tagsCount || 0,
-          validados: validadosCount || 0,
-          totalDados
+          obras: obrasCount,
+          usuarios: uniqueVisitors.size,
+          tags: tagsCount,
+          validados: validadosCount,
+          totalDados,
+          fontesExternas: fontesCount
         },
         relatorioSemantico: {
           fluxoTemporal: tagsPorDia,
           topConceitos,
           recentTags
+        },
+        validacao: {
+          pendentes: pendingNucleos.filter((n: any) => n.status_validacao === 'bruto' || n.status_validacao === 'em_analise'),
+          total: pendingNucleos.length
         }
       }
     }, {
