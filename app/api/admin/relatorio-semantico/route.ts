@@ -35,64 +35,150 @@ async function searchEuropeana(query: string): Promise<any[]> {
 }
 
 // ============================================================
-// IBRAM — Museus federais brasileiros via Tainacan
+// IBRAM — Portal de Acervos Museológicos Federais (acervos.museus.gov.br)
 // ============================================================
 async function searchIBRAM(query: string): Promise<any[]> {
-  const museusIBRAM = [
-    'https://museudainconfidencia.museus.gov.br',
-    'https://museuhistoriconacional.museus.gov.br',
-    'https://museuimperial.museus.gov.br',
-    'https://museudodiamante.museus.gov.br',
-  ];
   const results: any[] = [];
-  
-  for (const base of museusIBRAM) {
+
+  // 1. Portal principal de acervos do IBRAM (Tainacan)
+  const endpoints = [
+    `https://acervos.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=5`,
+    `https://museudoindio.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=3`,
+    `https://museuimperial.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=3`,
+    `https://museuvitorino.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=3`,
+  ];
+
+  for (const url of endpoints) {
     try {
-      const url = `${base}/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=3`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(6000),
+        headers: { 'Accept': 'application/json', 'User-Agent': 'Folksonomia-Digital/2.0' }
+      });
       if (!res.ok) continue;
       const data = await res.json();
-      const items = Array.isArray(data) ? data : (data.items || []);
-      for (const item of items.slice(0, 3)) {
+      const items = Array.isArray(data) ? data : (data.items || data._embedded?.items || []);
+      for (const item of items.slice(0, 4)) {
+        const titulo = item.title?.rendered || item.title || item.name || '';
+        if (!titulo) continue;
         results.push({
-          titulo: item.title?.rendered || item.title || 'Sem título',
-          descricao: (item.content?.rendered || '').replace(/<[^>]*>/g, '').substring(0, 200),
-          criador: item.author_name || 'Desconhecido',
-          link: item.link || item.url || '',
-          museu: base.split('//')[1].split('.')[0],
+          titulo: titulo.replace(/<[^>]*>/g, '').trim(),
+          descricao: (item.content?.rendered || item.description || '').replace(/<[^>]*>/g, '').substring(0, 250),
+          criador: item.author_name || item._embedded?.author?.[0]?.name || 'Museu Federal',
+          data: item.date ? new Date(item.date).getFullYear().toString() : '',
+          link: item.link || item.url || item.guid?.rendered || '',
+          museu: new URL(url).hostname.split('.')[0],
           fonte: 'IBRAM'
         });
       }
       if (results.length >= 5) break;
-    } catch {
-      continue;
-    }
+    } catch { continue; }
   }
+
+  // 2. Fallback: busca na API pública do SIMUS/IBRAM via dados abertos
+  if (results.length === 0) {
+    try {
+      const url = `https://dados.cultura.gov.br/api/3/action/package_search?q=${encodeURIComponent(query)}&rows=5`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      if (res.ok) {
+        const data = await res.json();
+        const packages = data?.result?.results || [];
+        for (const pkg of packages.slice(0, 5)) {
+          results.push({
+            titulo: pkg.title || pkg.name || 'Sem título',
+            descricao: (pkg.notes || '').substring(0, 250),
+            criador: pkg.author || pkg.organization?.title || 'Ministério da Cultura',
+            data: pkg.metadata_created ? new Date(pkg.metadata_created).getFullYear().toString() : '',
+            link: `https://dados.cultura.gov.br/dataset/${pkg.name}`,
+            museu: 'dados.cultura.gov.br',
+            fonte: 'IBRAM'
+          });
+        }
+      }
+    } catch { /* silencioso */ }
+  }
+
   return results.slice(0, 5);
 }
 
 // ============================================================
-// Brasiliana / BNDigital
+// Brasiliana Museus — Portal de acervos museológicos brasileiros
 // ============================================================
 async function searchBrasiliana(query: string): Promise<any[]> {
+  const results: any[] = [];
+
+  // 1. Brasiliana Museus via Tainacan (portal principal)
   try {
-    const url = `https://bndigital.bn.gov.br/wp-json/wp/v2/posts?search=${encodeURIComponent(query)}&per_page=5&_fields=id,title,excerpt,link,date`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!Array.isArray(data)) return [];
-    return data.slice(0, 5).map((item: any) => ({
-      titulo: (item.title?.rendered || 'Sem título').replace(/<[^>]*>/g, ''),
-      descricao: (item.excerpt?.rendered || '').replace(/<[^>]*>/g, '').substring(0, 200),
-      criador: 'Biblioteca Nacional',
-      data: item.date ? new Date(item.date).getFullYear().toString() : '',
-      link: item.link || '',
-      fonte: 'Brasiliana/BNDigital'
-    }));
-  } catch {
-    return [];
+    const url = `https://brasiliana.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=5`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(7000),
+      headers: { 'Accept': 'application/json', 'User-Agent': 'Folksonomia-Digital/2.0' }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const items = Array.isArray(data) ? data : (data.items || []);
+      for (const item of items.slice(0, 5)) {
+        const titulo = (item.title?.rendered || item.title || '').replace(/<[^>]*>/g, '').trim();
+        if (!titulo) continue;
+        results.push({
+          titulo,
+          descricao: (item.content?.rendered || '').replace(/<[^>]*>/g, '').substring(0, 250),
+          criador: item.author_name || 'Brasiliana Museus',
+          data: item.date ? new Date(item.date).getFullYear().toString() : '',
+          link: item.link || '',
+          fonte: 'Brasiliana Museus'
+        });
+      }
+    }
+  } catch { /* continua */ }
+
+  // 2. Fallback: Biblioteca Nacional Digital (BNDigital) — acervo digitalizado
+  if (results.length === 0) {
+    try {
+      const url = `https://bndigital.bn.gov.br/dspace/rest/items?search=${encodeURIComponent(query)}&limit=5&offset=0`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(7000), headers: { 'Accept': 'application/json' } });
+      if (res.ok) {
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : [];
+        for (const item of items.slice(0, 5)) {
+          results.push({
+            titulo: item.name || 'Sem título',
+            descricao: (item.bitstreams?.[0]?.description || '').substring(0, 250),
+            criador: 'Biblioteca Nacional',
+            data: '',
+            link: `https://bndigital.bn.gov.br/dspace/handle/${item.handle || ''}`,
+            fonte: 'Brasiliana/BNDigital'
+          });
+        }
+      }
+    } catch { /* silencioso */ }
   }
+
+  // 3. Segundo fallback: BNDigital via WordPress
+  if (results.length === 0) {
+    try {
+      const url = `https://bndigital.bn.gov.br/wp-json/wp/v2/posts?search=${encodeURIComponent(query)}&per_page=5&_fields=id,title,excerpt,link,date`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          for (const item of data.slice(0, 5)) {
+            results.push({
+              titulo: (item.title?.rendered || 'Sem título').replace(/<[^>]*>/g, ''),
+              descricao: (item.excerpt?.rendered || '').replace(/<[^>]*>/g, '').substring(0, 250),
+              criador: 'Biblioteca Nacional',
+              data: item.date ? new Date(item.date).getFullYear().toString() : '',
+              link: item.link || '',
+              fonte: 'Brasiliana/BNDigital'
+            });
+          }
+        }
+      }
+    } catch { /* silencioso */ }
+  }
+
+  return results.slice(0, 5);
 }
+
 
 // ============================================================
 // Carregar correlações já aprendidas anteriormente
