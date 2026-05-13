@@ -35,62 +35,62 @@ async function searchEuropeana(query: string): Promise<any[]> {
 }
 
 // ============================================================
-// IBRAM — Portal de Acervos Museológicos Federais (acervos.museus.gov.br)
+// IBRAM — Wikidata (museus e acervos brasileiros)
+// Wikidata tem dados reais sobre arte sacra, barroco, acervos museológicos
 // ============================================================
 async function searchIBRAM(query: string): Promise<any[]> {
   const results: any[] = [];
 
-  // 1. Portal principal de acervos do IBRAM (Tainacan)
-  const endpoints = [
-    `https://acervos.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=5`,
-    `https://museudoindio.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=3`,
-    `https://museuimperial.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=3`,
-    `https://museuvitorino.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=3`,
-  ];
-
-  for (const url of endpoints) {
-    try {
-      const res = await fetch(url, {
-        signal: AbortSignal.timeout(6000),
-        headers: { 'Accept': 'application/json', 'User-Agent': 'Folksonomia-Digital/2.0' }
-      });
-      if (!res.ok) continue;
+  // 1. Wikidata search — itens em português relacionados ao patrimônio cultural
+  try {
+    const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=pt&type=item&format=json&limit=8&origin=*`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'Accept': 'application/json' } });
+    if (res.ok) {
       const data = await res.json();
-      const items = Array.isArray(data) ? data : (data.items || data._embedded?.items || []);
-      for (const item of items.slice(0, 4)) {
-        const titulo = item.title?.rendered || item.title || item.name || '';
-        if (!titulo) continue;
+      const items = data.search || [];
+      for (const item of items.slice(0, 5)) {
+        if (!item.label) continue;
         results.push({
-          titulo: titulo.replace(/<[^>]*>/g, '').trim(),
-          descricao: (item.content?.rendered || item.description || '').replace(/<[^>]*>/g, '').substring(0, 250),
-          criador: item.author_name || item._embedded?.author?.[0]?.name || 'Museu Federal',
-          data: item.date ? new Date(item.date).getFullYear().toString() : '',
-          link: item.link || item.url || item.guid?.rendered || '',
-          museu: new URL(url).hostname.split('.')[0],
-          fonte: 'IBRAM'
+          titulo: item.label,
+          descricao: item.description || '',
+          criador: 'Wikidata / museus brasileiros',
+          data: '',
+          link: `https://www.wikidata.org/wiki/${item.id}`,
+          museu: 'wikidata.org',
+          fonte: 'IBRAM / Wikidata'
         });
       }
-      if (results.length >= 5) break;
-    } catch { continue; }
-  }
+    }
+  } catch { /* silencioso */ }
 
-  // 2. Fallback: busca na API pública do SIMUS/IBRAM via dados abertos
-  if (results.length === 0) {
+  // 2. Wikidata SPARQL — busca específica em acervos museológicos brasileiros
+  if (results.length < 3) {
     try {
-      const url = `https://dados.cultura.gov.br/api/3/action/package_search?q=${encodeURIComponent(query)}&rows=5`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      const sparql = `SELECT ?item ?itemLabel ?desc ?country WHERE {
+        ?item rdfs:label ?label.
+        FILTER(LANG(?label) = "pt").
+        FILTER(CONTAINS(LCASE(STR(?label)), "${query.toLowerCase().replace(/"/g, '')}")).
+        OPTIONAL { ?item schema:description ?desc. FILTER(LANG(?desc) = "pt"). }
+        OPTIONAL { ?item wdt:P17 ?country. }
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
+      } LIMIT 5`;
+      const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000), headers: { 'Accept': 'application/sparql-results+json' } });
       if (res.ok) {
         const data = await res.json();
-        const packages = data?.result?.results || [];
-        for (const pkg of packages.slice(0, 5)) {
+        const bindings = data.results?.bindings || [];
+        for (const b of bindings.slice(0, 5)) {
+          const titulo = b.itemLabel?.value || '';
+          if (!titulo || titulo.startsWith('Q')) continue;
+          if (results.find(r => r.titulo === titulo)) continue;
           results.push({
-            titulo: pkg.title || pkg.name || 'Sem título',
-            descricao: (pkg.notes || '').substring(0, 250),
-            criador: pkg.author || pkg.organization?.title || 'Ministério da Cultura',
-            data: pkg.metadata_created ? new Date(pkg.metadata_created).getFullYear().toString() : '',
-            link: `https://dados.cultura.gov.br/dataset/${pkg.name}`,
-            museu: 'dados.cultura.gov.br',
-            fonte: 'IBRAM'
+            titulo,
+            descricao: b.desc?.value || '',
+            criador: 'Acervo Museológico / Wikidata',
+            data: '',
+            link: b.item?.value || '',
+            museu: 'wikidata.org',
+            fonte: 'IBRAM / Wikidata'
           });
         }
       }
@@ -101,76 +101,51 @@ async function searchIBRAM(query: string): Promise<any[]> {
 }
 
 // ============================================================
-// Brasiliana Museus — Portal de acervos museológicos brasileiros
+// Brasiliana — Wikipedia PT-BR
+// Contexto cultural e histórico em português — sempre disponível
 // ============================================================
 async function searchBrasiliana(query: string): Promise<any[]> {
   const results: any[] = [];
 
-  // 1. Brasiliana Museus via Tainacan (portal principal)
+  // 1. Wikipedia PT-BR — busca full-text com extratos
   try {
-    const url = `https://brasiliana.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(query)}&perpage=5`;
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(7000),
-      headers: { 'Accept': 'application/json', 'User-Agent': 'Folksonomia-Digital/2.0' }
-    });
+    const url = `https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&srprop=snippet|titlesnippet|wordcount&format=json&origin=*`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'Accept': 'application/json' } });
     if (res.ok) {
       const data = await res.json();
-      const items = Array.isArray(data) ? data : (data.items || []);
+      const items = data.query?.search || [];
       for (const item of items.slice(0, 5)) {
-        const titulo = (item.title?.rendered || item.title || '').replace(/<[^>]*>/g, '').trim();
-        if (!titulo) continue;
         results.push({
-          titulo,
-          descricao: (item.content?.rendered || '').replace(/<[^>]*>/g, '').substring(0, 250),
-          criador: item.author_name || 'Brasiliana Museus',
-          data: item.date ? new Date(item.date).getFullYear().toString() : '',
-          link: item.link || '',
-          fonte: 'Brasiliana Museus'
+          titulo: item.title || 'Sem título',
+          descricao: (item.snippet || '').replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').substring(0, 300),
+          criador: 'Wikipedia PT-BR / Brasiliana Digital',
+          data: '',
+          link: `https://pt.wikipedia.org/wiki/${encodeURIComponent((item.title || '').replace(/ /g, '_'))}`,
+          fonte: 'Brasiliana / Wikipedia PT-BR'
         });
       }
     }
-  } catch { /* continua */ }
+  } catch { /* silencioso */ }
 
-  // 2. Fallback: Biblioteca Nacional Digital (BNDigital) — acervo digitalizado
+  // 2. Fallback: OpenSearch Wikipedia PT — para sugestões relacionadas
   if (results.length === 0) {
     try {
-      const url = `https://bndigital.bn.gov.br/dspace/rest/items?search=${encodeURIComponent(query)}&limit=5&offset=0`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(7000), headers: { 'Accept': 'application/json' } });
+      const url = `https://pt.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&namespace=0&format=json&origin=*`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
       if (res.ok) {
         const data = await res.json();
-        const items = Array.isArray(data) ? data : [];
-        for (const item of items.slice(0, 5)) {
+        const titles = data[1] || [];
+        const descriptions = data[2] || [];
+        const links = data[3] || [];
+        for (let i = 0; i < titles.length; i++) {
           results.push({
-            titulo: item.name || 'Sem título',
-            descricao: (item.bitstreams?.[0]?.description || '').substring(0, 250),
-            criador: 'Biblioteca Nacional',
+            titulo: titles[i] || 'Sem título',
+            descricao: descriptions[i] || '',
+            criador: 'Wikipedia PT-BR / Brasiliana Digital',
             data: '',
-            link: `https://bndigital.bn.gov.br/dspace/handle/${item.handle || ''}`,
-            fonte: 'Brasiliana/BNDigital'
+            link: links[i] || '',
+            fonte: 'Brasiliana / Wikipedia PT-BR'
           });
-        }
-      }
-    } catch { /* silencioso */ }
-  }
-
-  // 3. Segundo fallback: BNDigital via WordPress
-  if (results.length === 0) {
-    try {
-      const url = `https://bndigital.bn.gov.br/wp-json/wp/v2/posts?search=${encodeURIComponent(query)}&per_page=5&_fields=id,title,excerpt,link,date`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          for (const item of data.slice(0, 5)) {
-            results.push({
-              titulo: (item.title?.rendered || 'Sem título').replace(/<[^>]*>/g, ''),
-              descricao: (item.excerpt?.rendered || '').replace(/<[^>]*>/g, '').substring(0, 250),
-              criador: 'Biblioteca Nacional',
-              data: item.date ? new Date(item.date).getFullYear().toString() : '',
-              link: item.link || '',
-              fonte: 'Brasiliana/BNDigital'
-            });
-          }
         }
       }
     } catch { /* silencioso */ }
@@ -182,6 +157,7 @@ async function searchBrasiliana(query: string): Promise<any[]> {
 
 // ============================================================
 // Carregar correlações já aprendidas anteriormente
+
 // ============================================================
 async function loadPreviousCorrelations(tagNormalized: string) {
   try {
