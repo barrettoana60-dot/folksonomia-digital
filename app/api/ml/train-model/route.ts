@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/core/auth-guard';
 import { collectTrainingData, exportToHuggingFace } from '@/lib/ml/training-data-collector';
 import { supabaseAdmin } from '@/lib/supabase/client';
+import { ML_SERVICE_URL } from '@/lib/core/env';
 
 export async function POST(req: NextRequest) {
   // Requer autenticação admin
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (authError) return authError;
 
   try {
-    const mlServiceUrl = process.env.ML_SERVICE_URL;
+    const mlServiceUrl = ML_SERVICE_URL;
 
     // 1. Gerar dados de treinamento (Europeana + IBRAM)
     console.log('[TrainModelAPI] Coletando dados para treinamento...');

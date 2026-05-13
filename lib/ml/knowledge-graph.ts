@@ -9,6 +9,7 @@
 import { supabaseAdmin as supabase } from '@/lib/supabase/client';
 import { createLocalEmbedding } from './embeddings';
 import { cosineSimilarity } from './similarity';
+import { ML_SERVICE_URL } from '@/lib/core/env';
 import type { KnowledgeTriple, MusealRelation, DataSource } from './types';
 
 // ============================================================
@@ -154,7 +155,7 @@ export async function inferRelations(
   entityB: string
 ): Promise<{ relation: MusealRelation; confidence: number; source: string }[]> {
   // 1. Tentar RotatE via ML Service
-  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  const mlServiceUrl = ML_SERVICE_URL;
   if (mlServiceUrl) {
     try {
       const res = await fetch(`${mlServiceUrl}/predict-relations`, {

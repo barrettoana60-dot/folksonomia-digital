@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
+import { ML_SERVICE_URL } from '@/lib/core/env';
 
 // ============================================================
 // Fallback Heurístico (quando ML Service está offline)
@@ -61,7 +62,7 @@ async function classifyViaMLService(text: string): Promise<{
   tokens: { token: string; category: string; confidence: number }[];
   modelVersion?: string;
 } | null> {
-  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  const mlServiceUrl = ML_SERVICE_URL;
   if (!mlServiceUrl) return null;
 
   try {

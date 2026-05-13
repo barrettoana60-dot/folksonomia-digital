@@ -9,6 +9,7 @@
  */
 
 import { cosineSimilarity } from './similarity';
+import { ML_SERVICE_URL } from '@/lib/core/env';
 import type { MultiMembership, GroupMembership } from './types';
 
 // ============================================================
@@ -86,7 +87,7 @@ export async function calculateMultiMembership(
     .trim();
 
   // 1. Tentar GAT via ML Service
-  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  const mlServiceUrl = ML_SERVICE_URL;
   if (mlServiceUrl && tagVector.length > 0) {
     try {
       const res = await fetch(`${mlServiceUrl}/predict-communities`, {

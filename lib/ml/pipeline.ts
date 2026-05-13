@@ -23,6 +23,7 @@ import { eventBus, createQueryEvent } from './events';
 import { collectEvidence, getCachedEvidence } from './evidence-collector';
 import { processUnknownTerm } from './active-learning';
 import { supabaseAdmin as supabase } from '@/lib/supabase/client';
+import { ML_SERVICE_URL } from '@/lib/core/env';
 import type { SemanticTag, ClassifiedField } from './types';
 
 // ============================================================
@@ -30,7 +31,7 @@ import type { SemanticTag, ClassifiedField } from './types';
 // ============================================================
 
 async function callMLService(endpoint: string, body: any): Promise<any | null> {
-  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  const mlServiceUrl = ML_SERVICE_URL;
   if (!mlServiceUrl) return null;
 
   try {
@@ -264,7 +265,7 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
   // ============================================================
   // Determinar motores ativos
   // ============================================================
-  const mlServiceOnline = !!process.env.ML_SERVICE_URL;
+  const mlServiceOnline = !!ML_SERVICE_URL;
 
   // ============================================================
   // Resposta Estruturada
@@ -332,7 +333,7 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
         tokenClassifier: tokenResult.motor === 'modernbert_ner' ? 'modernbert_ner' : 'heuristic_fallback',
         knowledgeGraph: mlServiceOnline ? 'rotate_link_prediction' : 'heuristic_fallback',
         communities: mlServiceOnline ? 'gat_clustering' : 'heuristic_fallback',
-        semanticMemory: process.env.ML_SERVICE_URL ? 'pgvector_embedding' : 'hash_fallback',
+        semanticMemory: ML_SERVICE_URL ? 'pgvector_embedding' : 'hash_fallback',
         confidence: 'calibrated_model',
         tagFactory: 'active',
         evidenceCollector: 'cross_source',

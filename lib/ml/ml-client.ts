@@ -13,7 +13,9 @@
 // Configuração
 // ============================================================
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || '';
+import { ML_SERVICE_URL } from '@/lib/core/env';
+
+const ML_BASE_URL = ML_SERVICE_URL;
 const DEFAULT_TIMEOUT_MS = 8000;
 const MAX_RETRIES = 2;
 const CACHE_TTL_MS = 60_000; // 1 minuto
@@ -70,7 +72,7 @@ class MLServiceClient {
   private _lastCheck: number = 0;
 
   constructor() {
-    this.baseUrl = ML_SERVICE_URL;
+    this.baseUrl = ML_BASE_URL;
   }
 
   /**

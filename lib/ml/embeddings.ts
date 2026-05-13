@@ -8,6 +8,7 @@
  * 2. Semantic Embedding (via ML Service, ModernBERT-base + pooling)
  */
 
+import { ML_SERVICE_URL } from '@/lib/core/env';
 // Dimensão padrão dos vetores — DEVE corresponder ao banco (VECTOR(768))
 export const EMBEDDING_DIMENSIONS = 768;
 
@@ -96,7 +97,7 @@ export async function createSemanticEmbedding(text: string): Promise<{
   vector: EmbeddingVector;
   source: 'ml_service' | 'hash_fallback';
 }> {
-  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  const mlServiceUrl = ML_SERVICE_URL;
   
   if (mlServiceUrl) {
     try {

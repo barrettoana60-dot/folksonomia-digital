@@ -1,10 +1,11 @@
 import crypto from 'crypto';
+import { ENCRYPTION_KEY } from './env';
 
 const ALGORITHM = 'aes-256-gcm';
 
 // SEGURANÇA: Chave de encriptação DEVE vir de variável de ambiente.
-// Nunca usar fallback fixo em produção.
-const SECRET_KEY = process.env.ENCRYPTION_KEY;
+// Aceita ENCRYPTION_KEY ou CHAVE_DE_CRIPTURA (via env.ts)
+const SECRET_KEY = ENCRYPTION_KEY || undefined;
 if (!SECRET_KEY) {
   console.warn('[Crypto] ENCRYPTION_KEY não definida — encriptação desabilitada. Defina no Vercel/ambiente.');
 }
