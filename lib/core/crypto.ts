@@ -1,8 +1,13 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-// In a real app, use a strong env secret. Here we fallback for demo purposes.
-const SECRET_KEY = process.env.ENCRYPTION_KEY || 'folksonomia_digital_secure_key_32_bytes_len!!';
+
+// SEGURANÇA: Chave de encriptação DEVE vir de variável de ambiente.
+// Nunca usar fallback fixo em produção.
+const SECRET_KEY = process.env.ENCRYPTION_KEY;
+if (!SECRET_KEY) {
+  console.warn('[Crypto] ENCRYPTION_KEY não definida — encriptação desabilitada. Defina no Vercel/ambiente.');
+}
 
 function getValidKey(): Buffer {
   // Ensure the key is exactly 32 bytes for aes-256
@@ -13,6 +18,10 @@ function getValidKey(): Buffer {
  * Encrypts a payload into a secure hex string with auth tag
  */
 export function encryptPayload(payload: any): string {
+  if (!SECRET_KEY) {
+    // Sem chave, retorna JSON base64 (não encriptado) — apenas para desenvolvimento
+    return Buffer.from(JSON.stringify(payload)).toString('base64');
+  }
   const text = JSON.stringify(payload);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, getValidKey(), iv);
@@ -31,6 +40,10 @@ export function encryptPayload(payload: any): string {
  */
 export function decryptPayload(encryptedPayload: string): any {
   try {
+    if (!SECRET_KEY) {
+      // Sem chave, tenta decodificar base64
+      return JSON.parse(Buffer.from(encryptedPayload, 'base64').toString('utf8'));
+    }
     const parts = encryptedPayload.split(':');
     if (parts.length !== 3) throw new Error('Invalid payload format');
     

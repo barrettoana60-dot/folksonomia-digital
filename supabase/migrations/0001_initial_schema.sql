@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS nucleos (
   metadados JSONB DEFAULT '{}',
   origem TEXT,
   assinatura_hash TEXT,
-  embedding VECTOR(384),
+  embedding VECTOR(768),
   status_validacao TEXT DEFAULT 'bruto', -- 'bruto', 'em_analise', 'validado', 'rejeitado', 'publicado'
   confianca NUMERIC DEFAULT 0,
   novidade NUMERIC DEFAULT 0,

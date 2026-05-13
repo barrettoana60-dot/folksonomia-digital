@@ -1,0 +1,17 @@
+# Render.com configuration
+services:
+  - type: web
+    name: folksonomia-ml-service
+    runtime: docker
+    dockerfilePath: ./ml-service/Dockerfile
+    dockerContext: ./ml-service
+    plan: free
+    envVars:
+      - key: ADMIN_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: MODEL_DIR
+        value: /app/models

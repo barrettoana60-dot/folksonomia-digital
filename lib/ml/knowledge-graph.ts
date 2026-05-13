@@ -142,29 +142,56 @@ export async function findByRelation(
 }
 
 // ============================================================
-// Inferência de Relações (Heurístico → RotatE futuro)
+// Inferência de Relações (RotatE via ML Service → Heurístico fallback)
 // ============================================================
 
 /**
- * Dado um par de entidades, infere relações possíveis
- * baseado na similaridade dos embeddings.
+ * Dado um par de entidades, infere relações possíveis.
+ * Tenta RotatE via ML Service primeiro, fallback para heurística.
  */
 export async function inferRelations(
   entityA: string,
   entityB: string
-): Promise<{ relation: MusealRelation; confidence: number }[]> {
-  const embA = (await createLocalEmbedding(entityA));
-  const embB = (await createLocalEmbedding(entityB));
+): Promise<{ relation: MusealRelation; confidence: number; source: string }[]> {
+  // 1. Tentar RotatE via ML Service
+  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  if (mlServiceUrl) {
+    try {
+      const res = await fetch(`${mlServiceUrl}/predict-relations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ head: entityA, tail: entityB }),
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.predictions?.length > 0) {
+          return data.predictions.map((p: any) => ({
+            relation: p.relation as MusealRelation,
+            confidence: p.score,
+            source: 'rotate_link_prediction'
+          }));
+        }
+      }
+    } catch {
+      // ML Service offline, usar fallback
+    }
+  }
+
+  // 2. Fallback heurístico (similaridade de embedding)
+  const embA = await createLocalEmbedding(entityA);
+  const embB = await createLocalEmbedding(entityB);
 
   const sim = cosineSimilarity(embA, embB);
-  const results: { relation: MusealRelation; confidence: number }[] = [];
+  const results: { relation: MusealRelation; confidence: number; source: string }[] = [];
 
   if (sim > 0.8) {
-    results.push({ relation: 'mesma_tecnica', confidence: sim * 0.9 });
-    results.push({ relation: 'mesmo_periodo', confidence: sim * 0.7 });
+    results.push({ relation: 'mesma_tecnica', confidence: sim * 0.9, source: 'heuristic_fallback' });
+    results.push({ relation: 'mesmo_periodo', confidence: sim * 0.7, source: 'heuristic_fallback' });
   } else if (sim > 0.5) {
-    results.push({ relation: 'related_to', confidence: sim });
-    results.push({ relation: 'influenciado_por', confidence: sim * 0.5 });
+    results.push({ relation: 'related_to', confidence: sim, source: 'heuristic_fallback' });
+    results.push({ relation: 'influenciado_por', confidence: sim * 0.5, source: 'heuristic_fallback' });
   }
 
   return results.sort((a, b) => b.confidence - a.confidence);

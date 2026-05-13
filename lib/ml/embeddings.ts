@@ -1,7 +1,18 @@
 /**
- * Motor de Embeddings Determinístico de 384 dimensões
- * Baseado em Hashing de Tokens para ambiente serverless sem dependências externas.
+ * Folksonomia Digital 2.0 — Motor de Embeddings
+ * 
+ * Dimensão padrão: 768 (compatível com ModernBERT-base)
+ * 
+ * Dois modos:
+ * 1. Hash Embedding (fallback local, sem dependências externas)
+ * 2. Semantic Embedding (via ML Service, ModernBERT-base + pooling)
  */
+
+// Dimensão padrão dos vetores — DEVE corresponder ao banco (VECTOR(768))
+export const EMBEDDING_DIMENSIONS = 768;
+
+// Tipo para embeddings padronizados
+export type EmbeddingVector = number[];
 
 export function normalizeText(text: string): string {
   if (!text) return '';
@@ -28,7 +39,7 @@ export function tokenize(text: string): string[] {
     bigrams.push(`${words[i]} ${words[i+1]}`);
   }
 
-  // 3. N-gramas de caracteres (trigramas) para similaridade ortográfica/n-gramas
+  // 3. N-gramas de caracteres (trigramas) para similaridade ortográfica
   const charNgrams: string[] = [];
   const clean = norm.replace(/\s/g, '');
   for (let i = 0; i < clean.length - 2; i++) {
@@ -40,13 +51,15 @@ export function tokenize(text: string): string[] {
 
 
 /**
- * Gera um vetor de 384 dimensões usando hashing de tokens.
+ * Gera um vetor de EMBEDDING_DIMENSIONS dimensões usando hashing de tokens.
  * Cada token "vota" em posições aleatórias (mas fixas por token) do vetor.
+ * 
+ * FALLBACK LOCAL: Não entende semântica. Usado quando o ML Service está offline.
+ * Para embeddings semânticos reais, use createSemanticEmbedding().
  */
-export async function createLocalEmbedding(text: string): Promise<number[]> {
+export async function createHashEmbedding(text: string): Promise<EmbeddingVector> {
   const tokens = tokenize(text);
-  const dimensions = 384;
-  const vector = new Array(dimensions).fill(0);
+  const vector = new Array(EMBEDDING_DIMENSIONS).fill(0);
   
   if (tokens.length === 0) return vector;
 
@@ -58,9 +71,9 @@ export async function createLocalEmbedding(text: string): Promise<number[]> {
       seed |= 0; // Convert to 32bit integer
     }
 
-    // Cada token afeta N dimensões (ex: 8)
-    for (let i = 0; i < 8; i++) {
-      const pos = Math.abs((seed ^ (i * 0x517cc1b7)) % dimensions);
+    // Cada token afeta N dimensões (ex: 12 para melhor distribuição em 768d)
+    for (let i = 0; i < 12; i++) {
+      const pos = Math.abs((seed ^ (i * 0x517cc1b7)) % EMBEDDING_DIMENSIONS);
       const weight = (seed ^ (i * 0x9e3779b9)) > 0 ? 1 : -1;
       vector[pos] += weight;
     }
@@ -73,22 +86,68 @@ export async function createLocalEmbedding(text: string): Promise<number[]> {
   return vector.map(v => v / magnitude);
 }
 
-export function cosineSimilarity(a: number[], b: number[]): number {
+/**
+ * Gera embedding semântico real via ML Service (ModernBERT-base + pooling).
+ * Retorna vetor de 768 dimensões com compreensão contextual.
+ * 
+ * Se o ML Service estiver offline, faz fallback para hash embedding.
+ */
+export async function createSemanticEmbedding(text: string): Promise<{
+  vector: EmbeddingVector;
+  source: 'ml_service' | 'hash_fallback';
+}> {
+  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  
+  if (mlServiceUrl) {
+    try {
+      const res = await fetch(`${mlServiceUrl}/embed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data.embedding && data.embedding.length === EMBEDDING_DIMENSIONS) {
+          return { vector: data.embedding, source: 'ml_service' };
+        }
+      }
+    } catch {
+      console.warn('[Embeddings] ML Service offline, usando hash fallback');
+    }
+  }
+
+  return { 
+    vector: await createHashEmbedding(text), 
+    source: 'hash_fallback' 
+  };
+}
+
+/**
+ * Wrapper principal — tenta semântico, fallback para hash.
+ * Compatível com chamadas existentes.
+ */
+export async function createLocalEmbedding(text: string): Promise<EmbeddingVector> {
+  const { vector } = await createSemanticEmbedding(text);
+  return vector;
+}
+
+export function cosineSimilarity(a: EmbeddingVector, b: EmbeddingVector): number {
   if (a.length !== b.length) return 0;
   let dotProduct = 0;
   for (let i = 0; i < a.length; i++) {
     dotProduct += a[i] * b[i];
   }
-  return dotProduct; // Como são vetores unitários, o dot product é a similaridade de cosseno
+  return dotProduct; // Vetores unitários → dot product = cosseno
 }
 
-export async function createCombinedEmbedding(values: string[]): Promise<number[]> {
+export async function createCombinedEmbedding(values: string[]): Promise<EmbeddingVector> {
   const vectors = await Promise.all(values.map(v => createLocalEmbedding(v)));
-  const dimensions = 384;
-  const combined = new Array(dimensions).fill(0);
+  const combined = new Array(EMBEDDING_DIMENSIONS).fill(0);
   
   for (const vec of vectors) {
-    for (let i = 0; i < dimensions; i++) {
+    for (let i = 0; i < EMBEDDING_DIMENSIONS; i++) {
       combined[i] += vec[i];
     }
   }

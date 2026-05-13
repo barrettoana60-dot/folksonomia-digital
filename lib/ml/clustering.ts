@@ -75,20 +75,51 @@ const THEME_GROUPS: Omit<ThemeGroup, 'centroid'>[] = [
  * 
  * @returns MultiMembership com peso de 0-1 por grupo
  */
-export function calculateMultiMembership(
+export async function calculateMultiMembership(
   tagText: string,
   tagVector: number[]
-): MultiMembership {
+): Promise<MultiMembership> {
   const normalizedTag = tagText.toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9 ]/g, ' ')
     .trim();
 
+  // 1. Tentar GAT via ML Service
+  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  if (mlServiceUrl && tagVector.length > 0) {
+    try {
+      const res = await fetch(`${mlServiceUrl}/predict-communities`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ embedding: tagVector }),
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.communities?.length > 0) {
+          return {
+            entityId: normalizedTag,
+            memberships: data.communities.map((c: any) => ({
+              groupId: c.community_id,
+              groupName: c.community_name,
+              weight: Math.round(c.weight * 100) / 100,
+              contextRelevance: buildContextRelevance(c.community_id, c.weight),
+              source: 'gat_clustering'
+            }))
+          };
+        }
+      }
+    } catch {
+      // ML Service offline, usar fallback heurístico
+    }
+  }
+
+  // 2. Fallback heurístico (keyword matching + sigmoid)
   const memberships: GroupMembership[] = [];
 
   for (const group of THEME_GROUPS) {
-    // Calcular score por correspondência de keywords
     let keywordScore = 0;
     const tagWords = normalizedTag.split(' ');
 
@@ -100,11 +131,9 @@ export function calculateMultiMembership(
       }
     }
 
-    // Normalizar score (sigmoid-like: mapear para 0-1)
     const rawScore = keywordScore / Math.max(group.keywords.length * 0.3, 1);
-    const weight = sigmoid(rawScore * 3 - 1.5);  // Ajuste do threshold
+    const weight = sigmoid(rawScore * 3 - 1.5);
 
-    // Incluir apenas se peso > 0.15 (permitir sobreposição)
     if (weight > 0.15) {
       memberships.push({
         groupId: group.id,
@@ -115,7 +144,6 @@ export function calculateMultiMembership(
     }
   }
 
-  // Ordenar por peso decrescente
   memberships.sort((a, b) => b.weight - a.weight);
 
   return {

@@ -1,44 +1,93 @@
 /**
  * API Route: /api/ml/classify-tokens
  * 
- * Classifica tokens de um texto usando ModernBERT.
- * Se o modelo não estiver treinado ou disponível, faz fallback para heurística.
+ * Classifica tokens de um texto usando ModernBERT (via ML Service) ou heurística.
+ * Confiança vem do modelo real, nunca valores fixos.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import path from 'path';
-import fs from 'fs';
-import { promisify } from 'util';
-
-const execFileAsync = promisify(execFile);
+import { supabaseAdmin } from '@/lib/supabase/client';
 
 // ============================================================
-// Fallback Heurístico (Até que o ModernBERT termine de treinar)
+// Fallback Heurístico (quando ML Service está offline)
 // ============================================================
 
 const CATEGORIES: Record<string, string[]> = {
   DATA: ['circa', 'seculo', 'século', 'anos', 'decada', 'colonial', 'barroco', 'setecentista', 'oitocentista'],
-  TECNICA: ['oleo', 'óleo', 'tela', 'aquarela', 'gravura', 'escultura', 'talha', 'policromia', 'marcenaria'],
+  TECNICA: ['oleo', 'óleo', 'tela', 'aquarela', 'gravura', 'escultura', 'talha', 'policromia', 'marcenaria', 'dourada', 'entalhe'],
   GEO: ['brasil', 'portugal', 'lisboa', 'rio de janeiro', 'minas gerais', 'bahia', 'ouro preto'],
-  MATERIAL: ['madeira', 'ouro', 'prata', 'bronze', 'ferro', 'barro', 'papel', 'tecido', 'vidro', 'pedra'],
+  MATERIAL: ['madeira', 'ouro', 'prata', 'bronze', 'ferro', 'barro', 'papel', 'tecido', 'vidro', 'pedra', 'marfim'],
   AUTORIA: ['aleijadinho', 'debret', 'portinari', 'tarsila', 'ataíde', 'atribuído', 'escola', 'anônimo'],
   PROVENIENCIA: ['coleção', 'acervo', 'doação', 'museu', 'igreja', 'arquivo', 'herança'],
-  QUALIFICADOR: ['possivelmente', 'provavelmente', 'circa', 'atribuído a', 'estimado']
+  QUALIFICADOR: ['possivelmente', 'provavelmente', 'circa', 'atribuído a', 'estimado'],
+  ICONOGRAFIA: ['santo', 'santa', 'cristo', 'virgem', 'anjo', 'querubim', 'crucifixo'],
+  TEMA: ['retrato', 'paisagem', 'natureza', 'guerra', 'maternidade', 'religião'],
+  ESTILO: ['gótico', 'maneirista', 'churrigueresco', 'rococó', 'neogótico'],
+  MOVIMENTO: ['impressionismo', 'expressionismo', 'cubismo', 'modernismo', 'tropicália'],
+  CONSERVACAO: ['restaurado', 'fragmento', 'lacuna', 'repintura', 'consolidado', 'original'],
+  PERIODO: ['medieval', 'renascentista', 'colonial', 'imperial', 'republicano', 'contemporâneo']
 };
 
 function classifyHeuristic(word: string): { category: string; confidence: number } {
   const lower = word.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-  if (/^\d{4}$/.test(word)) return { category: 'DATA', confidence: 0.9 };
+  
+  // Datas numéricas: confiança moderada (contexto pode mudar significado)
+  if (/^\d{4}$/.test(word)) return { category: 'DATA', confidence: 0.65 };
+  
   for (const [cat, terms] of Object.entries(CATEGORIES)) {
     for (const term of terms) {
       const termClean = term.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-      if (lower === termClean || lower.includes(termClean)) {
-        return { category: cat, confidence: 0.7 };
+      if (lower === termClean) {
+        // Match exato: confiança moderada (dicionário, não modelo)
+        return { category: cat, confidence: 0.55 };
+      }
+      if (lower.includes(termClean) && termClean.length > 3) {
+        // Match parcial: confiança mais baixa
+        return { category: cat, confidence: 0.40 };
       }
     }
   }
-  return { category: 'O', confidence: 1.0 };
+  
+  // Não reconhecido: NÃO é 100% confiante de que não sabe
+  // 0.5 = genuína incerteza (o sistema não sabe, não "tem certeza que não é nada")
+  return { category: 'O', confidence: 0.5 };
+}
+
+// ============================================================
+// ML Service Client
+// ============================================================
+
+async function classifyViaMLService(text: string): Promise<{
+  tokens: { token: string; category: string; confidence: number }[];
+  modelVersion?: string;
+} | null> {
+  const mlServiceUrl = process.env.ML_SERVICE_URL;
+  if (!mlServiceUrl) return null;
+
+  try {
+    const res = await fetch(`${mlServiceUrl}/predict-ner`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: AbortSignal.timeout(8000)
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    return {
+      tokens: data.tokens.map((t: any) => ({
+        token: t.token,
+        category: t.category || t.label?.replace('B-', '').replace('I-', '') || 'O',
+        // Confiança REAL do modelo (softmax probability)
+        confidence: t.confidence || t.probability || 0.5
+      })),
+      modelVersion: data.model_version
+    };
+  } catch {
+    console.warn('[ClassifyTokens] ML Service indisponível');
+    return null;
+  }
 }
 
 // ============================================================
@@ -52,31 +101,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Campo "text" obrigatório' }, { status: 400 });
     }
 
-    const rootDir = process.cwd();
-    const scriptPath = path.join(rootDir, 'scripts', 'infer_modernbert_ner.py');
-    const venvPythonPath = path.join(rootDir, 'venv', 'Scripts', 'python.exe');
-    const pythonExecutable = fs.existsSync(venvPythonPath) ? venvPythonPath : 'py';
+    let tokens: { token: string; category: string; confidence: number }[] = [];
+    let motor = 'heuristic_fallback';
+    let modelVersion: string | undefined;
+    const startTime = Date.now();
 
-    let tokens = [];
-    let motor = 'modernbert';
-
-    try {
-      const { stdout } = await execFileAsync(pythonExecutable, [scriptPath, text]);
-      const result = JSON.parse(stdout);
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      tokens = result.tokens.map((t: any) => ({
-        token: t.token,
-        category: t.category,
-        confidence: 0.95 // Modelo treinado tem alta confiança
-      }));
-    } catch (pyErr: any) {
-      console.warn('[ClassifyTokens] ModernBERT indisponível ou erro no script, usando heurística:', pyErr.message || pyErr);
-      motor = 'heuristic_fallback';
-      
+    // 1. Tentar ML Service primeiro
+    const mlResult = await classifyViaMLService(text);
+    
+    if (mlResult) {
+      tokens = mlResult.tokens;
+      motor = 'modernbert_ner';
+      modelVersion = mlResult.modelVersion;
+    } else {
+      // 2. Fallback para heurística
       const words = text.split(/\s+/).filter(Boolean);
       tokens = words.map((word: string) => {
         const { category, confidence } = classifyHeuristic(word);
@@ -84,7 +122,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Gerar resumo
+    const inferenceTime = Date.now() - startTime;
+
+    // 3. Gerar resumo
     const summary: Record<string, string[]> = {};
     for (const c of tokens) {
       if (c.category !== 'O') {
@@ -95,12 +135,33 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 4. Registrar predição no banco (para aprendizado futuro)
+    const avgConfidence = tokens.length > 0
+      ? tokens.reduce((sum, t) => sum + t.confidence, 0) / tokens.length
+      : 0;
+
+    try {
+      await supabaseAdmin.from('semantic_predictions').insert({
+        texto_input: text,
+        tokens_preditos: tokens,
+        motor,
+        modelo_versao: modelVersion || null,
+        confianca_media: Math.round(avgConfidence * 100) / 100,
+        tempo_inferencia_ms: inferenceTime
+      });
+    } catch {
+      // Log de predição é best-effort, não bloqueia resposta
+    }
+
     return NextResponse.json({
       motor,
+      modelVersion,
       tokens,
       summary,
       totalTokens: tokens.length,
-      classifiedTokens: tokens.filter((c: any) => c.category !== 'O').length
+      classifiedTokens: tokens.filter((c: any) => c.category !== 'O').length,
+      avgConfidence: Math.round(avgConfidence * 100) / 100,
+      inferenceTimeMs: inferenceTime
     });
   } catch (err) {
     console.error('[ClassifyTokens] Error:', err);

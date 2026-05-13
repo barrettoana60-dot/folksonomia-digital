@@ -25,7 +25,7 @@ CREATE TABLE nucleos (
   conteudo_normalizado TEXT NOT NULL,
   origem TEXT NOT NULL, -- 'interface_publica', 'importacao', etc.
   assinatura_hash TEXT, -- Hash criptográfico gerado no momento do envio
-  embedding VECTOR(384), -- Vetor gerado pelo @xenova/transformers (all-MiniLM-L6-v2)
+  embedding VECTOR(768), -- Vetor gerado pelo ModernBERT-base (768d)
   status_validacao TEXT DEFAULT 'bruto', -- 'bruto', 'em_revisao', 'validado', 'rejeitado', 'publicado'
   confianca NUMERIC DEFAULT 0,
   novidade NUMERIC DEFAULT 0,
@@ -120,7 +120,7 @@ ALTER TABLE eventos DISABLE ROW LEVEL SECURITY;
 
 -- 8. Função de Busca de Similaridade Semântica (Cosine Distance via pgvector)
 CREATE OR REPLACE FUNCTION match_nucleos (
-  query_embedding vector(384),
+  query_embedding vector(768),
   match_threshold float,
   match_count int
 )

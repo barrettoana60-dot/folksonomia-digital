@@ -4,10 +4,13 @@
  * Coleta registros da Europeana e IBRAM e os transforma em
  * dados de treinamento rotulados para NER (Named Entity Recognition).
  * 
- * Labels:
+ * Labels (expandidas):
  *   B-DATA / I-DATA, B-TECNICA / I-TECNICA, B-GEO / I-GEO,
  *   B-MATERIAL / I-MATERIAL, B-AUTORIA / I-AUTORIA,
- *   B-PROVENIENCIA / I-PROVENIENCIA, B-QUALIFICADOR / I-QUALIFICADOR, O
+ *   B-PROVENIENCIA / I-PROVENIENCIA, B-QUALIFICADOR / I-QUALIFICADOR,
+ *   B-ICONOGRAFIA / I-ICONOGRAFIA, B-TEMA / I-TEMA,
+ *   B-ESTILO / I-ESTILO, B-MOVIMENTO / I-MOVIMENTO,
+ *   B-CONSERVACAO / I-CONSERVACAO, B-PERIODO / I-PERIODO, O
  */
 
 import { EuropeanaConnector, EuropeanaRecord } from '../connectors/europeana';
@@ -27,6 +30,12 @@ interface NERSample {
   source: string;
   text: string;
   tokens: NERToken[];
+  contexto?: {
+    tipo?: string;       // 'arte sacra', 'mobiliário', etc.
+    periodo?: string;    // 'século XVIII'
+    obra?: string;       // nome da obra
+    museu?: string;      // museu de origem
+  };
 }
 
 // ============================================================
@@ -91,6 +100,41 @@ const DICTIONARY = {
     'possivelmente', 'provavelmente', 'talvez', 'circa', 'aproximadamente',
     'atribuído a', 'atribuido a', 'possível', 'possivel', 'provável', 'provavel',
     'estimado', 'presumido', 'suposto', 'hipotético', 'hipotetico'
+  ],
+  ICONOGRAFIA: [
+    'santo', 'santa', 'cristo', 'jesus', 'virgem', 'maria', 'nossa senhora',
+    'são josé', 'são francisco', 'são pedro', 'são paulo', 'são sebastião',
+    'anjo', 'querubim', 'serafim', 'arcanjo', 'crucifixo', 'pietà', 'pieta',
+    'natividade', 'assunção', 'coroação', 'anunciação', 'adoração',
+    'ex-voto', 'relicário', 'oratório', 'imagem de roca'
+  ],
+  TEMA: [
+    'retrato', 'paisagem', 'natureza morta', 'cena de gênero', 'alegoria',
+    'mitologia', 'história', 'religioso', 'profano', 'decorativo',
+    'cotidiano', 'guerra', 'festa', 'trabalho', 'escravidão'
+  ],
+  ESTILO: [
+    'gótico', 'renascentista', 'maneirista', 'churrigueresco',
+    'pombalino', 'joanino', 'rocaille', 'neogótico', 'neoclássico',
+    'eclético', 'art déco', 'art nouveau'
+  ],
+  MOVIMENTO: [
+    'impressionismo', 'expressionismo', 'cubismo', 'surrealismo',
+    'abstracionismo', 'concretismo', 'neoconcretismo',
+    'modernismo', 'tropicália', 'arte povera', 'minimalismo',
+    'semana de 22', 'grupo santa helena', 'pau-brasil'
+  ],
+  CONSERVACAO: [
+    'restaurado', 'restauração', 'consolidado', 'consolidação',
+    'fragmento', 'fragmentado', 'lacuna', 'fissura', 'craquelado',
+    'repintura', 'retoque', 'limpeza', 'verniz', 'patina', 'pátina',
+    'original', 'íntegro', 'deteriorado', 'atacado', 'infestação'
+  ],
+  PERIODO: [
+    'pré-colombiano', 'medieval', 'renascimento', 'maneirismo',
+    'barroco', 'rococó', 'neoclassicismo', 'romantismo',
+    'realismo', 'belle époque', 'era vargas', 'ditadura',
+    'redemocratização', 'contemporâneo'
   ]
 };
 

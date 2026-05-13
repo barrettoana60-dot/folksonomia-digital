@@ -1,49 +1,132 @@
+/**
+ * API Route: /api/ml/train-model
+ * 
+ * Dispara treinamento do ModernBERT via ML Service externo (Render).
+ * NÃO executa Python localmente (incompatível com Vercel).
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { spawn } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+import { requireAdmin } from '@/lib/core/auth-guard';
 import { collectTrainingData, exportToHuggingFace } from '@/lib/ml/training-data-collector';
+import { supabaseAdmin } from '@/lib/supabase/client';
 
 export async function POST(req: NextRequest) {
+  // Requer autenticação admin
+  const authError = await requireAdmin(req);
+  if (authError) return authError;
+
   try {
-    const authHeader = req.headers.get('authorization');
-    if (process.env.ADMIN_SECRET && authHeader !== `Bearer ${process.env.ADMIN_SECRET}`) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    const mlServiceUrl = process.env.ML_SERVICE_URL;
+
+    // 1. Gerar dados de treinamento (Europeana + IBRAM)
+    console.log('[TrainModelAPI] Coletando dados para treinamento...');
+    const result = await collectTrainingData(50, 20);
+    
+    // 2. Registrar training run no banco
+    const { data: runRecord } = await supabaseAdmin
+      .from('training_runs')
+      .insert({
+        nome_modelo: 'modernbert_ner',
+        status: 'iniciado',
+        dataset_exemplos: result.samples.length,
+        dataset_split: { train: 80, eval: 20 },
+        disparado_por: 'api'
+      })
+      .select()
+      .single();
+
+    // 3. Salvar exemplos no banco para persistência
+    try {
+      for (const sample of result.samples.slice(0, 100)) {
+        await supabaseAdmin.from('semantic_training_examples').insert({
+          texto: sample.text,
+          tokens: sample.tokens.map(t => t.token),
+          labels: sample.tokens.map(t => t.label),
+          contexto: sample.contexto || {},
+          fonte: sample.source,
+          fonte_id: sample.id,
+          qualidade: 'auto'
+        });
+      }
+    } catch (err) {
+      console.warn('[TrainModelAPI] Falha ao persistir exemplos:', err);
     }
 
-    // 1. Gerar os dados de treinamento (Europeana + IBRAM)
-    console.log('[TrainModelAPI] Coletando dados para treinamento...');
-    const result = await collectTrainingData(50, 20); // Pode demorar alguns segundos
+    // 4. Enviar para ML Service (se disponível)
+    if (mlServiceUrl) {
+      try {
+        const jsonlData = exportToHuggingFace(result.samples);
+        
+        const trainRes = await fetch(`${mlServiceUrl}/train`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.ADMIN_SECRET || ''}`
+          },
+          body: JSON.stringify({
+            dataset_jsonl: jsonlData,
+            model_name: 'modernbert_ner',
+            run_id: runRecord?.id,
+            config: {
+              epochs: 5,
+              batch_size: 8,
+              learning_rate: 3e-5
+            }
+          }),
+          signal: AbortSignal.timeout(15000)
+        });
+
+        if (trainRes.ok) {
+          const trainData = await trainRes.json();
+          
+          // Atualizar status do run
+          if (runRecord?.id) {
+            await supabaseAdmin
+              .from('training_runs')
+              .update({ status: 'treinando' })
+              .eq('id', runRecord.id);
+          }
+
+          return NextResponse.json({
+            success: true,
+            message: 'Treinamento enviado ao ML Service (Render)',
+            method: 'ml_service',
+            stats: result.stats,
+            run_id: runRecord?.id,
+            ml_response: trainData
+          });
+        } else {
+          console.warn('[TrainModelAPI] ML Service rejeitou:', trainRes.status);
+        }
+      } catch (err) {
+        console.warn('[TrainModelAPI] ML Service indisponível:', err);
+      }
+    }
+
+    // 5. Fallback: salvar dataset localmente para treinamento manual
     const jsonlData = exportToHuggingFace(result.samples);
-
-    // 2. Salvar no arquivo local que o script Python vai ler
-    const rootDir = process.cwd();
-    const datasetPath = path.join(rootDir, 'folksonomia-ner-dataset.jsonl');
-    fs.writeFileSync(datasetPath, jsonlData, 'utf-8');
-    console.log(`[TrainModelAPI] Dataset salvo em ${datasetPath} com ${result.samples.length} amostras.`);
-
-    // 3. Executar o script Python para fine-tuning do ModernBERT
-    const scriptPath = path.join(rootDir, 'scripts', 'train_modernbert_ner.py');
-    const venvPythonPath = path.join(rootDir, 'venv', 'Scripts', 'python.exe');
     
-    // Verificar se o venv existe, senao usar 'py' global
-    const pythonExecutable = fs.existsSync(venvPythonPath) ? venvPythonPath : 'py';
-
-    console.log(`[TrainModelAPI] Iniciando treinamento via ${pythonExecutable} ${scriptPath}...`);
-
-    const pyProcess = spawn(pythonExecutable, [scriptPath], {
-      cwd: rootDir,
-      detached: true, // Roda em background mesmo se o request finalizar
-      stdio: 'ignore' // Ignora logs no console do Next.js (em produção você salvaria num arquivo)
-    });
-
-    // Permite que o processo do Node.js não espere pelo processo Python
-    pyProcess.unref();
+    // Atualizar status
+    if (runRecord?.id) {
+      await supabaseAdmin
+        .from('training_runs')
+        .update({ 
+          status: 'dataset_pronto',
+          metricas_treino: { 
+            message: 'Dataset gerado. ML Service offline. Treine manualmente via Colab.',
+            dataset_size: result.samples.length
+          }
+        })
+        .eq('id', runRecord.id);
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Treinamento do ModernBERT iniciado em background no servidor',
-      stats: result.stats
+      message: 'Dataset gerado. ML Service offline — treine via Google Colab.',
+      method: 'dataset_only',
+      stats: result.stats,
+      run_id: runRecord?.id,
+      dataset_preview: jsonlData.split('\n').slice(0, 3)
     });
   } catch (err) {
     console.error('[TrainModelAPI] Error:', err);

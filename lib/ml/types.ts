@@ -19,7 +19,13 @@ export type TokenCategory =
   | 'MATERIAL' 
   | 'AUTORIA' 
   | 'PROVENIENCIA'
-  | 'QUALIFICADOR';
+  | 'QUALIFICADOR'
+  | 'ICONOGRAFIA'
+  | 'TEMA'
+  | 'ESTILO'
+  | 'MOVIMENTO'
+  | 'CONSERVACAO'
+  | 'PERIODO';
 
 export type FieldQualifier = 'verified' | 'estimated' | 'empty';
 
@@ -63,7 +69,7 @@ export interface KnowledgeTriple {
   head: string;
   relation: MusealRelation;
   tail: string;
-  headEmbedding?: number[];    // vetor 256d
+  headEmbedding?: number[];    // vetor 768d (ModernBERT-base)
   tailEmbedding?: number[];
   relationEmbedding?: number[];
   confidence: number;          // 0-1
@@ -130,7 +136,7 @@ export interface FactualLayer {
 export interface InferredLayer {
   relations: InferredRelation[];
   clusters: MultiMembership;
-  embedding: number[];         // vetor 256d do RotatE
+  embedding: number[];         // vetor 768d (ModernBERT-base)
 }
 
 export interface ValidatedLayer {
