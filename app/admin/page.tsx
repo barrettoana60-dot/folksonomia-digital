@@ -49,6 +49,10 @@ export default function AdminPage() {
   const [selectedTagForAnalysis, setSelectedTagForAnalysis] = useState<string | null>(null);
   const [isAnalyzingTag, setIsAnalyzingTag] = useState(false);
 
+  // ML Service Health
+  const [mlHealth, setMlHealth] = useState<any>(null);
+  const [mlChecking, setMlChecking] = useState(true);
+
   const handleTagAnalysis = async (tagText: string) => {
     setSelectedTagForAnalysis(tagText);
     setIsAnalyzingTag(true);
@@ -110,6 +114,27 @@ export default function AdminPage() {
   useEffect(() => {
     const interval = setInterval(fetchDashboard, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Verificar saúde do ML Service
+  useEffect(() => {
+    const checkML = async () => {
+      setMlChecking(true);
+      try {
+        const res = await fetch('/api/ml/status', { signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+          const json = await res.json();
+          setMlHealth(json);
+        } else {
+          setMlHealth(null);
+        }
+      } catch {
+        setMlHealth(null);
+      } finally {
+        setMlChecking(false);
+      }
+    };
+    checkML();
   }, []);
 
   const handleAddObra = async (e: React.FormEvent) => {
@@ -637,19 +662,161 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* STATUS DOS MOTORES */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="glass-card p-4 flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <div><p className="text-xs font-bold">ModernBERT (NER)</p><p className="text-[9px] text-white/40 uppercase tracking-widest">Classificação de tokens e extração de entidades do vocabulário museal</p></div>
+                {/* STATUS DOS MOTORES — PIPELINE ML COMPLETO */}
+                <div className="glass-card p-8 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold uppercase tracking-widest text-white">Pipeline de Inteligência Semântica</h3>
+                      <p className="text-[9px] text-white/30 uppercase tracking-widest mt-1">ModernBERT · RotatE · GAT · pgvector · Calibração Multi-Fator</p>
+                    </div>
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold ${
+                      mlChecking ? 'border-white/10 text-white/30' :
+                      mlHealth ? 'border-green-500/30 bg-green-500/10 text-green-400' : 
+                      'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        mlChecking ? 'bg-white/20' :
+                        mlHealth ? 'bg-green-400 animate-pulse' : 'bg-amber-400'
+                      }`} />
+                      {mlChecking ? 'Verificando...' : mlHealth ? 'ML Service Online' : 'Fallback Heurístico'}
+                    </div>
                   </div>
-                  <div className="glass-card p-4 flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <div><p className="text-xs font-bold">RotatE (KG)</p><p className="text-[9px] text-white/40 uppercase tracking-widest">Inferência de relações no espaço complexo entre entidades</p></div>
+
+                  {/* 5 Motores principais */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[
+                      {
+                        key: 'tokenClassifier',
+                        name: 'Token Classifier',
+                        engine: mlHealth ? 'modernbert_ner' : 'heuristic_fallback',
+                        real: !!mlHealth,
+                        icon: '🧠',
+                        desc: 'Extração de entidades museológicas por token',
+                        categories: ['MATERIAL', 'TECNICA', 'AUTORIA', 'DATA', 'PERIODO', 'LUGAR', 'ICONOGRAFIA', 'TEMA', 'ESTILO'],
+                        how: mlHealth
+                          ? 'ModernBERT fine-tuned em corpus museológico — até 8192 tokens de contexto'
+                          : 'Dicionário léxico → sem compreensão de contexto'
+                      },
+                      {
+                        key: 'knowledgeGraph',
+                        name: 'Knowledge Graph',
+                        engine: mlHealth ? 'rotate_link_prediction' : 'heuristic_fallback',
+                        real: !!mlHealth,
+                        icon: '🕸️',
+                        desc: 'Previsão de links entre entidades no grafo',
+                        categories: ['obra→material', 'obra→técnica', 'obra→contexto', 'técnica→período'],
+                        how: mlHealth
+                          ? 'RotatE — relações no espaço complexo: obra→tem_material→madeira'
+                          : 'Regras fixas → sem inferência de novas relações'
+                      },
+                      {
+                        key: 'communities',
+                        name: 'Community Detection',
+                        engine: mlHealth ? 'gat_clustering' : 'heuristic_fallback',
+                        real: !!mlHealth,
+                        icon: '🔵',
+                        desc: 'Agrupamento com multi-membership fluido',
+                        categories: ['Arte Sacra', 'Barroco', 'Colonial', 'Arte Moderna'],
+                        how: mlHealth
+                          ? 'GAT — atenção sobre vizinhança do grafo, fronteiras fluidas'
+                          : 'Grupos fixos → sem sobreposição temática'
+                      },
+                      {
+                        key: 'semanticMemory',
+                        name: 'Memória Semântica',
+                        engine: mlHealth ? 'pgvector_768d' : 'hash_384d',
+                        real: !!mlHealth,
+                        icon: '💾',
+                        desc: 'Embeddings vetoriais para similaridade semântica',
+                        categories: ['"talha dourada" ≈ "entalhe dourado"', '"madeira" ≈ "material lenhoso"'],
+                        how: mlHealth
+                          ? 'ModernBERT-base → 768d + pgvector → similarity search real'
+                          : 'Hash de tokens → 384d → sem compreensão de significado'
+                      },
+                      {
+                        key: 'confidence',
+                        name: 'Calibração de Confiança',
+                        engine: 'calibrated_multifactor',
+                        real: true,
+                        icon: '📊',
+                        desc: 'Confiança multi-fatorial, não valor fixo',
+                        categories: ['prob. modelo', 'similaridade vetorial', 'fontes cruzadas', 'validação humana', 'ambiguidade'],
+                        how: 'P(correto) = f(modelo, evidência externa, memória, validação anterior, baixa ambiguidade)'
+                      },
+                      {
+                        key: 'activeLearning',
+                        name: 'Aprendizado Ativo',
+                        engine: 'active_learning_loop',
+                        real: true,
+                        icon: '🔄',
+                        desc: 'Termos desconhecidos → hipótese → validação → memória',
+                        categories: ['1. Registra em unknown_terms', '2. Busca fontes externas', '3. Gera hipótese', '4. Curadora valida', '5. Vira memória'],
+                        how: 'Europeana + Ibram/Tainacan + Brasiliana → evidências → dataset → re-treino'
+                      }
+                    ].map((motor) => (
+                      <div key={motor.key} className={`p-5 rounded-2xl border transition-all ${
+                        motor.real
+                          ? 'border-green-500/20 bg-green-500/5'
+                          : 'border-amber-500/20 bg-amber-500/5'
+                      }`}>
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{motor.icon}</span>
+                            <div>
+                              <p className="text-xs font-bold text-white uppercase tracking-wider">{motor.name}</p>
+                              <p className={`text-[10px] font-mono font-bold ${
+                                motor.real ? 'text-green-400' : 'text-amber-400'
+                              }`}>{motor.engine}</p>
+                            </div>
+                          </div>
+                          <div className={`w-2 h-2 rounded-full mt-1 flex-shrink-0 ${
+                            motor.real ? 'bg-green-400 animate-pulse' : 'bg-amber-400'
+                          }`} />
+                        </div>
+                        <p className="text-[10px] text-white/50 mb-3 leading-relaxed">{motor.desc}</p>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {motor.categories.slice(0, 4).map((c) => (
+                            <span key={c} className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
+                              motor.real
+                                ? 'bg-green-500/10 text-green-300/80'
+                                : 'bg-amber-500/10 text-amber-300/80'
+                            }`}>{c}</span>
+                          ))}
+                          {motor.categories.length > 4 && (
+                            <span className="text-[8px] text-white/20">+{motor.categories.length - 4}</span>
+                          )}
+                        </div>
+                        <p className="text-[9px] text-white/25 italic leading-relaxed border-t border-white/5 pt-2">{motor.how}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div className="glass-card p-4 flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <div><p className="text-xs font-bold">GAT (Clustering)</p><p className="text-[9px] text-white/40 uppercase tracking-widest">Resolução de fronteiras fluidas e multi-membership em grupos temáticos</p></div>
+
+                  {/* Fluxo do pipeline */}
+                  <div className="border-t border-white/5 pt-4">
+                    <p className="text-[9px] uppercase tracking-widest text-white/20 mb-3">Fluxo: tag submetida → processamento → resposta calibrada</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {[
+                        { label: 'Tag', color: 'bg-[#E85002]/20 text-[#E85002] border-[#E85002]/30' },
+                        { label: '→' },
+                        { label: 'NER (ModernBERT)', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+                        { label: '→' },
+                        { label: 'Busca Interna + Fontes', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
+                        { label: '→' },
+                        { label: 'Grafo (RotatE)', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
+                        { label: '→' },
+                        { label: 'Clustering (GAT)', color: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+                        { label: '→' },
+                        { label: 'Calibração', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
+                        { label: '→' },
+                        { label: 'Resposta', color: 'bg-white/10 text-white border-white/20' },
+                      ].map((step, i) => (
+                        step.color ? (
+                          <span key={i} className={`px-2 py-1 rounded-lg border text-[9px] font-bold ${step.color}`}>{step.label}</span>
+                        ) : (
+                          <span key={i} className="text-white/20 text-xs">{step.label}</span>
+                        )
+                      ))}
+                    </div>
                   </div>
                 </div>
 
