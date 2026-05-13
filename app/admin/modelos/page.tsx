@@ -5,28 +5,29 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
+async function safeQuery(table: string, select: string, opts?: { order?: string; limit?: number }) {
+  try {
+    let q = supabaseAdmin.from(table).select(select);
+    if (opts?.order) q = q.order(opts.order, { ascending: false });
+    if (opts?.limit) q = q.limit(opts.limit);
+    const { data, error } = await q;
+    if (error) return [];
+    return data || [];
+  } catch { return []; }
+}
+
 async function getModelData() {
-  const [versions, runs, predictions, feedback, memory, unknowns, evidence, examples] = await Promise.all([
-    supabaseAdmin.from('model_versions').select('*').order('created_at', { ascending: false }).limit(10).catch(() => ({ data: [] })),
-    supabaseAdmin.from('training_runs').select('*').order('created_at', { ascending: false }).limit(10).catch(() => ({ data: [] })),
-    supabaseAdmin.from('semantic_predictions').select('id, motor, categoria_predita, confianca_calibrada, created_at').order('created_at', { ascending: false }).limit(50).catch(() => ({ data: [] })),
-    supabaseAdmin.from('semantic_feedback').select('*').order('created_at', { ascending: false }).limit(50).catch(() => ({ data: [] })),
-    supabaseAdmin.from('semantic_memory').select('*').order('created_at', { ascending: false }).limit(50).catch(() => ({ data: [] })),
-    supabaseAdmin.from('unknown_terms').select('*').order('created_at', { ascending: false }).limit(30).catch(() => ({ data: [] })),
-    supabaseAdmin.from('cross_source_evidence').select('*').order('created_at', { ascending: false }).limit(50).catch(() => ({ data: [] })),
-    supabaseAdmin.from('semantic_training_examples').select('id, texto, created_at').limit(1).catch(() => ({ data: [], count: 0 }))
+  const [versions, runs, predictions, feedback, memory, unknowns, evidence] = await Promise.all([
+    safeQuery('model_versions', '*', { order: 'created_at', limit: 10 }),
+    safeQuery('training_runs', '*', { order: 'created_at', limit: 10 }),
+    safeQuery('semantic_predictions', 'id, motor, categoria_predita, confianca_calibrada, created_at', { order: 'created_at', limit: 50 }),
+    safeQuery('semantic_feedback', '*', { order: 'created_at', limit: 50 }),
+    safeQuery('semantic_memory', '*', { order: 'created_at', limit: 50 }),
+    safeQuery('unknown_terms', '*', { order: 'created_at', limit: 30 }),
+    safeQuery('cross_source_evidence', '*', { order: 'created_at', limit: 50 })
   ]);
 
-  return {
-    versions: (versions as any).data || [],
-    runs: (runs as any).data || [],
-    predictions: (predictions as any).data || [],
-    feedback: (feedback as any).data || [],
-    memory: (memory as any).data || [],
-    unknowns: (unknowns as any).data || [],
-    evidence: (evidence as any).data || [],
-    examplesCount: (examples as any).data?.length || 0
-  };
+  return { versions, runs, predictions, feedback, memory, unknowns, evidence };
 }
 
 async function checkMLHealth(): Promise<any> {

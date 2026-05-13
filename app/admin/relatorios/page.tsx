@@ -4,30 +4,31 @@ import { Clock, BarChart3, Database, Brain, Activity, TrendingUp, Layers, Globe 
 
 export const dynamic = 'force-dynamic';
 
+async function safeQuery(table: string, select: string, opts?: any) {
+  try {
+    let q = supabaseAdmin.from(table).select(select);
+    if (opts?.order) q = q.order(opts.order, { ascending: false });
+    if (opts?.limit) q = q.limit(opts.limit);
+    const { data, error } = await q;
+    if (error) return [];
+    return data || [];
+  } catch { return []; }
+}
+
 async function getRelatorioData() {
   const [tags, nucleos, obras, fontes, validacoes, evidencias, predictions, memory, unknowns] = await Promise.all([
-    supabaseAdmin.from('tags').select('id, tag_original, tag_normalizada, grupo_tematico, status, obra_id, criado_em'),
-    supabaseAdmin.from('nucleos').select('id, conteudo_original, status_validacao, confianca, novidade, tensao, ressonancia, created_at'),
-    supabaseAdmin.from('obras').select('id, titulo, artista'),
-    supabaseAdmin.from('resultados_externos').select('id, fonte, status, match_score'),
-    supabaseAdmin.from('validacoes').select('id, decisao, criado_em').catch(() => ({ data: [] })),
-    supabaseAdmin.from('cross_source_evidence').select('id, termo, fonte, tipo_relacao, peso, created_at').catch(() => ({ data: [] })),
-    supabaseAdmin.from('semantic_predictions').select('id, motor, confianca_calibrada, created_at').catch(() => ({ data: [] })),
-    supabaseAdmin.from('semantic_memory').select('id, termo, categoria, status, confianca').catch(() => ({ data: [] })),
-    supabaseAdmin.from('unknown_terms').select('id, termo, status, hipotese_categoria').catch(() => ({ data: [] }))
+    safeQuery('tags', 'id, tag_original, tag_normalizada, grupo_tematico, status, obra_id, criado_em'),
+    safeQuery('nucleos', 'id, conteudo_original, status_validacao, confianca, novidade, tensao, ressonancia, created_at'),
+    safeQuery('obras', 'id, titulo, artista'),
+    safeQuery('resultados_externos', 'id, fonte, status, match_score'),
+    safeQuery('validacoes', 'id, decisao, criado_em'),
+    safeQuery('cross_source_evidence', 'id, termo, fonte, tipo_relacao, peso, created_at'),
+    safeQuery('semantic_predictions', 'id, motor, confianca_calibrada, created_at'),
+    safeQuery('semantic_memory', 'id, termo, categoria, status, confianca'),
+    safeQuery('unknown_terms', 'id, termo, status, hipotese_categoria')
   ]);
 
-  return {
-    tags: tags.data || [],
-    nucleos: nucleos.data || [],
-    obras: obras.data || [],
-    fontes: fontes.data || [],
-    validacoes: (validacoes as any).data || [],
-    evidencias: (evidencias as any).data || [],
-    predictions: (predictions as any).data || [],
-    memory: (memory as any).data || [],
-    unknowns: (unknowns as any).data || []
-  };
+  return { tags, nucleos, obras, fontes, validacoes, evidencias, predictions, memory, unknowns };
 }
 
 function getTemporalFlow(tags: any[]) {

@@ -23,19 +23,22 @@ async function getTagsWithNuclei() {
   return data || [];
 }
 
+async function safeCount(table: string): Promise<number> {
+  try {
+    const { count, error } = await supabaseAdmin.from(table).select('id', { count: 'exact', head: true });
+    if (error) return 0;
+    return count || 0;
+  } catch { return 0; }
+}
+
 async function getStats() {
-  const [nucleosCount, evidCount, memCount, unknownCount] = await Promise.all([
-    supabaseAdmin.from('nucleos').select('id', { count: 'exact', head: true }),
-    supabaseAdmin.from('cross_source_evidence').select('id', { count: 'exact', head: true }).catch(() => ({ count: 0 })),
-    supabaseAdmin.from('semantic_memory').select('id', { count: 'exact', head: true }).catch(() => ({ count: 0 })),
-    supabaseAdmin.from('unknown_terms').select('id', { count: 'exact', head: true }).catch(() => ({ count: 0 }))
+  const [nucleos, evidencias, memoria, desconhecidos] = await Promise.all([
+    safeCount('nucleos'),
+    safeCount('cross_source_evidence'),
+    safeCount('semantic_memory'),
+    safeCount('unknown_terms')
   ]);
-  return {
-    nucleos: nucleosCount.count || 0,
-    evidencias: (evidCount as any).count || 0,
-    memoria: (memCount as any).count || 0,
-    desconhecidos: (unknownCount as any).count || 0
-  };
+  return { nucleos, evidencias, memoria, desconhecidos };
 }
 
 const statusStyle: Record<string, string> = {
