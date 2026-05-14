@@ -355,67 +355,6 @@ Escreva texto corrido, sem markdown, sem asteriscos, sem listas com traço. Use 
   return factual + inferred + learning;
 }
 
-  const prompt = `Aja como o "Cérebro Semântico" do sistema Folksonomia Digital.
-O curador pesquisou a tag: "${tag}".
-
-=== DADOS FACTUAIS (das APIs — NÃO INVENTE) ===
-${correlationGraph.correlations.map((c: any) => 
-  `• ${c.source}: "${c.title}" — ${c.summary}`
-).join('\n') || 'Nenhuma correlação encontrada nas APIs externas.'}
-
-=== CONEXÕES CRUZADAS ENTRE FONTES ===
-${correlationGraph.crossConnections.map((c: any) => 
-  `• ${c.description}`
-).join('\n') || 'Nenhuma conexão cruzada detectada.'}
-
-=== TAGS INTERNAS RELACIONADAS ===
-${tagCorrelation.duplicates.length > 0 ? 
-  `Tags duplicatas/variantes: ${tagCorrelation.duplicates.map((d: any) => `"${d.tag}" (${d.reason})`).join(', ')}` : ''}
-${tagCorrelation.siblings.length > 0 ? 
-  `Tags semanticamente próximas: ${tagCorrelation.siblings.map((s: any) => `"${s.tag}" (${s.reason})`).join(', ')}` : ''}
-${tagCorrelation.family ? 
-  `Família temática: "${tagCorrelation.family.name}" — membros: ${tagCorrelation.family.members.slice(0, 5).join(', ')}` : ''}
-
-=== CONHECIMENTO PRÉVIO (já aprendido) ===
-${previousCorrelations.length > 0 ? 
-  `O sistema já conhece ${previousCorrelations.length} correlação(ões) anteriores para esta tag.` :
-  'Esta é a primeira análise desta tag — nenhum conhecimento prévio.'}
-
-=== INSTRUÇÕES ===
-Escreva em português uma análise semântica em 3 seções:
-
-**CAMADA FACTUAL**: O que as APIs externas retornaram de concreto. Cite títulos, fontes e links. Se uma API retornou 0, diga isso. NÃO INVENTE DADOS.
-
-**CAMADA INFERIDA**: Que conexões o sistema ML detectou — por que cada dado se correlaciona com a tag, quais atributos compartilham (período, técnica, geografia, material). Mencione as conexões cruzadas entre fontes se existirem.
-
-**APRENDIZADO**: Como o sistema está evoluindo com esta consulta — novas conexões criadas, tags duplicatas detectadas, famílias temáticas identificadas.
-
-Escreva APENAS texto corrido limpo, sem markdown, sem JSON, sem blocos de código. Use parágrafos bem estruturados.`;
-
-  try {
-    const res = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: prompt }],
-        model: 'openai'
-      }),
-      signal: AbortSignal.timeout(25000)
-    });
-    if (!res.ok) return null;
-    
-    const raw = await res.text();
-    try {
-      const parsed = JSON.parse(raw);
-      return parsed?.choices?.[0]?.message?.content || raw;
-    } catch {
-      return raw;
-    }
-  } catch {
-    return null;
-  }
-}
-
 // ============================================================
 // POST Handler
 // ============================================================
