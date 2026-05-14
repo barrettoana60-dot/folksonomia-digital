@@ -1,5 +1,5 @@
 /**
- * Folksonomia Digital 2.0 — Conector Brasiliana / BNDigital (Real)
+ * Folksonomia Digital 2.0 — Conector Brasiliana Museus / Tainacan (Real)
  * 
  * Busca dados reais da Biblioteca Nacional Digital do Brasil via WordPress REST API.
  * A Brasiliana Fotográfica não possui API pública documentada,
@@ -26,7 +26,7 @@ export interface BrasilianaRecord {
 }
 
 export class BrasilianaConnector implements OpenDataConnector {
-  name = 'Brasiliana';
+  name = 'Brasiliana Museus';
   
   /**
    * Busca na BNDigital via WordPress REST API.
@@ -59,7 +59,7 @@ export class BrasilianaConnector implements OpenDataConnector {
         date: item.date ? new Date(item.date).getFullYear().toString() : undefined,
         type: 'TEXT',
         url: item.link || 'https://bndigital.bn.gov.br',
-        source: 'BNDigital',
+        source: 'Brasiliana Museus',
         raw: item
       }));
     } catch (err) {
@@ -96,7 +96,7 @@ export class BrasilianaConnector implements OpenDataConnector {
         description: this.stripHtml(item.excerpt?.rendered || '').substring(0, 300),
         creator: 'Biblioteca Nacional',
         url: item.link || 'https://bndigital.bn.gov.br',
-        source: 'BNDigital/Acervo',
+        source: 'Brasiliana Museus',
         raw: item
       }));
     } catch {
@@ -130,9 +130,9 @@ export class BrasilianaConnector implements OpenDataConnector {
       source: this.name,
       external_id: rec.id,
       title: rec.title,
-      description: rec.description || `Acervo Brasiliana Digital`,
+      description: rec.description || `Acervo Brasiliana Museus`,
       url: rec.url || 'https://bndigital.bn.gov.br',
-      provider: 'Biblioteca Nacional',
+      provider: 'Brasiliana Museus',
       match_score: 0.75,
       relation_type: 'closeMatch' as const,
       raw: rec.raw

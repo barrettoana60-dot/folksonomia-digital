@@ -329,13 +329,15 @@ export function buildCorrelationGraph(
   tag: string,
   europeana: any[],
   ibram: any[],
-  brasiliana: any[]
+  brasiliana: any[],
+  auxiliares: any[] = []
 ): CorrelationGraph {
   // Correlacionar cada resultado com a tag
   const allResults = [
     ...europeana.map(r => ({ ...r, fonte: 'Europeana' })),
     ...ibram.map(r => ({ ...r, fonte: 'IBRAM' })),
-    ...brasiliana.map(r => ({ ...r, fonte: 'Brasiliana' }))
+    ...brasiliana.map(r => ({ ...r, fonte: 'Brasiliana' })),
+    ...auxiliares.map(r => ({ ...r, fonte: r.fonte || 'Auxiliar' }))
   ];
 
   const correlations = allResults

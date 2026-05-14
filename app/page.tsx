@@ -14,6 +14,19 @@ export default function LandingPage() {
     }
   }, [router]);
 
+  // Registrar visita ao sistema (conta visitantes únicos)
+  useEffect(() => {
+    try {
+      const hash = localStorage.getItem('visitante_hash') || '';
+      fetch('/api/track-visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pagina: '/', hash })
+      });
+    } catch { /* silencioso */ }
+  }, []);
+
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
       <div className="max-w-[800px] text-center space-y-12">

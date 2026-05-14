@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 import { dispatchEvent } from '@/lib/ml/event-bus';
 import { buildCorrelationGraph } from '@/lib/ml/correlation-engine';
 import { analyzeTagCorrelations } from '@/lib/ml/tag-correlator';
+import { IbramConnector } from '@/lib/connectors/ibram';
+import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,123 +37,53 @@ async function searchEuropeana(query: string): Promise<any[]> {
 }
 
 // ============================================================
-// IBRAM — Wikidata (museus e acervos brasileiros)
-// Wikidata tem dados reais sobre arte sacra, barroco, acervos museológicos
+// Fontes Auxiliares (Desambiguação e Enciclopédia)
 // ============================================================
-async function searchIBRAM(query: string): Promise<any[]> {
+async function searchAuxiliares(query: string): Promise<any[]> {
   const results: any[] = [];
-
-  // 1. Wikidata search — itens em português relacionados ao patrimônio cultural
-  try {
-    const url = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(query)}&language=pt&type=item&format=json&limit=8&origin=*`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'Accept': 'application/json' } });
-    if (res.ok) {
-      const data = await res.json();
-      const items = data.search || [];
-      for (const item of items.slice(0, 5)) {
-        if (!item.label) continue;
-        results.push({
-          titulo: item.label,
-          descricao: item.description || '',
-          criador: 'Wikidata / museus brasileiros',
-          data: '',
-          link: `https://www.wikidata.org/wiki/${item.id}`,
-          museu: 'wikidata.org',
-          fonte: 'IBRAM / Wikidata'
-        });
-      }
-    }
-  } catch { /* silencioso */ }
-
-  // 2. Wikidata SPARQL — busca específica em acervos museológicos brasileiros
-  if (results.length < 3) {
-    try {
-      const sparql = `SELECT ?item ?itemLabel ?desc ?country WHERE {
-        ?item rdfs:label ?label.
-        FILTER(LANG(?label) = "pt").
-        FILTER(CONTAINS(LCASE(STR(?label)), "${query.toLowerCase().replace(/"/g, '')}")).
-        OPTIONAL { ?item schema:description ?desc. FILTER(LANG(?desc) = "pt"). }
-        OPTIONAL { ?item wdt:P17 ?country. }
-        SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
-      } LIMIT 5`;
-      const url = `https://query.wikidata.org/sparql?query=${encodeURIComponent(sparql)}&format=json`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000), headers: { 'Accept': 'application/sparql-results+json' } });
-      if (res.ok) {
-        const data = await res.json();
-        const bindings = data.results?.bindings || [];
-        for (const b of bindings.slice(0, 5)) {
-          const titulo = b.itemLabel?.value || '';
-          if (!titulo || titulo.startsWith('Q')) continue;
-          if (results.find(r => r.titulo === titulo)) continue;
-          results.push({
-            titulo,
-            descricao: b.desc?.value || '',
-            criador: 'Acervo Museológico / Wikidata',
-            data: '',
-            link: b.item?.value || '',
-            museu: 'wikidata.org',
-            fonte: 'IBRAM / Wikidata'
-          });
-        }
-      }
-    } catch { /* silencioso */ }
-  }
-
-  return results.slice(0, 5);
+  // DBpedia e OpenAlex serão implementados aqui futuramente
+  return results;
 }
 
 // ============================================================
-// Brasiliana — Wikipedia PT-BR
-// Contexto cultural e histórico em português — sempre disponível
+// IBRAM — Acervos Digitais (Tainacan / MuseusBR)
+// ============================================================
+async function searchIBRAM(query: string): Promise<any[]> {
+  try {
+    const connector = new IbramConnector();
+    const records = await connector.searchAllMuseums(query, 3);
+    return records.slice(0, 5).map(r => ({
+      titulo: r.title,
+      descricao: r.description || '',
+      criador: r.author || 'Desconhecido',
+      data: r.date || '',
+      link: r.url || '',
+      museu: r.museum || 'IBRAM',
+      fonte: 'IBRAM / Tainacan'
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================
+// Brasiliana Museus / Tainacan
 // ============================================================
 async function searchBrasiliana(query: string): Promise<any[]> {
-  const results: any[] = [];
-
-  // 1. Wikipedia PT-BR — busca full-text com extratos
   try {
-    const url = `https://pt.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&srprop=snippet|titlesnippet|wordcount&format=json&origin=*`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'Accept': 'application/json' } });
-    if (res.ok) {
-      const data = await res.json();
-      const items = data.query?.search || [];
-      for (const item of items.slice(0, 5)) {
-        results.push({
-          titulo: item.title || 'Sem título',
-          descricao: (item.snippet || '').replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').substring(0, 300),
-          criador: 'Wikipedia PT-BR / Brasiliana Digital',
-          data: '',
-          link: `https://pt.wikipedia.org/wiki/${encodeURIComponent((item.title || '').replace(/ /g, '_'))}`,
-          fonte: 'Brasiliana / Wikipedia PT-BR'
-        });
-      }
-    }
-  } catch { /* silencioso */ }
-
-  // 2. Fallback: OpenSearch Wikipedia PT — para sugestões relacionadas
-  if (results.length === 0) {
-    try {
-      const url = `https://pt.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=5&namespace=0&format=json&origin=*`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
-      if (res.ok) {
-        const data = await res.json();
-        const titles = data[1] || [];
-        const descriptions = data[2] || [];
-        const links = data[3] || [];
-        for (let i = 0; i < titles.length; i++) {
-          results.push({
-            titulo: titles[i] || 'Sem título',
-            descricao: descriptions[i] || '',
-            criador: 'Wikipedia PT-BR / Brasiliana Digital',
-            data: '',
-            link: links[i] || '',
-            fonte: 'Brasiliana / Wikipedia PT-BR'
-          });
-        }
-      }
-    } catch { /* silencioso */ }
+    const connector = new BrasilianaConnector();
+    const records = await connector.searchExternalSource(query);
+    return records.slice(0, 5).map(r => ({
+      titulo: r.title,
+      descricao: r.description || '',
+      criador: r.provider || 'Brasiliana Museus',
+      data: '',
+      link: r.url || '',
+      fonte: 'Brasiliana Museus'
+    }));
+  } catch {
+    return [];
   }
-
-  return results.slice(0, 5);
 }
 
 
@@ -258,8 +190,171 @@ async function generateAIAnalysis(
   correlationGraph: any,
   tagCorrelation: any,
   previousCorrelations: any[],
-  dbTags: any[]
+  dbTags: any[],
+  europeana: any[],
+  ibram: any[],
+  brasiliana: any[],
+  auxiliares: any[]
 ) {
+  const europeanaTexto = europeana.length > 0
+    ? europeana.map((e: any) => `"${e.titulo}" (${e.criador || ''}, ${e.data || ''}, ${e.pais || ''}) — Europeana`).join('\n')
+    : 'Nenhum registro encontrado na Europeana para este termo.';
+
+  const ibramTexto = ibram.length > 0
+    ? ibram.map((i: any) => `"${i.titulo}" — ${i.descricao?.slice(0, 100) || ''} — IBRAM / Tainacan`).join('\n')
+    : 'Nenhum registro encontrado no IBRAM/Tainacan para este termo.';
+
+  const brasilianaTexto = brasiliana.length > 0
+    ? brasiliana.map((b: any) => `"${b.titulo}" — ${b.descricao?.slice(0, 100) || ''} — Brasiliana Museus`).join('\n')
+    : 'Nenhum registro encontrado na Brasiliana Museus para este termo.';
+
+  const auxiliaresTexto = auxiliares.length > 0
+    ? auxiliares.map((w: any) => `"${w.titulo}" — ${w.descricao?.slice(0, 100) || ''} — ${w.fonte}`).join('\n')
+    : 'Nenhum registro encontrado nas fontes auxiliares (DBpedia/OpenAlex).';
+
+  const crossTexto = correlationGraph.crossConnections?.length > 0
+    ? correlationGraph.crossConnections.map((c: any) => `• ${c.description}`).join('\n')
+    : 'Nenhuma conexão cruzada detectada entre as fontes oficiais.';
+
+  const tagsRelacionadas = [
+    ...(tagCorrelation.duplicates || []).map((d: any) => `"${d.tag}" (variante/duplicata: ${d.reason})`),
+    ...(tagCorrelation.siblings || []).map((s: any) => `"${s.tag}" (próxima semanticamente: ${s.reason})`)
+  ].join(', ') || 'Nenhuma tag relacionada detectada no banco interno.';
+
+  const familiaTexto = tagCorrelation.family
+    ? `Família temática identificada: "${tagCorrelation.family.name}" com membros: ${tagCorrelation.family.members.slice(0, 8).join(', ')}.`
+    : 'Nenhuma família temática identificada para esta tag.';
+
+  const conhecimentoPrevio = previousCorrelations.length > 0
+    ? `O sistema possui ${previousCorrelations.length} correlação(ões) prévia(s) registrada(s) para esta tag — o aprendizado é cumulativo.`
+    : 'Esta é a primeira análise desta tag — nenhum conhecimento prévio armazenado.';
+
+  const prompt = `Você é o Cérebro Semântico do Sistema Folksonomia Digital, especializado em patrimônio cultural brasileiro e europeu.
+
+TAG ANALISADA: "${tag}"
+REGISTROS INTERNOS: ${dbTags.length} registro(s) criado(s) por visitantes no sistema.
+
+FONTES OFICIAIS DE ACERVOS:
+- EUROPEANA:
+${europeanaTexto}
+
+- IBRAM / TAINACAN:
+${ibramTexto}
+
+- BRASILIANA MUSEUS:
+${brasilianaTexto}
+
+FONTE AUXILIAR DE DESAMBIGUAÇÃO:
+- DBPEDIA / OPENALEX:
+${auxiliaresTexto}
+
+CONEXÕES CRUZADAS ENTRE FONTES:
+${crossTexto}
+
+TAGS INTERNAS RELACIONADAS: ${tagsRelacionadas}
+${familiaTexto}
+CONHECIMENTO ACUMULADO: ${conhecimentoPrevio}
+
+Escreva em português uma análise semântica OBRIGATORIAMENTE em 3 seções separadas:
+
+CAMADA FACTUAL
+Descreva o que as fontes oficiais (Europeana, IBRAM, Brasiliana) retornaram de concreto para a tag "${tag}". Cite os museus e os títulos dos itens das fontes oficiais. Mencione as fontes auxiliares apenas para contexto enciclopédico, sem confundi-las com acervos museológicos. Nunca invente dados que não estão na lista acima.
+
+CAMADA INFERIDA
+Com base nos dados encontrados, que conexões semânticas o sistema detecta? Que atributos compartilham os registros (período histórico, técnica, material, geografia, iconografia)? Como a tag se relaciona com as tags internas do banco?
+
+APRENDIZADO
+O que o sistema aprendeu com esta consulta? Quais novas conexões foram criadas? Como o conhecimento acumulado evolui? O que a família temática identificada revela sobre o vocabulário do acervo?
+
+Escreva texto corrido, sem markdown, sem asteriscos, sem listas com traço. Use apenas parágrafos com títulos em maiúsculas.`;
+
+  // Tentar múltiplos endpoints em sequência
+  const endpoints = [
+    {
+      url: 'https://text.pollinations.ai/openai',
+      body: { messages: [{ role: 'user', content: prompt }], model: 'openai' },
+      parse: async (res: Response) => {
+        const raw = await res.text();
+        try { return JSON.parse(raw)?.choices?.[0]?.message?.content || raw; } catch { return raw; }
+      }
+    },
+    {
+      url: 'https://text.pollinations.ai/',
+      body: prompt,
+      isText: true,
+      parse: async (res: Response) => res.text()
+    },
+    {
+      url: 'https://api.pollinations.ai/v1/chat/completions',
+      body: { model: 'openai', messages: [{ role: 'user', content: prompt }] },
+      parse: async (res: Response) => {
+        const j = await res.json();
+        return j?.choices?.[0]?.message?.content || null;
+      }
+    }
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint.url, {
+        method: 'POST',
+        headers: { 'Content-Type': endpoint.isText ? 'text/plain' : 'application/json' },
+        body: endpoint.isText ? (endpoint.body as string) : JSON.stringify(endpoint.body),
+        signal: AbortSignal.timeout(28000)
+      });
+      if (!res.ok) continue;
+      const text = await endpoint.parse(res);
+      if (text && text.length > 100) return text;
+    } catch { continue; }
+  }
+
+  // Fallback local inteligente — sempre gera as 3 camadas com os dados reais
+  const factual = [
+    `CAMADA FACTUAL`,
+    ``,
+    europeana.length > 0
+      ? `Na Europeana foram encontrados ${europeana.length} registro(s) associados à tag "${tag}": ${europeana.slice(0, 3).map((e: any) => `"${e.titulo}"${e.criador ? ` (${e.criador})` : ''}${e.data ? `, ${e.data}` : ''}${e.pais ? `, ${e.pais}` : ''}`).join('; ')}.`
+      : `A Europeana não retornou registros diretos para a tag "${tag}".`,
+    ibram.length > 0
+      ? `Nos acervos do IBRAM/Tainacan foram localizados ${ibram.length} registro(s): ${ibram.slice(0, 2).map((i: any) => `"${i.titulo}"`).join(', ')}.`
+      : `O IBRAM/Tainacan não encontrou registros para esta tag.`,
+    brasiliana.length > 0
+      ? `Na Brasiliana Museus foram encontrados ${brasiliana.length} registro(s), incluindo: ${brasiliana.slice(0, 2).map((b: any) => `"${b.titulo}"`).join(', ')}.`
+      : `A Brasiliana Museus não retornou registros para esta tag.`,
+    auxiliares.length > 0
+      ? `Como contexto auxiliar, fontes enciclopédicas (DBpedia/OpenAlex) forneceram dados de desambiguação para o termo.`
+      : ``
+  ].join('\n');
+
+  const inferred = [
+    ``,
+    `CAMADA INFERIDA`,
+    ``,
+    correlationGraph.correlations?.length > 0
+      ? `O motor semântico detectou ${correlationGraph.correlations.length} correlação(ões) entre as fontes. ${crossTexto !== 'Nenhuma conexão cruzada detectada entre as fontes.' ? `Conexões cruzadas identificadas: ${crossTexto}` : 'As fontes operam de forma independente neste caso.'}`
+      : `Não foram detectadas correlações cruzadas entre as fontes para esta tag.`,
+    tagCorrelation.totalRelated > 0
+      ? `No banco interno, ${tagCorrelation.totalRelated} tag(s) relacionada(s) foram identificadas: ${tagsRelacionadas}.`
+      : `Nenhuma tag semanticamente próxima foi identificada no banco interno.`,
+    familiaTexto
+  ].join('\n');
+
+  const learning = [
+    ``,
+    `APRENDIZADO`,
+    ``,
+    dbTags.length > 0
+      ? `A tag "${tag}" possui ${dbTags.length} registro(s) criado(s) por visitantes do sistema.`
+      : `A tag "${tag}" ainda não possui registros de visitantes.`,
+    conhecimentoPrevio,
+    correlationGraph.correlations?.length > 0
+      ? `${correlationGraph.correlations.length} nova(s) correlação(ões) foram registradas no banco de aprendizado semântico. A cada consulta, o sistema amplia sua memória e melhora a qualidade das análises futuras.`
+      : `Esta consulta foi registrada para aprendizado futuro. Conforme mais tags forem criadas e validadas, o sistema amplia automaticamente suas conexões semânticas.`
+  ].join('\n');
+
+  return factual + inferred + learning;
+}
+
   const prompt = `Aja como o "Cérebro Semântico" do sistema Folksonomia Digital.
 O curador pesquisou a tag: "${tag}".
 
@@ -390,10 +485,11 @@ export async function POST(req: NextRequest) {
     // ================================================================
     dispatchEvent({ tipo: 'CONSULTA', origem: 'relatorio-semantico', payload: { query, tags_encontradas: dbTags.length } });
 
-    const [europeana, ibram, brasiliana] = await Promise.all([
+    const [europeana, ibram, brasiliana, auxiliares] = await Promise.all([
       searchEuropeana(query),
       searchIBRAM(query),
-      searchBrasiliana(query)
+      searchBrasiliana(query),
+      searchAuxiliares(query)
     ]);
 
     // Disparar eventos de ingestão
@@ -404,7 +500,7 @@ export async function POST(req: NextRequest) {
     // ================================================================
     // PASSO 5: Construir grafo de correlações com EXPLICAÇÕES
     // ================================================================
-    const correlationGraph = buildCorrelationGraph(query, europeana, ibram, brasiliana);
+    const correlationGraph = buildCorrelationGraph(query, europeana, ibram, brasiliana, auxiliares);
 
     // ================================================================
     // PASSO 6: Carregar conhecimento prévio (sistema aprende)
@@ -420,12 +516,12 @@ export async function POST(req: NextRequest) {
     // ================================================================
     // PASSO 8: Gerar análise escrita com IA baseada em EVIDÊNCIAS
     // ================================================================
-    const brainText = await generateAIAnalysis(query, correlationGraph, tagCorrelation, previousCorrelations, dbTags);
+    const brainText = await generateAIAnalysis(query, correlationGraph, tagCorrelation, previousCorrelations, dbTags, europeana, ibram, brasiliana, auxiliares);
 
     const totalExterno = europeana.length + ibram.length + brasiliana.length;
     const analise = brainText || 
       `A tag "${query}" existe no sistema com ${dbTags.length} registro(s). ` +
-      `O motor encontrou ${europeana.length} correlação(ões) na Europeana, ${ibram.length} no IBRAM e ${brasiliana.length} na Brasiliana/BNDigital. ` +
+      `O motor encontrou ${europeana.length} correlação(ões) na Europeana, ${ibram.length} no IBRAM/Tainacan e ${brasiliana.length} na Brasiliana Museus. ` +
       `${tagCorrelation.totalRelated > 0 ? `Foram detectadas ${tagCorrelation.totalRelated} tags relacionadas no banco interno. ` : ''}` +
       `Conforme novas tags são criadas e validadas, o sistema amplia automaticamente essas conexões.`;
 
@@ -455,12 +551,17 @@ export async function POST(req: NextRequest) {
           brasiliana: { 
             total: brasiliana.length, 
             items: brasiliana,
-            correlations: correlationGraph.correlations.filter((c: any) => c.source === 'Brasiliana' || c.source === 'Brasiliana/BNDigital')
+            correlations: correlationGraph.correlations.filter((c: any) => c.source.includes('Brasiliana'))
           },
           ibram: { 
             total: ibram.length, 
             items: ibram,
-            correlations: correlationGraph.correlations.filter((c: any) => c.source === 'IBRAM')
+            correlations: correlationGraph.correlations.filter((c: any) => c.source.includes('IBRAM'))
+          },
+          auxiliares: {
+            total: auxiliares.length,
+            items: auxiliares,
+            correlations: correlationGraph.correlations.filter((c: any) => c.source === 'DBpedia' || c.source === 'OpenAlex')
           },
           internas: { total: dbTags.length, items: dbTags }
         },

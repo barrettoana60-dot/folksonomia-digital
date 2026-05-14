@@ -29,7 +29,9 @@ export type TokenCategory =
 
 export type FieldQualifier = 'verified' | 'estimated' | 'empty';
 
-export type DataSource = 'europeana' | 'ibram' | 'brasiliana' | 'user_tag' | 'inferred';
+export type FonteOficial = 'ibram' | 'brasiliana' | 'europeana' | 'tainacan';
+export type FonteAuxiliar = 'dbpedia' | 'openalex';
+export type DataSource = FonteOficial | FonteAuxiliar | 'user_tag' | 'inferred';
 
 export interface ClassifiedField {
   value: string;
