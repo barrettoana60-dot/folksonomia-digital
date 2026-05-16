@@ -2,11 +2,14 @@
  * Folksonomia Digital 2.0 — Conector IBRAM / Tainacan (Real)
  * 
  * Busca dados abertos do IBRAM via API REST Tainacan (WordPress).
+ * Utiliza endpoints reais com formato json-flat e mapper INBCM-IBRAM.
  * 
- * Endpoints conhecidos:
- * - Museu Histórico Nacional: https://mhn.museus.gov.br/wp-json/tainacan/v2/items
- * - Museu Nacional de Belas Artes: https://mnba.museus.gov.br/wp-json/tainacan/v2/items
- * - Museu da República: https://museudarepublica.museus.gov.br/wp-json/tainacan/v2/items
+ * Museus incluídos:
+ * - MART (Museu de Arte Religiosa e Tradicional) — arte sacra, cultura popular
+ * - Museu Regional de Caeté — cultura popular, tradições locais
+ * - Museu da Abolição — memória afro-brasileira
+ * - Museu do Diamante — cultura material, mineração semântica
+ * - Museu do Índio — cultura indígena (20.965 itens)
  */
 
 import { ExternalMatch, OpenDataConnector } from './types';
@@ -19,6 +22,8 @@ export interface TainacanRecord {
   author?: string;
   date?: string;
   collection?: string;
+  material?: string;
+  tecnica?: string;
   metadata: Record<string, string>;
   thumbnail?: string;
   url?: string;
@@ -26,25 +31,52 @@ export interface TainacanRecord {
   raw: unknown;
 }
 
-// Museus do IBRAM com endpoints Tainacan conhecidos
+// Museus do IBRAM com endpoints Tainacan confirmados
 const IBRAM_ENDPOINTS = [
   {
-    name: 'Museu Histórico Nacional',
-    shortName: 'MHN',
-    baseUrl: 'https://mhn.museus.gov.br',
-    apiPath: '/wp-json/tainacan/v2'
+    name: 'Museu de Arte Religiosa e Tradicional',
+    shortName: 'MART',
+    baseUrl: 'https://museudeartereligiosaetradicional.acervos.museus.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 878,
+    useINBCM: true,
+    tematica: ['arte sacra', 'cultura popular', 'arte religiosa', 'tradição']
   },
   {
-    name: 'Museu Nacional de Belas Artes',
-    shortName: 'MNBA',
-    baseUrl: 'https://mnba.museus.gov.br',
-    apiPath: '/wp-json/tainacan/v2'
+    name: 'Museu Regional de Caeté',
+    shortName: 'MRC',
+    baseUrl: 'https://museuregionaldecaete.acervos.museus.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 848,
+    useINBCM: true,
+    tematica: ['cultura popular', 'tradições locais', 'saberes', 'fazeres', 'arte popular', 'afro-brasileiro']
   },
   {
-    name: 'Museu da República',
-    shortName: 'MR',
-    baseUrl: 'https://museudarepublica.museus.gov.br',
-    apiPath: '/wp-json/tainacan/v2'
+    name: 'Museu da Abolição',
+    shortName: 'MA',
+    baseUrl: 'https://museudaabolicao.acervos.museus.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 7,
+    useINBCM: true,
+    tematica: ['abolição', 'escravidão', 'resistência', 'memória afro-brasileira', 'objetos históricos']
+  },
+  {
+    name: 'Museu do Diamante',
+    shortName: 'MD',
+    baseUrl: 'http://museudodiamante.acervos.museus.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 11603,
+    useINBCM: true,
+    tematica: ['cultura material', 'mineração', 'objetos', 'técnicas', 'materiais']
+  },
+  {
+    name: 'Museu do Índio',
+    shortName: 'MI',
+    baseUrl: 'https://tainacan.museudoindio.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 471,
+    useINBCM: false, // Museu do Índio usa schema próprio
+    tematica: ['indígena', 'etnografia', 'artesanato', 'ritual', 'cultura material indígena']
   }
 ];
 
@@ -53,46 +85,55 @@ export class IbramConnector implements OpenDataConnector {
 
   /**
    * Busca itens de um museu específico do IBRAM via Tainacan API.
+   * Utiliza o formato json-flat com mapper INBCM-IBRAM quando disponível.
    */
   async searchMuseum(
     museumIndex: number = 0,
     params: { search?: string; perPage?: number; page?: number } = {}
   ): Promise<TainacanRecord[]> {
     const endpoint = IBRAM_ENDPOINTS[museumIndex] || IBRAM_ENDPOINTS[0];
-    const { search = '', perPage = 20, page = 1 } = params;
+    const { search = '', perPage = 10, page = 1 } = params;
 
     try {
       const queryParams = new URLSearchParams({
         perpage: String(perPage),
         paged: String(page),
+        order: 'DESC',
         orderby: 'date',
-        order: 'DESC'
+        exposer: 'json-flat'
       });
+
+      if (endpoint.useINBCM) {
+        queryParams.set('mapper', 'inbcm-ibram');
+      }
 
       if (search) queryParams.set('search', search);
 
-      const url = `${endpoint.baseUrl}${endpoint.apiPath}/items?${queryParams}`;
+      const url = `${endpoint.baseUrl}${endpoint.apiPath}/collection/${endpoint.collectionId}/items/?${queryParams}`;
       const res = await fetch(url, {
         headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(12000)
       });
 
-      if (!res.ok) throw new Error(`Tainacan API error: ${res.status}`);
+      if (!res.ok) {
+        console.warn(`[IBRAM/${endpoint.shortName}] HTTP ${res.status}`);
+        return [];
+      }
 
       const data = await res.json();
-      const items = Array.isArray(data) ? data : (data.items || []);
+      const items = data.items || (Array.isArray(data) ? data : []);
 
-      return items.map((item: any) => this.parseRecord(item, endpoint.name));
+      return items.map((item: any) => this.parseRecord(item, endpoint));
     } catch (err) {
-      console.warn(`[IBRAM/${endpoint.shortName}] Fetch failed, using mock:`, err);
-      return this.getMockRecords(search || 'acervo', endpoint.name);
+      console.warn(`[IBRAM/${endpoint.shortName}] Fetch failed:`, err);
+      return [];
     }
   }
 
   /**
    * Busca em todos os museus do IBRAM simultaneamente.
    */
-  async searchAllMuseums(search: string = '', perPage: number = 10): Promise<TainacanRecord[]> {
+  async searchAllMuseums(search: string = '', perPage: number = 5): Promise<TainacanRecord[]> {
     const promises = IBRAM_ENDPOINTS.map((_, i) => 
       this.searchMuseum(i, { search, perPage })
     );
@@ -113,7 +154,7 @@ export class IbramConnector implements OpenDataConnector {
    * Compatibilidade com interface OpenDataConnector
    */
   async searchExternalSource(query: string): Promise<ExternalMatch[]> {
-    const records = await this.searchAllMuseums(query, 3);
+    const records = await this.searchAllMuseums(query, 5);
     return records.map(rec => ({
       source: this.name,
       external_id: rec.id,
@@ -121,7 +162,7 @@ export class IbramConnector implements OpenDataConnector {
       description: rec.description || `Acervo: ${rec.museum}`,
       url: rec.url || 'https://museus.gov.br',
       provider: rec.museum,
-      match_score: 0.75,
+      match_score: 0.85,
       relation_type: 'relatedMatch' as const,
       raw: rec.raw
     }));
@@ -129,7 +170,8 @@ export class IbramConnector implements OpenDataConnector {
 
   async testConnection(): Promise<boolean> {
     try {
-      const res = await fetch(`${IBRAM_ENDPOINTS[0].baseUrl}${IBRAM_ENDPOINTS[0].apiPath}/items?perpage=1`, {
+      const url = `${IBRAM_ENDPOINTS[0].baseUrl}${IBRAM_ENDPOINTS[0].apiPath}/collection/${IBRAM_ENDPOINTS[0].collectionId}/items/?perpage=1&exposer=json-flat`;
+      const res = await fetch(url, {
         signal: AbortSignal.timeout(5000)
       });
       return res.ok;
@@ -138,93 +180,95 @@ export class IbramConnector implements OpenDataConnector {
     }
   }
 
+  /**
+   * Retorna informações sobre os museus disponíveis.
+   */
+  getMuseums() {
+    return IBRAM_ENDPOINTS.map(e => ({
+      name: e.name,
+      shortName: e.shortName,
+      tematica: e.tematica,
+      collectionId: e.collectionId
+    }));
+  }
+
   // ---- Parsing ----
 
-  private parseRecord(item: any, museum: string): TainacanRecord {
+  private parseRecord(item: any, endpoint: typeof IBRAM_ENDPOINTS[0]): TainacanRecord {
     const metadata: Record<string, string> = {};
 
-    // Tainacan retorna metadados como array de objetos
-    if (item.metadata_values || item.metadata) {
-      const meta = item.metadata_values || item.metadata;
-      for (const [key, val] of Object.entries(meta)) {
+    // Formato INBCM (json-flat com mapper inbcm-ibram)
+    if (item.data && typeof item.data === 'object') {
+      for (const [key, val] of Object.entries(item.data)) {
         if (val && typeof val === 'object' && 'value' in (val as any)) {
-          metadata[key] = String((val as any).value);
-        } else if (typeof val === 'string') {
-          metadata[key] = val;
+          const v = (val as any).value;
+          if (v && typeof v === 'string' && v.trim()) {
+            metadata[key] = v.trim();
+          }
         }
       }
     }
 
+    // Tainacan padrão (sem INBCM)
+    if (item.metadata_values || item.metadata) {
+      const meta = item.metadata_values || item.metadata;
+      for (const [key, val] of Object.entries(meta)) {
+        if (val && typeof val === 'object' && 'value' in (val as any)) {
+          const v = String((val as any).value);
+          if (v.trim()) metadata[key] = v.trim();
+        } else if (typeof val === 'string' && val.trim()) {
+          metadata[key] = val.trim();
+        }
+      }
+    }
+
+    // Extrair título — vários formatos possíveis
+    const title = metadata['title-2'] 
+      || metadata['title-4']
+      || metadata['denominacao']
+      || item.title?.rendered 
+      || item.title 
+      || 'Sem Título';
+
+    // Extrair descrição
+    const description = metadata['resumo-descritivo']
+      || metadata['description-4']
+      || item.description?.rendered
+      || item.content?.rendered
+      || metadata['descricao']
+      || undefined;
+
+    // Extrair autor
+    const author = metadata['autor-2']
+      || metadata['artesao-3']
+      || metadata['autor']
+      || metadata['autoria']
+      || metadata['criador']
+      || undefined;
+
+    // Extrair data
+    const date = metadata['seculo-de-pruducao']
+      || metadata['ano-de-producao']
+      || metadata['texto-simples']
+      || metadata['data']
+      || metadata['datacao']
+      || metadata['periodo']
+      || undefined;
+
     return {
-      id: `ibram-${item.id || Date.now()}`,
-      title: item.title?.rendered || item.title || 'Sem Título',
-      description: item.description?.rendered || item.content?.rendered || metadata['descricao'] || undefined,
-      author: metadata['autor'] || metadata['autoria'] || metadata['criador'] || undefined,
-      date: metadata['data'] || metadata['datacao'] || metadata['periodo'] || undefined,
-      collection: metadata['colecao'] || metadata['acervo'] || undefined,
+      id: `ibram-${endpoint.shortName.toLowerCase()}-${item.id || Date.now()}`,
+      title: typeof title === 'string' ? title : String(title),
+      description,
+      author,
+      date,
+      collection: metadata['colecao'] || metadata['categoria'] || metadata['categoria-3'] || undefined,
+      material: metadata['material'] || metadata['materia-primarevisada'] || undefined,
+      tecnica: metadata['tecnica'] || metadata['tecnica-de-confeccao-3'] || undefined,
       metadata,
-      thumbnail: item.thumbnail?.['tainacan-medium']?.[0] || item.thumbnail?.medium_large?.[0] || undefined,
+      thumbnail: Array.isArray(item.thumbnail) ? item.thumbnail[0] : (item.document?.value || undefined),
       url: item.url || item.link || undefined,
-      museum,
+      museum: endpoint.name,
       raw: item
     };
-  }
-
-  // ---- Mock para desenvolvimento ----
-
-  private getMockRecords(query: string, museum: string): TainacanRecord[] {
-    return [
-      {
-        id: `ibram-mock-${Date.now()}-1`,
-        title: `Talha dourada do altar-mor — ${museum}`,
-        description: 'Fragmento de talha dourada em madeira policromada, estilo rococó mineiro, com folhas de acanto e querubins.',
-        author: 'Atribuído a Francisco Xavier de Brito',
-        date: 'circa 1740-1760',
-        collection: 'Arte Sacra Colonial',
-        metadata: {
-          tecnica: 'Talha dourada, policromia',
-          material: 'Madeira, folha de ouro, pigmentos naturais',
-          dimensoes: '120 x 80 x 25 cm',
-          procedencia: 'Igreja de São Francisco de Assis, Ouro Preto',
-          estado_conservacao: 'Regular'
-        },
-        museum,
-        raw: {}
-      },
-      {
-        id: `ibram-mock-${Date.now()}-2`,
-        title: `Oratório doméstico baiano — ${museum}`,
-        description: 'Oratório portátil em jacarandá com imagem de Nossa Senhora da Conceição em barro cozido policromado.',
-        author: 'Autor desconhecido',
-        date: 'Século XVIII',
-        collection: 'Mobiliário e Artes Decorativas',
-        metadata: {
-          tecnica: 'Marcenaria, entalhe, policromia',
-          material: 'Jacarandá, barro cozido, pigmentos',
-          dimensoes: '45 x 30 x 15 cm',
-          procedencia: 'Recôncavo Baiano, doação Família Calmon',
-          estado_conservacao: 'Bom'
-        },
-        museum,
-        raw: {}
-      },
-      {
-        id: `ibram-mock-${Date.now()}-3`,
-        title: `Mapa da Capitania de São Paulo — ${museum}`,
-        description: 'Mapa manuscrito em aquarela sobre papel mostrando a rede fluvial e os caminhos do ouro entre São Paulo e Minas Gerais.',
-        author: 'Cartógrafo real, possível atribuição a José Joaquim Freire',
-        date: '1790-1800',
-        collection: 'Cartografia e Documentos',
-        metadata: {
-          tecnica: 'Aquarela e nanquim sobre papel',
-          material: 'Papel vergê, tintas',
-          dimensoes: '60 x 90 cm',
-          procedencia: 'Arquivo Histórico Ultramarino, Lisboa',
-          estado_conservacao: 'Frágil'
-        },
-        museum,
-        raw: {}
-      }
-    ];
   }
 }

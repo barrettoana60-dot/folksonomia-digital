@@ -98,6 +98,26 @@ const KEYWORD_CATEGORIES: Record<string, string[]> = {
     'maternidade', 'familia', 'família', 'morte', 'nascimento',
     'politica', 'política', 'poder', 'nobreza', 'real', 'imperial',
     'trabalho', 'escravidão', 'escravidao', 'liberdade', 'resistencia', 'resistência'
+  ],
+  folk: [
+    'folclore', 'folklore', 'cultura popular', 'arte popular', 'artesanato',
+    'folguedo', 'bumba-meu-boi', 'maracatu', 'congada', 'reisado', 'folia de reis',
+    'cordel', 'xilogravura', 'repente', 'cantoria', 'capoeira', 'samba de roda',
+    'jongo', 'coco', 'ciranda', 'carimbó', 'frevo', 'forró',
+    'cerâmica', 'tecelagem', 'trançado', 'bordado', 'renda', 'cestaria'
+  ],
+  ritual: [
+    'ritual', 'candomblé', 'umbanda', 'pajelança', 'benzedura',
+    'orixá', 'terreiro', 'sincretismo', 'procissão', 'romaria',
+    'festa religiosa', 'ex-voto', 'promessa', 'devoção', 'santo',
+    'mascara', 'máscara', 'máscara-esteira', 'festa', 'carnaval'
+  ],
+  ethnicity: [
+    'indígena', 'indigena', 'índio', 'indio', 'povo', 'etnia',
+    'afro-brasileiro', 'afrobrasileiro', 'quilombo', 'quilombola',
+    'krahô', 'tupi', 'guarani', 'yanomami', 'xavante', 'kayapó',
+    'timbira', 'mehin', 'batoque', 'plumária', 'pintura corporal',
+    'abolição', 'abolicao', 'escravatura', 'negro', 'africano'
   ]
 };
 
