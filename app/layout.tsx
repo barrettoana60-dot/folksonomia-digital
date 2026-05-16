@@ -27,6 +27,11 @@ export default function RootLayout({
             try {
               const theme = localStorage.getItem('theme') || 'escuro';
               document.documentElement.setAttribute('data-theme', theme);
+              
+              const savedFontSize = localStorage.getItem('fontSize');
+              if (savedFontSize) {
+                document.documentElement.style.fontSize = savedFontSize + 'px';
+              }
             } catch (e) {}
           })();
         `}} />

@@ -9,10 +9,14 @@ export default function AcessibilidadePage() {
   const [fontSize, setFontSize] = useState(16);
 
   useEffect(() => {
-    // Aplicar tema ao carregar
+    // Aplicar tema e fonte ao carregar
     const savedTheme = localStorage.getItem('theme') || 'escuro';
+    const savedFontSize = parseInt(localStorage.getItem('fontSize') || '16');
+    
     setActiveTheme(savedTheme);
+    setFontSize(savedFontSize);
     document.documentElement.setAttribute('data-theme', savedTheme);
+    document.documentElement.style.fontSize = savedFontSize + 'px';
   }, []);
 
   const changeTheme = (theme: string) => {
@@ -20,6 +24,14 @@ export default function AcessibilidadePage() {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('theme', theme);
+    }
+  };
+
+  const changeFontSize = (size: number) => {
+    setFontSize(size);
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.fontSize = size + 'px';
+      localStorage.setItem('fontSize', size.toString());
     }
   };
 
@@ -97,14 +109,14 @@ export default function AcessibilidadePage() {
               </h2>
               <input
                 type="range"
-                min={14}
+                min={12}
                 max={24}
                 value={fontSize}
-                onChange={e => setFontSize(parseInt(e.target.value))}
+                onChange={e => changeFontSize(parseInt(e.target.value))}
                 className="w-full accent-[#E85002]"
               />
               <div className="p-4 bg-white/5 rounded-lg border border-white/5">
-                <p style={{ fontSize: `${fontSize}px` }}>Exemplo de visualização tipográfica.</p>
+                <p style={{ fontSize: `${fontSize}px` }}>Exemplo de visualização tipográfica. (Tamanho: {fontSize}px)</p>
               </div>
             </div>
           </div>
