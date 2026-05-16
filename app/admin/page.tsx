@@ -34,6 +34,8 @@ export default function AdminPage() {
   // Form State for Nova Obra
   const [obraForm, setObraForm] = useState({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Modals UI State
   const [showOntologiaForm, setShowOntologiaForm] = useState(false);
@@ -149,6 +151,7 @@ export default function AdminPage() {
       if (res.ok) {
         setShowAddForm(false);
         setObraForm({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
+        setImagePreview(null);
         alert('Obra adicionada com sucesso!');
       } else {
         alert('Erro ao adicionar obra.');
@@ -320,9 +323,61 @@ export default function AdminPage() {
                            <textarea value={obraForm.descricao} onChange={e => setObraForm({...obraForm, descricao: e.target.value})} rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none"></textarea>
                          </div>
                          <div>
-                           <label className="text-[10px] uppercase font-bold text-white/50 tracking-widest">URL da Imagem</label>
-                           <input value={obraForm.imagem_url} onChange={e => setObraForm({...obraForm, imagem_url: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="https://..." />
-                         </div>
+                            <label className="text-[10px] uppercase font-bold text-white/50 tracking-widest mb-2 block">Foto da Obra</label>
+                            <div 
+                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${isDragging ? 'border-[#E85002] bg-[#E85002]/10' : imagePreview ? 'border-green-500/30 bg-green-500/5' : 'border-white/10 hover:border-white/20 bg-white/5'}`}
+                              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                              onDragLeave={() => setIsDragging(false)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setIsDragging(false);
+                                const file = e.dataTransfer.files[0];
+                                if (file && file.type.startsWith('image/')) {
+                                  const reader = new FileReader();
+                                  reader.onload = (ev) => {
+                                    const base64 = ev.target?.result as string;
+                                    setImagePreview(base64);
+                                    setObraForm({...obraForm, imagem_url: base64});
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              onClick={() => document.getElementById('obra-file-input')?.click()}
+                            >
+                              <input 
+                                id="obra-file-input"
+                                type="file" 
+                                accept="image/*" 
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                      const base64 = ev.target?.result as string;
+                                      setImagePreview(base64);
+                                      setObraForm({...obraForm, imagem_url: base64});
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                              {imagePreview ? (
+                                <div className="space-y-3">
+                                  <img src={imagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg border border-white/10 object-contain" />
+                                  <p className="text-[10px] text-green-400 uppercase tracking-widest font-bold">✓ Foto carregada — clique para trocar</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className="w-12 h-12 mx-auto rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/30"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                  </div>
+                                  <p className="text-white/40 text-xs">Arraste uma foto aqui ou clique para selecionar</p>
+                                  <p className="text-white/20 text-[9px] uppercase tracking-widest">JPG, PNG, WebP</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
                          <button disabled={isSubmitting} type="submit" className="w-full liquid-button !bg-[#E85002] mt-4">
                            {isSubmitting ? 'Salvando...' : 'Salvar Obra no Supabase'}
                          </button>
