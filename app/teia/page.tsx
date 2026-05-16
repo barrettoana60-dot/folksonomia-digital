@@ -22,7 +22,7 @@ export default function TeiaPublicaPage() {
         { id: '4', name: 'Guerra', type: 'conceito', color: '#D9C3AB' },
         { id: '5', name: 'mamãe', type: 'tag', color: '#F16001' },
         { id: '6', name: 'conflito', type: 'tag', color: '#F16001' },
-        { id: '7', name: 'Europeana', type: 'fonte', color: '#A7A7A7' },
+        { id: '7', name: 'IBRAM/Tainacan', type: 'fonte', color: '#A7A7A7' },
       ],
       links: [
         { source: '1', target: '3', type: 'broader' },

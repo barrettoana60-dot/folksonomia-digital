@@ -5,7 +5,7 @@ import { Database, Globe, RefreshCcw, CheckCircle2 } from 'lucide-react';
 
 export default function InteroperabilidadePage() {
   const sources = [
-    { name: 'Europeana', status: 'online', coverage: 'Global', lastSync: '10 min atrás' },
+    { name: 'Tesauro CNFCP', status: 'online', coverage: 'Nacional', lastSync: 'local (estático)' },
     { name: 'IBRAM', status: 'online', coverage: 'Nacional', lastSync: '2 horas atrás' },
     { name: 'Brasiliana Museus', status: 'online', coverage: 'Nacional', lastSync: '1 dia atrás' },
     { name: 'Portal Brasileiro de Dados Abertos', status: 'online', coverage: 'Nacional', lastSync: '5 dias atrás' },
@@ -54,7 +54,7 @@ export default function InteroperabilidadePage() {
                     <CheckCircle2 size={16} className="text-green-400" />
                   </div>
                   <div>
-                    <p className="text-sm text-white/80 font-medium">Busca em Europeana concluída para núcleo #4529</p>
+                    <p className="text-sm text-white/80 font-medium">Busca em IBRAM/Tainacan concluída para núcleo #4529</p>
                     <p className="text-[10px] text-white/30 uppercase">Há 5 minutos • Sucesso</p>
                   </div>
                 </div>

@@ -556,7 +556,7 @@ export default function AdminPage() {
 
                          {/* Botão para análise completa no Relatório Semântico */}
                          <button onClick={() => { setSearchTag(tagAnalysisResult.tag); setActiveTab('relatorios'); setTimeout(() => handleSemanticSearch(), 300); }} className="w-full liquid-button !bg-[#E85002] flex items-center justify-center gap-2">
-                           <Globe size={16} /> Análise Completa (Europeana + IBRAM + Brasiliana)
+                           <Globe size={16} /> Análise Completa (IBRAM/Tainacan + Tesauro CNFCP)
                          </button>
                        </>
                      )}
@@ -721,14 +721,14 @@ export default function AdminPage() {
                             <p className="text-[9px] text-white/20 mt-1">{mlHealth ? 'modernbert_ner' : 'heuristic_fallback'}</p>
                           )}
                         </div>
-                        {/* Europeana */}
+                        {/* Tesauro CNFCP */}
                         <div className="border border-white/20 rounded px-3 py-2">
-                          <p className="text-[9px] font-bold text-white/60">Europeana</p>
+                          <p className="text-[9px] font-bold text-white/60">Tesauro CNFCP</p>
                           {semanticResult && !semanticResult.tagNaoExiste ? (
                             <p className="text-[9px] text-white/70 mt-1">
-                              {semanticResult.correlacoes?.europeana?.total > 0
-                                ? `${semanticResult.correlacoes.europeana.total} registro(s): "${semanticResult.correlacoes.europeana.items?.[0]?.titulo?.slice(0,30) || ''}"`
-                                : 'sem resultados'}
+                              {semanticResult.tesauro?.termoEncontrado
+                                ? `Termo mapeado — ${semanticResult.tesauro.termosExpandidos?.length || 0} expansão(ões)`
+                                : 'termo não encontrado no tesauro'}
                             </p>
                           ) : (
                             <p className="text-[9px] text-white/20 mt-1">aguardando busca</p>
@@ -929,22 +929,32 @@ export default function AdminPage() {
 
                     {/* Cards das fontes COM correlações explicadas */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {['europeana', 'brasiliana', 'ibram'].map(fonte => {
-                        const data = semanticResult.correlacoes[fonte];
-                        const label = fonte === 'europeana' ? 'Europeana' : fonte === 'brasiliana' ? 'Brasiliana' : 'IBRAM';
+                      {['ibram', 'brasiliana', 'auxiliares'].map(fonte => {
+                        const data = semanticResult.correlacoes?.[fonte] || { total: 0, items: [], correlations: [] };
+                        const label = fonte === 'ibram' ? 'IBRAM / Tainacan' : fonte === 'brasiliana' ? 'Brasiliana Museus' : 'Fontes Auxiliares';
                         return (
                           <div key={fonte} className="glass-card p-6 space-y-4">
                             <div className="flex justify-between items-center">
                               <h4 className="text-sm font-bold uppercase tracking-widest">{label}</h4>
                               <span className="text-[#E85002] font-bold text-lg">{data.total}</span>
                             </div>
+                            {fonte === 'ibram' && data.museus?.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {data.museus.map((m: string, mi: number) => (
+                                  <span key={mi} className="px-2 py-0.5 bg-[#E85002]/10 text-[#E85002] text-[8px] font-bold uppercase rounded">{m}</span>
+                                ))}
+                              </div>
+                            )}
                             <div className="space-y-3 max-h-80 overflow-y-auto">
-                              {data.items.map((item: any, i: number) => {
+                              {data.items?.map((item: any, i: number) => {
                                 const corr = data.correlations?.[i];
                                 return (
                                   <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
                                     <p className="text-sm font-bold leading-tight">{item.titulo}</p>
                                     {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002]">{item.criador}</p>}
+                                    {item.museu && <p className="text-[10px] text-white/50">{item.museu}</p>}
+                                    {item.material && <p className="text-[10px] text-white/40">Material: {item.material}</p>}
+                                    {item.tecnica && <p className="text-[10px] text-white/40">Técnica: {item.tecnica}</p>}
                                     {item.data && <p className="text-[10px] text-white/40">{item.data}{item.pais ? ` • ${item.pais}` : ''}</p>}
                                     {/* Razões da correlação */}
                                     {corr?.reasons?.length > 0 && (
@@ -970,6 +980,26 @@ export default function AdminPage() {
                         );
                       })}
                     </div>
+
+                    {/* Tesauro CNFCP */}
+                    {semanticResult.tesauro?.contexto && (
+                      <div className="glass-card p-6 border border-amber-500/20">
+                        <h4 className="text-sm font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                          <FileText size={16} className="text-amber-400" /> Tesauro CNFCP / IPHAN
+                        </h4>
+                        <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-lg">
+                          <pre className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap font-sans">{semanticResult.tesauro.contexto}</pre>
+                        </div>
+                        {semanticResult.tesauro.termosExpandidos?.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className="text-[9px] uppercase tracking-widest text-white/30 font-bold mr-2">Expansão:</span>
+                            {semanticResult.tesauro.termosExpandidos.map((t: string, i: number) => (
+                              <span key={i} className="px-2 py-0.5 bg-amber-500/10 text-amber-300 text-[10px] font-bold rounded">{t}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* CONEXÕES CRUZADAS ENTRE FONTES */}
                     {semanticResult.crossConnections?.length > 0 && (
@@ -1041,7 +1071,7 @@ export default function AdminPage() {
                 {!semanticResult && !isAnalyzing && (
                   <div className="glass-card p-16 text-center">
                     <Search size={48} className="mx-auto text-white/10 mb-4" />
-                    <p className="text-white/30 text-xs uppercase tracking-widest font-bold">Digite uma tag acima e clique em Analisar para ver o cruzamento de dados com Europeana, IBRAM e Brasiliana</p>
+                    <p className="text-white/30 text-xs uppercase tracking-widest font-bold">Digite uma tag acima e clique em Analisar para ver o cruzamento de dados com IBRAM/Tainacan, Brasiliana e Tesauro CNFCP</p>
                   </div>
                 )}
               </div>
@@ -1205,7 +1235,7 @@ export default function AdminPage() {
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
                       { name: 'CIDOC-CRM', provider: 'ICOM', terms: 'Conceitos Museais' },
-                      { name: 'Europeana Data Model (EDM)', provider: 'Europeana', terms: 'Agregador Europeu' },
+                      { name: 'Tesauro CNFCP/IPHAN', provider: 'IPHAN', terms: 'Vocabulário Controlado' },
                       { name: 'Tainacan Core', provider: 'IBRAM', terms: 'Padrão Brasil' }
                     ].map((o, i) => (
                       <div key={i} className="glass-card p-8 space-y-6 hover:border-[#E85002]/40 group transition-all cursor-pointer">
@@ -1234,7 +1264,7 @@ export default function AdminPage() {
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { name: 'Europeana API', status: 'Online', delay: '124ms', region: 'EU' },
+                      { name: 'Tesauro CNFCP', status: 'Online', delay: '0ms', region: 'BR' },
                       { name: 'IBRAM (Tainacan)', status: 'Online', delay: '210ms', region: 'BR' },
                       { name: 'Getty Museum API', status: 'Offline', delay: '-', region: 'US' },
                       { name: 'DBPedia Sparql', status: 'Online', delay: '89ms', region: 'Global' }

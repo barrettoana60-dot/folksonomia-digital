@@ -50,7 +50,7 @@ export default async function ModelosPage() {
     communities: { name: 'Community Detection', engine: mlOnline ? 'gat_clustering' : 'heuristic_fallback', desc: 'Detecção de comunidades sobrepostas (Graph Attention Network)' },
     semanticMemory: { name: 'Semantic Memory', engine: mlOnline ? 'pgvector_embedding' : 'hash_fallback', desc: 'Embeddings de 768d via ModernBERT-base' },
     confidence: { name: 'Confidence Engine', engine: 'calibrated_model', desc: 'Multi-fator: modelo + evidência + memória + validação + ambiguidade' },
-    evidenceCollector: { name: 'Evidence Collector', engine: 'cross_source', desc: 'Europeana + Ibram/Tainacan + Brasiliana Museus' },
+    evidenceCollector: { name: 'Evidence Collector', engine: 'cross_source', desc: 'IBRAM/Tainacan (5 museus) + Brasiliana Museus + Tesauro CNFCP' },
     activeLearning: { name: 'Active Learning', engine: 'enabled', desc: 'Registro de termos desconhecidos → hipótese → validação → memória' }
   };
 
