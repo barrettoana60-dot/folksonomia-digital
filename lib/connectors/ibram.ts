@@ -52,6 +52,15 @@ const IBRAM_ENDPOINTS = [
     tematica: ['cultura popular', 'tradições locais', 'saberes', 'fazeres', 'arte popular', 'afro-brasileiro']
   },
   {
+    name: 'Museu de Arqueologia de Itaipu',
+    shortName: 'MAI',
+    baseUrl: 'http://museudearqueologiadeitaipu.museus.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 94553,
+    useINBCM: true,
+    tematica: ['cultura popular', 'território', 'arqueologia']
+  },
+  {
     name: 'Museu da Abolição',
     shortName: 'MA',
     baseUrl: 'https://museudaabolicao.acervos.museus.gov.br',
@@ -68,15 +77,6 @@ const IBRAM_ENDPOINTS = [
     collectionId: 11603,
     useINBCM: true,
     tematica: ['cultura material', 'mineração', 'objetos', 'técnicas', 'materiais']
-  },
-  {
-    name: 'Museu do Índio',
-    shortName: 'MI',
-    baseUrl: 'https://tainacan.museudoindio.gov.br',
-    apiPath: '/wp-json/tainacan/v2',
-    collectionId: 471,
-    useINBCM: false, // Museu do Índio usa schema próprio
-    tematica: ['indígena', 'etnografia', 'artesanato', 'ritual', 'cultura material indígena']
   }
 ];
 

@@ -271,7 +271,7 @@ ${thesaurusContext}
 
 === DADOS FACTUAIS DOS ACERVOS (NÃO INVENTE — use APENAS o que está listado) ===
 
-FONTE OFICIAL — IBRAM / TAINACAN (5 museus: MART, Caeté, Abolição, Diamante, Museu do Índio):
+FONTE OFICIAL — IBRAM / TAINACAN (5 museus: MART, Caeté, Abolição, Diamante, Itaipu):
 ${ibramTexto}
 
 FONTE OFICIAL — BRASILIANA MUSEUS:
@@ -298,7 +298,7 @@ ${conhecimentoPrevio}
 Raciocine em 3 etapas sequenciais, usando o tesauro para contextualizar:
 
 ETAPA 1 — CAMADA FACTUAL:
-Descreva o que os acervos Tainacan/IBRAM retornaram. Cite os museus específicos (MART, Caeté, Abolição, Diamante, Museu do Índio), títulos dos itens, materiais e técnicas. Se o tesauro CNFCP define o termo, inclua a definição. NÃO INVENTE DADOS.
+Descreva o que os acervos Tainacan/IBRAM retornaram. Cite os museus específicos (MART, Caeté, Abolição, Diamante, Itaipu), títulos dos itens, materiais e técnicas. Se o tesauro CNFCP define o termo, inclua a definição. NÃO INVENTE DADOS.
 
 ETAPA 2 — CAMADA INFERIDA:
 Use o tesauro para expandir as conexões: quais termos gerais (TG), termos específicos (TE) e termos associados (TA) se relacionam com os dados encontrados? Que atributos compartilham os registros (período, técnica, material, geografia, etnia, função ritual)? Identifique padrões entre os museus.
