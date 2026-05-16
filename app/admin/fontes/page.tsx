@@ -84,6 +84,8 @@ async function getFontes() {
   return data || [];
 }
 
+export const dynamic = 'force-dynamic';
+
 export default async function FontesPage() {
   const fontes = await getFontes();
 

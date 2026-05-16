@@ -259,9 +259,13 @@ async function generateAIAnalysis(
   auxiliares: any[],
   thesaurusContext: string
 ) {
+  const ibramMuseusEncontrados = [...new Set(ibram.map((i: any) => i.museu || i.fonte || 'IBRAM'))];
+  const ibramMuseusLista = ['MART', 'Museu Regional de Caeté', 'Museu da Abolição', 'Museu do Diamante', 'Museu de Arqueologia de Itaipu', 'Museu do Índio', 'Museu da Pessoa', 'Museu de Folclore Edison Carneiro'];
+  const ibramMuseusVazios = ibramMuseusLista.filter(m => !ibramMuseusEncontrados.some(encontrado => encontrado.includes(m) || m.includes(encontrado)));
+
   const ibramTexto = ibram.length > 0
-    ? ibram.map((i: any) => `"${i.titulo}" — ${i.descricao?.slice(0, 120) || ''} — ${i.museu || 'IBRAM'} ${i.material ? `| Material: ${i.material}` : ''} ${i.tecnica ? `| Técnica: ${i.tecnica}` : ''}`).join('\n')
-    : 'Nenhum registro encontrado nos acervos IBRAM/Tainacan para este termo.';
+    ? ibram.map((i: any) => `"${i.titulo}" — ${i.descricao?.slice(0, 120) || ''} — ${i.museu || 'IBRAM'} ${i.material ? `| Material: ${i.material}` : ''} ${i.tecnica ? `| Técnica: ${i.tecnica}` : ''}`).join('\n') + `\n\n[NOTA IMPORTANTE DE CRUZAMENTO]: O sistema cruzou dados também com os seguintes museus: ${ibramMuseusVazios.join(', ')}. No entanto, as APIs destes museus específicos retornaram ZERO registros contendo a tag "${tag}".`
+    : `[NOTA IMPORTANTE DE CRUZAMENTO]: O sistema realizou buscas ativas cruzadas em todos os 8 museus da rede (${ibramMuseusLista.join(', ')}), porém NENHUM retornou itens para esta tag.`;
 
   const brasilianaTexto = brasiliana.length > 0
     ? brasiliana.map((b: any) => `"${b.titulo}" — ${b.descricao?.slice(0, 100) || ''} — Brasiliana Museus`).join('\n')
