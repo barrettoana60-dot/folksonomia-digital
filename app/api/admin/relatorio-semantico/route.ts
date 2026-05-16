@@ -94,13 +94,39 @@ async function searchIBRAM(query: string, expandedTerms: string[] = []): Promise
 }
 
 // ============================================================
-// Brasiliana Museus / Tainacan (wrapper sobre IBRAM)
 // ============================================================
-async function searchBrasiliana(query: string): Promise<any[]> {
+// Brasiliana Museus / Tainacan (Agregador)
+// ============================================================
+async function searchBrasiliana(query: string, expandedTerms: string[] = []): Promise<any[]> {
   try {
     const connector = new BrasilianaConnector();
-    const records = await connector.searchExternalSource(query);
-    return records.slice(0, 5).map(r => ({
+    
+    // Busca principal
+    const mainResults = await connector.searchExternalSource(query);
+    
+    // Busca expandida com termos do tesauro
+    let expandedResults: any[] = [];
+    if (expandedTerms.length > 0) {
+      const expandedPromises = expandedTerms.slice(0, 3).map(term => 
+        connector.searchExternalSource(term)
+      );
+      const expandedSettled = await Promise.allSettled(expandedPromises);
+      for (const r of expandedSettled) {
+        if (r.status === 'fulfilled') expandedResults.push(...r.value);
+      }
+    }
+
+    // Combinar e deduplicar
+    const allResults = [...mainResults, ...expandedResults];
+    const seen = new Set<string>();
+    const unique = allResults.filter(r => {
+      const key = r.external_id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return unique.slice(0, 10).map(r => ({
       titulo: r.title,
       descricao: r.description || '',
       criador: r.provider || 'Brasiliana Museus',
@@ -476,7 +502,7 @@ export async function POST(req: NextRequest) {
 
     const [ibram, brasiliana, auxiliares] = await Promise.all([
       searchIBRAM(query, thesaurusExpansion.expanded),
-      searchBrasiliana(query),
+      searchBrasiliana(query, thesaurusExpansion.expanded),
       searchAuxiliares(query)
     ]);
 
