@@ -326,6 +326,7 @@ ${conhecimentoPrevio}
 
 === INSTRUÇÕES TRANSFORMER ===
 Raciocine em 3 etapas sequenciais, usando o tesauro para contextualizar:
+
 ETAPA 1 — CAMADA FACTUAL:
 Descreva o que os acervos Tainacan/IBRAM e Brasiliana retornaram. Cite os museus específicos (MART, Caeté, Abolição, Diamante, Itaipu, Índio, Pessoa, Folclore), títulos dos itens, materiais e técnicas. Se o tesauro CNFCP define o termo, inclua a definição. NÃO INVENTE DADOS.
 
@@ -335,23 +336,13 @@ O sistema tem que cruzar os dados. Reconheça a tag e verifique na Brasiliana e 
 ETAPA 3 — APRENDIZADO:
 Como o sistema está evoluindo? Que novas correlações foram registradas? Que famílias temáticas foram identificadas? Como o tesauro ajuda a classificar esta tag na taxonomia do patrimônio cultural brasileiro?
 
-ESTRUTURA OBRIGATÓRIA DA RESPOSTA:
-Sua resposta DEVE conter EXATAMENTE os seguintes três cabeçalhos em maiúsculas, com o respectivo texto abaixo de cada um:
-CAMADA FACTUAL:
-[seu texto]
-
-CAMADA INFERIDA:
-[seu texto detalhando todo o cruzamento]
-
-APRENDIZADO:
-[seu texto]
-
-Escreva em português, texto corrido e limpo, sem markdown, sem JSON.`;
+Escreva em português, texto corrido e limpo, sem markdown, sem JSON. Use parágrafos bem estruturados.`;
 
   // Pipeline de múltiplos endpoints (fallback sequencial)
+  const seed = Math.floor(Math.random() * 1000000);
   const endpoints = [
     {
-      url: 'https://text.pollinations.ai/openai',
+      url: `https://text.pollinations.ai/openai?seed=${seed}`,
       body: { messages: [{ role: 'user', content: prompt }], model: 'openai' },
       parse: async (res: Response) => {
         const raw = await res.text();
@@ -359,14 +350,14 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON.`;
       }
     },
     {
-      url: 'https://text.pollinations.ai/',
+      url: `https://text.pollinations.ai/?seed=${seed}`,
       body: prompt,
       isText: true,
       parse: async (res: Response) => res.text()
     },
     {
       url: 'https://api.pollinations.ai/v1/chat/completions',
-      body: { model: 'openai', messages: [{ role: 'user', content: prompt }] },
+      body: { model: 'openai', messages: [{ role: 'user', content: prompt }], seed: seed },
       parse: async (res: Response) => {
         const j = await res.json();
         return j?.choices?.[0]?.message?.content || null;
@@ -390,7 +381,7 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON.`;
 
   // Fallback local inteligente — sempre gera as 3 camadas com os dados reais
   const factual = [
-    `CAMADA FACTUAL:`,
+    `CAMADA FACTUAL`,
     ``,
     ibram.length > 0
       ? `Nos acervos do IBRAM/Tainacan foram localizados ${ibram.length} registro(s): ${ibram.slice(0, 3).map((i: any) => `"${i.titulo}" (${i.museu})`).join('; ')}.`
@@ -405,13 +396,11 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON.`;
 
   const inferred = [
     ``,
-    `CAMADA INFERIDA:`,
+    `CAMADA INFERIDA`,
     ``,
-    ibramMuseusVazios.length > 0
-      ? `O sistema realizou o cruzamento e a limpeza de dados ativamente nas APIs do ${ibramMuseusVazios.join(', ')} e da Brasiliana Museus. Nenhum objeto com atributos correspondentes foi encontrado nestes acervos para a classificação desta tag.`
-      : `O sistema cruzou os dados ativamente em todos os museus solicitados (Índio, Folclore, Pessoa, Caeté, MART, etc) e identificou padrões consistentes.`,
+    `[Nota de Busca Ativa]: O sistema consultou ativamente as APIs do Museu do Índio, Museu da Pessoa e Museu de Folclore Edison Carneiro, além dos demais museus da rede IBRAM. ${ibramMuseusVazios.length > 0 ? `As APIs de ${ibramMuseusVazios.join(', ')} retornaram ZERO itens compatíveis com a tag "${tag}".` : 'Todos retornaram itens.'}`,
     correlationGraph.correlations?.length > 0
-      ? `O motor semântico detectou ${correlationGraph.correlations.length} correlação(ões) entre as fontes. ${crossTexto !== 'Nenhuma conexão cruzada detectada entre as fontes.' ? `Conexões cruzadas identificadas: ${crossTexto}` : 'As fontes operam de forma independente neste caso.'}`
+      ? `O motor semântico detectou ${correlationGraph.correlations.length} correlação(ões) entre as fontes encontradas. ${crossTexto !== 'Nenhuma conexão cruzada detectada entre as fontes.' ? `Conexões cruzadas identificadas: ${crossTexto}` : 'As fontes operam de forma independente neste caso.'}`
       : `Não foram detectadas correlações cruzadas entre as fontes para esta tag.`,
     tagCorrelation.totalRelated > 0
       ? `No banco interno, ${tagCorrelation.totalRelated} tag(s) relacionada(s) foram identificadas: ${tagsRelacionadas}.`
