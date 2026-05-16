@@ -1,51 +1,114 @@
 /**
  * Folksonomia Digital 2.0 — Conector Brasiliana Museus / Tainacan
  * 
- * Wrapper sobre o IbramConnector que filtra museus com temática
- * Brasiliana (cultura popular, memória, patrimônio imaterial).
- * 
- * Não utiliza mais a BNDigital (WordPress posts/pages).
- * Todas as buscas passam pelo Tainacan real.
+ * Consulta o Agregador Oficial da Brasiliana Museus.
  */
 
 import { ExternalMatch, OpenDataConnector } from './types';
-import { IbramConnector, TainacanRecord } from './ibram';
 
 export class BrasilianaConnector implements OpenDataConnector {
   name = 'Brasiliana Museus';
-  private ibram = new IbramConnector();
+  private baseUrl = 'https://brasiliana.museus.gov.br';
+  private apiPath = '/wp-json/tainacan/v2/items';
 
   /**
-   * Busca nos acervos Tainacan com temática Brasiliana.
-   * Reutiliza o IbramConnector, mas apresenta resultados
-   * como vindos da rede Brasiliana Museus.
+   * Busca nos acervos da Brasiliana Museus.
    */
   async searchExternalSource(query: string): Promise<ExternalMatch[]> {
-    const records = await this.ibram.searchAllMuseums(query, 3);
-    
-    // Deduplicar por título
-    const seen = new Set<string>();
-    const unique = records.filter(r => {
-      const key = r.title.toLowerCase().substring(0, 50);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    try {
+      const queryParams = new URLSearchParams({
+        perpage: '5',
+        search: query,
+        exposer: 'json-flat'
+      });
 
-    return unique.slice(0, 5).map(rec => ({
-      source: this.name,
-      external_id: rec.id,
-      title: rec.title,
-      description: rec.description || `Acervo: ${rec.museum}`,
-      url: rec.url || 'https://museus.gov.br',
-      provider: `${rec.museum} / Brasiliana Museus`,
-      match_score: 0.80,
-      relation_type: 'closeMatch' as const,
-      raw: rec.raw
-    }));
+      const url = `${this.baseUrl}${this.apiPath}/?${queryParams}`;
+      
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(12000)
+      });
+
+      if (!res.ok) {
+        console.warn(`[Brasiliana] HTTP ${res.status}`);
+        return [];
+      }
+
+      const data = await res.json();
+      const items = data.items || (Array.isArray(data) ? data : []);
+
+      // Deduplicar e parsear
+      const seen = new Set<string>();
+      const uniqueItems = items.filter((item: any) => {
+        const titleStr = this.extractTitle(item);
+        if (!titleStr) return false;
+        const key = titleStr.toLowerCase().substring(0, 50);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      return uniqueItems.slice(0, 5).map((item: any) => {
+        const metadata = item.data || {};
+        
+        const description = item.description?.rendered 
+          || this.getMetaValue(metadata, 'description')
+          || this.getMetaValue(metadata, 'resumo-descritivo');
+          
+        const author = this.getMetaValue(metadata, 'autor') 
+          || this.getMetaValue(metadata, 'autoria');
+
+        const date = this.getMetaValue(metadata, 'data-de-producao')
+          || this.getMetaValue(metadata, 'creation-date');
+
+        const museum = this.getMetaValue(metadata, 'instalacao') || 'Brasiliana Museus';
+
+        return {
+          source: this.name,
+          external_id: `brasiliana-${item.id || Date.now()}`,
+          title: this.extractTitle(item),
+          description: description || `Acervo: ${museum}`,
+          url: item.url || this.baseUrl,
+          provider: museum,
+          match_score: 0.80,
+          relation_type: 'closeMatch' as const,
+          raw: item
+        };
+      });
+    } catch (err) {
+      console.warn('[Brasiliana] Fetch failed:', err);
+      return [];
+    }
+  }
+
+  private extractTitle(item: any): string {
+    const metadata = item.data || {};
+    const title = this.getMetaValue(metadata, 'title') 
+      || this.getMetaValue(metadata, 'titulo')
+      || this.getMetaValue(metadata, 'denominacao')
+      || item.title?.rendered 
+      || item.title;
+      
+    return typeof title === 'string' ? title : String(title || 'Sem Título');
+  }
+
+  private getMetaValue(metadata: any, key: string): string | undefined {
+    if (metadata[key] && metadata[key].value) {
+      const v = String(metadata[key].value).trim();
+      return v ? v : undefined;
+    }
+    return undefined;
   }
 
   async testConnection(): Promise<boolean> {
-    return this.ibram.testConnection();
+    try {
+      const url = `${this.baseUrl}${this.apiPath}/?perpage=1&exposer=json-flat`;
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(5000)
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 }

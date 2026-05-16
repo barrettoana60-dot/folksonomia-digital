@@ -54,7 +54,7 @@ const IBRAM_ENDPOINTS = [
   {
     name: 'Museu de Arqueologia de Itaipu',
     shortName: 'MAI',
-    baseUrl: 'http://museudearqueologiadeitaipu.museus.gov.br',
+    baseUrl: 'https://museudearqueologiadeitaipu.museus.gov.br',
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 94553,
     useINBCM: true,
