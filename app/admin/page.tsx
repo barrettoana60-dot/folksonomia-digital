@@ -651,16 +651,59 @@ export default function AdminPage() {
 
             {activeTab === 'relatorios' && (
               <div className="space-y-8 animate-fade-in print-section">
-                {/* Estilos para impressão limpa */}
+                {/* Estilos para impressão limpa — somente análise da tag */}
                 <style dangerouslySetInnerHTML={{__html: `
                   @media print {
-                    body { background: white !important; color: black !important; }
-                    .glass-card { border: 1px solid #ccc !important; box-shadow: none !important; background: transparent !important; page-break-inside: avoid; }
-                    .print\\:hidden { display: none !important; }
-                    .text-white\\/80, .text-white\\/40, .text-white\\/30 { color: #333 !important; }
-                    .text-\\[\\#E85002\\] { color: #000 !important; font-weight: bold; }
-                    .bg-\\[\\#E85002\\]\\/10 { background: #f0f0f0 !important; border: 1px solid #ddd !important; }
-                    .prose { color: black !important; }
+                    /* Reset geral */
+                    body { background: white !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    
+                    /* Esconder TUDO que não é a análise */
+                    nav, header, footer, .print\\:hidden, [class*="print:hidden"] { display: none !important; }
+                    
+                    /* Sidebar e tabs */
+                    aside, [role="navigation"], [role="tablist"] { display: none !important; }
+                    
+                    /* Cards com borda leve */
+                    .glass-card { 
+                      border: 1px solid #ddd !important; 
+                      box-shadow: none !important; 
+                      background: transparent !important; 
+                      page-break-inside: avoid;
+                      margin-bottom: 12px !important;
+                    }
+                    
+                    /* Tipografia */
+                    * { color: #222 !important; }
+                    h1, h2, h3, h4 { color: #000 !important; font-weight: bold !important; }
+                    .text-\\[\\#E85002\\] { color: #c44000 !important; font-weight: bold; }
+                    .text-green-400, .text-green-500 { color: #16a34a !important; }
+                    .text-blue-400, .text-blue-300 { color: #2563eb !important; }
+                    .text-purple-400, .text-purple-300 { color: #7c3aed !important; }
+                    .text-amber-400, .text-amber-300 { color: #d97706 !important; }
+                    .text-red-400, .text-red-500 { color: #dc2626 !important; }
+                    
+                    /* Badges e tags coloridas */
+                    .bg-\\[\\#E85002\\]\\/10, .bg-blue-500\\/10, .bg-green-500\\/10, .bg-purple-500\\/10, .bg-amber-500\\/10 { 
+                      background: #f5f5f5 !important; 
+                      border: 1px solid #ccc !important; 
+                    }
+                    
+                    /* Prose e análise escrita */
+                    .prose, .prose * { color: #222 !important; line-height: 1.8 !important; }
+                    
+                    /* Barras de progresso */
+                    .bg-\\[\\#E85002\\] { background: #c44000 !important; }
+                    
+                    /* Cabeçalho do print */
+                    .print-header { display: block !important; }
+                    
+                    /* Margens */
+                    @page { margin: 1.5cm 2cm; }
+                    
+                    /* Largura */
+                    .print-section { max-width: 100% !important; padding: 0 !important; }
+                    .grid { display: block !important; }
+                    .grid > * { margin-bottom: 16px !important; }
                   }
                 `}} />
 
@@ -702,8 +745,19 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* BARRA DE BUSCA SEMÂNTICA */}
-                <div className="glass-card p-6 flex gap-4 items-center">
+                {/* Cabeçalho institucional — só aparece no PDF */}
+                <div className="print-header hidden mb-8" style={{display: 'none'}}>
+                  <div style={{borderBottom: '2px solid #c44000', paddingBottom: '16px', marginBottom: '24px'}}>
+                    <h1 style={{fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.1em', textTransform: 'uppercase'}}>Sistema de Folksonomia Digital 2.0</h1>
+                    <p style={{fontSize: '11px', color: '#666', marginTop: '4px'}}>Relatório Semântico — Gerado em {new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>
+                    {semanticResult && !semanticResult.tagNaoExiste && (
+                      <p style={{fontSize: '18px', fontWeight: 'bold', marginTop: '12px', color: '#c44000'}}>Tag analisada: &quot;{semanticResult.tag}&quot;</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* BARRA DE BUSCA SEMÂNTICA — escondida no print */}
+                <div className="glass-card p-6 flex gap-4 items-center print:hidden">
                   <Search size={20} className="text-white/30" />
                   <input
                     value={searchTag}
@@ -717,8 +771,8 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* DIAGRAMA DE FLUXO DO PIPELINE — limpo, como na referência */}
-                <div className="glass-card p-6">
+                {/* DIAGRAMA DE FLUXO DO PIPELINE — escondido no print */}
+                <div className="glass-card p-6 print:hidden">
                   <div className="flex items-center justify-between mb-6">
                     <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/30">Pipeline de Análise Semântica</p>
                     <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-1 rounded border ${
