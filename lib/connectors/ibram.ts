@@ -77,6 +77,33 @@ const IBRAM_ENDPOINTS = [
     collectionId: 11603,
     useINBCM: true,
     tematica: ['cultura material', 'mineração', 'objetos', 'técnicas', 'materiais']
+  },
+  {
+    name: 'Museu do Índio',
+    shortName: 'MI',
+    baseUrl: 'https://tainacan.museudoindio.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 471,
+    useINBCM: false,
+    tematica: ['indígena', 'etnografia', 'artesanato', 'ritual', 'cultura material indígena']
+  },
+  {
+    name: 'Museu da Pessoa',
+    shortName: 'MP',
+    baseUrl: 'https://acervo.museudapessoa.org',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 1,
+    useINBCM: false,
+    tematica: ['história de vida', 'memória', 'relatos', 'depoimentos']
+  },
+  {
+    name: 'Museu de Folclore Edison Carneiro',
+    shortName: 'CNFCP',
+    baseUrl: 'http://acervo.cnfcp.gov.br',
+    apiPath: '/wp-json/tainacan/v2',
+    collectionId: 1,
+    useINBCM: true,
+    tematica: ['folclore', 'cultura popular', 'artesanato', 'saberes']
   }
 ];
 

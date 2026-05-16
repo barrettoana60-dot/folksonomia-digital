@@ -297,7 +297,7 @@ ${thesaurusContext}
 
 === DADOS FACTUAIS DOS ACERVOS (NÃO INVENTE — use APENAS o que está listado) ===
 
-FONTE OFICIAL — IBRAM / TAINACAN (5 museus: MART, Caeté, Abolição, Diamante, Itaipu):
+FONTE OFICIAL — IBRAM / TAINACAN E OUTROS MUSEUS (8 museus: MART, Caeté, Abolição, Diamante, Itaipu, Índio, Pessoa, Folclore):
 ${ibramTexto}
 
 FONTE OFICIAL — BRASILIANA MUSEUS:
@@ -324,10 +324,10 @@ ${conhecimentoPrevio}
 Raciocine em 3 etapas sequenciais, usando o tesauro para contextualizar:
 
 ETAPA 1 — CAMADA FACTUAL:
-Descreva o que os acervos Tainacan/IBRAM retornaram. Cite os museus específicos (MART, Caeté, Abolição, Diamante, Itaipu), títulos dos itens, materiais e técnicas. Se o tesauro CNFCP define o termo, inclua a definição. NÃO INVENTE DADOS.
+Descreva o que os acervos Tainacan/IBRAM e Brasiliana retornaram. Cite os museus específicos (MART, Caeté, Abolição, Diamante, Itaipu, Índio, Pessoa, Folclore), títulos dos itens, materiais e técnicas. Se o tesauro CNFCP define o termo, inclua a definição. NÃO INVENTE DADOS.
 
-ETAPA 2 — CAMADA INFERIDA:
-Use o tesauro para expandir as conexões: quais termos gerais (TG), termos específicos (TE) e termos associados (TA) se relacionam com os dados encontrados? Que atributos compartilham os registros (período, técnica, material, geografia, etnia, função ritual)? Identifique padrões entre os museus.
+ETAPA 2 — CAMADA INFERIDA (MUITO IMPORTANTE: TODO O CRUZAMENTO DE DADOS DEVE SER ESCRITO NESTA CAMADA):
+O sistema tem que cruzar os dados. Reconheça a tag e verifique na Brasiliana e nos Museus o que ela significa. Faça a limpeza de dados (mentalmente) e escreva AQUI NESTA CAMADA INFERIDA toda a devolutiva de como esses dados das APIs (Museus e Brasiliana) e da terminologia (Tesauro) se conectam. Use o tesauro para expandir as conexões (TG, TE, TA). Que atributos compartilham os registros? Identifique os padrões.
 
 ETAPA 3 — APRENDIZADO:
 Como o sistema está evoluindo? Que novas correlações foram registradas? Que famílias temáticas foram identificadas? Como o tesauro ajuda a classificar esta tag na taxonomia do patrimônio cultural brasileiro?

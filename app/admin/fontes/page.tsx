@@ -43,6 +43,30 @@ async function getFontes() {
       licenca: 'Domínio Público / Creative Commons',
       url: 'http://museudodiamante.acervos.museus.gov.br',
       ativo: true,
+    },
+    {
+      nome: 'Museu do Índio',
+      tipo: 'Tainacan / json-flat',
+      descricao: 'Acervo focado em cultura indígena, etnografia e artesanato.',
+      licenca: 'Domínio Público / Creative Commons',
+      url: 'https://tainacan.museudoindio.gov.br',
+      ativo: true,
+    },
+    {
+      nome: 'Museu da Pessoa',
+      tipo: 'Tainacan / json-flat',
+      descricao: 'Acervo de histórias de vida, memória e depoimentos.',
+      licenca: 'Creative Commons',
+      url: 'https://acervo.museudapessoa.org',
+      ativo: true,
+    },
+    {
+      nome: 'Museu de Folclore Edison Carneiro',
+      tipo: 'Tainacan / json-flat',
+      descricao: 'Acervo do Centro Nacional de Folclore e Cultura Popular.',
+      licenca: 'Domínio Público / Creative Commons',
+      url: 'http://acervo.cnfcp.gov.br',
+      ativo: true,
     }
   ];
 
