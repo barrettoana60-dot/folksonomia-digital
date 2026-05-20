@@ -23,8 +23,7 @@ export async function POST(req: NextRequest) {
         descricao,
         imagem_url,
         artista,
-        ano,
-        publicado: true
+        ano
       })
       .select()
       .single();
