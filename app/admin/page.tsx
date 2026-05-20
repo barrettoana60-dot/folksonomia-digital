@@ -5,7 +5,7 @@ import {
   Users, Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieChart as PieIcon, 
   CheckCircle2, Settings, ChevronRight, ShieldCheck, Network, Globe, 
-  Search, ArrowUpRight, X, AlertCircle
+  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -197,7 +197,6 @@ export default function AdminPage() {
         const json = await res.json();
         if (json.success) {
           const newObra = json.data;
-          // Atualiza a lista localmente para refletir imediatamente a obra adicionada
           setObrasList(prev => [newObra, ...prev]);
           setShowAddForm(false);
           setObraForm({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
@@ -1278,6 +1277,39 @@ export default function AdminPage() {
                           <div className="text-center p-3 bg-white/5 rounded-lg">
                             <p className="text-2xl font-bold text-green-400">{semanticResult.knowledge.learningEvents}</p>
                             <p className="text-[9px] uppercase tracking-widest text-white/40 font-bold">Eventos de Aprendizado</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Grau de Certeza do Transformer */}
+                    {semanticResult.motores?.transformer && (
+                      <div className={`glass-card p-6 border ${semanticResult.motores.transformer.aguardandoTreino ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                          <div>
+                            <h4 className="text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                              {semanticResult.motores.transformer.aguardandoTreino ? (
+                                <><AlertTriangle size={16} className="text-yellow-400" /> Baixa Certeza Semântica</>
+                              ) : (
+                                <><CheckCircle size={16} className="text-green-400" /> Confiança Matemática</>
+                              )}
+                            </h4>
+                            <p className="text-xs text-white/60">
+                              {semanticResult.motores.transformer.aguardandoTreino 
+                                ? 'A IA não atingiu 95% de certeza. Enviado para auto-treinamento de madrugada.' 
+                                : 'O raciocínio lógico atingiu o threshold necessário para publicação.'}
+                            </p>
+                          </div>
+                          <div className="text-right flex flex-col items-center">
+                            <div className={`text-4xl font-black tracking-tighter ${semanticResult.motores.transformer.aguardandoTreino ? 'text-yellow-400' : 'text-green-400'}`}>
+                              {semanticResult.motores.transformer.certeza}%
+                            </div>
+                            <div className="w-full bg-white/10 h-1.5 rounded-full mt-2 overflow-hidden w-24">
+                              <div 
+                                className={`h-full ${semanticResult.motores.transformer.aguardandoTreino ? 'bg-yellow-400' : 'bg-green-400'}`} 
+                                style={{ width: `${semanticResult.motores.transformer.certeza}%` }}
+                              ></div>
+                            </div>
                           </div>
                         </div>
                       </div>

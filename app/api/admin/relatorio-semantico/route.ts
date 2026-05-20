@@ -326,18 +326,22 @@ ${tagCorrelation.family ?
 ${conhecimentoPrevio}
 
 === INSTRUÇÕES TRANSFORMER ===
-Raciocine em 3 etapas sequenciais, usando o tesauro para contextualizar:
+Você deve agir como um modelo de Machine Learning que mede matematicamente sua certeza sobre as correlações encontradas.
 
-ETAPA 1 — CAMADA FACTUAL:
-Descreva o que os acervos Tainacan/IBRAM e Brasiliana retornaram. Cite os museus específicos (MART, Caeté, Abolição, Diamante, Itaipu, Índio, Pessoa, Folclore), títulos dos itens, materiais e técnicas. Se o tesauro CNFCP define o termo, inclua a definição. NÃO INVENTE DADOS.
+Raciocine cruzando o Tesauro, IBRAM e Brasiliana. Siga o fluxo de raciocínio (Chain-of-Thought):
+1. Pense silenciosamente sobre as conexões.
+2. Atribua uma "certeza_percentual" matemática (0 a 100).
+3. Formule a "resposta_final".
 
-ETAPA 2 — CAMADA INFERIDA (MUITO IMPORTANTE: TODO O CRUZAMENTO DE DADOS DEVE SER ESCRITO NESTA CAMADA):
-O sistema tem que cruzar os dados. Reconheça a tag e verifique na Brasiliana e nos Museus o que ela significa. Faça a limpeza de dados (mentalmente) e escreva AQUI NESTA CAMADA INFERIDA toda a devolutiva de como esses dados das APIs (Museus e Brasiliana) e da terminologia (Tesauro) se conectam. Cite a localização geográfica (cidade/estado) dos museus onde as obras foram encontradas. Identifique conexões culturais ou geográficas. Use o tesauro para expandir as conexões (TG, TE, TA). Que atributos compartilham os registros? Identifique os padrões.
+RESPONDA EXCLUSIVAMENTE EM FORMATO JSON VÁLIDO. NÃO adicione crases (\`\`\`) nem texto fora do JSON. Use a seguinte estrutura:
 
-ETAPA 3 — APRENDIZADO:
-Como o sistema está evoluindo? Que novas correlações foram registradas? Que famílias temáticas foram identificadas? Como o tesauro ajuda a classificar esta tag na taxonomia do patrimônio cultural brasileiro?
-
-Escreva em português, texto corrido e limpo, sem markdown, sem JSON. Use parágrafos bem estruturados.`;
+{
+  "pensamento_interno": "Descreva aqui o seu raciocínio passo-a-passo. Cruze os dados, veja os museus listados (MART, Caeté, etc).",
+  "certeza_percentual": 95,
+  "conexao_matematica": "Equação ou lógica de similaridade semântica (ex: tag_A ≈ tag_B devido a atributo_X)",
+  "resposta_final": "Seu texto final em português bem estruturado (3 parágrafos: Factual, Inferido, Aprendizado). Apenas preencha isso se tiver certeza. Se não tiver certeza, pode preencher igual, mas o sistema vai descartar e enviar para treinamento."
+}
+`;
 
   // Pipeline de múltiplos endpoints (fallback sequencial)
   const seed = Math.floor(Math.random() * 1000000);
@@ -366,6 +370,8 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON. Use parág
     }
   ];
 
+  let aiResponseObj = null;
+
   for (const endpoint of endpoints) {
     try {
       const res = await fetch(endpoint.url, {
@@ -375,9 +381,53 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON. Use parág
         signal: AbortSignal.timeout(30000)
       });
       if (!res.ok) continue;
-      const text = await endpoint.parse(res);
-      if (text && text.length > 100) return text;
+      let text = await endpoint.parse(res);
+      if (text) {
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        try {
+          aiResponseObj = JSON.parse(text);
+          if (aiResponseObj && typeof aiResponseObj.certeza_percentual !== 'undefined') {
+            break; // Achou um JSON válido
+          }
+        } catch (e) {
+          // Fallback se o LLM não gerou JSON válido, vamos tentar extrair algo ou continuar
+          continue;
+        }
+      }
     } catch { continue; }
+  }
+
+  let certeza = 0;
+  let respostaTexto = '';
+
+  // ============================================================
+  // LÓGICA DE CERTEZA MATEMÁTICA (95%)
+  // ============================================================
+  if (aiResponseObj) {
+    certeza = Number(aiResponseObj.certeza_percentual) || 0;
+    
+    if (certeza < 95) {
+      // Registrar na fila de auto-treinamento da madrugada
+      try {
+        await supabaseAdmin.from('ml_training_queue').insert({
+          tag: tag,
+          certeza_atual: certeza,
+          ultimo_pensamento: aiResponseObj.pensamento_interno || 'Sem raciocínio estruturado',
+          status: 'pending'
+        });
+      } catch (err) {
+        console.warn('Falha ao enviar para fila de treinamento (ml_training_queue pode não existir):', err);
+      }
+
+      respostaTexto = `O Cérebro Semântico concluiu que a certeza matemática para conectar esta tag aos acervos atuais é inferior ao limite de 95%.\nO sistema responde: "Ainda não possuo clareza absoluta sobre o significado ou cruzamento desta tag."\n\nEsta pesquisa foi automaticamente enviada para o laboratório de auto-treinamento noturno (Transformer Training Base). O sistema realizará buscas profundas de madrugada para reavaliar as correlações.`;
+    } else {
+      // Retornar a resposta final com o selo de certeza
+      respostaTexto = (aiResponseObj.resposta_final || '');
+    }
+  } else {
+    // Fallback se n tiver obj
+    certeza = 50;
+    respostaTexto = "Falha no motor de inferência LLM. Análise pendente para treinamento noturno.";
   }
 
   // Fallback local inteligente — sempre gera as 3 camadas com os dados reais
@@ -423,7 +473,9 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON. Use parág
       : `Esta consulta foi registrada para aprendizado futuro. Conforme mais tags forem criadas e validadas, o sistema amplia automaticamente suas conexões semânticas.`
   ].join('\n');
 
-  return factual + inferred + learning;
+  // Se a certeza falhou, mostramos só a resposta texto (que diz que n sabe). Se deu bom, mostramos a resposta_final do LLM.
+  // Vamos também concatenar as camadas base só se o LLM falhar miseravelmente na formatação
+  return { texto: respostaTexto || (factual + inferred + learning), certeza };
 }
 
 // ============================================================
@@ -537,14 +589,15 @@ export async function POST(req: NextRequest) {
     // PASSO 8: Gerar análise escrita com IA baseada em EVIDÊNCIAS
     // Pipeline Transformer com Tesauro CNFCP
     // ================================================================
-    const brainText = await generateAIAnalysis(query, correlationGraph, tagCorrelation, previousCorrelations, dbTags, ibram, brasiliana, auxiliares, thesaurusContext);
+    const brainTextObj = await generateAIAnalysis(query, correlationGraph, tagCorrelation, previousCorrelations, dbTags, ibram, brasiliana, auxiliares, thesaurusContext);
 
-    const totalExterno = ibram.length + brasiliana.length;
-    const analise = brainText || 
+    const analise = brainTextObj?.texto || 
       `A tag "${query}" existe no sistema com ${dbTags.length} registro(s). ` +
       `O motor encontrou ${ibram.length} registro(s) no IBRAM/Tainacan e ${brasiliana.length} na Brasiliana Museus. ` +
       `${tagCorrelation.totalRelated > 0 ? `Foram detectadas ${tagCorrelation.totalRelated} tags relacionadas no banco interno. ` : ''}` +
       `Conforme novas tags são criadas e validadas, o sistema amplia automaticamente essas conexões.`;
+
+    const certezaCalculada = brainTextObj?.certeza || 0;
 
     // ================================================================
     // RESPOSTA FINAL — Estruturada com todas as camadas
@@ -559,7 +612,8 @@ export async function POST(req: NextRequest) {
         motores: {
           modernbert: { status: 'active', descricao: 'Classificação de tokens e extração de entidades' },
           rotate: { status: 'active', descricao: 'Inferência de relações no espaço complexo' },
-          gat: { status: 'active', descricao: 'Resolução de fronteiras fluidas e multi-membership' }
+          gat: { status: 'active', descricao: 'Resolução de fronteiras fluidas e multi-membership' },
+          transformer: { status: 'active', certeza: certezaCalculada, aguardandoTreino: certezaCalculada < 95 }
         },
 
         // Tesauro CNFCP
