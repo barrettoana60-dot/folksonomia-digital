@@ -37,6 +37,10 @@ export default function AdminPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Obras List State
+  const [obrasList, setObrasList] = useState<any[]>([]);
+  const [obrasLoading, setObrasLoading] = useState(false);
+
   // Modals UI State
   const [showOntologiaForm, setShowOntologiaForm] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
@@ -107,9 +111,40 @@ export default function AdminPage() {
     }
   };
 
+  // Buscar obras do Supabase
+  const fetchObras = async () => {
+    setObrasLoading(true);
+    try {
+      const res = await fetch('/api/admin/obras');
+      const json = await res.json();
+      if (json.success) setObrasList(json.data || []);
+    } catch (err) {
+      console.error('Erro ao buscar obras:', err);
+    } finally {
+      setObrasLoading(false);
+    }
+  };
+
+  const handleDeleteObra = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta obra?')) return;
+    try {
+      const res = await fetch('/api/admin/obras', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        setObrasList(prev => prev.filter(o => o.id !== id));
+      }
+    } catch (err) {
+      console.error('Erro ao excluir:', err);
+    }
+  };
+
   // Carregar dados na montagem E quando trocar de aba
   useEffect(() => {
     fetchDashboard();
+    if (activeTab === 'obras') fetchObras();
   }, [activeTab]);
 
   // Auto-refresh a cada 30 segundos
@@ -152,6 +187,7 @@ export default function AdminPage() {
         setShowAddForm(false);
         setObraForm({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
         setImagePreview(null);
+        fetchObras();
         alert('Obra adicionada com sucesso!');
       } else {
         alert('Erro ao adicionar obra.');
@@ -406,10 +442,55 @@ export default function AdminPage() {
                    </div>
                  )}
 
-                 <div className="glass-card p-12 text-center">
-                    <Database size={48} className="mx-auto text-white/10 mb-6" />
-                    <p className="text-white/30 uppercase tracking-widest font-black text-xs">Exibição de galeria de obras (conectado via API)...</p>
-                 </div>
+                 {/* GALERIA REAL DE OBRAS */}
+                 {obrasLoading ? (
+                   <div className="glass-card p-12 text-center">
+                     <div className="w-8 h-8 border-2 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                     <p className="text-white/30 uppercase tracking-widest font-black text-xs">Carregando obras do Supabase...</p>
+                   </div>
+                 ) : obrasList.length === 0 ? (
+                   <div className="glass-card p-12 text-center">
+                     <Database size={48} className="mx-auto text-white/10 mb-6" />
+                     <p className="text-white/30 uppercase tracking-widest font-black text-xs">Nenhuma obra cadastrada ainda. Clique em "+ Nova Obra" para começar.</p>
+                   </div>
+                 ) : (
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                     {obrasList.map((obra) => (
+                       <div key={obra.id} className="glass-card overflow-hidden group hover:border-[#E85002]/30 transition-all duration-300">
+                         {obra.imagem_url ? (
+                           <div className="h-48 overflow-hidden bg-black/30">
+                             <img src={obra.imagem_url} alt={obra.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                           </div>
+                         ) : (
+                           <div className="h-48 bg-gradient-to-br from-[#E85002]/10 to-transparent flex items-center justify-center">
+                             <Database size={48} className="text-white/10" />
+                           </div>
+                         )}
+                         <div className="p-5 space-y-3">
+                           <h3 className="text-lg font-bold serif-title uppercase tracking-wide leading-tight">{obra.titulo}</h3>
+                           {obra.artista && <p className="text-[11px] text-[#E85002] font-bold uppercase tracking-widest">{obra.artista}</p>}
+                           {obra.ano && <p className="text-[10px] text-white/40 uppercase tracking-widest">Ano: {obra.ano}</p>}
+                           {obra.descricao && <p className="text-xs text-white/50 line-clamp-2">{obra.descricao}</p>}
+                           <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                             <span className="text-[9px] uppercase tracking-widest text-white/30 font-bold">
+                               <TagIcon size={10} className="inline mr-1" />
+                               {obra.total_tags || 0} tags
+                             </span>
+                             <div className="flex gap-2">
+                               <button
+                                 onClick={() => handleDeleteObra(obra.id)}
+                                 className="text-white/20 hover:text-red-400 transition-colors p-1"
+                                 title="Excluir obra"
+                               >
+                                 <Trash2 size={14} />
+                               </button>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 )}
               </div>
             )}
 
