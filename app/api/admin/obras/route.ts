@@ -5,8 +5,6 @@ import { requireAdmin } from '@/lib/core/auth-guard';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const authError = await requireAdmin(req);
-  if (authError) return authError;
 
   try {
     const body = await req.json();
