@@ -47,7 +47,7 @@ export async function GET() {
     let obrasResult = await supabaseAdmin
       .from('obras')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('criado_em', { ascending: false });
 
     console.log('[GET obras] Admin result - error:', obrasResult.error?.message, 'count:', obrasResult.data?.length);
 
@@ -57,7 +57,7 @@ export async function GET() {
       const clientResult = await supabaseClient
         .from('obras')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('criado_em', { ascending: false });
 
       console.log('[GET obras] Client result - error:', clientResult.error?.message, 'count:', clientResult.data?.length);
 
