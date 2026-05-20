@@ -115,7 +115,7 @@ export default function AdminPage() {
   const fetchObras = async () => {
     setObrasLoading(true);
     try {
-      const res = await fetch('/api/admin/obras');
+      const res = await fetch('/api/admin/obras', { cache: 'no-store' });
       const json = await res.json();
       if (json.success) setObrasList(json.data || []);
     } catch (err) {
