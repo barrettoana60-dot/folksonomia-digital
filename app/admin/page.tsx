@@ -116,8 +116,18 @@ export default function AdminPage() {
     setObrasLoading(true);
     try {
       const res = await fetch('/api/admin/obras', { cache: 'no-store' });
+      if (!res.ok) {
+        console.error('Erro HTTP ao buscar obras:', res.status, res.statusText);
+        setObrasLoading(false);
+        return;
+      }
       const json = await res.json();
-      if (json.success) setObrasList(json.data || []);
+      console.log('Obras recebidas do API:', json);
+      if (json.success) {
+        setObrasList(json.data || []);
+      } else {
+        console.error('Erro na resposta da API:', json.error);
+      }
     } catch (err) {
       console.error('Erro ao buscar obras:', err);
     } finally {
@@ -184,11 +194,18 @@ export default function AdminPage() {
         body: JSON.stringify(obraForm)
       });
       if (res.ok) {
-        setShowAddForm(false);
-        setObraForm({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
-        setImagePreview(null);
-        fetchObras();
-        alert('Obra adicionada com sucesso!');
+        const json = await res.json();
+        if (json.success) {
+          const newObra = json.data;
+          // Atualiza a lista localmente para refletir imediatamente a obra adicionada
+          setObrasList(prev => [newObra, ...prev]);
+          setShowAddForm(false);
+          setObraForm({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
+          setImagePreview(null);
+          alert('Obra adicionada com sucesso!');
+        } else {
+          alert('Erro ao adicionar obra: ' + json.error);
+        }
       } else {
         alert('Erro ao adicionar obra.');
       }
