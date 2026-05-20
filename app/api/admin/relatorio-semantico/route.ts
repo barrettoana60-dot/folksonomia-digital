@@ -84,6 +84,7 @@ async function searchIBRAM(query: string, expandedTerms: string[] = []): Promise
       tecnica: r.tecnica || '',
       link: r.url || '',
       museu: r.museum || 'IBRAM',
+      localizacao: r.localizacao || '',
       colecao: r.collection || '',
       thumbnail: r.thumbnail || '',
       fonte: `IBRAM / ${r.museum}`
@@ -264,7 +265,7 @@ async function generateAIAnalysis(
   const ibramMuseusVazios = ibramMuseusLista.filter(m => !ibramMuseusEncontrados.some(encontrado => encontrado.includes(m) || m.includes(encontrado)));
 
   const ibramTexto = ibram.length > 0
-    ? ibram.map((i: any) => `"${i.titulo}" — ${i.descricao?.slice(0, 120) || ''} — ${i.museu || 'IBRAM'} ${i.material ? `| Material: ${i.material}` : ''} ${i.tecnica ? `| Técnica: ${i.tecnica}` : ''}`).join('\n') + `\n\n[NOTA IMPORTANTE DE CRUZAMENTO]: O sistema cruzou dados também com os seguintes museus: ${ibramMuseusVazios.join(', ')}. No entanto, as APIs destes museus específicos retornaram ZERO registros contendo a tag "${tag}".`
+    ? ibram.map((i: any) => `"${i.titulo}" — ${i.descricao?.slice(0, 120) || ''} — ${i.museu || 'IBRAM'} ${i.localizacao ? `(Local: ${i.localizacao})` : ''} ${i.material ? `| Material: ${i.material}` : ''} ${i.tecnica ? `| Técnica: ${i.tecnica}` : ''}`).join('\n') + `\n\n[NOTA IMPORTANTE DE CRUZAMENTO]: O sistema cruzou dados também com os seguintes museus: ${ibramMuseusVazios.join(', ')}. No entanto, as APIs destes museus específicos retornaram ZERO registros contendo a tag "${tag}".`
     : `[NOTA IMPORTANTE DE CRUZAMENTO]: O sistema realizou buscas ativas cruzadas em todos os 8 museus da rede (${ibramMuseusLista.join(', ')}), porém NENHUM retornou itens para esta tag.`;
 
   const brasilianaTexto = brasiliana.length > 0
@@ -331,7 +332,7 @@ ETAPA 1 — CAMADA FACTUAL:
 Descreva o que os acervos Tainacan/IBRAM e Brasiliana retornaram. Cite os museus específicos (MART, Caeté, Abolição, Diamante, Itaipu, Índio, Pessoa, Folclore), títulos dos itens, materiais e técnicas. Se o tesauro CNFCP define o termo, inclua a definição. NÃO INVENTE DADOS.
 
 ETAPA 2 — CAMADA INFERIDA (MUITO IMPORTANTE: TODO O CRUZAMENTO DE DADOS DEVE SER ESCRITO NESTA CAMADA):
-O sistema tem que cruzar os dados. Reconheça a tag e verifique na Brasiliana e nos Museus o que ela significa. Faça a limpeza de dados (mentalmente) e escreva AQUI NESTA CAMADA INFERIDA toda a devolutiva de como esses dados das APIs (Museus e Brasiliana) e da terminologia (Tesauro) se conectam. Use o tesauro para expandir as conexões (TG, TE, TA). Que atributos compartilham os registros? Identifique os padrões.
+O sistema tem que cruzar os dados. Reconheça a tag e verifique na Brasiliana e nos Museus o que ela significa. Faça a limpeza de dados (mentalmente) e escreva AQUI NESTA CAMADA INFERIDA toda a devolutiva de como esses dados das APIs (Museus e Brasiliana) e da terminologia (Tesauro) se conectam. Cite a localização geográfica (cidade/estado) dos museus onde as obras foram encontradas. Identifique conexões culturais ou geográficas. Use o tesauro para expandir as conexões (TG, TE, TA). Que atributos compartilham os registros? Identifique os padrões.
 
 ETAPA 3 — APRENDIZADO:
 Como o sistema está evoluindo? Que novas correlações foram registradas? Que famílias temáticas foram identificadas? Como o tesauro ajuda a classificar esta tag na taxonomia do patrimônio cultural brasileiro?
@@ -342,22 +343,22 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON. Use parág
   const seed = Math.floor(Math.random() * 1000000);
   const endpoints = [
     {
-      url: `https://text.pollinations.ai/openai?seed=${seed}`,
-      body: { messages: [{ role: 'user', content: prompt }], model: 'openai' },
+      url: `https://text.pollinations.ai/openai?model=llama&seed=${seed}`,
+      body: { messages: [{ role: 'user', content: prompt }], model: 'llama' },
       parse: async (res: Response) => {
         const raw = await res.text();
         try { return JSON.parse(raw)?.choices?.[0]?.message?.content || raw; } catch { return raw; }
       }
     },
     {
-      url: `https://text.pollinations.ai/?seed=${seed}`,
+      url: `https://text.pollinations.ai/?model=llama&seed=${seed}`,
       body: prompt,
       isText: true,
       parse: async (res: Response) => res.text()
     },
     {
       url: 'https://api.pollinations.ai/v1/chat/completions',
-      body: { model: 'openai', messages: [{ role: 'user', content: prompt }], seed: seed },
+      body: { model: 'llama', messages: [{ role: 'user', content: prompt }], seed: seed },
       parse: async (res: Response) => {
         const j = await res.json();
         return j?.choices?.[0]?.message?.content || null;
@@ -384,7 +385,7 @@ Escreva em português, texto corrido e limpo, sem markdown, sem JSON. Use parág
     `CAMADA FACTUAL`,
     ``,
     ibram.length > 0
-      ? `Nos acervos do IBRAM/Tainacan foram localizados ${ibram.length} registro(s): ${ibram.slice(0, 3).map((i: any) => `"${i.titulo}" (${i.museu})`).join('; ')}.`
+      ? `Nos acervos do IBRAM/Tainacan foram localizados ${ibram.length} registro(s): ${ibram.slice(0, 3).map((i: any) => `"${i.titulo}" (${i.museu}${i.localizacao ? ` - ${i.localizacao}` : ''})`).join('; ')}.`
       : `Os acervos do IBRAM/Tainacan não retornaram registros diretos para a tag "${tag}".`,
     brasiliana.length > 0
       ? `Na Brasiliana Museus foram encontrados ${brasiliana.length} registro(s), incluindo: ${brasiliana.slice(0, 2).map((b: any) => `"${b.titulo}"`).join(', ')}.`

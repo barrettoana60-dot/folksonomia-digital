@@ -164,6 +164,42 @@ export default function AdminPage() {
     }
   };
 
+  const handleImageUpload = (file: File) => {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const max_size = 800;
+
+          if (width > height) {
+            if (width > max_size) {
+              height *= max_size / width;
+              width = max_size;
+            }
+          } else {
+            if (height > max_size) {
+              width *= max_size / height;
+              height = max_size;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          setImagePreview(resizedBase64);
+          setObraForm({...obraForm, imagem_url: resizedBase64});
+        };
+        img.src = ev.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const stats = [
     { label: 'Volume de Dados', value: dashboardData?.visaoGeral.totalDados || 0, icon: Database, color: '#E85002' },
     { label: 'Usuários Únicos', value: dashboardData?.visaoGeral.usuarios || 0, icon: Users, color: '#E85002' },
@@ -332,15 +368,7 @@ export default function AdminPage() {
                                 e.preventDefault();
                                 setIsDragging(false);
                                 const file = e.dataTransfer.files[0];
-                                if (file && file.type.startsWith('image/')) {
-                                  const reader = new FileReader();
-                                  reader.onload = (ev) => {
-                                    const base64 = ev.target?.result as string;
-                                    setImagePreview(base64);
-                                    setObraForm({...obraForm, imagem_url: base64});
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
+                                if (file) handleImageUpload(file);
                               }}
                               onClick={() => document.getElementById('obra-file-input')?.click()}
                             >
@@ -351,15 +379,7 @@ export default function AdminPage() {
                                 className="hidden"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
-                                  if (file) {
-                                    const reader = new FileReader();
-                                    reader.onload = (ev) => {
-                                      const base64 = ev.target?.result as string;
-                                      setImagePreview(base64);
-                                      setObraForm({...obraForm, imagem_url: base64});
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
+                                  if (file) handleImageUpload(file);
                                 }}
                               />
                               {imagePreview ? (
@@ -1061,7 +1081,7 @@ export default function AdminPage() {
                                   <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
                                     <p className="text-sm font-bold leading-tight">{item.titulo}</p>
                                     {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002]">{item.criador}</p>}
-                                    {item.museu && <p className="text-[10px] text-white/50">{item.museu}</p>}
+                                    {item.museu && <p className="text-[10px] text-white/50">{item.museu} {item.localizacao ? `— ${item.localizacao}` : ''}</p>}
                                     {item.material && <p className="text-[10px] text-white/40">Material: {item.material}</p>}
                                     {item.tecnica && <p className="text-[10px] text-white/40">Técnica: {item.tecnica}</p>}
                                     {item.data && <p className="text-[10px] text-white/40">{item.data}{item.pais ? ` • ${item.pais}` : ''}</p>}

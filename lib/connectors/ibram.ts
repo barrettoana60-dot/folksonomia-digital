@@ -28,6 +28,7 @@ export interface TainacanRecord {
   thumbnail?: string;
   url?: string;
   museum: string;
+  localizacao?: string;
   raw: unknown;
 }
 
@@ -40,6 +41,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 878,
     useINBCM: true,
+    localizacao: 'Cabo Frio, RJ',
     tematica: ['arte sacra', 'cultura popular', 'arte religiosa', 'tradição']
   },
   {
@@ -49,6 +51,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 848,
     useINBCM: true,
+    localizacao: 'Caeté, MG',
     tematica: ['cultura popular', 'tradições locais', 'saberes', 'fazeres', 'arte popular', 'afro-brasileiro']
   },
   {
@@ -58,6 +61,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 94553,
     useINBCM: true,
+    localizacao: 'Niterói, RJ',
     tematica: ['cultura popular', 'território', 'arqueologia']
   },
   {
@@ -67,6 +71,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 7,
     useINBCM: true,
+    localizacao: 'Recife, PE',
     tematica: ['abolição', 'escravidão', 'resistência', 'memória afro-brasileira', 'objetos históricos']
   },
   {
@@ -76,6 +81,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 11603,
     useINBCM: true,
+    localizacao: 'Diamantina, MG',
     tematica: ['cultura material', 'mineração', 'objetos', 'técnicas', 'materiais']
   },
   {
@@ -85,6 +91,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 471,
     useINBCM: false,
+    localizacao: 'Rio de Janeiro, RJ',
     tematica: ['indígena', 'etnografia', 'artesanato', 'ritual', 'cultura material indígena']
   },
   {
@@ -94,6 +101,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 1,
     useINBCM: false,
+    localizacao: 'São Paulo, SP',
     tematica: ['história de vida', 'memória', 'relatos', 'depoimentos']
   },
   {
@@ -103,6 +111,7 @@ const IBRAM_ENDPOINTS = [
     apiPath: '/wp-json/tainacan/v2',
     collectionId: 1,
     useINBCM: true,
+    localizacao: 'Rio de Janeiro, RJ',
     tematica: ['folclore', 'cultura popular', 'artesanato', 'saberes']
   }
 ];
@@ -295,6 +304,7 @@ export class IbramConnector implements OpenDataConnector {
       thumbnail: Array.isArray(item.thumbnail) ? item.thumbnail[0] : (item.document?.value || undefined),
       url: item.url || item.link || undefined,
       museum: endpoint.name,
+      localizacao: endpoint.localizacao,
       raw: item
     };
   }
