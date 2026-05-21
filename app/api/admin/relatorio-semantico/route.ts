@@ -292,38 +292,7 @@ async function generateAIAnalysis(
     ? `O sistema já conhece ${previousCorrelations.length} correlação(ões) anteriores para esta tag.`
     : 'Esta é a primeira análise desta tag — nenhum conhecimento prévio.';
 
-  const prompt = `Aja como o "Cérebro Semântico" do sistema Folksonomia Digital 2.0.
-Você é um motor de análise transformer que raciocina em cadeia (chain-of-thought) sobre dados de acervos museológicos brasileiros.
 
-O curador pesquisou a tag: "${tag}".
-
-=== VOCABULÁRIO CONTROLADO (TESAURO CNFCP/IPHAN) ===
-${thesaurusContext}
-
-=== DADOS FACTUAIS DOS ACERVOS (NÃO INVENTE — use APENAS o que está listado) ===
-
-FONTE OFICIAL — IBRAM / TAINACAN E OUTROS MUSEUS (8 museus: MART, Caeté, Abolição, Diamante, Itaipu, Índio, Pessoa, Folclore):
-${ibramTexto}
-
-FONTE OFICIAL — BRASILIANA MUSEUS:
-${brasilianaTexto}
-
-FONTE AUXILIAR:
-${auxiliaresTexto}
-
-=== CONEXÕES CRUZADAS ENTRE FONTES ===
-${crossTexto}
-
-=== TAGS INTERNAS RELACIONADAS ===
-${tagCorrelation.duplicates.length > 0 ? 
-  `Tags duplicatas/variantes: ${tagCorrelation.duplicates.map((d: any) => `"${d.tag}" (${d.reason})`).join(', ')}` : ''}
-${tagCorrelation.siblings.length > 0 ? 
-  `Tags semanticamente próximas: ${tagCorrelation.siblings.map((s: any) => `"${s.tag}" (${s.reason})`).join(', ')}` : ''}
-${tagCorrelation.family ? 
-  `Família temática: "${tagCorrelation.family.name}" — membros: ${tagCorrelation.family.members.slice(0, 5).join(', ')}` : ''}
-
-=== CONHECIMENTO PRÉVIO ===
-${conhecimentoPrevio}
 
   // ============================================================
   // IA NATIVA DA FOLKSONOMIA (Motor Algorítmico Próprio)
