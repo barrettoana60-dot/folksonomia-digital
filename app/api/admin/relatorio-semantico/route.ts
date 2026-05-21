@@ -383,13 +383,20 @@ RESPONDA EXCLUSIVAMENTE EM FORMATO JSON VÁLIDO. NÃO adicione crases (\`\`\`) n
       if (!res.ok) continue;
       let text = await endpoint.parse(res);
       if (text) {
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        // Extrai apenas o bloco JSON caso o LLM adicione texto extra
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          text = jsonMatch[0];
+        }
+        
         try {
           aiResponseObj = JSON.parse(text);
           if (aiResponseObj && typeof aiResponseObj.certeza_percentual !== 'undefined') {
             break; // Achou um JSON válido
           }
         } catch (e) {
+          console.warn('Erro ao fazer parse do JSON do LLM:', e);
           // Fallback se o LLM não gerou JSON válido, vamos tentar extrair algo ou continuar
           continue;
         }
