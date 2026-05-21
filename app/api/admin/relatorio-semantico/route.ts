@@ -325,116 +325,65 @@ ${tagCorrelation.family ?
 === CONHECIMENTO PRÉVIO ===
 ${conhecimentoPrevio}
 
-=== INSTRUÇÕES TRANSFORMER ===
-Você deve agir como um modelo de Machine Learning que mede matematicamente sua certeza sobre as correlações encontradas.
-
-Raciocine cruzando o Tesauro, IBRAM e Brasiliana. Siga o fluxo de raciocínio (Chain-of-Thought):
-1. Pense silenciosamente sobre as conexões.
-2. Atribua uma "certeza_percentual" matemática (0 a 100).
-3. Formule a "resposta_final".
-
-RESPONDA EXCLUSIVAMENTE EM FORMATO JSON VÁLIDO. NÃO adicione crases (\`\`\`) nem texto fora do JSON. Use a seguinte estrutura:
-
-{
-  "pensamento_interno": "Descreva aqui o seu raciocínio passo-a-passo. Cruze os dados, veja os museus listados (MART, Caeté, etc).",
-  "certeza_percentual": 95,
-  "conexao_matematica": "Equação ou lógica de similaridade semântica (ex: tag_A ≈ tag_B devido a atributo_X)",
-  "resposta_final": "Seu texto final em português bem estruturado (3 parágrafos: Factual, Inferido, Aprendizado). Apenas preencha isso se tiver certeza. Se não tiver certeza, pode preencher igual, mas o sistema vai descartar e enviar para treinamento."
-}
-`;
-
-  // Pipeline de múltiplos endpoints (fallback sequencial)
-  const seed = Math.floor(Math.random() * 1000000);
-  const endpoints = [
-    {
-      url: `https://text.pollinations.ai/openai?model=llama&seed=${seed}`,
-      body: { messages: [{ role: 'user', content: prompt }], model: 'llama' },
-      parse: async (res: Response) => {
-        const raw = await res.text();
-        try { return JSON.parse(raw)?.choices?.[0]?.message?.content || raw; } catch { return raw; }
-      }
-    },
-    {
-      url: `https://text.pollinations.ai/?model=llama&seed=${seed}`,
-      body: prompt,
-      isText: true,
-      parse: async (res: Response) => res.text()
-    },
-    {
-      url: 'https://api.pollinations.ai/v1/chat/completions',
-      body: { model: 'llama', messages: [{ role: 'user', content: prompt }], seed: seed },
-      parse: async (res: Response) => {
-        const j = await res.json();
-        return j?.choices?.[0]?.message?.content || null;
-      }
-    }
-  ];
-
-  let aiResponseObj = null;
-
-  for (const endpoint of endpoints) {
-    try {
-      const res = await fetch(endpoint.url, {
-        method: 'POST',
-        headers: { 'Content-Type': endpoint.isText ? 'text/plain' : 'application/json' },
-        body: endpoint.isText ? (endpoint.body as string) : JSON.stringify(endpoint.body),
-        signal: AbortSignal.timeout(30000)
-      });
-      if (!res.ok) continue;
-      let text = await endpoint.parse(res);
-      if (text) {
-        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        // Extrai apenas o bloco JSON caso o LLM adicione texto extra
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          text = jsonMatch[0];
-        }
-        
-        try {
-          aiResponseObj = JSON.parse(text);
-          if (aiResponseObj && typeof aiResponseObj.certeza_percentual !== 'undefined') {
-            break; // Achou um JSON válido
-          }
-        } catch (e) {
-          console.warn('Erro ao fazer parse do JSON do LLM:', e);
-          // Fallback se o LLM não gerou JSON válido, vamos tentar extrair algo ou continuar
-          continue;
-        }
-      }
-    } catch { continue; }
+  // ============================================================
+  // IA NATIVA DA FOLKSONOMIA (Motor Algorítmico Próprio)
+  // Sem LLMs externos (Llama, GPT) - Baseado em Teoria dos Grafos
+  // ============================================================
+  
+  let certeza = 20; // Base de incerteza (nova tag isolada)
+  let logicaMatematica = [];
+  
+  // 1. Peso do Banco Interno (Aprendizado Coletivo)
+  if (dbTags.length > 0) {
+    certeza += Math.min(20, dbTags.length * 5);
+    logicaMatematica.push(`+Memória Coletiva (Visitantes)`);
   }
+  
+  // 2. Peso do Tesauro Oficial (Regulamentação)
+  if (thesaurusContext) {
+    certeza += 25;
+    logicaMatematica.push(`+Tesauro CNFCP`);
+  }
+  
+  // 3. Peso de Evidências Museológicas (Factual)
+  if (ibram.length > 0) {
+    certeza += Math.min(20, ibram.length * 10);
+    logicaMatematica.push(`+Acervos IBRAM`);
+  }
+  if (brasiliana.length > 0) {
+    certeza += Math.min(10, brasiliana.length * 5);
+    logicaMatematica.push(`+Brasiliana Museus`);
+  }
+  
+  // 4. Peso de Interconexões Cruzadas (Grafos Profundos)
+  if (correlationGraph.crossConnections?.length > 0) {
+    certeza += 15;
+    logicaMatematica.push(`+Cruza de Acervos`);
+  }
+  
+  // Trava em 99% para nunca ser arrogante demais, a menos que haja muito aprendizado prévio
+  if (certeza > 98) certeza = 98;
+  if (previousCorrelations.length > 5) certeza = 99; 
 
-  let certeza = 0;
   let respostaTexto = '';
 
   // ============================================================
-  // LÓGICA DE CERTEZA MATEMÁTICA (95%)
+  // LÓGICA DE CERTEZA MATEMÁTICA E ENCAMINHAMENTO
   // ============================================================
-  if (aiResponseObj) {
-    certeza = Number(aiResponseObj.certeza_percentual) || 0;
-    
-    if (certeza < 95) {
-      // Registrar na fila de auto-treinamento da madrugada
-      try {
-        await supabaseAdmin.from('ml_training_queue').insert({
-          tag: tag,
-          certeza_atual: certeza,
-          ultimo_pensamento: aiResponseObj.pensamento_interno || 'Sem raciocínio estruturado',
-          status: 'pending'
-        });
-      } catch (err) {
-        console.warn('Falha ao enviar para fila de treinamento (ml_training_queue pode não existir):', err);
-      }
-
-      respostaTexto = `O Cérebro Semântico concluiu que a certeza matemática para conectar esta tag aos acervos atuais é inferior ao limite de 95%.\nO sistema responde: "Ainda não possuo clareza absoluta sobre o significado ou cruzamento desta tag."\n\nEsta pesquisa foi automaticamente enviada para o laboratório de auto-treinamento noturno (Transformer Training Base). O sistema realizará buscas profundas de madrugada para reavaliar as correlações.`;
-    } else {
-      // Retornar a resposta final com o selo de certeza
-      respostaTexto = (aiResponseObj.resposta_final || '');
+  if (certeza < 95) {
+    // Registrar na fila de auto-treinamento da madrugada
+    try {
+      await supabaseAdmin.from('ml_training_queue').insert({
+        tag: tag,
+        certeza_atual: certeza,
+        ultimo_pensamento: `Equação gerada: ${logicaMatematica.join(' | ')}. Faltaram evidências para fechar o grafo.`,
+        status: 'pending'
+      });
+    } catch (err) {
+      console.warn('Falha ao enviar para fila de treinamento (ml_training_queue pode não existir):', err);
     }
-  } else {
-    // Fallback se n tiver obj
-    certeza = 50;
-    respostaTexto = "Falha no motor de inferência LLM. Análise pendente para treinamento noturno.";
+
+    respostaTexto = `[CÁLCULO NATIVO: ${certeza}%]\nO Cérebro Semântico concluiu que a certeza matemática baseada nas evidências atuais é inferior ao limite de 95%.\nO sistema responde: "Ainda não possuo clareza absoluta sobre o significado ou cruzamento desta tag."\n\nEsta pesquisa foi automaticamente enviada para o nosso motor de Auto-Treinamento (Laboratório Noturno) para buscar profundidade.`;
   }
 
   // Fallback local inteligente — sempre gera as 3 camadas com os dados reais
@@ -480,9 +429,9 @@ RESPONDA EXCLUSIVAMENTE EM FORMATO JSON VÁLIDO. NÃO adicione crases (\`\`\`) n
       : `Esta consulta foi registrada para aprendizado futuro. Conforme mais tags forem criadas e validadas, o sistema amplia automaticamente suas conexões semânticas.`
   ].join('\n');
 
-  // Se a certeza falhou, mostramos só a resposta texto (que diz que n sabe). Se deu bom, mostramos a resposta_final do LLM.
-  // Vamos também concatenar as camadas base só se o LLM falhar miseravelmente na formatação
-  return { texto: respostaTexto || (factual + inferred + learning), certeza };
+  // A resposta de sucesso (>= 95%) agora exibe o texto nativo gerado pelas heurísticas do sistema.
+  // Sem Llama. Apenas a IA interna da Folksonomia.
+  return { texto: respostaTexto || `[CONEXÃO MATEMÁTICA: ${logicaMatematica.join(' ➔ ')}]\n\n${factual}\n${inferred}\n${learning}`, certeza };
 }
 
 // ============================================================
