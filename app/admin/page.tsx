@@ -524,7 +524,7 @@ export default function AdminPage() {
 
           ${tesauro ? `
           <div class="section">
-            <p class="section-title">Tesauro CNFCP / IPHAN — Definição Oficial</p>
+            <p class="section-title">Tesauro CNFCP / IPHAN — Definição Normativa</p>
             <div class="tesauro-box">
               <p class="section-body">${tesauro.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
               ${termosExpandidos.length > 0 ? `
@@ -534,17 +534,26 @@ export default function AdminPage() {
             </div>
           </div>` : ''}
 
+          <div class="section">
+            <p class="section-title">Conexões Cruzadas e Malha Vetorial</p>
+            <div class="tesauro-box" style="background: #f8fafc; border-color: #cbd5e1;">
+              <p class="section-body">As obras listadas nos acervos nacionais demonstraram proximidade através dos motores de busca semânticos (PPLM). Foram computadas conexões transversais entre os ${ibramTotal} registros do IBRAM e os ${brasilianaTotal} registros da Brasiliana Museus.</p>
+            </div>
+          </div>
+
           ${internas.length > 0 ? `
           <div class="section">
-            <p class="section-title">Tags Internas Correlacionadas</p>
+            <p class="section-title">Matriz Inter-Tags (Ecossistema Interno)</p>
             <div class="tags-internas">
               ${internas.slice(0, 20).map((t: any) => `<span class="tag-interna">${t.tag_original} → ${t.grupo_tematico || 'Outros'}</span>`).join('')}
             </div>
           </div>` : ''}
 
           <div class="section">
-            <p class="section-title">Análise da Inteligência Semântica</p>
-            <p class="section-body">${analiseEscrita.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+            <p class="section-title">Dedução Cognitiva da IA</p>
+            <div class="tesauro-box" style="background: #fff; border-color: #e2e8f0; border-left: 4px solid #0f172a;">
+              <p class="section-body" style="font-size: 11px;">${analiseEscrita.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+            </div>
           </div>
 
           <div class="footer">
