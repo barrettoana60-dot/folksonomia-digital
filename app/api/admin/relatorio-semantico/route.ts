@@ -357,25 +357,6 @@ async function generateAIAnalysis(
 
   let respostaTexto = '';
 
-  // ============================================================
-  // LÓGICA DE CERTEZA MATEMÁTICA E ENCAMINHAMENTO
-  // ============================================================
-  if (certeza < 95) {
-    // Registrar na fila de auto-treinamento da madrugada
-    try {
-      await supabaseAdmin.from('ml_training_queue').insert({
-        tag: tag,
-        certeza_atual: certeza,
-        ultimo_pensamento: `Equação gerada: ${logicaMatematica.join(' | ')}. Faltaram evidências para fechar o grafo.`,
-        status: 'pending'
-      });
-    } catch (err) {
-      console.warn('Falha ao enviar para fila de treinamento (ml_training_queue pode não existir):', err);
-    }
-
-    respostaTexto = `[CÁLCULO NATIVO: ${certeza}%]\nO Cérebro Semântico concluiu que a certeza matemática baseada nas evidências atuais é inferior ao limite de 95%.\nO sistema responde: "Ainda não possuo clareza absoluta sobre o significado ou cruzamento desta tag."\n\nEsta pesquisa foi automaticamente enviada para o nosso motor de Auto-Treinamento (Laboratório Noturno) para buscar profundidade.`;
-  }
-
   // Fallback local inteligente — sempre gera as 3 camadas com os dados reais
   const factual = [
     `CAMADA FACTUAL`,

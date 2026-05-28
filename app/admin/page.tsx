@@ -1336,6 +1336,17 @@ export default function AdminPage() {
                   </div>
                 )}
 
+                {isAnalyzing && (
+                  <div className="glass-card p-16 flex flex-col items-center justify-center space-y-6">
+                    <div className="flex gap-2">
+                      <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <p className="text-[#E85002]/80 text-xs uppercase tracking-widest font-bold">O Cérebro Semântico está pesquisando e calculando correlações...</p>
+                  </div>
+                )}
+
                 {!semanticResult && !isAnalyzing && (
                   <div className="glass-card p-16 text-center">
                     <Search size={48} className="mx-auto text-white/10 mb-4" />
