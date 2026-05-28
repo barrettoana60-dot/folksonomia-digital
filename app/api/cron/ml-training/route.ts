@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       // Deixado aberto se CRON_SECRET não estiver setado localmente
     }
 
-    console.log('[CRON] Iniciando ciclo de treinamento de 10 minutos...');
+    console.log('[CRON] Iniciando ciclo de treinamento diário (4 AM)...');
 
     // 2. Buscar itens pendentes na fila
     const { data: pendentes, error } = await supabaseAdmin
