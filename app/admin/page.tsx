@@ -490,7 +490,6 @@ export default function AdminPage() {
           <div class="header">
             <div class="header-top">
               <div>
-                <p class="institution">Ministério da Cultura — IBRAM</p>
                 <p class="system-name">Folksonomia Digital 2.0</p>
                 <p class="report-type">Relatório Semântico — Análise de Tag</p>
               </div>
@@ -549,8 +548,8 @@ export default function AdminPage() {
           </div>
 
           <div class="footer">
-            <span>Sistema de Folksonomia Digital 2.0 — NUGEP / IBRAM</span>
-            <span>Documento de uso exclusivo institucional</span>
+            <span>Sistema de Folksonomia Digital 2.0</span>
+            <span>Documento de uso exclusivo do NUGEP</span>
             <span>${dataGeracao}</span>
           </div>
         </div>
@@ -1075,7 +1074,7 @@ export default function AdminPage() {
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
                     <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
-                      <FileText size={16} /> Exportar PDF (NUGEP)
+                      <FileText size={16} /> Exportar PDF
                     </button>
                     <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
                       <Download size={16} /> CSV
@@ -1454,9 +1453,6 @@ export default function AdminPage() {
                     {/* Tesauro CNFCP */}
                     {semanticResult.tesauro?.contexto && (
                       <div className="glass-card p-6 border border-amber-500/20 relative overflow-hidden">
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] rotate-[-10deg] select-none z-0">
-                          <span className="text-4xl font-black tracking-widest uppercase text-white whitespace-nowrap">Uso Exclusivo do NUGEP</span>
-                        </div>
                         <h4 className="text-sm font-bold uppercase tracking-widest mb-3 flex items-center gap-2 relative z-10">
                           <FileText size={16} className="text-amber-400" /> Tesauro CNFCP / IPHAN
                         </h4>
@@ -1499,9 +1495,6 @@ export default function AdminPage() {
                     {/* Tags internas */}
                     {semanticResult.correlacoes.internas.total > 0 && (
                       <div className="glass-card p-6 relative overflow-hidden">
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] rotate-[-10deg] select-none z-0">
-                          <span className="text-4xl font-black tracking-widest uppercase text-white whitespace-nowrap">Uso Exclusivo do NUGEP</span>
-                        </div>
                         <h4 className="text-sm font-bold uppercase tracking-widest mb-4 relative z-10">Tags internas correlacionadas ({semanticResult.correlacoes.internas.total})</h4>
                         <div className="flex flex-wrap gap-2 relative z-10">
                           {semanticResult.correlacoes.internas.items.map((t: any, i: number) => (
@@ -1567,9 +1560,6 @@ export default function AdminPage() {
 
                     {/* Análise escrita */}
                     <div className="glass-card p-8 relative overflow-hidden">
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] rotate-[-10deg] select-none z-0">
-                        <span className="text-5xl font-black tracking-widest uppercase text-white whitespace-nowrap">Uso Exclusivo do NUGEP</span>
-                      </div>
                       <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
                         <FileText size={16} className="text-[#E85002]" /> Análise Escrita (Gerada pelo Motor Semântico)
                       </h4>

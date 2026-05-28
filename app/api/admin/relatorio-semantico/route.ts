@@ -391,18 +391,15 @@ async function generateAIAnalysis(
     ``,
     `APRENDIZADO`,
     ``,
-    dbTags.length > 0
-      ? `A tag "${tag}" possui ${dbTags.length} registro(s) criado(s) por visitantes do sistema.`
-      : `A tag "${tag}" ainda não possui registros de visitantes.`,
-    conhecimentoPrevio,
-    correlationGraph.correlations?.length > 0
-      ? `${correlationGraph.correlations.length} nova(s) correlação(ões) foram registradas no banco de aprendizado semântico. A cada consulta, o sistema amplia sua memória e melhora a qualidade das análises futuras.`
-      : `Esta consulta foi registrada para aprendizado futuro. Conforme mais tags forem criadas e validadas, o sistema amplia automaticamente suas conexões semânticas.`
+    correlationGraph.crossConnections?.length > 0 
+      ? `Detectamos ${correlationGraph.crossConnections.length} conexões cruzadas entre fontes (ex: Tesauro ↔ IBRAM).`
+      : `Esta consulta foi registrada para aprendizado futuro.`
   ].join('\n');
 
-  // A resposta de sucesso (>= 95%) agora exibe o texto nativo gerado pelas heurísticas do sistema.
-  // Sem Llama. Apenas a IA interna da Folksonomia.
-  return { texto: respostaTexto || `[CONEXÃO MATEMÁTICA: ${logicaMatematica.join(' ➔ ')}]\n\n${factual}\n${inferred}\n${learning}`, certeza };
+  // O usuário pediu para sempre mostrar "o que o sistema entendeu até agora", independente da certeza!
+  let compreensaoAtual = `A tag "${tag}", até onde os meus dados encontraram, significa o seguinte:\n\n${factual}\n\n${inferred}\n\n${learning}\n\n[CONEXÃO MATEMÁTICA ENCONTRADA: ${logicaMatematica.join(' ➔ ')}]`;
+
+  return { texto: compreensaoAtual, certeza };
 }
 
 // ============================================================
