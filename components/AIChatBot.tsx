@@ -90,7 +90,7 @@ export default function AIChatBot() {
                           <span className="text-xs font-bold text-green-400">{Math.round(msg.mathData.similarity * 100)}%</span>
                         </div>
                         <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#E85002]" style={{ width: \`\${Math.round(msg.mathData.similarity * 100)}%\` }} />
+                          <div className="h-full bg-[#E85002]" style={{ width: `${Math.round(msg.mathData.similarity * 100)}%` }} />
                         </div>
                       </div>
                     )}
