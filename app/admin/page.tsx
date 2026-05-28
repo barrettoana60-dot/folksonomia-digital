@@ -1575,40 +1575,98 @@ export default function AdminPage() {
                     {/* Análise estruturada Modular */}
                     {semanticResult.relatorioEstruturado ? (
                       <div className="grid grid-cols-1 gap-4 mt-6">
-                        <div className="glass-card p-6 border-l-4 border-[#00FF00]/50 relative overflow-hidden">
-                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#00FF00] mb-2 flex items-center gap-2">
-                            <Brain size={14} /> Dedução Ontológica e Cognitiva (PPLM)
-                          </h4>
-                          <p className="text-white/90 text-sm leading-relaxed font-semibold">
-                            {semanticResult.relatorioEstruturado.deducao}
-                          </p>
-                        </div>
+                        {semanticResult.relatorioEstruturado.camadas && (
+                          <>
+                            <div className="glass-card p-6 border-l-4 border-yellow-500/50">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-yellow-500 mb-2 flex items-center gap-2">
+                                <BookOpen size={14} /> Camada 1: Âncora Normativa
+                              </h4>
+                              <p className="text-white/80 text-xs leading-relaxed">
+                                {semanticResult.relatorioEstruturado.camadas.ancoraNormativa}
+                              </p>
+                            </div>
+                            
+                            <div className="glass-card p-6 border-l-4 border-blue-400/50">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2 flex items-center gap-2">
+                                <Search size={14} /> Camada 2: Evidência Empírica
+                              </h4>
+                              <p className="text-white/80 text-xs leading-relaxed">
+                                {semanticResult.relatorioEstruturado.camadas.evidenciaEmpirica}
+                              </p>
+                            </div>
+                            
+                            <div className="glass-card p-6 border-l-4 border-green-500/50">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-green-500 mb-2 flex items-center gap-2">
+                                <Activity size={14} /> Camada 3: Extração Semântica PPLM
+                              </h4>
+                              <p className="text-white/80 text-xs leading-relaxed">
+                                {semanticResult.relatorioEstruturado.camadas.extracao}
+                              </p>
+                            </div>
+                            
+                            <div className="glass-card p-6 border-l-4 border-purple-500/50">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-2 flex items-center gap-2">
+                                <Network size={14} /> Camada 4: Topologia Interna (NUGEP)
+                              </h4>
+                              <p className="text-white/80 text-xs leading-relaxed">
+                                {semanticResult.relatorioEstruturado.camadas.topologiaInterna}
+                              </p>
+                            </div>
+                            
+                            <div className={`glass-card p-6 border-l-4 ${semanticResult.relatorioEstruturado.statusImparcial ? 'border-orange-500/50' : 'border-[#00FF00]/50'} relative overflow-hidden`}>
+                              <h4 className={`text-[10px] font-bold uppercase tracking-widest ${semanticResult.relatorioEstruturado.statusImparcial ? 'text-orange-400' : 'text-[#00FF00]'} mb-2 flex items-center gap-2`}>
+                                <Brain size={14} /> Camada 5: Síntese e Dedução Lógica
+                              </h4>
+                              <p className="text-white/90 text-sm leading-relaxed font-semibold">
+                                {semanticResult.relatorioEstruturado.camadas.sintese}
+                              </p>
+                              <div className="mt-4 pt-4 border-t border-white/10">
+                                <code className="text-[9px] text-blue-300/50 uppercase tracking-widest font-mono">
+                                  OPERAÇÃO VETORIAL: {semanticResult.relatorioEstruturado.vetorial}
+                                </code>
+                              </div>
+                            </div>
+                          </>
+                        )}
                         
-                        <div className="glass-card p-6 border-l-4 border-[#E85002]/50">
-                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#E85002] mb-2 flex items-center gap-2">
-                            <BookOpen size={14} /> Definição do Tesauro & Contexto
-                          </h4>
-                          <p className="text-white/70 text-xs leading-relaxed">
-                            {semanticResult.relatorioEstruturado.tesauro}
-                          </p>
-                        </div>
+                        {!semanticResult.relatorioEstruturado.camadas && (
+                          <>
+                            <div className="glass-card p-6 border-l-4 border-[#00FF00]/50 relative overflow-hidden">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#00FF00] mb-2 flex items-center gap-2">
+                                <Brain size={14} /> Dedução Ontológica e Cognitiva (PPLM)
+                              </h4>
+                              <p className="text-white/90 text-sm leading-relaxed font-semibold">
+                                {semanticResult.relatorioEstruturado.deducao}
+                              </p>
+                            </div>
+                            
+                            <div className="glass-card p-6 border-l-4 border-[#E85002]/50">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#E85002] mb-2 flex items-center gap-2">
+                                <BookOpen size={14} /> Definição do Tesauro & Contexto
+                              </h4>
+                              <p className="text-white/70 text-xs leading-relaxed">
+                                {semanticResult.relatorioEstruturado.tesauro}
+                              </p>
+                            </div>
 
-                        <div className="glass-card p-6 border-l-4 border-blue-500/50">
-                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2 flex items-center gap-2">
-                            <Network size={14} /> Matriz Cruzada de Acervos (IBRAM/Brasiliana)
-                          </h4>
-                          <p className="text-white/70 text-xs leading-relaxed mb-4">
-                            {semanticResult.relatorioEstruturado.factual}
-                          </p>
-                          <p className="text-white/70 text-xs leading-relaxed">
-                            {semanticResult.relatorioEstruturado.ligacao}
-                          </p>
-                          <div className="mt-4 pt-4 border-t border-white/10">
-                             <code className="text-[9px] text-blue-300/50 uppercase tracking-widest font-mono">
-                               OPERAÇÃO: {semanticResult.relatorioEstruturado.vetorial}
-                             </code>
-                          </div>
-                        </div>
+                            <div className="glass-card p-6 border-l-4 border-blue-500/50">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2 flex items-center gap-2">
+                                <Network size={14} /> Matriz Cruzada de Acervos (IBRAM/Brasiliana)
+                              </h4>
+                              <p className="text-white/70 text-xs leading-relaxed mb-4">
+                                {semanticResult.relatorioEstruturado.factual}
+                              </p>
+                              <p className="text-white/70 text-xs leading-relaxed">
+                                {semanticResult.relatorioEstruturado.ligacao}
+                              </p>
+                              <div className="mt-4 pt-4 border-t border-white/10">
+                                <code className="text-[9px] text-blue-300/50 uppercase tracking-widest font-mono">
+                                  OPERAÇÃO: {semanticResult.relatorioEstruturado.vetorial}
+                                </code>
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <div className="glass-card p-8 relative overflow-hidden mt-6">
