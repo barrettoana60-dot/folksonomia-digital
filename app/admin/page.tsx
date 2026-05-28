@@ -5,7 +5,7 @@ import {
   Users, Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieIcon, 
   CheckCircle2, Settings, ChevronRight, ShieldCheck, Network, Globe, 
-  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle
+  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
