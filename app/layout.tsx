@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import AIChatBot from "@/components/AIChatBot";
+
+const inter = Inter({ subsets: ["latin"], display: 'swap' });
 
 export const metadata: Metadata = {
   title: "Sistema de Folksonomia",
@@ -37,7 +40,7 @@ export default function RootLayout({
           })();
         `}} />
       </head>
-      <body className="antialiased min-h-screen">
+      <body className={`${inter.className} antialiased min-h-screen`}>
         <Header />
         <div className="pt-2">
           {children}

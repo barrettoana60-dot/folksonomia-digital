@@ -383,7 +383,7 @@ async function generateAIAnalysis(
       });
     } catch (err) {}
 
-    respostaTexto = `Eu ainda estou buscando e não alcancei os 95% de certeza. Mas até aqui foi onde aprendi, e vou treinar de madrugada para buscar mais e melhorar a minha resposta e pensamento.\n\n${compreensaoAtual}`;
+    respostaTexto = `Eu ainda estou buscando e não alcancei os 95% de certeza. Mas até aqui foi onde aprendi, e vou processar essas conexões no próximo ciclo de treinamento (em até 10 minutos) para buscar mais e melhorar a minha resposta e pensamento.\n\n${compreensaoAtual}`;
   } else {
     respostaTexto = `Com ${certeza}% de certeza atingida, concluí a pesquisa!\n\n${compreensaoAtual}`;
   }

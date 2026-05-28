@@ -69,7 +69,6 @@ html, body {
 body {
   background-image: var(--bg-image);
   background-attachment: fixed;
-  font-family: Arial, sans-serif !important;
   min-height: 100vh;
 }
 
@@ -91,7 +90,8 @@ body {
 }
 
 .serif-title {
-  font-family: 'Times New Roman', Times, serif !important;
+  /* Classe preservada caso ainda seja usada, mas agora herda a fonte global Inter em peso bold. */
+  font-weight: 800;
 }
 
 .glass-card {
