@@ -321,6 +321,250 @@ export default function AdminPage() {
     a.click();
   };
 
+  const handleExportPDF = () => {
+    if (!semanticResult) return;
+
+    const tag = semanticResult.tag || '';
+    const certeza = semanticResult.motores?.transformer?.certeza ?? '—';
+    const aguardando = semanticResult.motores?.transformer?.aguardandoTreino;
+    const tesauro = semanticResult.tesauro?.contexto || '';
+    const termosExpandidos: string[] = semanticResult.tesauro?.termosExpandidos || [];
+    const analiseEscrita = semanticResult.analiseEscrita || '';
+    const dataGeracao = new Date().toLocaleDateString('pt-BR', {
+      day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const ibramTotal = semanticResult.correlacoes?.ibram?.total ?? 0;
+    const brasilianaTotal = semanticResult.correlacoes?.brasiliana?.total ?? 0;
+    const internasTotal = semanticResult.correlacoes?.internas?.total ?? 0;
+    const internas: any[] = semanticResult.correlacoes?.internas?.items || [];
+
+    const doc = `
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Relatório Semântico NUGEP — ${tag}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Inter', Arial, sans-serif;
+            background: #fff;
+            color: #1a1a1a;
+            padding: 0;
+          }
+          /* MARCA D'ÁGUA — aparece em todas as páginas */
+          @page { margin: 2cm 2.2cm; }
+          body::before {
+            content: 'USO EXCLUSIVO DO NUGEP';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-size: 62px;
+            font-weight: 900;
+            color: rgba(200, 60, 0, 0.06);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+            letter-spacing: 0.05em;
+          }
+          .page { position: relative; z-index: 1; }
+          /* CABEÇALHO */
+          .header {
+            border-bottom: 3px solid #c44000;
+            padding-bottom: 20px;
+            margin-bottom: 32px;
+          }
+          .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+          }
+          .institution { font-size: 11px; color: #888; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
+          .system-name { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #111; }
+          .report-type { font-size: 13px; color: #c44000; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+          .date-block { text-align: right; font-size: 10px; color: #999; }
+          .nugep-badge {
+            display: inline-block;
+            background: #c44000;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 4px;
+            margin-top: 6px;
+          }
+          /* BLOCO DA TAG */
+          .tag-block {
+            background: #fff5f0;
+            border-left: 4px solid #c44000;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            border-radius: 0 6px 6px 0;
+          }
+          .tag-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; font-weight: 700; margin-bottom: 6px; }
+          .tag-value { font-size: 32px; font-weight: 900; color: #c44000; letter-spacing: 0.02em; }
+          .tag-meta { display: flex; gap: 24px; margin-top: 12px; }
+          .tag-stat { text-align: center; }
+          .tag-stat-val { font-size: 20px; font-weight: 700; color: #111; }
+          .tag-stat-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 0.15em; color: #999; }
+          /* CERTEZA */
+          .certeza-block {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 20px;
+            background: ${aguardando ? '#fffbea' : '#f0fdf4'};
+            border: 1px solid ${aguardando ? '#fde68a' : '#86efac'};
+            border-radius: 8px;
+            margin-bottom: 28px;
+          }
+          .certeza-num { font-size: 44px; font-weight: 900; color: ${aguardando ? '#d97706' : '#16a34a'}; }
+          .certeza-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: ${aguardando ? '#92400e' : '#166534'}; }
+          .certeza-desc { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.5; }
+          /* SEÇÕES */
+          .section { margin-bottom: 28px; page-break-inside: avoid; }
+          .section-title {
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            color: #c44000;
+            border-bottom: 1px solid #f0ddd8;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+          }
+          .section-body {
+            font-size: 12px;
+            line-height: 1.85;
+            color: #333;
+            white-space: pre-wrap;
+          }
+          .tesauro-box {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            padding: 16px 20px;
+          }
+          .termos-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+          .termo-badge {
+            background: #fef3c7;
+            color: #92400e;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid #fde68a;
+          }
+          .tags-internas { display: flex; flex-wrap: wrap; gap: 8px; }
+          .tag-interna {
+            background: #fff5f0;
+            color: #c44000;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid #fecaca;
+          }
+          /* RODAPÉ */
+          .footer {
+            border-top: 1px solid #e5e7eb;
+            margin-top: 40px;
+            padding-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #aaa;
+            letter-spacing: 0.08em;
+          }
+          @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="page">
+          <div class="header">
+            <div class="header-top">
+              <div>
+                <p class="institution">Ministério da Cultura — IBRAM</p>
+                <p class="system-name">Folksonomia Digital 2.0</p>
+                <p class="report-type">Relatório Semântico — Análise de Tag</p>
+              </div>
+              <div class="date-block">
+                <p>Gerado em</p>
+                <p style="font-weight:700; color:#111; font-size:11px;">${dataGeracao}</p>
+                <span class="nugep-badge">⬣ Uso Exclusivo do NUGEP</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tag-block">
+            <p class="tag-label">Tag Analisada</p>
+            <p class="tag-value">${tag}</p>
+            <div class="tag-meta">
+              <div class="tag-stat"><p class="tag-stat-val">${ibramTotal}</p><p class="tag-stat-lbl">Registros IBRAM</p></div>
+              <div class="tag-stat"><p class="tag-stat-val">${brasilianaTotal}</p><p class="tag-stat-lbl">Itens Brasiliana</p></div>
+              <div class="tag-stat"><p class="tag-stat-val">${internasTotal}</p><p class="tag-stat-lbl">Tags Correlatas</p></div>
+            </div>
+          </div>
+
+          <div class="certeza-block">
+            <div class="certeza-num">${certeza}%</div>
+            <div>
+              <p class="certeza-label">${aguardando ? 'Sistema aprendendo' : 'Certeza Matemática Atingida'}</p>
+              <p class="certeza-desc">${aguardando
+                ? 'O sistema não atingiu a margem de 95% de certeza. Fará uma busca mais profunda nas bases de dados e devolverá a resposta definitiva quando alcançar o threshold necessário.'
+                : 'O raciocínio lógico-vetorial atingiu o threshold de 95%, confirmando a correlação semântica desta tag com o acervo institucional.'
+              }</p>
+            </div>
+          </div>
+
+          ${tesauro ? `
+          <div class="section">
+            <p class="section-title">Tesauro CNFCP / IPHAN — Definição Oficial</p>
+            <div class="tesauro-box">
+              <p class="section-body">${tesauro.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              ${termosExpandidos.length > 0 ? `
+              <div class="termos-list">
+                ${termosExpandidos.map((t: string) => `<span class="termo-badge">${t}</span>`).join('')}
+              </div>` : ''}
+            </div>
+          </div>` : ''}
+
+          ${internas.length > 0 ? `
+          <div class="section">
+            <p class="section-title">Tags Internas Correlacionadas</p>
+            <div class="tags-internas">
+              ${internas.slice(0, 20).map((t: any) => `<span class="tag-interna">${t.tag_original} → ${t.grupo_tematico || 'Outros'}</span>`).join('')}
+            </div>
+          </div>` : ''}
+
+          <div class="section">
+            <p class="section-title">Análise da Inteligência Semântica</p>
+            <p class="section-body">${analiseEscrita.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+          </div>
+
+          <div class="footer">
+            <span>Sistema de Folksonomia Digital 2.0 — NUGEP / IBRAM</span>
+            <span>Documento de uso exclusivo institucional</span>
+            <span>${dataGeracao}</span>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const win = window.open('', '_blank', 'width=900,height=700');
+    if (!win) return;
+    win.document.write(doc);
+    win.document.close();
+    win.onload = () => { win.focus(); win.print(); };
+  };
+
   return (
     <div className="min-h-screen pt-24 pb-20 px-4 md:px-8 print:pt-0">
       <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-12">
@@ -830,8 +1074,8 @@ export default function AdminPage() {
                     <p className="text-[9px] uppercase tracking-widest font-bold text-white/30 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
-                    <button onClick={() => window.print()} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white">
-                      <FileText size={16} /> Exportar PDF
+                    <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                      <FileText size={16} /> Exportar PDF (NUGEP)
                     </button>
                     <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
                       <Download size={16} /> CSV
