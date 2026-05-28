@@ -295,44 +295,65 @@ async function generateAIAnalysis(
 
 
   // ============================================================
-  // IA NATIVA DA FOLKSONOMIA (Motor Algorítmico Próprio)
-  // Sem LLMs externos (Llama, GPT) - Baseado em Teoria dos Grafos
+  // IA NATIVA DA FOLKSONOMIA (Motor Algorítmico Próprio com Transformers)
+  // Sem LLMs externos (Llama, GPT) - Baseado em Cosine Similarity Vector
   // ============================================================
   
-  let certeza = 20; // Base de incerteza (nova tag isolada)
+  let certeza = 20; // Base de incerteza
   let logicaMatematica = [];
   
-  // 1. Peso do Banco Interno (Aprendizado Coletivo)
-  if (dbTags.length > 0) {
-    certeza += Math.min(20, dbTags.length * 5);
-    logicaMatematica.push(`+Memória Coletiva (Visitantes)`);
-  }
-  
-  // 2. Peso do Tesauro Oficial (Regulamentação)
-  if (thesaurusContext) {
-    certeza += 25;
-    logicaMatematica.push(`+Tesauro CNFCP`);
-  }
-  
-  // 3. Peso de Evidências Museológicas (Factual)
-  if (ibram.length > 0) {
-    certeza += Math.min(20, ibram.length * 10);
-    logicaMatematica.push(`+Acervos IBRAM`);
-  }
-  if (brasiliana.length > 0) {
-    certeza += Math.min(10, brasiliana.length * 5);
-    logicaMatematica.push(`+Brasiliana Museus`);
-  }
-  
-  // 4. Peso de Interconexões Cruzadas (Grafos Profundos)
-  if (correlationGraph.crossConnections?.length > 0) {
-    certeza += 15;
-    logicaMatematica.push(`+Cruza de Acervos`);
+  try {
+    // 1. Extração de Features (Embeddings Local)
+    const { pipeline } = await import('@xenova/transformers');
+    const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    
+    const tagOutput = await extractor(tag, { pooling: 'mean', normalize: true });
+    const tagVector = Array.from(tagOutput.data as Float32Array);
+    
+    // 2. Comparações Vetoriais
+    let melhorSimilaridadeBD = 0;
+    if (dbTags.length > 0) {
+      for (const t of dbTags) {
+        if(t.tag_original.length > 50) continue;
+        const vOut = await extractor(t.tag_original, { pooling: 'mean', normalize: true });
+        const vData = Array.from(vOut.data as Float32Array);
+        
+        // Dot product
+        let dot = 0;
+        for (let i = 0; i < tagVector.length; i++) dot += tagVector[i] * vData[i];
+        if (dot > melhorSimilaridadeBD) melhorSimilaridadeBD = dot;
+      }
+      certeza += Math.min(30, melhorSimilaridadeBD * 30);
+      logicaMatematica.push(`+VetorDB (${(melhorSimilaridadeBD*100).toFixed(1)}%)`);
+    }
+    
+    // 3. Similaridade com o Tesauro
+    if (thesaurusContext) {
+      const tesOut = await extractor(thesaurusExpansion.context || '', { pooling: 'mean', normalize: true });
+      const tesData = Array.from(tesOut.data as Float32Array);
+      let dotT = 0;
+      for (let i = 0; i < tagVector.length; i++) dotT += tagVector[i] * tesData[i];
+      
+      certeza += Math.min(35, dotT * 35);
+      logicaMatematica.push(`+VetorTesauro (${(dotT*100).toFixed(1)}%)`);
+    }
+    
+    // 4. Bônus factual
+    if (ibram.length > 0) {
+      certeza += 15;
+      logicaMatematica.push(`+Evidência Factual IBRAM`);
+    }
+    
+  } catch(err) {
+    console.error("Falha no pipeline local do Xenova:", err);
+    logicaMatematica.push("Fallback Heurístico");
+    certeza = 50;
   }
   
   // Trava em 99% para nunca ser arrogante demais, a menos que haja muito aprendizado prévio
   if (certeza > 98) certeza = 98;
-  if (previousCorrelations.length > 5) certeza = 99; 
+  if (previousCorrelations.length > 5 && certeza > 90) certeza = 99; 
+  certeza = Math.round(certeza);
 
   let respostaTexto = '';
 

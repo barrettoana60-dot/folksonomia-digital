@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
+import AIChatBot from "@/components/AIChatBot";
 
 export const metadata: Metadata = {
   title: "Sistema de Folksonomia",
@@ -41,6 +42,7 @@ export default function RootLayout({
         <div className="pt-2">
           {children}
         </div>
+        <AIChatBot />
       </body>
     </html>
   );
