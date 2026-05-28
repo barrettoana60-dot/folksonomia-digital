@@ -141,6 +141,23 @@ async function searchBrasiliana(query: string, expandedTerms: string[] = []): Pr
 }
 
 // ============================================================
+// Busca Específica por Fundamentação Teórica (Artigos/Livros)
+// ============================================================
+async function searchBrasilianaTeoria(query: string): Promise<any[]> {
+  try {
+    const connector = new BrasilianaConnector();
+    const results = await connector.searchTheoreticalText(query);
+    return results.slice(0, 5).map((r: any) => ({
+      titulo: r.title,
+      descricao: r.description || '',
+      fonte: 'Brasiliana Museus (Teoria)'
+    }));
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================
 // Fontes Auxiliares (DBpedia / OpenAlex — futuro)
 // ============================================================
 async function searchAuxiliares(query: string): Promise<any[]> {
@@ -258,7 +275,8 @@ async function generateAIAnalysis(
   ibram: any[],
   brasiliana: any[],
   auxiliares: any[],
-  thesaurusContext: string
+  thesaurusContext: string,
+  brasilianaTeoria: any[]
 ) {
   const ibramMuseusEncontrados = [...new Set(ibram.map((i: any) => i.museu || i.fonte || 'IBRAM'))];
   const ibramMuseusLista = ['MART', 'Museu Regional de Caeté', 'Museu da Abolição', 'Museu do Diamante', 'Museu de Arqueologia de Itaipu', 'Museu do Índio', 'Museu da Pessoa', 'Museu de Folclore Edison Carneiro'];
@@ -378,12 +396,24 @@ async function generateAIAnalysis(
   const baseItems = [...ibram, ...brasiliana];
   const essenciaBase = extrairEssencia(baseItems);
   const temTesauro = !!thesaurusContext;
+  const temTeoria = brasilianaTeoria.length > 0;
   const totalEvidencias = ibram.length + brasiliana.length;
 
-  // ------ CAMADA 1: Âncora Normativa ------
-  const ancoraNormativa = temTesauro
-    ? `O Tesauro CNFCP/IPHAN — fonte normativa primária do patrimônio cultural brasileiro — registra formalmente este conceito. Sua definição é: "${thesaurusContext}". Este verbete constitui a âncora semântica de toda a análise subsequente. O raciocínio parte desta definição institucional e avança para validá-la através das evidências empíricas dos acervos.`
-    : `O Tesauro CNFCP/IPHAN não possui verbete formalizado para o termo "${tag}". Isso significa que este marcador não está ainda normalizado no vocabulário controlado do patrimônio cultural nacional. O raciocínio será construído em modo puramente indutivo — partindo das evidências empíricas dos acervos para tentar construir uma definição operacional. Esta ausência normativa é, por si só, uma informação relevante: o termo pode ser emergente, coloquial, regional ou de uso recente entre os visitantes.`;
+  // ------ CAMADA 1: Fundamentação Normativa e Teórica ------
+  let ancoraNormativa = '';
+  if (temTesauro) {
+    ancoraNormativa = `O Tesauro CNFCP/IPHAN — fonte normativa primária do patrimônio cultural brasileiro — registra formalmente este conceito. Sua definição oficial é: "${thesaurusContext}". Este verbete constitui a âncora semântica institucional. `;
+  } else {
+    ancoraNormativa = `O Tesauro CNFCP/IPHAN não possui verbete formalizado para o termo "${tag}". A análise institucional normativa está ausente. `;
+  }
+
+  if (temTeoria) {
+    const titulosTeoricos = brasilianaTeoria.map(t => `"${t.titulo}"`).join(', ');
+    const essenciaTeorica = extrairEssencia(brasilianaTeoria);
+    ancoraNormativa += `No entanto, o motor de pesquisa acadêmica localizou ${brasilianaTeoria.length} documento(s) teórico(s) (artigos/livros) na Brasiliana Museus que abordam o tema (ex: ${titulosTeoricos}). A essência conceitual extraída da literatura (teoria) gravita em torno dos termos: ${essenciaTeorica.map(e => `"${e}"`).join(', ')}. O sistema utilizará esta base teórica para não confundir o significado conceitual da palavra com suas eventuais manifestações físicas nos acervos.`;
+  } else {
+    ancoraNormativa += `Além disso, a busca não retornou artigos, livros ou teses na Brasiliana Museus para fundamentar teoricamente o termo. O raciocínio será construído em modo puramente indutivo e material — partindo exclusivamente das evidências empíricas e objetos físicos dos acervos.`;
+  }
 
   // ------ CAMADA 2: Evidência Empírica Cruzada ------
   let evidenciaEmpirica = '';
@@ -425,8 +455,9 @@ async function generateAIAnalysis(
   if (foiImparcial) {
     const fatoresIncerteza = [
       !temTesauro ? 'ausência de âncora normativa no Tesauro CNFCP' : null,
+      !temTeoria ? 'ausência de literatura acadêmica/teórica para base conceitual' : null,
       totalEvidencias === 0 ? 'nenhuma evidência empírica nos acervos nacionais' : null,
-      essenciaBase.length < 3 ? 'corpus insuficiente para extração semântica robusta' : null,
+      essenciaBase.length < 3 ? 'corpus físico insuficiente para extração semântica robusta' : null,
       tagCorrelation.siblings.length === 0 ? 'ausência de topologia interna consolidada' : null,
     ].filter(Boolean);
 
@@ -434,13 +465,14 @@ async function generateAIAnalysis(
   } else {
     const fontesSustentacao = [
       temTesauro ? 'a definição normativa do Tesauro CNFCP/IPHAN' : null,
-      ibram.length > 0 ? `${ibram.length} evidência(s) do IBRAM/Tainacan` : null,
-      brasiliana.length > 0 ? `${brasiliana.length} evidência(s) da Brasiliana Museus` : null,
-      essenciaBase.length >= 3 ? 'o perfil lexical extraído via PPLM' : null,
+      temTeoria ? 'fundamentação teórica baseada em artigos/livros' : null,
+      ibram.length > 0 ? `${ibram.length} evidência(s) empírica(s) do IBRAM/Tainacan` : null,
+      brasiliana.length > 0 ? `${brasiliana.length} evidência(s) empírica(s) da Brasiliana Museus` : null,
+      essenciaBase.length >= 3 ? 'o perfil lexical extraído via PPLM dos objetos físicos' : null,
       tagCorrelation.siblings.length > 0 ? 'a topologia interna do NUGEP' : null,
     ].filter(Boolean);
 
-    sinteseDeducao = `CONCLUSÃO ANALÍTICA [${certeza}% de certeza] — O sistema emite resposta com nível de confiança suficiente para publicação e uso institucional. As camadas de evidência convergem de forma consistente. A conclusão é sustentada por: ${fontesSustentacao.join(', ')}. A tag "${tag}" é um marcador cultural ${temTesauro ? 'formalmente reconhecido e normatizado pelo patrimônio brasileiro' : 'empiricamente estabelecido através dos acervos nacionais'}, com presença documentada e inserção verificável no ecossistema do patrimônio cultural nacional.`;
+    sinteseDeducao = `CONCLUSÃO ANALÍTICA [${certeza}% de certeza] — O sistema emite resposta com nível de confiança suficiente para publicação e uso institucional, diferenciando adequadamente a fundação teórica do conceito de suas manifestações físicas. As camadas de evidência convergem de forma consistente. A conclusão é sustentada por: ${fontesSustentacao.join(', ')}. A tag "${tag}" é um marcador cultural ${temTesauro ? 'formalmente reconhecido e normatizado pelo patrimônio brasileiro' : 'empiricamente estabelecido através dos acervos nacionais'}, com presença documentada e inserção verificável no ecossistema do patrimônio cultural nacional.`;
   }
 
   const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, topologiaInterna, sinteseDeducao].join('\n\n---\n\n');
@@ -566,10 +598,11 @@ export async function POST(req: NextRequest) {
     // ================================================================
     dispatchEvent({ tipo: 'CONSULTA', origem: 'relatorio-semantico', payload: { query, tags_encontradas: dbTags.length } });
 
-    const [ibram, brasiliana, auxiliares] = await Promise.all([
+    const [ibram, brasiliana, auxiliares, brasilianaTeoria] = await Promise.all([
       searchIBRAM(query, thesaurusExpansion.expanded),
       searchBrasiliana(query, thesaurusExpansion.expanded),
-      searchAuxiliares(query)
+      searchAuxiliares(query),
+      searchBrasilianaTeoria(query)
     ]);
 
     // Disparar eventos de ingestão
@@ -594,9 +627,9 @@ export async function POST(req: NextRequest) {
 
     // ================================================================
     // PASSO 8: Gerar análise escrita com IA baseada em EVIDÊNCIAS
-    // Pipeline Transformer com Tesauro CNFCP
+    // Pipeline Transformer com Tesauro CNFCP e Teoria da Brasiliana
     // ================================================================
-    const brainTextObj = await generateAIAnalysis(query, correlationGraph, tagCorrelation, previousCorrelations, dbTags, ibram, brasiliana, auxiliares, thesaurusContext);
+    const brainTextObj = await generateAIAnalysis(query, correlationGraph, tagCorrelation, previousCorrelations, dbTags, ibram, brasiliana, auxiliares, thesaurusContext, brasilianaTeoria);
 
     const analise = brainTextObj?.texto || 
       `A tag "${query}" existe no sistema com ${dbTags.length} registro(s). ` +
