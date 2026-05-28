@@ -1209,8 +1209,11 @@ export default function AdminPage() {
 
                     {/* Tesauro CNFCP */}
                     {semanticResult.tesauro?.contexto && (
-                      <div className="glass-card p-6 border border-amber-500/20">
-                        <h4 className="text-sm font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <div className="glass-card p-6 border border-amber-500/20 relative overflow-hidden">
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] rotate-[-10deg] select-none z-0">
+                          <span className="text-4xl font-black tracking-widest uppercase text-white whitespace-nowrap">Uso Exclusivo do NUGEP</span>
+                        </div>
+                        <h4 className="text-sm font-bold uppercase tracking-widest mb-3 flex items-center gap-2 relative z-10">
                           <FileText size={16} className="text-amber-400" /> Tesauro CNFCP / IPHAN
                         </h4>
                         <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-lg">
@@ -1251,9 +1254,12 @@ export default function AdminPage() {
 
                     {/* Tags internas */}
                     {semanticResult.correlacoes.internas.total > 0 && (
-                      <div className="glass-card p-6">
-                        <h4 className="text-sm font-bold uppercase tracking-widest mb-4">Tags internas correlacionadas ({semanticResult.correlacoes.internas.total})</h4>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="glass-card p-6 relative overflow-hidden">
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] rotate-[-10deg] select-none z-0">
+                          <span className="text-4xl font-black tracking-widest uppercase text-white whitespace-nowrap">Uso Exclusivo do NUGEP</span>
+                        </div>
+                        <h4 className="text-sm font-bold uppercase tracking-widest mb-4 relative z-10">Tags internas correlacionadas ({semanticResult.correlacoes.internas.total})</h4>
+                        <div className="flex flex-wrap gap-2 relative z-10">
                           {semanticResult.correlacoes.internas.items.map((t: any, i: number) => (
                             <span key={i} className="px-3 py-1 bg-[#E85002]/10 text-[#E85002] border border-[#E85002]/20 rounded-full text-[10px] uppercase font-bold">
                               {t.tag_original} → {t.grupo_tematico || 'Outros'}
@@ -1316,11 +1322,14 @@ export default function AdminPage() {
                     )}
 
                     {/* Análise escrita */}
-                    <div className="glass-card p-8">
-                      <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <div className="glass-card p-8 relative overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.04] rotate-[-10deg] select-none z-0">
+                        <span className="text-5xl font-black tracking-widest uppercase text-white whitespace-nowrap">Uso Exclusivo do NUGEP</span>
+                      </div>
+                      <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
                         <FileText size={16} className="text-[#E85002]" /> Análise Escrita (Gerada pelo Motor Semântico)
                       </h4>
-                      <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed whitespace-pre-line">
+                      <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed whitespace-pre-line relative z-10">
                         {semanticResult.analiseEscrita}
                       </div>
                     </div>
