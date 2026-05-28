@@ -382,7 +382,8 @@ async function generateAIAnalysis(
   
   let analiseCognitiva = '';
   if (baseItems.length > 0) {
-    analiseCognitiva = `Através da análise semântica estrutural (PPLM/Transformers) sobre os acervos dos museus nacionais (IBRAM e Brasiliana), a Inteligência Artificial deduziu que a tag "${tag}" caracteriza-se intrinsecamente pela forte presença dos seguintes conceitos operacionais e materiais: ${essenciaBase.map(e => e.toUpperCase()).join(', ')}.`;
+    const dominio = thesaurusContext ? thesaurusContext : 'um conceito sociocultural e material emergente';
+    analiseCognitiva = `A rede analítica (PPLM) compreende que a tag "${tag}" opera no domínio de: "${dominio}". A projeção vetorial dessa essência nos acervos do patrimônio nacional revela sua manifestação primária e estrutural através de marcadores como: ${essenciaBase.map(e => e.toUpperCase()).join(', ')}. O sistema conclui, portanto, que a marcação "${tag}" não é apenas um descritor, mas um nó histórico-cultural de alta densidade no ecossistema de dados.`;
   } else {
     analiseCognitiva = `Não houve retorno suficiente de tensores nas bases nacionais (IBRAM/Brasiliana) para estabelecer uma correlação ontológica profunda da palavra "${tag}".`;
   }
@@ -409,12 +410,23 @@ async function generateAIAnalysis(
       });
     } catch (err) {}
 
-    respostaTexto = `Eu ainda estou deduzindo os limites dessa palavra e não alcancei os 95% de certeza vetorial. Mas até aqui foi o que o motor cognitivo aprendeu, e vou cruzar mais conexões no próximo ciclo de treinamento da madrugada para refinar esse significado:\n\n${compreensaoAtual}`;
+    respostaTexto = `[FASE DE TREINAMENTO] Eu ainda estou deduzindo os limites dessa palavra e não alcancei os 95% de certeza vetorial. Vou cruzar mais conexões no próximo ciclo da madrugada para refinar esse significado.`;
   } else {
-    respostaTexto = `Com ${certeza}% de certeza matemática, o motor cognitivo estabeleceu a definição abaixo!\n\n${compreensaoAtual}`;
+    respostaTexto = `[COGNIÇÃO CONCLUÍDA] Com ${certeza}% de certeza matemática, o motor cognitivo estabeleceu a definição ontológica!`;
   }
 
-  return { texto: respostaTexto, certeza };
+  return { 
+    texto: respostaTexto + '\n\n' + compreensaoAtual, 
+    certeza,
+    estruturado: {
+      status: respostaTexto,
+      deducao: analiseCognitiva,
+      factual: resumoFactual,
+      tesauro: resumoContexto,
+      ligacao: resumoLigacao,
+      vetorial: logicaMatematica.join(' ➔ ')
+    }
+  };
 }
 
 // ============================================================
@@ -536,6 +548,7 @@ export async function POST(req: NextRequest) {
       `${tagCorrelation.totalRelated > 0 ? `Foram detectadas ${tagCorrelation.totalRelated} tags relacionadas no banco interno. ` : ''}` +
       `Conforme novas tags são criadas e validadas, o sistema amplia automaticamente essas conexões.`;
 
+    const analiseEstruturada = brainTextObj?.estruturado || null;
     const certezaCalculada = brainTextObj?.certeza || 0;
 
     // ================================================================
@@ -546,6 +559,7 @@ export async function POST(req: NextRequest) {
       data: {
         tag: query,
         tagNaoExiste: false,
+        relatorioEstruturado: analiseEstruturada,
 
         // Status dos motores ML
         motores: {

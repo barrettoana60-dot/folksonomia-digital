@@ -329,7 +329,11 @@ export default function AdminPage() {
     const aguardando = semanticResult.motores?.transformer?.aguardandoTreino;
     const tesauro = semanticResult.tesauro?.contexto || '';
     const termosExpandidos: string[] = semanticResult.tesauro?.termosExpandidos || [];
+    const estruturado = semanticResult.relatorioEstruturado;
     const analiseEscrita = semanticResult.analiseEscrita || '';
+    const deducaoCognitiva = estruturado ? estruturado.deducao : analiseEscrita;
+    const matrizCruzadaTexto = estruturado ? estruturado.factual : `As obras listadas nos acervos nacionais demonstraram proximidade através dos motores de busca semânticos (PPLM). Foram computadas conexões transversais entre os ${ibramTotal} registros do IBRAM e os ${brasilianaTotal} registros da Brasiliana Museus.`;
+
     const dataGeracao = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
@@ -537,7 +541,7 @@ export default function AdminPage() {
           <div class="section">
             <p class="section-title">Conexões Cruzadas e Malha Vetorial</p>
             <div class="tesauro-box" style="background: #f8fafc; border-color: #cbd5e1;">
-              <p class="section-body">As obras listadas nos acervos nacionais demonstraram proximidade através dos motores de busca semânticos (PPLM). Foram computadas conexões transversais entre os ${ibramTotal} registros do IBRAM e os ${brasilianaTotal} registros da Brasiliana Museus.</p>
+              <p class="section-body">${matrizCruzadaTexto.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
             </div>
           </div>
 
@@ -550,9 +554,10 @@ export default function AdminPage() {
           </div>` : ''}
 
           <div class="section">
-            <p class="section-title">Dedução Cognitiva da IA</p>
+            <p class="section-title">Dedução Cognitiva da Inteligência Artificial</p>
             <div class="tesauro-box" style="background: #fff; border-color: #e2e8f0; border-left: 4px solid #0f172a;">
-              <p class="section-body" style="font-size: 11px;">${analiseEscrita.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              <p class="section-body" style="font-size: 11px; font-weight: 600;">${deducaoCognitiva.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              ${estruturado ? `<p class="section-body" style="font-size: 9px; margin-top: 12px; color: #64748b;">[OPERAÇÃO VETORIAL DA IA: ${estruturado.vetorial}]</p>` : ''}
             </div>
           </div>
 
@@ -1567,15 +1572,54 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {/* Análise escrita */}
-                    <div className="glass-card p-8 relative overflow-hidden">
-                      <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                        <FileText size={16} className="text-[#E85002]" /> Análise Escrita (Gerada pelo Motor Semântico)
-                      </h4>
-                      <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed whitespace-pre-line relative z-10">
-                        {semanticResult.analiseEscrita}
+                    {/* Análise estruturada Modular */}
+                    {semanticResult.relatorioEstruturado ? (
+                      <div className="grid grid-cols-1 gap-4 mt-6">
+                        <div className="glass-card p-6 border-l-4 border-[#00FF00]/50 relative overflow-hidden">
+                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#00FF00] mb-2 flex items-center gap-2">
+                            <Brain size={14} /> Dedução Ontológica e Cognitiva (PPLM)
+                          </h4>
+                          <p className="text-white/90 text-sm leading-relaxed font-semibold">
+                            {semanticResult.relatorioEstruturado.deducao}
+                          </p>
+                        </div>
+                        
+                        <div className="glass-card p-6 border-l-4 border-[#E85002]/50">
+                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#E85002] mb-2 flex items-center gap-2">
+                            <BookOpen size={14} /> Definição do Tesauro & Contexto
+                          </h4>
+                          <p className="text-white/70 text-xs leading-relaxed">
+                            {semanticResult.relatorioEstruturado.tesauro}
+                          </p>
+                        </div>
+
+                        <div className="glass-card p-6 border-l-4 border-blue-500/50">
+                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2 flex items-center gap-2">
+                            <Network size={14} /> Matriz Cruzada de Acervos (IBRAM/Brasiliana)
+                          </h4>
+                          <p className="text-white/70 text-xs leading-relaxed mb-4">
+                            {semanticResult.relatorioEstruturado.factual}
+                          </p>
+                          <p className="text-white/70 text-xs leading-relaxed">
+                            {semanticResult.relatorioEstruturado.ligacao}
+                          </p>
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                             <code className="text-[9px] text-blue-300/50 uppercase tracking-widest font-mono">
+                               OPERAÇÃO: {semanticResult.relatorioEstruturado.vetorial}
+                             </code>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="glass-card p-8 relative overflow-hidden mt-6">
+                        <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
+                          <FileText size={16} className="text-[#E85002]" /> Análise Escrita
+                        </h4>
+                        <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed whitespace-pre-line relative z-10">
+                          {semanticResult.analiseEscrita}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
