@@ -357,49 +357,38 @@ async function generateAIAnalysis(
 
   let respostaTexto = '';
 
-  // Fallback local inteligente — sempre gera as 3 camadas com os dados reais
-  const factual = [
-    `CAMADA FACTUAL`,
-    ``,
-    ibram.length > 0
-      ? `Nos acervos do IBRAM/Tainacan foram localizados ${ibram.length} registro(s): ${ibram.slice(0, 3).map((i: any) => `"${i.titulo}" (${i.museu}${i.localizacao ? ` - ${i.localizacao}` : ''})`).join('; ')}.`
-      : `Os acervos do IBRAM/Tainacan não retornaram registros diretos para a tag "${tag}".`,
-    brasiliana.length > 0
-      ? `Na Brasiliana Museus foram encontrados ${brasiliana.length} registro(s), incluindo: ${brasiliana.slice(0, 2).map((b: any) => `"${b.titulo}"`).join(', ')}.`
-      : `A Brasiliana Museus não retornou registros para esta tag.`,
-    auxiliares.length > 0
-      ? `Como contexto auxiliar, fontes enciclopédicas (DBpedia/OpenAlex) forneceram dados de desambiguação para o termo.`
-      : ``
-  ].join('\n');
+  // ============================================================
+  // LÓGICA DE CERTEZA MATEMÁTICA E ENCAMINHAMENTO
+  // ============================================================
+  
+  let resumoFactual = `Eu fiz a busca nesses bancos de dados e encontrei ${ibram.length} registros nos museus (IBRAM/Tainacan) e ${brasiliana.length} itens na Brasiliana Museus.`;
+  let resumoContexto = thesaurusContext 
+    ? `No tesauro oficial, eu também entendi que ela significa isso: "${thesaurusContext}"`
+    : `Ainda não encontrei uma definição oficial no tesauro para ela.`;
+  
+  let resumoLigacao = `Com base no que analisei, sugeriu-se que a tag "${tag}" está ligada a uma natureza ${dbTags.length > 0 ? 'mais popular/vernacular' : ibram.length > 0 ? 'institucional' : 'inédita'}. `;
+  if (tagCorrelation.siblings.length > 0) {
+    resumoLigacao += `Ela parece ter correlação com as seguintes tags: ${tagCorrelation.siblings.map((s:any) => s.tag).slice(0, 3).join(', ')}. `;
+  }
+  
+  let compreensaoAtual = `A tag "${tag}", até onde os meus dados encontraram, significa o seguinte:\n\n${resumoFactual}\n${resumoContexto}\n\n${resumoLigacao}\n\n[Raciocínio Matemático da IA: ${logicaMatematica.join(' ➔ ')}]`;
 
-  const inferred = [
-    ``,
-    `CAMADA INFERIDA`,
-    ``,
-    `[Nota de Busca Ativa]: O sistema consultou ativamente as APIs do Museu do Índio, Museu da Pessoa e Museu de Folclore Edison Carneiro, além dos demais museus da rede IBRAM. ${ibramMuseusVazios.length > 0 ? `As APIs de ${ibramMuseusVazios.join(', ')} retornaram ZERO itens compatíveis com a tag "${tag}".` : 'Todos retornaram itens.'}`,
-    correlationGraph.correlations?.length > 0
-      ? `O motor semântico detectou ${correlationGraph.correlations.length} correlação(ões) entre as fontes encontradas. ${crossTexto !== 'Nenhuma conexão cruzada detectada entre as fontes.' ? `Conexões cruzadas identificadas: ${crossTexto}` : 'As fontes operam de forma independente neste caso.'}`
-      : `Não foram detectadas correlações cruzadas entre as fontes para esta tag.`,
-    tagCorrelation.totalRelated > 0
-      ? `No banco interno, ${tagCorrelation.totalRelated} tag(s) relacionada(s) foram identificadas: ${tagsRelacionadas}.`
-      : `Nenhuma tag semanticamente próxima foi identificada no banco interno.`,
-    familiaTexto,
-    thesaurusContext ? `\nContexto do Tesauro CNFCP: ${thesaurusContext}` : ''
-  ].join('\n');
+  if (certeza < 95) {
+    try {
+      await supabaseAdmin.from('ml_training_queue').insert({
+        tag: tag,
+        certeza_atual: certeza,
+        ultimo_pensamento: `Faltaram evidências.`,
+        status: 'pending'
+      });
+    } catch (err) {}
 
-  const learning = [
-    ``,
-    `APRENDIZADO`,
-    ``,
-    correlationGraph.crossConnections?.length > 0 
-      ? `Detectamos ${correlationGraph.crossConnections.length} conexões cruzadas entre fontes (ex: Tesauro ↔ IBRAM).`
-      : `Esta consulta foi registrada para aprendizado futuro.`
-  ].join('\n');
+    respostaTexto = `Eu ainda estou buscando e não alcancei os 95% de certeza. Mas até aqui foi onde aprendi, e vou treinar de madrugada para buscar mais e melhorar a minha resposta e pensamento.\n\n${compreensaoAtual}`;
+  } else {
+    respostaTexto = `Com ${certeza}% de certeza atingida, concluí a pesquisa!\n\n${compreensaoAtual}`;
+  }
 
-  // O usuário pediu para sempre mostrar "o que o sistema entendeu até agora", independente da certeza!
-  let compreensaoAtual = `A tag "${tag}", até onde os meus dados encontraram, significa o seguinte:\n\n${factual}\n\n${inferred}\n\n${learning}\n\n[CONEXÃO MATEMÁTICA ENCONTRADA: ${logicaMatematica.join(' ➔ ')}]`;
-
-  return { texto: compreensaoAtual, certeza };
+  return { texto: respostaTexto, certeza };
 }
 
 // ============================================================

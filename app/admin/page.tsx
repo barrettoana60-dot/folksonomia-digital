@@ -355,18 +355,17 @@ export default function AdminPage() {
           }
           /* MARCA D'ÁGUA — aparece em todas as páginas */
           @page { margin: 2cm 2.2cm; }
-          body::before {
-            content: 'USO EXCLUSIVO DO NUGEP';
+          .watermark-pdf {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-35deg);
-            font-size: 62px;
+            font-size: 65px;
             font-weight: 900;
-            color: rgba(200, 60, 0, 0.06);
+            color: rgba(200, 60, 0, 0.1);
             white-space: nowrap;
             pointer-events: none;
-            z-index: 0;
+            z-index: -1;
             letter-spacing: 0.05em;
           }
           .page { position: relative; z-index: 1; }
@@ -486,6 +485,7 @@ export default function AdminPage() {
         </style>
       </head>
       <body>
+        <div class="watermark-pdf">USO EXCLUSIVO DO NUGEP</div>
         <div class="page">
           <div class="header">
             <div class="header-top">
