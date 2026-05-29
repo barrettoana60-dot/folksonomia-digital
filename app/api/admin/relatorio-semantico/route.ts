@@ -266,7 +266,8 @@ async function persistCorrelations(
 // ============================================================
 // Motor de IA — Análise escrita baseada em EVIDÊNCIAS
 // Pipeline Transformer-Style (Chain-of-Thought com Tesauro)
-// =============================async function generateAIAnalysis(
+// ============================================================
+async function generateAIAnalysis(
   tag: string,
   correlationGraph: any,
   tagCorrelation: any,
