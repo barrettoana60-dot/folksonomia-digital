@@ -226,12 +226,43 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
   const obra = await supabase.from('obras').select('titulo, descricao')
     .eq('id', obraId).single().then(r => r.data).catch(() => null);
 
+  // Buscar validações humanas reais no banco
+  let humanValidations = 0;
+  let humanRejections = 0;
+  try {
+    const { data: nucleoList } = await supabase
+      .from('nucleos')
+      .select('id')
+      .eq('conteudo_normalizado', norm);
+      
+    if (nucleoList && nucleoList.length > 0) {
+      const ids = nucleoList.map(n => n.id);
+      const { data: valList } = await supabase
+        .from('validacoes')
+        .select('decisao')
+        .in('nucleo_id', ids);
+        
+      if (valList) {
+        for (const v of valList) {
+          if (v.decisao === 'validado' || v.decisao === 'publicado') {
+            humanValidations++;
+          } else if (v.decisao === 'rejeitado') {
+            humanRejections++;
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Pipeline] Falha ao carregar validações humanas:', err);
+  }
+
   const calibrated = calculateCalibratedConfidence({
     modelProbability: tokenResult.motor !== 'heuristic_fallback' ? tokenResult.confidence : undefined,
     vectorSimilarity: memoryResult.found ? (memoryResult.confidence || 0.5) : undefined,
     externalSourceCount: evidenceResult.sourceCount,
     externalSourceQuality: evidenceResult.sourceQuality,
-    humanValidations: 0, // será preenchido do banco futuramente
+    humanValidations,
+    humanRejections,
     obraCoherence: obra?.descricao ? (normalizeText(obra.descricao).includes(norm) ? 0.9 : 0.3) : 0,
     memoryMatches: memoryResult.found ? 1 : 0,
     termLength: tag.length,

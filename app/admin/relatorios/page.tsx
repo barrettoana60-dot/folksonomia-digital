@@ -151,31 +151,7 @@ export default async function RelatoriosPage() {
           )}
         </div>
 
-        {/* MOTORES ATIVOS */}
-        <div className="glass-card p-8 mb-8">
-          <h3 className="text-lg font-normal serif-title text-white mb-2 flex items-center gap-3">
-            <Brain size={20} className="text-[#E85002]" />
-            Motores Ativos do Pipeline
-          </h3>
-          <p className="text-white/30 text-[10px] uppercase tracking-widest mb-6">
-            ML Service: {mlServiceOnline ? (
-              <span className="text-green-400">ONLINE — {ML_SERVICE_URL}</span>
-            ) : (
-              <span className="text-red-400">OFFLINE — usando fallback heurístico</span>
-            )}
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Object.entries(motorStatus).map(([key, value]) => {
-              const isReal = !value.includes('heuristic') && !value.includes('hash');
-              return (
-                <div key={key} className={`p-4 rounded-xl border ${isReal ? 'bg-green-500/10 border-green-500/20' : 'bg-amber-500/10 border-amber-500/20'}`}>
-                  <p className="text-[9px] uppercase tracking-widest text-white/40 mb-1">{key}</p>
-                  <p className={`text-xs font-bold ${isReal ? 'text-green-400' : 'text-amber-400'}`}>{value}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Status das tags */}

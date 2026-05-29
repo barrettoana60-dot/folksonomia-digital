@@ -96,8 +96,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: 'Nenhuma tag pendente de treinamento.' });
     }
 
-    const { pipeline } = await import('@xenova/transformers');
-    const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    const { getXenovaPipeline } = await import('@/lib/ml/xenova-singleton');
+    const extractor = await getXenovaPipeline();
 
     const results = [];
 
@@ -278,7 +278,10 @@ export async function POST(req: NextRequest) {
             let embeddingVector: number[] = new Array(768).fill(0);
             try {
               const output = await extractor(tag, { pooling: 'mean', normalize: true });
-              embeddingVector = Array.from(output.data as Float32Array);
+              const localData = Array.from(output.data as Float32Array);
+              for (let i = 0; i < Math.min(localData.length, 768); i++) {
+                embeddingVector[i] = localData[i];
+              }
             } catch {}
 
             await supabaseAdmin.from('semantic_memory').insert({

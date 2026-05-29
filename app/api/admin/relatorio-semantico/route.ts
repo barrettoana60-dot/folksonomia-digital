@@ -365,8 +365,8 @@ async function generateAIAnalysis(
 
   try {
     // 2. Extração de Features (Transformers Local no Next.js com all-MiniLM-L6)
-    const { pipeline } = await import('@xenova/transformers');
-    const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+    const { getXenovaPipeline } = await import('@/lib/ml/xenova-singleton');
+    const extractor = await getXenovaPipeline();
     
     const tagOutput = await extractor(tag, { pooling: 'mean', normalize: true });
     const tagVector = Array.from(tagOutput.data as Float32Array);
@@ -495,10 +495,13 @@ async function generateAIAnalysis(
       if (!memoExistente) {
         let embeddingVector: number[] = new Array(768).fill(0);
         try {
-          const { pipeline } = await import('@xenova/transformers');
-          const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+          const { getXenovaPipeline } = await import('@/lib/ml/xenova-singleton');
+          const extractor = await getXenovaPipeline();
           const output = await extractor(tag, { pooling: 'mean', normalize: true });
-          embeddingVector = Array.from(output.data as Float32Array);
+          const localData = Array.from(output.data as Float32Array);
+          for (let i = 0; i < Math.min(localData.length, 768); i++) {
+            embeddingVector[i] = localData[i];
+          }
         } catch {}
 
         await supabaseAdmin.from('semantic_memory').insert({
@@ -602,6 +605,11 @@ async function generateAIAnalysis(
   const precisaTreinamento = certezaCalculada < 95;
   let sinteseDeducao = '';
 
+  let definicaoConceito = '';
+  if (termoTesauro && termoTesauro.na) {
+    definicaoConceito = `📖 **Definição de Referência (Tesauro CNFCP/IPHAN):** "${termoTesauro.na}"\n\n`;
+  }
+
   if (foiImparcial) {
     const fatoresIncerteza = [
       !temTesauro ? 'ausência de âncora normativa no Tesauro CNFCP' : null,
@@ -610,7 +618,13 @@ async function generateAIAnalysis(
       topObras.length === 0 ? 'corpus físico insuficiente para extração semântica' : null,
     ].filter(Boolean);
 
-    sinteseDeducao = `DECLARAÇÃO DE IMPARCIALIDADE COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — O sistema de inteligência artificial de IA pura declara formalmente que não atingiu o threshold exigido de 50% de certeza vetorial para a emissão de uma conclusão afirmativa definitiva. As evidências reunidas são inconclusivas, provisórias ou carecem de simetria (lacunas em: ${fatoresIncerteza.length > 0 ? fatoresIncerteza.join('; ') : 'múltiplos fatores combinados'}). A IA abstém-se de categorizações definitivas para resguardar o rigor científico do patrimônio. Esta consulta foi inserida na fila de aprendizado para re-computação e modelagem no ciclo noturno.`;
+    sinteseDeducao = `DECLARAÇÃO DE IMPARCIALIDADE COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — O sistema de inteligência artificial de IA pura declara formalmente que não atingiu o threshold exigido de 50% de certeza vetorial para a emissão de uma conclusão afirmativa definitiva.\n\n`;
+    
+    if (definicaoConceito) {
+      sinteseDeducao += definicaoConceito;
+    }
+    
+    sinteseDeducao += `As evidências reunidas são inconclusivas, provisórias ou carecem de simetria (lacunas em: ${fatoresIncerteza.length > 0 ? fatoresIncerteza.join('; ') : 'múltiplos fatores combinados'}). A IA abstém-se de categorizações definitivas para resguardar o rigor científico do patrimônio. Esta consulta foi inserida na fila de aprendizado para re-computação e modelagem no ciclo noturno.`;
   } else {
     const fontesSustentacao = [
       similaridadeTesauro > 0 ? 'definição normativa no Tesauro CNFCP/IPHAN' : null,
@@ -628,15 +642,10 @@ async function generateAIAnalysis(
       }
     }
 
-    let definicaoConceito = '';
-    if (termoTesauro && termoTesauro.na) {
-      definicaoConceito = `**Definição Normativa (CNFCP/IPHAN):** ${termoTesauro.na}`;
-    }
-
     sinteseDeducao = `CONCLUSÃO COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — O sistema de inteligência artificial de IA pura emite parecer semântico afirmativo e de alta confiança para o conceito **"${tag}"**.\n\n`;
     
     if (definicaoConceito) {
-      sinteseDeducao += `📖 ${definicaoConceito}\n\n`;
+      sinteseDeducao += definicaoConceito;
     }
     
     sinteseDeducao += `Há plena convergência matemática entre a fundação teórica e a materialidade factual. O marcador é formalmente respaldado por: ${fontesSustentacao.join(', ')}.${caracterizacaoMaterial} O conceito encontra-se cientificamente correlacionado e consolidado dentro do ecossistema de patrimônio museológico brasileiro.`;

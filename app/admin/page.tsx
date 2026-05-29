@@ -1145,180 +1145,6 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {/* DIAGRAMA DE FLUXO DO PIPELINE — escondido no print */}
-                <div className="glass-card p-6 print:hidden">
-                  <div className="flex items-center justify-between mb-6">
-                    <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/30">Pipeline de Análise Semântica</p>
-                    <span className={`text-[9px] uppercase tracking-widest font-bold px-2 py-1 rounded border ${
-                      mlChecking ? 'border-white/10 text-white/20' :
-                      mlHealth ? 'border-white/20 text-white/40' : 'border-white/10 text-white/20'
-                    }`}>
-                      {mlChecking ? '—' : mlHealth ? 'ML Service · online' : 'heuristic · fallback'}
-                    </span>
-                  </div>
-
-                  {/* Fluxo horizontal: entrada → processamento → saída */}
-                  <div className="overflow-x-auto">
-                    <div className="flex items-start gap-0 min-w-[900px]">
-
-                      {/* Nó 1: Entrada */}
-                      <div className="flex flex-col items-center gap-2 flex-shrink-0 w-36">
-                        <div className="border border-white/20 rounded px-3 py-2 text-center w-full">
-                          <p className="text-[10px] font-bold text-white/70">Usuário digita tag</p>
-                          {semanticResult && !semanticResult.tagNaoExiste && (
-                            <p className="text-[9px] text-[#E85002] mt-1 italic">"{semanticResult.tag}"</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Seta */}
-                      <div className="flex items-start pt-4 flex-shrink-0 w-8 justify-center">
-                        <span className="text-white/20 text-xs">→</span>
-                      </div>
-
-                      {/* Nó 2: Next.js Pipeline */}
-                      <div className="flex flex-col items-center gap-2 flex-shrink-0 w-36">
-                        <div className="border border-white/20 rounded px-3 py-2 text-center w-full">
-                          <p className="text-[10px] font-bold text-white/70">Next.js Pipeline</p>
-                          <p className="text-[9px] text-white/30 mt-1">Vercel Serverless</p>
-                        </div>
-                      </div>
-
-                      {/* Seta */}
-                      <div className="flex items-start pt-4 flex-shrink-0 w-8 justify-center">
-                        <span className="text-white/20 text-xs">→</span>
-                      </div>
-
-                      {/* Nó 3: Processamento paralelo (4 caixas verticais) */}
-                      <div className="flex flex-col gap-2 flex-shrink-0 w-52">
-                        {/* ML Service */}
-                        <div className="border border-white/20 rounded px-3 py-2">
-                          <p className="text-[9px] font-bold text-white/60">ML Service /predict-ner</p>
-                          {semanticResult && !semanticResult.tagNaoExiste ? (
-                            <p className="text-[9px] text-white/80 mt-1">
-                              {mlHealth ? 'ModernBERT' : 'Heurística'}: {
-                                semanticResult.tagAnalysis?.family?.name || 'classificando...'
-                              }
-                            </p>
-                          ) : (
-                            <p className="text-[9px] text-white/20 mt-1">{mlHealth ? 'modernbert_ner' : 'heuristic_fallback'}</p>
-                          )}
-                        </div>
-                        {/* Tesauro CNFCP */}
-                        <div className="border border-white/20 rounded px-3 py-2">
-                          <p className="text-[9px] font-bold text-white/60">Tesauro CNFCP</p>
-                          {semanticResult && !semanticResult.tagNaoExiste ? (
-                            <p className="text-[9px] text-white/70 mt-1">
-                              {semanticResult.tesauro?.termoEncontrado
-                                ? `Termo mapeado — ${semanticResult.tesauro.termosExpandidos?.length || 0} expansão(ões)`
-                                : 'termo não encontrado no tesauro'}
-                            </p>
-                          ) : (
-                            <p className="text-[9px] text-white/20 mt-1">aguardando busca</p>
-                          )}
-                        </div>
-                        {/* IBRAM */}
-                        <div className="border border-white/20 rounded px-3 py-2">
-                          <p className="text-[9px] font-bold text-white/60">Ibram / Tainacan</p>
-                          {semanticResult && !semanticResult.tagNaoExiste ? (
-                            <p className="text-[9px] text-white/70 mt-1">
-                              {semanticResult.correlacoes?.ibram?.total > 0
-                                ? `${semanticResult.correlacoes.ibram.total} registro(s): "${semanticResult.correlacoes.ibram.items?.[0]?.titulo?.slice(0,30) || ''}"`
-                                : 'sem resultados'}
-                            </p>
-                          ) : (
-                            <p className="text-[9px] text-white/20 mt-1">aguardando busca</p>
-                          )}
-                        </div>
-                        {/* Brasiliana */}
-                        <div className="border border-white/20 rounded px-3 py-2">
-                          <p className="text-[9px] font-bold text-white/60">Brasiliana Museus</p>
-                          {semanticResult && !semanticResult.tagNaoExiste ? (
-                            <p className="text-[9px] text-white/70 mt-1">
-                              {semanticResult.correlacoes?.brasiliana?.total > 0
-                                ? `${semanticResult.correlacoes.brasiliana.total} registro(s): "${semanticResult.correlacoes.brasiliana.items?.[0]?.titulo?.slice(0,30) || ''}"`
-                                : 'sem resultados'}
-                            </p>
-                          ) : (
-                            <p className="text-[9px] text-white/20 mt-1">aguardando busca</p>
-                          )}
-                        </div>
-                        {/* Memória Semântica */}
-                        <div className="border border-white/20 rounded px-3 py-2">
-                          <p className="text-[9px] font-bold text-white/60">Memória Semântica</p>
-                          {semanticResult && !semanticResult.tagNaoExiste ? (
-                            <p className="text-[9px] text-white/70 mt-1">
-                              {semanticResult.knowledge?.previousCorrelations > 0
-                                ? `validado antes: ${semanticResult.knowledge.previousCorrelations} correlação(ões)`
-                                : 'primeira análise desta tag'}
-                            </p>
-                          ) : (
-                            <p className="text-[9px] text-white/20 mt-1">aguardando busca</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Seta */}
-                      <div className="flex items-center self-center flex-shrink-0 w-8 justify-center" style={{marginTop: '-40px'}}>
-                        <span className="text-white/20 text-xs">→</span>
-                      </div>
-
-                      {/* Nó 4: Motor de Confiança */}
-                      <div className="flex flex-col items-center gap-2 flex-shrink-0 w-44 self-center" style={{marginTop: '-40px'}}>
-                        <div className="border border-white/20 rounded px-3 py-2 text-center w-full">
-                          <p className="text-[10px] font-bold text-white/70">Motor de Confiança</p>
-                          <p className="text-[9px] text-white/40 mt-1">Calibrado</p>
-                          {semanticResult && !semanticResult.tagNaoExiste && (
-                            <div className="mt-2 space-y-1">
-                              <p className="text-[9px] text-white/60">
-                                confiança: {semanticResult.layers ? (
-                                  `${semanticResult.layers.factual}F + ${semanticResult.layers.inferred}I + ${semanticResult.layers.validated}V`
-                                ) : '—'}
-                              </p>
-                              <p className="text-[9px] text-white/50">
-                                status: {semanticResult.profundidade === 'ALTA' ? 'hipotese_forte' : semanticResult.profundidade === 'MÉDIA' ? 'hipotese_parcial' : 'inconclusivo'}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Seta */}
-                      <div className="flex items-center self-center flex-shrink-0 w-8 justify-center" style={{marginTop: '-40px'}}>
-                        <span className="text-white/20 text-xs">→</span>
-                      </div>
-
-                      {/* Nó 5: Curador valida */}
-                      <div className="flex flex-col items-center gap-2 flex-shrink-0 w-36 self-center" style={{marginTop: '-40px'}}>
-                        <div className="border border-white/20 rounded px-3 py-2 text-center w-full">
-                          <p className="text-[10px] font-bold text-white/70">Curador valida</p>
-                          <p className="text-[9px] text-white/30 mt-1">Sistema de Validação</p>
-                        </div>
-                      </div>
-
-                      {/* Seta */}
-                      <div className="flex items-center self-center flex-shrink-0 w-8 justify-center" style={{marginTop: '-40px'}}>
-                        <span className="text-white/20 text-xs">→</span>
-                      </div>
-
-                      {/* Nó 6: Memória salva */}
-                      <div className="flex flex-col items-center gap-2 flex-shrink-0 w-40 self-center" style={{marginTop: '-40px'}}>
-                        <div className="border border-white/20 rounded px-3 py-2 text-center w-full">
-                          <p className="text-[10px] font-bold text-white/70">Memória salva</p>
-                          <p className="text-[9px] text-white/30 mt-1">Dataset atualizado</p>
-                          {semanticResult && !semanticResult.tagNaoExiste && (
-                            <p className="text-[9px] text-white/50 mt-1">
-                              {semanticResult.knowledge?.learningEvents > 0
-                                ? `${semanticResult.knowledge.learningEvents} evento(s)`
-                                : 'aguardando validação'}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-                </div>
 
                 {/* RESULTADOS DA ANÁLISE */}
                 {semanticResult && semanticResult.tagNaoExiste && (
@@ -1539,133 +1365,50 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {/* Grau de Certeza do Transformer */}
+                    {/* Nível de Confiança Semântica */}
                     {semanticResult.motores?.transformer && (
                       <div className={`glass-card p-6 border ${semanticResult.motores.transformer.aguardandoTreino ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                           <div>
                             <h4 className="text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
-                              {semanticResult.motores.transformer.aguardandoTreino ? (
-                                <><AlertTriangle size={16} className="text-yellow-400" /> Baixa Certeza Semântica</>
-                              ) : (
-                                <><CheckCircle size={16} className="text-green-400" /> Confiança Matemática</>
-                              )}
+                              Nível de Confiança Semântica
                             </h4>
                             <p className="text-xs text-white/60">
                               {semanticResult.motores.transformer.aguardandoTreino 
-                                ? 'A IA não atingiu 95% de certeza. Enviado para auto-treinamento de madrugada.' 
-                                : 'O raciocínio lógico atingiu o threshold necessário para publicação.'}
+                                ? 'Classificação conceitual sob análise e monitoramento.' 
+                                : 'Classificação conceitual validada e confirmada.'}
                             </p>
                           </div>
                           <div className="text-right flex flex-col items-center">
                             <div className={`text-4xl font-black tracking-tighter ${semanticResult.motores.transformer.aguardandoTreino ? 'text-yellow-400' : 'text-green-400'}`}>
                               {semanticResult.motores.transformer.certeza}%
                             </div>
-                            <div className="w-full bg-white/10 h-1.5 rounded-full mt-2 overflow-hidden w-24">
-                              <div 
-                                className={`h-full ${semanticResult.motores.transformer.aguardandoTreino ? 'bg-yellow-400' : 'bg-green-400'}`} 
-                                style={{ width: `${semanticResult.motores.transformer.certeza}%` }}
-                              ></div>
-                            </div>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Análise estruturada Modular */}
+                    {/* Parecer Semântico */}
                     {semanticResult.relatorioEstruturado ? (
                       <div className="grid grid-cols-1 gap-4 mt-6">
-                        {semanticResult.relatorioEstruturado.camadas && (
-                          <>
-                            <div className="glass-card p-6 border-l-4 border-yellow-500/50">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-yellow-500 mb-2 flex items-center gap-2">
-                                <BookOpen size={14} /> Camada 1: Âncora Normativa
-                              </h4>
-                              <p className="text-white/80 text-xs leading-relaxed">
-                                {semanticResult.relatorioEstruturado.camadas.ancoraNormativa}
-                              </p>
-                            </div>
-                            
-                            <div className="glass-card p-6 border-l-4 border-blue-400/50">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2 flex items-center gap-2">
-                                <Search size={14} /> Camada 2: Evidência Empírica
-                              </h4>
-                              <p className="text-white/80 text-xs leading-relaxed">
-                                {semanticResult.relatorioEstruturado.camadas.evidenciaEmpirica}
-                              </p>
-                            </div>
-                            
-                            <div className="glass-card p-6 border-l-4 border-green-500/50">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-green-500 mb-2 flex items-center gap-2">
-                                <Activity size={14} /> Camada 3: Extração Semântica PPLM
-                              </h4>
-                              <p className="text-white/80 text-xs leading-relaxed">
-                                {semanticResult.relatorioEstruturado.camadas.extracao}
-                              </p>
-                            </div>
-                            
-                            <div className="glass-card p-6 border-l-4 border-purple-500/50">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-2 flex items-center gap-2">
-                                <Network size={14} /> Camada 4: Topologia Interna (NUGEP)
-                              </h4>
-                              <p className="text-white/80 text-xs leading-relaxed">
-                                {semanticResult.relatorioEstruturado.camadas.topologiaInterna}
-                              </p>
-                            </div>
-                            
-                            <div className={`glass-card p-6 border-l-4 ${semanticResult.relatorioEstruturado.statusImparcial ? 'border-orange-500/50' : 'border-[#00FF00]/50'} relative overflow-hidden`}>
-                              <h4 className={`text-[10px] font-bold uppercase tracking-widest ${semanticResult.relatorioEstruturado.statusImparcial ? 'text-orange-400' : 'text-[#00FF00]'} mb-2 flex items-center gap-2`}>
-                                <Brain size={14} /> Camada 5: Síntese e Dedução Lógica
-                              </h4>
-                              <p className="text-white/90 text-sm leading-relaxed font-semibold">
-                                {semanticResult.relatorioEstruturado.camadas.sintese}
-                              </p>
-                              <div className="mt-4 pt-4 border-t border-white/10">
-                                <code className="text-[9px] text-blue-300/50 uppercase tracking-widest font-mono">
-                                  OPERAÇÃO VETORIAL: {semanticResult.relatorioEstruturado.vetorial}
-                                </code>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                        
-                        {!semanticResult.relatorioEstruturado.camadas && (
-                          <>
-                            <div className="glass-card p-6 border-l-4 border-[#00FF00]/50 relative overflow-hidden">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#00FF00] mb-2 flex items-center gap-2">
-                                <Brain size={14} /> Dedução Ontológica e Cognitiva (PPLM)
-                              </h4>
-                              <p className="text-white/90 text-sm leading-relaxed font-semibold">
-                                {semanticResult.relatorioEstruturado.deducao}
-                              </p>
-                            </div>
-                            
-                            <div className="glass-card p-6 border-l-4 border-[#E85002]/50">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#E85002] mb-2 flex items-center gap-2">
-                                <BookOpen size={14} /> Definição do Tesauro & Contexto
-                              </h4>
-                              <p className="text-white/70 text-xs leading-relaxed">
-                                {semanticResult.relatorioEstruturado.tesauro}
-                              </p>
-                            </div>
-
-                            <div className="glass-card p-6 border-l-4 border-blue-500/50">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-2 flex items-center gap-2">
-                                <Network size={14} /> Matriz Cruzada de Acervos (IBRAM/Brasiliana)
-                              </h4>
-                              <p className="text-white/70 text-xs leading-relaxed mb-4">
-                                {semanticResult.relatorioEstruturado.factual}
-                              </p>
-                              <p className="text-white/70 text-xs leading-relaxed">
-                                {semanticResult.relatorioEstruturado.ligacao}
-                              </p>
-                              <div className="mt-4 pt-4 border-t border-white/10">
-                                <code className="text-[9px] text-blue-300/50 uppercase tracking-widest font-mono">
-                                  OPERAÇÃO: {semanticResult.relatorioEstruturado.vetorial}
-                                </code>
-                              </div>
-                            </div>
-                          </>
+                        {semanticResult.relatorioEstruturado.camadas ? (
+                          <div className={`glass-card p-8 border-l-4 ${semanticResult.relatorioEstruturado.statusImparcial ? 'border-orange-500/50' : 'border-[#00FF00]/50'} relative overflow-hidden`}>
+                            <h4 className={`text-xs font-bold uppercase tracking-widest ${semanticResult.relatorioEstruturado.statusImparcial ? 'text-orange-400' : 'text-[#00FF00]'} mb-3 flex items-center gap-2`}>
+                              <Brain size={16} /> Parecer Semântico Institucional
+                            </h4>
+                            <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-normal">
+                              {semanticResult.relatorioEstruturado.camadas.sintese}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="glass-card p-8 border-l-4 border-[#00FF00]/50 relative overflow-hidden">
+                            <h4 className="text-xs font-bold uppercase tracking-widest text-[#00FF00] mb-3 flex items-center gap-2">
+                              <Brain size={16} /> Parecer Semântico Institucional
+                            </h4>
+                            <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-normal">
+                              {semanticResult.relatorioEstruturado.deducao}
+                            </p>
+                          </div>
                         )}
                       </div>
                     ) : (

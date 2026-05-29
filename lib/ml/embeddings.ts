@@ -95,7 +95,7 @@ export async function createHashEmbedding(text: string): Promise<EmbeddingVector
  */
 export async function createSemanticEmbedding(text: string): Promise<{
   vector: EmbeddingVector;
-  source: 'ml_service' | 'hash_fallback';
+  source: 'ml_service' | 'xenova_local' | 'hash_fallback';
 }> {
   const mlServiceUrl = ML_SERVICE_URL;
   
@@ -115,10 +115,33 @@ export async function createSemanticEmbedding(text: string): Promise<{
         }
       }
     } catch {
-      console.warn('[Embeddings] ML Service offline, usando hash fallback');
+      console.warn('[Embeddings] ML Service offline, tentando Xenova local...');
     }
   }
 
+  // Fallback 1: Xenova local (semantic embedding local)
+  try {
+    const { getXenovaPipeline } = await import('./xenova-singleton');
+    const extractor = await getXenovaPipeline();
+    const output = await extractor(text, { pooling: 'mean', normalize: true });
+    const localData = Array.from(output.data as Float32Array);
+    
+    // Padding de 384d para 768d (completar com zeros)
+    const padded = new Array(EMBEDDING_DIMENSIONS).fill(0);
+    for (let i = 0; i < Math.min(localData.length, EMBEDDING_DIMENSIONS); i++) {
+      padded[i] = localData[i];
+    }
+    
+    // Normalizar novamente por segurança
+    const magnitude = Math.sqrt(padded.reduce((sum, val) => sum + val * val, 0));
+    const vector = magnitude > 0 ? padded.map(v => v / magnitude) : padded;
+    
+    return { vector, source: 'xenova_local' };
+  } catch (err) {
+    console.error('[Embeddings] Falha no Xenova local:', err);
+  }
+
+  // Fallback 2: Hash embedding
   return { 
     vector: await createHashEmbedding(text), 
     source: 'hash_fallback' 
