@@ -482,7 +482,8 @@ async function generateAIAnalysis(
   }
 
   // ------ CAMADA 5: Síntese Conclusiva ou Declaração de Imparcialidade ------
-  const foiImparcial = certezaCalculada < 80;
+  const foiImparcial = certezaCalculada < 50;
+  const precisaTreinamento = certezaCalculada < 95;
   let sinteseDeducao = '';
 
   if (foiImparcial) {
@@ -493,7 +494,7 @@ async function generateAIAnalysis(
       topObras.length === 0 ? 'corpus físico insuficiente para extração semântica' : null,
     ].filter(Boolean);
 
-    sinteseDeducao = `DECLARAÇÃO DE IMPARCIALIDADE COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — O sistema de inteligência artificial de IA pura declara formalmente que não atingiu o threshold exigido de 80% de certeza vetorial para a emissão de uma conclusão afirmativa definitiva. As evidências reunidas são inconclusivas, provisórias ou carecem de simetria (lacunas em: ${fatoresIncerteza.length > 0 ? fatoresIncerteza.join('; ') : 'múltiplos fatores combinados'}). A IA abstém-se de categorizações definitivas para resguardar o rigor científico do patrimônio. Esta consulta foi inserida na fila de aprendizado para re-computação e modelagem no ciclo noturno.`;
+    sinteseDeducao = `DECLARAÇÃO DE IMPARCIALIDADE COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — O sistema de inteligência artificial de IA pura declara formalmente que não atingiu o threshold exigido de 50% de certeza vetorial para a emissão de uma conclusão afirmativa definitiva. As evidências reunidas são inconclusivas, provisórias ou carecem de simetria (lacunas em: ${fatoresIncerteza.length > 0 ? fatoresIncerteza.join('; ') : 'múltiplos fatores combinados'}). A IA abstém-se de categorizações definitivas para resguardar o rigor científico do patrimônio. Esta consulta foi inserida na fila de aprendizado para re-computação e modelagem no ciclo noturno.`;
   } else {
     const fontesSustentacao = [
       similaridadeTesauro > 0 ? 'definição normativa no Tesauro CNFCP/IPHAN' : null,
@@ -503,6 +504,10 @@ async function generateAIAnalysis(
     ].filter(Boolean);
 
     sinteseDeducao = `CONCLUSÃO COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — A IA pura emite parecer semântico afirmativo e de alta confiança. Há plena convergência matemática entre a fundação teórica e a materialidade factual. O marcador cultural "${tag}" é formalmente respaldado por: ${fontesSustentacao.join(', ')}. O conceito encontra-se cientificamente correlacionado e consolidado dentro do ecossistema de patrimônio museológico brasileiro.`;
+    
+    if (precisaTreinamento) {
+      sinteseDeducao += ` [SISTEMA DE AUTOMATIZAÇÃO DE APRENDIZADO]: Este parecer foi emitido com nível de confiança moderado (${certezaCalculada}%). A tag foi enfileirada automaticamente para o pipeline noturno de treinamento autônomo para refinar e expandir sua certeza vetorial até o patamar de excelência de 95%.`;
+    }
   }
 
   const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, topologiaInterna, sinteseDeducao].join('\n\n---\n\n');
@@ -515,14 +520,24 @@ async function generateAIAnalysis(
     ? `Tags de topologia próxima: ${tagCorrelation.siblings.map((s:any) => `"${s.tag}"`).slice(0, 5).join(', ')}.`
     : `Nenhuma tag-irmã com topologia suficientemente próxima identificada no banco interno.`;
 
-  if (foiImparcial) {
+  if (precisaTreinamento) {
     try {
-      await supabaseAdmin.from('ml_training_queue').insert({
-        tag,
-        certeza_atual: certezaCalculada,
-        ultimo_pensamento: sinteseDeducao.slice(0, 200),
-        status: 'pending'
-      });
+      // Verificar se já existe na fila com status pendente ou learning
+      const { data: existente } = await supabaseAdmin
+        .from('ml_training_queue')
+        .select('id')
+        .eq('tag', tag)
+        .in('status', ['pending', 'learning'])
+        .maybeSingle();
+
+      if (!existente) {
+        await supabaseAdmin.from('ml_training_queue').insert({
+          tag,
+          certeza_atual: certezaCalculada,
+          ultimo_pensamento: sinteseDeducao.slice(0, 200),
+          status: 'pending'
+        });
+      }
     } catch (err) {}
   }
 

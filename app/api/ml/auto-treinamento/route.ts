@@ -204,8 +204,10 @@ export async function POST(req: NextRequest) {
       if (certezaCalculada < 10) certezaCalculada = 10;
       certezaCalculada = Math.round(certezaCalculada);
 
-      const resolvida = certezaCalculada >= 80;
-      const pensamentoInterno = `Refinamento vetorial latente completo. Tag "${tag}". Similaridades computadas de forma matemática exata contra bases oficiais. Categoria inferida local: ${contextCategory}.`;
+      // Meta de excelência cognitiva: 95%. Entre 50-94%: aprendizado em curso.
+      const resolvida = certezaCalculada >= 95;
+      const emAprendizado = certezaCalculada >= 50 && certezaCalculada < 95;
+      const pensamentoInterno = `Refinamento vetorial latente completo. Tag "${tag}". Similaridades computadas de forma matemática exata contra bases oficiais. Categoria inferida local: ${contextCategory}. Status: ${resolvida ? 'Excelência atingida (95%+)' : emAprendizado ? 'Em aprendizado (50-94%)' : 'Imparcial (< 50%)'}`;
       const conexoesVetor = logicaMatematica.join(' | ');
 
       // E. Persistir resultados de aprendizado
@@ -249,7 +251,7 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString()
         }).eq('id', item.id);
 
-        results.push({ tag, status: 'pendente', certeza: certezaCalculada });
+        results.push({ tag, status: 'pendente', certeza: certezaCalculada, emAprendizado });
       }
     }
 

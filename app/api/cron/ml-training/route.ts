@@ -192,6 +192,7 @@ export async function GET(request: Request) {
     const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
     const processedTags = [];
+    let mlOnline = false; // Declarado fora do loop para acesso no fine-tuning final
 
     // 2. Processar cada tag com o Pipeline Cognitivo de IA Pura
     for (const item of queue) {
@@ -224,7 +225,6 @@ export async function GET(request: Request) {
       // B. Chamadas ao microserviço FastAPI local se estiver de pé
       let nerPrediction: any = null;
       let contextPrediction: any = null;
-      let mlOnline = false;
       let device = 'cpu';
 
       try {
@@ -361,13 +361,14 @@ export async function GET(request: Request) {
         ? `Tags de proximidade espacial no banco: ${tagCorrelation.siblings.slice(0, 4).map((s:any) => `"${s.tag}"`).join(', ')}.`
         : `Marcador singular sem constelação de tags próximas no banco.`;
 
-      const foiImparcial = certezaCalculada < 80;
+      // threshold de 50% para declaração de imparcialidade; 95% para resolução
+      const foiImparcial = certezaCalculada < 50;
       let sinteseDeducao = foiImparcial
-        ? `DECLARAÇÃO DE IMPARCIALIDADE COGNITIVA [Certeza: ${certezaCalculada}%] — Evidências insuficientes ou assimétricas. IA abstém-se de categorizações conclusivas de forma rigorosa.`
-        : `CONCLUSÃO COGNITIVA [Certeza: ${certezaCalculada}%] — Plena convergência matemática entre teoria e materialidade física. Conceito consolidado no patrimônio.`;
+        ? `DECLARAÇÃO DE IMPARCIALIDADE COGNITIVA [Certeza: ${certezaCalculada}%] — Evidências insuficientes ou assimétricas. IA abstém-se de categorizações conclusivas de forma rigorosa. Tag enfileirada para próximo ciclo de treinamento.`
+        : `CONCLUSÃO COGNITIVA [Certeza: ${certezaCalculada}%] — Convergência matemática confirmada. Conceito consolidado no patrimônio.${certezaCalculada < 95 ? ` [Aprendizado em curso — meta: 95%]` : ' [Excelência cognitiva atingida]'}`;
 
       const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, topologia, sinteseDeducao].join('\n\n---\n\n');
-      const resolvida = certezaCalculada >= 80;
+      const resolvida = certezaCalculada >= 95; // Meta de excelência cognitiva
 
       // F. Persistir o Aprendizado e Atualizar a Fila
       await persistCorrelations(tagNorm, correlationGraph.correlations, correlationGraph.crossConnections);
