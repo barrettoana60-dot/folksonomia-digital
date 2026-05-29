@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { IbramConnector } from '@/lib/connectors/ibram';
 import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
-import { expandQuery, enrichWithThesaurus } from '@/lib/ml/thesaurus';
+import { expandQuery, enrichWithThesaurus, findTerm } from '@/lib/ml/thesaurus';
 import { mlClient } from '@/lib/ml/ml-client';
+import { hybridSemanticSimilarity } from '@/lib/ml/similarity';
 import { analyzeTagCorrelations } from '@/lib/ml/tag-correlator';
 import { buildCorrelationGraph } from '@/lib/ml/correlation-engine';
 
@@ -140,74 +141,173 @@ export async function POST(req: NextRequest) {
         console.warn(`[Auto-Treinamento] ML-Service offline para tag "${tag}"`);
       }
 
-      // C. Processamento de Embeddings Matemáticos (Transformers Local)
-      const tagOutput = await extractor(tag, { pooling: 'mean', normalize: true });
-      const tagVector = Array.from(tagOutput.data as Float32Array);
-
+      // A. Pré-calcular similaridades heurísticas caso a IA local (Xenova) falhe ou como base de fallback
       let similaridadeTesauro = 0;
       let similaridadeTeoriaMedia = 0;
       const obrasComSimilaridade: any[] = [];
       let melhorSimilaridadeBD = 0;
 
-      // C1. Proximidade com o Tesauro CNFCP
-      if (thesaurusContext) {
-        const tesOutput = await extractor(thesaurusContext, { pooling: 'mean', normalize: true });
-        const tesVector = Array.from(tesOutput.data as Float32Array);
-        similaridadeTesauro = cosineSimilarity(tagVector, tesVector);
+      // 1. Similaridade Heurística com Tesauro CNFCP
+      const termoTesauro = findTerm(tag);
+      if (termoTesauro) {
+        similaridadeTesauro = 1.0;
+      } else if (thesaurusContext && !thesaurusContext.includes('não possui entrada direta')) {
+        similaridadeTesauro = 0.6;
       }
 
-      // C2. Proximidade com Literatura Acadêmica
+      // 2. Similaridade Heurística com Artigos Teóricos (Literatura Acadêmica)
       if (brasilianaTeoria.length > 0) {
-        const similaridadesTeoria: number[] = [];
-        for (const art of brasilianaTeoria) {
-          const textToEmbed = `${art.titulo} ${art.descricao || ''}`;
-          const artOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
-          const artVector = Array.from(artOutput.data as Float32Array);
-          similaridadesTeoria.push(cosineSimilarity(tagVector, artVector));
-        }
-        similaridadeTeoriaMedia = similaridadesTeoria.reduce((a, b) => a + b, 0) / similaridadesTeoria.length;
+        const similaridadesTeoriaHeuristica = brasilianaTeoria.map(art => 
+          hybridSemanticSimilarity(tag, `${art.titulo} ${art.descricao || ''}`)
+        );
+        similaridadeTeoriaMedia = similaridadesTeoriaHeuristica.reduce((a, b) => a + b, 0) / similaridadesTeoriaHeuristica.length;
       }
 
-      // C3. Proximidade com Obras Empíricas
+      // 3. Similaridade Heurística com as Obras Empíricas (RAG)
       const todasAsObras = [...ibram, ...brasiliana];
       if (todasAsObras.length > 0) {
         for (const obra of todasAsObras) {
-          const textToEmbed = `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''}`;
-          const obraOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
-          const obraVector = Array.from(obraOutput.data as Float32Array);
-          obrasComSimilaridade.push(cosineSimilarity(tagVector, obraVector));
+          const score = hybridSemanticSimilarity(tag, `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''}`);
+          obrasComSimilaridade.push(score);
         }
         melhorSimilaridadeBD = Math.max(...obrasComSimilaridade);
       }
 
-      // D. Cálculo da Certeza Cognitiva Real (IA Pura)
+      // 4. Similaridade Heurística com a Topologia do Banco Interno (NUGEP)
+      let melhorSimilaridadeTopologiaHeuristica = 0;
+      if (dbTags.length > 0) {
+        const similaridadesBDHeuristica = dbTags.map(t => {
+          if (t.tag_original.length > 50) return 0;
+          return hybridSemanticSimilarity(tag, t.tag_original);
+        });
+        melhorSimilaridadeTopologiaHeuristica = Math.max(...similaridadesBDHeuristica, 0);
+      }
+
       let certezaCalculada = 20; // Base de incerteza inicial
       let logicaMatematica: string[] = [];
 
-      if (similaridadeTesauro > 0) {
-        const contri = similaridadeTesauro * 35;
-        certezaCalculada += contri;
-        logicaMatematica.push(`Tesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
-      }
-      if (similaridadeTeoriaMedia > 0) {
-        const contri = similaridadeTeoriaMedia * 25;
-        certezaCalculada += contri;
-        logicaMatematica.push(`Teoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
-      }
-      if (obrasComSimilaridade.length > 0) {
-        const contri = Math.min(30, melhorSimilaridadeBD * 30);
-        certezaCalculada += contri;
-        logicaMatematica.push(`Empírico: ${(melhorSimilaridadeBD * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+      try {
+        // C. Processamento de Embeddings Matemáticos (Transformers Local)
+        const tagOutput = await extractor(tag, { pooling: 'mean', normalize: true });
+        const tagVector = Array.from(tagOutput.data as Float32Array);
+
+        // C1. Proximidade com o Tesauro CNFCP
+        if (thesaurusContext) {
+          const tesOutput = await extractor(thesaurusContext, { pooling: 'mean', normalize: true });
+          const tesVector = Array.from(tesOutput.data as Float32Array);
+          similaridadeTesauro = cosineSimilarity(tagVector, tesVector);
+        }
+
+        // C2. Proximidade com Literatura Acadêmica
+        if (brasilianaTeoria.length > 0) {
+          const similaridadesTeoria: number[] = [];
+          for (const art of brasilianaTeoria) {
+            const textToEmbed = `${art.titulo} ${art.descricao || ''}`;
+            const artOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
+            const artVector = Array.from(artOutput.data as Float32Array);
+            similaridadesTeoria.push(cosineSimilarity(tagVector, artVector));
+          }
+          similaridadeTeoriaMedia = similaridadesTeoria.reduce((a, b) => a + b, 0) / similaridadesTeoria.length;
+        }
+
+        // C3. Proximidade com Obras Empíricas
+        if (todasAsObras.length > 0) {
+          obrasComSimilaridade.length = 0;
+          for (const obra of todasAsObras) {
+            const textToEmbed = `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''}`;
+            const obraOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
+            const obraVector = Array.from(obraOutput.data as Float32Array);
+            obrasComSimilaridade.push(cosineSimilarity(tagVector, obraVector));
+          }
+          melhorSimilaridadeBD = Math.max(...obrasComSimilaridade);
+        }
+
+        if (similaridadeTesauro > 0) {
+          const contri = similaridadeTesauro * 35;
+          certezaCalculada += contri;
+          logicaMatematica.push(`Tesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+        }
+        if (similaridadeTeoriaMedia > 0) {
+          const contri = similaridadeTeoriaMedia * 25;
+          certezaCalculada += contri;
+          logicaMatematica.push(`Teoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+        }
+        if (obrasComSimilaridade.length > 0) {
+          const contri = Math.min(30, melhorSimilaridadeBD * 30);
+          certezaCalculada += contri;
+          logicaMatematica.push(`Empírico: ${(melhorSimilaridadeBD * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+        }
+
+      } catch (err) {
+        console.error("[Auto-Treinamento] Falha no extractor local, executando Fallback Heurístico:", err);
+        certezaCalculada = 20; // reset
+        logicaMatematica.push("Fallback Heurístico Semântico");
+
+        if (similaridadeTesauro > 0) {
+          const contri = similaridadeTesauro * 35;
+          certezaCalculada += contri;
+          logicaMatematica.push(`HeurísticaTesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+        }
+        if (similaridadeTeoriaMedia > 0) {
+          const contri = similaridadeTeoriaMedia * 25;
+          certezaCalculada += contri;
+          logicaMatematica.push(`HeurísticaTeoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+        }
+        if (obrasComSimilaridade.length > 0) {
+          const topSim = obrasComSimilaridade[0];
+          const contri = Math.min(30, topSim * 30);
+          certezaCalculada += contri;
+          logicaMatematica.push(`HeurísticaEmpírico: ${(topSim * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+        }
       }
 
       if (certezaCalculada > 99) certezaCalculada = 99;
       if (certezaCalculada < 10) certezaCalculada = 10;
+
+      // Auto-ingestão na memória semântica se o termo estiver no tesauro e não catalogado na memória
+      if (termoTesauro) {
+        certezaCalculada = 95; // Validação definitiva automática
+        try {
+          const { data: memoExistente } = await supabaseAdmin
+            .from('semantic_memory')
+            .select('id')
+            .eq('termo_normalizado', tagNorm)
+            .maybeSingle();
+          
+          if (!memoExistente) {
+            let embeddingVector: number[] = new Array(768).fill(0);
+            try {
+              const output = await extractor(tag, { pooling: 'mean', normalize: true });
+              embeddingVector = Array.from(output.data as Float32Array);
+            } catch {}
+
+            await supabaseAdmin.from('semantic_memory').insert({
+              termo: tag,
+              termo_normalizado: tagNorm,
+              significado: termoTesauro.na || '',
+              categoria: tag === 'barroco' || termoTesauro.te?.includes('barroco') ? 'PERIODO' : 'TEMA',
+              contextos: termoTesauro.ta || [],
+              embedding: embeddingVector,
+              confianca: 0.95,
+              status: 'validado',
+              total_ocorrencias: 1,
+              modelo_versao: 'thesaurus_ingestion'
+            });
+          }
+        } catch {}
+      }
       certezaCalculada = Math.round(certezaCalculada);
 
       // Meta de excelência cognitiva: 95%. Entre 50-94%: aprendizado em curso.
       const resolvida = certezaCalculada >= 95;
       const emAprendizado = certezaCalculada >= 50 && certezaCalculada < 95;
-      const pensamentoInterno = `Refinamento vetorial latente completo. Tag "${tag}". Similaridades computadas de forma matemática exata contra bases oficiais. Categoria inferida local: ${contextCategory}. Status: ${resolvida ? 'Excelência atingida (95%+)' : emAprendizado ? 'Em aprendizado (50-94%)' : 'Imparcial (< 50%)'}`;
+      
+      let definicaoConceito = '';
+      if (termoTesauro && termoTesauro.na) {
+        definicaoConceito = ` Definido no Tesauro: "${termoTesauro.na}".`;
+      }
+      
+      const pensamentoInterno = `Refinamento vetorial completo para a tag "${tag}". Categoria inferida: ${contextCategory}.${definicaoConceito} Status: ${resolvida ? 'Excelência atingida (95%+)' : emAprendizado ? 'Em aprendizado (50-94%)' : 'Imparcial (< 50%)'}`;
       const conexoesVetor = logicaMatematica.join(' | ');
 
       // E. Persistir resultados de aprendizado

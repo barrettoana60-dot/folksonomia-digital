@@ -5,8 +5,9 @@ import { buildCorrelationGraph } from '@/lib/ml/correlation-engine';
 import { analyzeTagCorrelations } from '@/lib/ml/tag-correlator';
 import { IbramConnector } from '@/lib/connectors/ibram';
 import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
-import { expandQuery, enrichWithThesaurus } from '@/lib/ml/thesaurus';
+import { expandQuery, enrichWithThesaurus, findTerm } from '@/lib/ml/thesaurus';
 import { mlClient } from '@/lib/ml/ml-client';
+import { hybridSemanticSimilarity } from '@/lib/ml/similarity';
 
 export const dynamic = 'force-dynamic';
 
@@ -312,15 +313,52 @@ async function generateAIAnalysis(
       if (health) modelVer = `${health.device} | Version: ${health.models.ner_version || 'v2.0'}`;
     }
   } catch (err) {
-    console.warn('[ML-Service] Offline or failed to predict:', err);
-  }
-
-  let certezaCalculada = 20; // Base inicial de incerteza
-  let logicaMatematica: string[] = [];
+    console.warn('[ML-Service] Offline or  // A. Pré-calcular similaridades heurísticas caso a IA local (Xenova) falhe ou como base de fallback
+  let fallbackUsado = false;
   let similaridadeTesauro = 0;
   let similaridadeTeoriaMedia = 0;
   const obrasComSimilaridade: any[] = [];
   let melhorSimilaridadeBD = 0;
+
+  // 1. Similaridade Heurística com Tesauro CNFCP
+  const termoTesauro = findTerm(tag);
+  if (termoTesauro) {
+    similaridadeTesauro = 1.0;
+  } else if (thesaurusContext && !thesaurusContext.includes('não possui entrada direta')) {
+    similaridadeTesauro = 0.6;
+  }
+
+  // 2. Similaridade Heurística com Artigos Teóricos (Literatura Acadêmica)
+  if (brasilianaTeoria.length > 0) {
+    const similaridadesTeoriaHeuristica = brasilianaTeoria.map(art => 
+      hybridSemanticSimilarity(tag, `${art.titulo} ${art.descricao || ''}`)
+    );
+    similaridadeTeoriaMedia = similaridadesTeoriaHeuristica.reduce((a, b) => a + b, 0) / similaridadesTeoriaHeuristica.length;
+  }
+
+  // 3. Similaridade Heurística com as Obras Empíricas (RAG)
+  const todasAsObras = [...ibram, ...brasiliana];
+  if (todasAsObras.length > 0) {
+    for (const obra of todasAsObras) {
+      const score = hybridSemanticSimilarity(tag, `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''} ${obra.colecao || ''}`);
+      obrasComSimilaridade.push({ ...obra, similaridade: score });
+    }
+    obrasComSimilaridade.sort((a, b) => b.similaridade - a.similaridade);
+    melhorSimilaridadeBD = obrasComSimilaridade[0]?.similaridade || 0;
+  }
+
+  // 4. Similaridade Heurística com a Topologia do Banco Interno (NUGEP)
+  let melhorSimilaridadeTopologiaHeuristica = 0;
+  if (dbTags.length > 0) {
+    const similaridadesBDHeuristica = dbTags.map(t => {
+      if (t.tag_original.length > 50) return 0;
+      return hybridSemanticSimilarity(tag, t.tag_original);
+    });
+    melhorSimilaridadeTopologiaHeuristica = Math.max(...similaridadesBDHeuristica, 0);
+  }
+
+  let certezaCalculada = 20; // Base inicial de incerteza
+  let logicaMatematica: string[] = [];
 
   try {
     // 2. Extração de Features (Transformers Local no Next.js com all-MiniLM-L6)
@@ -362,8 +400,9 @@ async function generateAIAnalysis(
     }
 
     // C. Similaridade com as Obras Empíricas (RAG de Acervos)
-    const todasAsObras = [...ibram, ...brasiliana];
     if (todasAsObras.length > 0) {
+      // Limpar vetor empírico anterior e usar embeddings reais
+      obrasComSimilaridade.length = 0;
       for (const obra of todasAsObras) {
         const textToEmbed = `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''} ${obra.colecao || ''}`;
         const obraOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
@@ -397,16 +436,42 @@ async function generateAIAnalysis(
 
   } catch (err) {
     console.error("Falha na pipeline local do Xenova:", err);
-    logicaMatematica.push("Fallback Heurístico");
-    certezaCalculada = 50;
+    fallbackUsado = true;
+    logicaMatematica.push("Fallback Heurístico Semântico");
+
+    // Recalcular certezaCalculada com as similaridades heurísticas calculadas anteriormente
+    certezaCalculada = 20; // reset
+    if (similaridadeTesauro > 0) {
+      const contri = similaridadeTesauro * 35;
+      certezaCalculada += contri;
+      logicaMatematica.push(`HeurísticaTesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+    }
+    if (similaridadeTeoriaMedia > 0) {
+      const contri = similaridadeTeoriaMedia * 25;
+      certezaCalculada += contri;
+      logicaMatematica.push(`HeurísticaTeoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+    }
+    if (obrasComSimilaridade.length > 0) {
+      const topSim = obrasComSimilaridade[0].similaridade;
+      const contri = Math.min(30, topSim * 30);
+      certezaCalculada += contri;
+      logicaMatematica.push(`HeurísticaEmpírico: ${(topSim * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+    }
+    if (dbTags.length > 0) {
+      const contri = melhorSimilaridadeTopologiaHeuristica * 10;
+      certezaCalculada += contri;
+      melhorSimilaridadeBD = melhorSimilaridadeTopologiaHeuristica;
+      logicaMatematica.push(`HeurísticaTopologia: ${(melhorSimilaridadeTopologiaHeuristica * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+    }
   }
 
   // Trava matemática de certeza de 10% a 99%
   if (certezaCalculada > 99) certezaCalculada = 99;
   if (certezaCalculada < 10) certezaCalculada = 10;
   
-  // Aumentar confiança se houver robusto histórico de aprendizado prévio
-  if (previousCorrelations.length > 3 && certezaCalculada > 80) certezaCalculada = 99;
+  // Aumentar confiança se o termo estiver no tesauro oficial (definição de referência institucional)
+  if (termoTesauro) certezaCalculada = 95;
+  else if (previousCorrelations.length > 3 && certezaCalculada > 80) certezaCalculada = 99;
   certezaCalculada = Math.round(certezaCalculada);
 
   const topObras = obrasComSimilaridade.slice(0, 5);
@@ -414,17 +479,65 @@ async function generateAIAnalysis(
   const temTeoria = brasilianaTeoria.length > 0;
   const totalEvidencias = ibram.length + brasiliana.length;
 
+  // Auto-ingestão automática na memória semântica se o termo existe no tesauro e ainda não está na memória
+  const queryNorm = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').trim();
+  if (termoTesauro) {
+    try {
+      const { data: memoExistente } = await supabaseAdmin
+        .from('semantic_memory')
+        .select('id')
+        .eq('termo_normalizado', queryNorm)
+        .maybeSingle();
+      
+      if (!memoExistente) {
+        let embeddingVector: number[] = new Array(768).fill(0);
+        try {
+          const { pipeline } = await import('@xenova/transformers');
+          const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+          const output = await extractor(tag, { pooling: 'mean', normalize: true });
+          embeddingVector = Array.from(output.data as Float32Array);
+        } catch {}
+
+        await supabaseAdmin.from('semantic_memory').insert({
+          termo: tag,
+          termo_normalizado: queryNorm,
+          significado: termoTesauro.na || '',
+          categoria: tag === 'barroco' || termoTesauro.te?.includes('barroco') ? 'PERIODO' : 'TEMA',
+          contextos: termoTesauro.ta || [],
+          embedding: embeddingVector,
+          confianca: 0.95,
+          status: 'validado',
+          total_ocorrencias: 1,
+          modelo_versao: 'thesaurus_ingestion'
+        });
+
+        // Registrar no histórico de aprendizado
+        await supabaseAdmin.from('tag_learning_history').insert({
+          tag_normalizada: queryNorm,
+          event_type: 'auto_training_success',
+          event_details: {
+            certeza: 95,
+            pensamento: `Ingestão automática do Tesauro CNFCP concluída para o conceito "${tag}".`,
+            significado: termoTesauro.na
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Falha ao auto-ingerir conceito na memória semântica:', err);
+    }
+  }
+
   // ------ CAMADA 1: Fundamentação Normativa e Teórica ------
   let ancoraNormativa = '';
   if (temTesauro) {
-    ancoraNormativa = `O Tesauro de Folclore e Cultura Popular Brasileira do CNFCP/IPHAN — a máxima autoridade normativa do patrimônio imaterial nacional — registra e normatiza formalmente este conceito. A sua nota de aplicação oficial define o termo da seguinte maneira: "${thesaurusContext.replace(/\n/g, ' ')}". A análise vetorial de IA pura computou uma similaridade de cosseno de ${(similaridadeTesauro * 100).toFixed(1)}% entre o marcador do visitante e esta definição lexicográfica de referência, ratificando a precisão terminológica e a consistência normativa do conceito. `;
+    ancoraNormativa = `O Tesauro de Folclore e Cultura Popular Brasileira do CNFCP/IPHAN — a máxima autoridade normativa do patrimônio imaterial nacional — registra e normatiza formalmente este conceito. A sua nota de aplicação oficial define o termo da seguinte maneira: "${thesaurusContext.replace(/\n/g, ' ')}". A análise de correspondência computou uma convergência de ${(similaridadeTesauro * 100).toFixed(1)}% com esta definição de referência, ratificando a precisão terminológica e a consistência normativa do conceito. `;
   } else {
     ancoraNormativa = `O Tesauro do CNFCP/IPHAN não possui um verbete catalogado diretamente para a tag "${tag}". O conceito carece de uma âncora normativa institucional formalizada no vocabulário oficial. `;
   }
 
   if (temTeoria) {
     const titulosTeoricos = brasilianaTeoria.slice(0, 2).map(t => `"${t.titulo}"`).join(', ');
-    ancoraNormativa += `Além disso, no plano da fundamentação teórica, a IA pura recuperou e processou ${brasilianaTeoria.length} artigo(s) acadêmico(s) e textos científicos na Brasiliana Museus (ex: ${titulosTeoricos}). O cálculo vetorial no espaço latente de transformers obteve uma similaridade de cosseno média de ${(similaridadeTeoriaMedia * 100).toFixed(1)}% com a literatura especializada. A análise lexico-semântica destes corpora revela que o conceito se diferencia cabalmente de manifestações físicas ou técnicas de acervos, estabelecendo que "${tag}" é uma categoria cultural com lastro acadêmico estruturado.`;
+    ancoraNormativa += `Além disso, no plano da fundamentação teórica, a IA pura recuperou e processou ${brasilianaTeoria.length} artigo(s) acadêmico(s) e textos científicos na Brasiliana Museus (ex: ${titulosTeoricos}). A correspondência vetorial obteve similaridade média de ${(similaridadeTeoriaMedia * 100).toFixed(1)}% com a literatura especializada. A análise lexico-semântica destes corpora revela que o conceito se diferencia cabalmente de manifestações físicas ou técnicas de acervos, estabelecendo que "${tag}" é uma categoria cultural com lastro acadêmico estruturado.`;
   } else {
     ancoraNormativa += `Não foram localizados artigos teóricos, teses ou publicações científicas associadas a este termo na base de conhecimento da Brasiliana Museus. O sistema operará no modo puramente indutivo e empírico, carecendo de fundamentação doutrinária na literatura.`;
   }
@@ -444,8 +557,8 @@ async function generateAIAnalysis(
   // ------ CAMADA 3: Extração Semântica Estrutural (PPLM / NER local) ------
   let extracao = '';
   if (topObras.length > 0) {
-    const listagemObras = topObras.slice(0, 3).map(o => `"${o.titulo}" (Cosseno: ${(o.similaridade * 100).toFixed(1)}% — ${o.museu || o.fonte || 'Brasiliana'})`).join(', ');
-    extracao = `O motor de inteligência artificial de IA pura realizou a extração semântica com o modelo Transformers local, analisando as descrições, técnicas, materiais e títulos do acervo para identificar a relevância latente. As obras de maior convergência matemática com o conceito foram: ${listagemObras}. `;
+    const listagemObras = topObras.slice(0, 3).map(o => `"${o.titulo}" (Convergência: ${(o.similaridade * 100).toFixed(1)}% — ${o.museu || o.fonte || 'Brasiliana'})`).join(', ');
+    extracao = `O motor de inteligência artificial de IA pura realizou a extração semântica local, analisando as descrições, técnicas, materiais e títulos do acervo para identificar a relevância latente. As obras de maior convergência matemática com o conceito foram: ${listagemObras}. `;
     
     if (mlOnline && nerPrediction && nerPrediction.tokens) {
       const entidadesIdentificadas = nerPrediction.tokens
@@ -457,7 +570,7 @@ async function generateAIAnalysis(
       extracao += `O modelo de classificação de tokens ModernBERT NER local processou os textos e identificou com alta probabilidade as seguintes entidades museais estruturais que dão sustentação factual ao conceito: ${entidadesIdentificadas || 'Nenhuma entidade identificada'}.`;
     } else {
       const caracteristicas = [...new Set(topObras.map(o => o.material || o.tecnica).filter(Boolean))].slice(0, 4).join(', ');
-      extracao += `A análise vetorial local de proximidade léxica mapeou que as principais manifestações físicas que sustentam o conceito no acervo envolvem elementos como: ${caracteristicas || 'termos variados'}.`;
+      extracao += `A análise de proximidade léxica mapeou que as principais manifestações físicas que sustentam o conceito no acervo envolvem elementos como: ${caracteristicas || 'termos variados'}.`;
     }
     extracao += ` Isso prova que a aplicação da tag "${tag}" pelo público é matematicamente validada pelas características materiais intrínsecas e metadados das próprias obras.`;
   } else {
@@ -468,7 +581,7 @@ async function generateAIAnalysis(
   let topologiaInterna = '';
   if (tagCorrelation.siblings.length > 0) {
     const tagsSiblings = tagCorrelation.siblings.slice(0, 5).map((s: any) => `"${s.tag}"`).join(', ');
-    topologiaInterna = `Na topologia interna do banco de dados do NUGEP, a análise vetorial calculou a vizinhança semântica de "${tag}" no grafo de folksonomia. O termo ocupa uma posição central na rede de tags, compartilhando alta proximidade espacial com os marcadores: ${tagsSiblings}. `;
+    topologiaInterna = `Na topologia interna do banco de dados do NUGEP, a análise calculou a vizinhança semântica de "${tag}" no grafo de folksonomia. O termo ocupa uma posição central na rede de tags, compartilhando alta proximidade espacial com os marcadores: ${tagsSiblings}. `;
     
     if (mlOnline && contextPrediction) {
       topologiaInterna += `O classificador contextual determinou que o marcador atua prioritariamente na categoria conceitual **${contextPrediction.best_category}** (score de classificação local: ${(contextPrediction.best_score * 100).toFixed(1)}%), demonstrando como a inteligência coletiva dos visitantes organiza o vocabulário em famílias temáticas estruturadas.`;
@@ -503,7 +616,27 @@ async function generateAIAnalysis(
       tagCorrelation.siblings.length > 0 ? 'e topologia interna de tags no NUGEP' : null,
     ].filter(Boolean);
 
-    sinteseDeducao = `CONCLUSÃO COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — A IA pura emite parecer semântico afirmativo e de alta confiança. Há plena convergência matemática entre a fundação teórica e a materialidade factual. O marcador cultural "${tag}" é formalmente respaldado por: ${fontesSustentacao.join(', ')}. O conceito encontra-se cientificamente correlacionado e consolidado dentro do ecossistema de patrimônio museológico brasileiro.`;
+    // Carregar caracterização material do acervo (Empírico)
+    let caracterizacaoMaterial = '';
+    if (topObras.length > 0) {
+      const materiais = [...new Set(topObras.map(o => o.material || o.tecnica).filter(Boolean))].slice(0, 3);
+      if (materiais.length > 0) {
+        caracterizacaoMaterial = ` A materialidade física do acervo vincula este marcador a suportes e técnicas como **${materiais.join(', ')}**.`;
+      }
+    }
+
+    let definicaoConceito = '';
+    if (termoTesauro && termoTesauro.na) {
+      definicaoConceito = `**Definição Normativa (CNFCP/IPHAN):** ${termoTesauro.na}`;
+    }
+
+    sinteseDeducao = `CONCLUSÃO COGNITIVA [Certeza Matemática de ${certezaCalculada}%] — O sistema de inteligência artificial de IA pura emite parecer semântico afirmativo e de alta confiança para o conceito **"${tag}"**.\n\n`;
+    
+    if (definicaoConceito) {
+      sinteseDeducao += `📖 ${definicaoConceito}\n\n`;
+    }
+    
+    sinteseDeducao += `Há plena convergência matemática entre a fundação teórica e a materialidade factual. O marcador é formalmente respaldado por: ${fontesSustentacao.join(', ')}.${caracterizacaoMaterial} O conceito encontra-se cientificamente correlacionado e consolidado dentro do ecossistema de patrimônio museológico brasileiro.`;
     
     if (precisaTreinamento) {
       sinteseDeducao += ` [SISTEMA DE AUTOMATIZAÇÃO DE APRENDIZADO]: Este parecer foi emitido com nível de confiança moderado (${certezaCalculada}%). A tag foi enfileirada automaticamente para o pipeline noturno de treinamento autônomo para refinar e expandir sua certeza vetorial até o patamar de excelência de 95%.`;
@@ -534,7 +667,7 @@ async function generateAIAnalysis(
         await supabaseAdmin.from('ml_training_queue').insert({
           tag,
           certeza_atual: certezaCalculada,
-          ultimo_pensamento: sinteseDeducao.slice(0, 200),
+          ultimo_pensamento: sinteseDeducao,
           status: 'pending'
         });
       }
