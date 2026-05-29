@@ -313,7 +313,10 @@ async function generateAIAnalysis(
       if (health) modelVer = `${health.device} | Version: ${health.models.ner_version || 'v2.0'}`;
     }
   } catch (err) {
-    console.warn('[ML-Service] Offline or  // A. Pré-calcular similaridades heurísticas caso a IA local (Xenova) falhe ou como base de fallback
+    console.warn('[ML-Service] Offline or failed to predict:', err);
+  }
+
+  // A. Pré-calcular similaridades heurísticas caso a IA local (Xenova) falhe ou como base de fallback
   let fallbackUsado = false;
   let similaridadeTesauro = 0;
   let similaridadeTeoriaMedia = 0;
