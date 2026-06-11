@@ -21,17 +21,17 @@ export default async function ObrasPage() {
     <main className="min-h-screen pt-32 pb-20 px-8">
       <div className="max-w-[1400px] mx-auto space-y-20">
         
-        <div className="text-center space-y-6">
-          <h1 className="text-6xl font-normal serif-title text-white tracking-tight">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl md:text-3xl font-light serif-title text-white tracking-tight">
             Explorar Obras
           </h1>
-          <p className="text-white/30 text-[10px] uppercase tracking-[0.6em] font-black">
+          <p className="text-white/30 text-xs uppercase tracking-[0.2em] font-medium">
             Acervo e Documentação Semântica
           </p>
-          <div className="h-[1px] w-16 bg-[#E85002] mx-auto mt-12 opacity-50" />
+          <div className="h-[1px] w-12 bg-[#10B981] mx-auto mt-8 opacity-45" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-12">
           {obras.length === 0 ? (
             <ObraCard 
               obra={{

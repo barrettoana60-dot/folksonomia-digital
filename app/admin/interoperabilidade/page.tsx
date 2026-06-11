@@ -12,11 +12,11 @@ export default function InteroperabilidadePage() {
   ];
 
   return (
-    <main className="min-h-screen pt-20 px-6">
+    <main className="min-h-screen pt-24 px-6 bg-[#060a08]">
       <div className="max-w-7xl mx-auto py-12">
         <div className="mb-12">
-          <h1 className="text-4xl font-bold text-white tracking-tighter uppercase">Interoperabilidade</h1>
-          <p className="text-white/40 mt-2">Conectores e fontes de dados abertos para validação semântica.</p>
+          <h1 className="text-2xl md:text-3xl font-normal text-white serif-title tracking-normal">Interoperabilidade</h1>
+          <p className="text-white/50 mt-2 text-sm">Conectores e fontes de dados abertos para validação semântica.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
@@ -26,16 +26,16 @@ export default function InteroperabilidadePage() {
                 <div className="p-3 rounded-full bg-white/5 border border-white/10">
                   <Globe size={20} className="text-white" />
                 </div>
-                <div className="flex items-center gap-2 text-[10px] font-bold uppercase text-green-400">
+                <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-green-400">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                   {s.status}
                 </div>
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white">{s.name}</h3>
+                <h3 className="text-lg font-normal text-white serif-title">{s.name}</h3>
                 <p className="text-white/30 text-xs mt-1">Sincronismo: {s.lastSync}</p>
               </div>
-              <button className="w-full py-2 text-xs border border-white/10 hover:bg-white/5 transition-colors uppercase font-bold tracking-widest">
+              <button className="w-full py-2 text-xs border border-white/10 hover:bg-white/5 transition-colors uppercase font-semibold tracking-wider">
                 Reconectar
               </button>
             </div>
@@ -43,7 +43,7 @@ export default function InteroperabilidadePage() {
         </div>
 
         <div className="glass-card p-8">
-          <h2 className="text-2xl font-bold text-white uppercase tracking-tight mb-6 flex items-center gap-3">
+          <h2 className="text-xl font-normal text-white serif-title mb-6 flex items-center gap-3">
             <RefreshCcw size={24} className="text-white/50" /> Log de Sincronização
           </h2>
           <div className="space-y-4">
@@ -55,7 +55,7 @@ export default function InteroperabilidadePage() {
                   </div>
                   <div>
                     <p className="text-sm text-white/80 font-medium">Busca em IBRAM/Tainacan concluída para núcleo #4529</p>
-                    <p className="text-[10px] text-white/30 uppercase">Há 5 minutos • Sucesso</p>
+                    <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Há 5 minutos • Sucesso</p>
                   </div>
                 </div>
                 <button className="text-xs text-white/40 hover:text-white transition-colors underline decoration-white/10">Ver Detalhes</button>

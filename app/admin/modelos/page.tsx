@@ -80,20 +80,20 @@ export default async function ModelosPage() {
   }, {});
 
   return (
-    <main className="min-h-screen bg-black text-white p-10 pt-24">
+    <main className="min-h-screen bg-[#060a08] text-white p-10 pt-24">
       <div className="max-w-[95%] mx-auto">
         
         <div className="flex justify-between items-end mb-10">
           <div>
-            <h1 className="text-4xl font-normal serif-title tracking-tight flex items-center gap-4">
-              <Cpu className="text-[#E85002]" size={36} />
+            <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-4">
+              <Cpu className="text-[#10B981]" size={36} />
               Painel de Modelos
             </h1>
-            <p className="text-white/40 text-[10px] uppercase tracking-[0.3em] mt-2">
+            <p className="text-white/35 text-[11px] uppercase tracking-wider mt-2 font-semibold">
               Versionamento, métricas e calibração do pipeline ML
             </p>
           </div>
-          <Link href="/admin" className="liquid-button text-[10px] py-2 px-6">Voltar</Link>
+          <Link href="/admin" className="liquid-button text-[11px] py-2 px-6 font-semibold tracking-wider">Voltar</Link>
         </div>
 
         {/* ML Service Status */}
@@ -132,9 +132,9 @@ export default async function ModelosPage() {
               <div key={key} className={`glass-card p-5 border ${isReal ? 'border-green-500/20' : 'border-amber-500/20'}`}>
                 <div className="flex items-center gap-2 mb-2">
                   {isReal ? <CheckCircle size={14} className="text-green-400" /> : <AlertTriangle size={14} className="text-amber-400" />}
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/80">{motor.name}</h4>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-white/80">{motor.name}</h4>
                 </div>
-                <p className={`text-sm font-bold mb-2 ${isReal ? 'text-green-400' : 'text-amber-400'}`}>{motor.engine}</p>
+                <p className={`text-sm font-semibold mb-2 ${isReal ? 'text-green-400' : 'text-amber-400'}`}>{motor.engine}</p>
                 <p className="text-[10px] text-white/30 leading-relaxed">{motor.desc}</p>
               </div>
             );
@@ -153,7 +153,7 @@ export default async function ModelosPage() {
           ].map(({ label, value, color }) => (
             <div key={label} className="glass-card p-4 text-center">
               <div className={`text-2xl font-bold ${color}`}>{value}</div>
-              <div className="text-[9px] uppercase tracking-widest text-white/40">{label}</div>
+              <div className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">{label}</div>
             </div>
           ))}
         </div>
@@ -162,7 +162,7 @@ export default async function ModelosPage() {
           {/* Confidence Distribution */}
           <div className="glass-card p-6">
             <h3 className="text-lg font-normal serif-title mb-4 flex items-center gap-2">
-              <BarChart3 size={18} className="text-[#E85002]" /> Confiança Média Calibrada
+              <BarChart3 size={18} className="text-[#10B981]" /> Confiança Média Calibrada
             </h3>
             <div className="text-center py-6">
               <div className="text-6xl font-bold text-white/90">{avgConfidence}%</div>
@@ -183,7 +183,7 @@ export default async function ModelosPage() {
           {/* Predictions by Category */}
           <div className="glass-card p-6">
             <h3 className="text-lg font-normal serif-title mb-4 flex items-center gap-2">
-              <Layers size={18} className="text-[#E85002]" /> Predições por Categoria
+              <Layers size={18} className="text-[#10B981]" /> Predições por Categoria
             </h3>
             {Object.keys(predByCategory).length === 0 ? (
               <p className="text-white/30 text-sm text-center py-8">Nenhuma predição registrada — aguardando primeiro uso.</p>
@@ -241,7 +241,7 @@ export default async function ModelosPage() {
         {/* Model Versions */}
         <div className="glass-card p-6 mb-8">
           <h3 className="text-lg font-normal serif-title mb-4 flex items-center gap-2">
-            <Activity size={18} className="text-[#E85002]" /> Versões do Modelo
+            <Activity size={18} className="text-[#10B981]" /> Versões do Modelo
           </h3>
           {data.versions.length === 0 ? (
             <p className="text-white/30 text-sm text-center py-8">
@@ -249,7 +249,7 @@ export default async function ModelosPage() {
             </p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-[10px] uppercase tracking-widest text-white/30 border-b border-white/10">
+              <thead className="text-[11px] uppercase tracking-wider font-semibold text-white/35 border-b border-white/10">
                 <tr>
                   <th className="px-4 py-3 text-left">Versão</th>
                   <th className="px-4 py-3 text-left">Modelo</th>
@@ -284,7 +284,7 @@ export default async function ModelosPage() {
             </p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-[10px] uppercase tracking-widest text-white/30 border-b border-white/10">
+              <thead className="text-[11px] uppercase tracking-wider font-semibold text-white/35 border-b border-white/10">
                 <tr>
                   <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Modelo</th>

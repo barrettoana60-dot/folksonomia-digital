@@ -84,7 +84,7 @@ function buildKnowledgeGraph(items: PendingItem[]): { nodes: KnowledgeNode[]; ed
 }
 
 const typeColors: Record<string, string> = {
-  tag: 'bg-[#E85002]/20 border-[#E85002]/40 text-[#E85002]',
+  tag: 'bg-[#10B981]/20 border-[#10B981]/40 text-[#10B981]',
   concept: 'bg-blue-500/20 border-blue-500/40 text-blue-400',
   source: 'bg-green-500/20 border-green-500/40 text-green-400',
   category: 'bg-purple-500/20 border-purple-500/40 text-purple-400'
@@ -134,17 +134,17 @@ export default function ValidacaoPage() {
   const graph = buildKnowledgeGraph(pendingTags);
 
   return (
-    <main className="min-h-screen bg-black text-white p-10 pt-24">
+    <main className="min-h-screen bg-[#060a08] text-white p-10 pt-24">
       
       <div className="max-w-[95%] mx-auto mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-normal serif-title tracking-tight">Painel de Validação</h1>
-          <p className="text-white/40 text-xs uppercase tracking-[0.3em] mt-2">Verificação Humana + Grafo de Conhecimento</p>
+          <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal">Painel de Validação</h1>
+          <p className="text-white/35 text-[11px] uppercase tracking-wider font-semibold mt-2">Verificação Humana + Grafo de Conhecimento</p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={() => setActiveView('list')}
-            className={`px-4 py-2 rounded-lg text-[10px] uppercase tracking-widest font-bold border transition-all ${
+            className={`px-4 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold border transition-all ${
               activeView === 'list' ? 'bg-white/10 border-white/20 text-white' : 'border-white/5 text-white/30 hover:text-white/60'
             }`}
           >
@@ -152,13 +152,13 @@ export default function ValidacaoPage() {
           </button>
           <button 
             onClick={() => setActiveView('graph')}
-            className={`px-4 py-2 rounded-lg text-[10px] uppercase tracking-widest font-bold border transition-all ${
+            className={`px-4 py-2 rounded-lg text-[11px] uppercase tracking-wider font-semibold border transition-all ${
               activeView === 'graph' ? 'bg-white/10 border-white/20 text-white' : 'border-white/5 text-white/30 hover:text-white/60'
             }`}
           >
             <Network size={14} className="inline mr-2" /> Grafo
           </button>
-          <Link href="/admin" className="liquid-button text-[10px] py-2 px-6">
+          <Link href="/admin" className="liquid-button text-[11px] py-2 px-6 font-semibold tracking-wider">
             Voltar ao Início
           </Link>
         </div>
@@ -168,21 +168,21 @@ export default function ValidacaoPage() {
       <div className="max-w-[95%] mx-auto grid grid-cols-4 gap-4 mb-8">
         <div className="glass-card p-4 text-center">
           <div className="text-2xl font-bold text-amber-300">{pendingTags.length}</div>
-          <div className="text-[9px] uppercase tracking-widest text-white/40">Pendentes</div>
+          <div className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Pendentes</div>
         </div>
         <div className="glass-card p-4 text-center">
           <div className="text-2xl font-bold text-blue-300">{graph.nodes.length}</div>
-          <div className="text-[9px] uppercase tracking-widest text-white/40">Nós no grafo</div>
+          <div className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Nós no grafo</div>
         </div>
         <div className="glass-card p-4 text-center">
           <div className="text-2xl font-bold text-purple-300">{graph.edges.length}</div>
-          <div className="text-[9px] uppercase tracking-widest text-white/40">Conexões</div>
+          <div className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Conexões</div>
         </div>
         <div className="glass-card p-4 text-center">
           <div className="text-2xl font-bold text-green-300">
             {pendingTags.length > 0 ? Math.round(pendingTags.reduce((s, t) => s + (t.confianca || 0), 0) / pendingTags.length) : 0}%
           </div>
-          <div className="text-[9px] uppercase tracking-widest text-white/40">Confiança média</div>
+          <div className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Confiança média</div>
         </div>
       </div>
 
@@ -200,7 +200,7 @@ export default function ValidacaoPage() {
           /* GRAFO DE CONHECIMENTO */
           <div className="glass-card p-8">
             <h3 className="text-lg font-normal serif-title mb-6 flex items-center gap-3">
-              <Network size={20} className="text-[#E85002]" />
+              <Network size={20} className="text-[#10B981]" />
               Grafo de Conhecimento — Relações entre Tags
             </h3>
             
@@ -211,28 +211,28 @@ export default function ValidacaoPage() {
                 {Object.entries({ tag: 'Tag', concept: 'Conceito', source: 'Fonte', category: 'Categoria' }).map(([type, label]) => (
                   <div key={type} className="flex items-center gap-1.5">
                     <div className={`w-3 h-3 rounded-full border ${typeColors[type]}`} />
-                    <span className="text-[9px] text-white/40 uppercase">{label}</span>
+                    <span className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">{label}</span>
                   </div>
                 ))}
               </div>
-
+ 
               {/* Nodes grid */}
               <div className="flex flex-wrap gap-3 pt-8">
                 {graph.nodes.map((node) => (
                   <div
                     key={node.id}
-                    className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all hover:scale-105 cursor-default ${typeColors[node.type]}`}
+                    className={`px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all hover:scale-105 cursor-default ${typeColors[node.type]}`}
                     title={`${node.type}: ${node.label} (peso: ${node.weight})`}
                   >
                     {node.label}
                   </div>
                 ))}
               </div>
-
+ 
               {/* Edges list */}
               {graph.edges.length > 0 && (
                 <div className="mt-8 border-t border-white/5 pt-6">
-                  <p className="text-[10px] uppercase tracking-widest text-white/30 mb-4">Relações Detectadas</p>
+                  <p className="text-[11px] uppercase tracking-wider font-semibold text-white/35 mb-4">Relações Detectadas</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {graph.edges.slice(0, 30).map((edge, i) => {
                       const fromNode = graph.nodes.find(n => n.id === edge.from);
@@ -240,9 +240,9 @@ export default function ValidacaoPage() {
                       return (
                         <div key={i} className="flex items-center gap-2 text-[10px] text-white/50 bg-white/[0.02] px-3 py-1.5 rounded-lg">
                           <span className="text-white/80 font-medium">{fromNode?.label}</span>
-                          <ArrowRight size={10} className="text-[#E85002]" />
-                          <span className="text-white/40 italic">{edge.label}</span>
-                          <ArrowRight size={10} className="text-[#E85002]" />
+                          <ArrowRight size={10} className="text-[#10B981]" />
+                          <span className="text-white/45 italic">{edge.label}</span>
+                          <ArrowRight size={10} className="text-[#10B981]" />
                           <span className="text-white/80 font-medium">{toNode?.label}</span>
                         </div>
                       );
@@ -261,86 +261,86 @@ export default function ValidacaoPage() {
                 {/* Coluna 1: Dados Originais */}
                 <div className="space-y-8">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">Tag Extraída</label>
-                    <p className="text-3xl font-normal serif-title text-[#F16001]">{item.conteudo_original}</p>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-2">Tag Extraída</label>
+                    <p className="text-3xl font-normal serif-title text-[#0d9488]">{item.conteudo_original}</p>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">Forma Normalizada</label>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-2">Forma Normalizada</label>
                     <p className="text-xl font-light text-white/80">{item.conteudo_normalizado || '---'}</p>
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">Obra Relacionada</label>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-2">Obra Relacionada</label>
                     <p className="text-sm font-medium text-blue-300">
                       {item.obra?.titulo || 'Desconhecida'}
                     </p>
                   </div>
                 </div>
-
+ 
                 {/* Coluna 2: Indicadores Semânticos */}
                 <div className="space-y-8">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block">Indicadores do Motor ML</label>
+                  <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block">Indicadores do Motor ML</label>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
-                      <p className="text-[10px] text-white/30 uppercase mb-1">Confiança</p>
+                      <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mb-1">Confiança</p>
                       <p className="text-2xl font-light text-green-400">{Math.round(item.confianca ?? 0)}%</p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
-                      <p className="text-[10px] text-white/30 uppercase mb-1">Novidade</p>
+                      <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mb-1">Novidade</p>
                       <p className="text-2xl font-light text-blue-400">{Math.round(item.novidade ?? 0)}%</p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
-                      <p className="text-[10px] text-white/30 uppercase mb-1">Tensão</p>
+                      <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mb-1">Tensão</p>
                       <p className="text-2xl font-light text-yellow-400">{Math.round(item.tensao ?? 0)}%</p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
-                      <p className="text-[10px] text-white/30 uppercase mb-1">Ressonância</p>
+                      <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mb-1">Ressonância</p>
                       <p className="text-2xl font-light text-purple-400">{Math.round(item.ressonancia ?? 0)}%</p>
                     </div>
                   </div>
-
+ 
                   {/* Concepts */}
                   {item.metadados?.concepts?.length > 0 && (
                     <div>
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">Conceitos Inferidos</label>
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-2">Conceitos Inferidos</label>
                       <div className="flex flex-wrap gap-2">
                         {item.metadados.concepts.map((c: string) => (
-                          <span key={c} className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md text-[10px] text-blue-300">{c}</span>
+                          <span key={c} className="px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md text-[10px] font-medium tracking-wider text-blue-300">{c}</span>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
-
+ 
                 {/* Coluna 3: Ações */}
                 <div className="space-y-8">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-3">Proveniência</label>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-3">Proveniência</label>
                     <div className="flex gap-2">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[10px]">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[10px] font-medium tracking-wider">
                         <Database size={10} /> {item.origem || 'pipeline_v3'}
                       </div>
                     </div>
                   </div>
-
+ 
                   <div className="space-y-4">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-white/40 block mb-2">Ação Curatorial</label>
+                    <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-2">Ação Curatorial</label>
                     <div className="grid grid-cols-2 gap-3">
                       <button 
                         onClick={() => handleAction(item.id, 'validar')}
-                        className="liquid-button !bg-green-500/20 !border-green-500/40 hover:!bg-green-500/40 text-[10px] flex items-center justify-center gap-2"
+                        className="liquid-button flex items-center justify-center gap-2 text-xs font-semibold tracking-wider !bg-green-500/20 !border-green-500/40 hover:!bg-green-500/40"
                       >
                         <CheckCircle size={14} /> Validar
                       </button>
                       <button 
                         onClick={() => handleAction(item.id, 'rejeitar')}
-                        className="liquid-button !bg-red-500/20 !border-red-500/40 hover:!bg-red-500/40 text-[10px] flex items-center justify-center gap-2"
+                        className="liquid-button flex items-center justify-center gap-2 text-xs font-semibold tracking-wider !bg-red-500/20 !border-red-500/40 hover:!bg-red-500/40"
                       >
                         <XCircle size={14} /> Rejeitar
                       </button>
                     </div>
                   </div>
-
+ 
                   <div>
                     <textarea 
                       placeholder="Justificativa da validação..."
@@ -350,16 +350,16 @@ export default function ValidacaoPage() {
                     />
                   </div>
                 </div>
-
+ 
               </div>
             </div>
           ))
         )}
-
+ 
         <div className="text-center py-12">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-white/20">Fim da Trilha de Validação</p>
+          <p className="text-[11px] uppercase tracking-wider text-white/25 font-semibold">Fim da Trilha de Validação</p>
         </div>
-
+ 
       </div>
     </main>
   );

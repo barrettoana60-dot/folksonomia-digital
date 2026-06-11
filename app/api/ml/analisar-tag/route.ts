@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       tensao: semantics.indicators.tension,
       ressonancia: semantics.indicators.resonance,
       contexto: { themeGroup: semantics.themeGroup },
-      metadados: { concepts: semantics.concepts, ontologies: semantics.ontologies }
+      metadados: { concepts: semantics.concepts, ontologies: semantics.ontologies, factors: result.confidence.factors }
     };
 
     // Só incluir obra_id se não for null (evita FK constraint)

@@ -32,28 +32,28 @@ export default function LandingPage() {
       <div className="max-w-[800px] text-center space-y-12">
         
         <div className="space-y-8">
-          <Logo className="w-24 h-24 md:w-32 md:h-32 mx-auto" />
+          <Logo className="w-20 h-20 md:w-28 md:h-28 mx-auto" />
           
           <div className="space-y-4">
-            <h1 className="text-4xl md:text-7xl font-normal serif-title text-white tracking-[0.05em] uppercase leading-tight">
+            <h1 className="text-2xl md:text-4xl font-light serif-title text-white tracking-wide leading-tight">
               Sistema de Folksonomia
             </h1>
-            <p className="text-white/30 text-[10px] md:text-[12px] uppercase tracking-[0.6em] font-bold">
+            <p className="text-white/30 text-xs uppercase tracking-[0.25em] font-semibold">
               Documentação Semântica Institucional
             </p>
           </div>
         </div>
 
-        <div className="h-[1px] w-24 bg-[#E85002] mx-auto opacity-50" />
+        <div className="h-[1px] w-16 bg-[#10B981] mx-auto opacity-40" />
 
-        <p className="text-white/40 text-sm md:text-lg leading-relaxed font-light italic max-w-lg mx-auto">
+        <p className="text-white/50 text-sm md:text-base leading-relaxed font-light max-w-md mx-auto">
           Participe da construção coletiva do conhecimento institucional através de percepções e tags semânticas.
         </p>
 
-        <div className="pt-8">
+        <div className="pt-6">
           <button 
             onClick={() => router.push('/questionario')}
-            className="liquid-button !px-16 md:!px-24 !py-4 md:!py-6 !rounded-full !text-[11px] md:!text-[13px] !font-black !tracking-[0.3em] !bg-white/10 hover:!bg-[#E85002]/20 hover:!border-[#E85002]/40 transition-all shadow-2xl"
+            className="liquid-button !px-12 md:!px-16 !py-4 md:!py-5 !rounded-full !text-xs !font-medium !tracking-[0.12em] !bg-white/5 hover:!bg-[#10B981]/15 hover:!border-[#10B981]/35 transition-all shadow-xl"
           >
             Acessar Sistema
           </button>

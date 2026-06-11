@@ -25,18 +25,18 @@ export default async function EventosPage() {
   const eventos = await getEventos();
 
   return (
-    <main className="min-h-screen px-6 py-12">
+    <main className="min-h-screen px-6 py-24 bg-[#060a08]">
       <div className="max-w-5xl mx-auto">
         <div className="mb-10">
-          <h1 className="text-4xl font-bold text-white">Trilha de Proveniência</h1>
-          <p className="text-white/50 mt-2">
+          <h1 className="text-2xl md:text-3xl font-normal text-white serif-title tracking-normal">Trilha de Proveniência</h1>
+          <p className="text-white/50 mt-2 text-sm">
             Registro criptografado de todas as ações e transformações do sistema.
           </p>
         </div>
 
         {eventos.length === 0 ? (
           <div className="glass-card p-16 text-center">
-            <p className="text-white/40">Nenhum evento registrado ainda.</p>
+            <p className="text-white/40 text-sm">Nenhum evento registrado ainda.</p>
           </div>
         ) : (
           <div className="relative">
@@ -49,7 +49,7 @@ export default async function EventosPage() {
                 return (
                   <div key={ev.id} className="relative pl-20">
                     {/* Dot */}
-                    <div className="absolute left-6 top-5 w-4 h-4 rounded-full bg-blue-500/40 border border-blue-400/60" />
+                    <div className="absolute left-6 top-5 w-4 h-4 rounded-full bg-[#10B981]/40 border border-[#10B981]/60" />
 
                     <div className="glass-card p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">

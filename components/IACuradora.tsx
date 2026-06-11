@@ -62,7 +62,7 @@ export default function IACuradora() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#E85002] flex items-center justify-center shadow-lg shadow-[#E85002]/30 hover:scale-110 transition-transform group"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-[#10B981] flex items-center justify-center shadow-lg shadow-[#10B981]/30 hover:scale-110 transition-transform group"
         >
           <Brain size={24} className="text-white" />
           <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse border-2 border-black" />
@@ -75,8 +75,8 @@ export default function IACuradora() {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/[0.02]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#E85002]/20 flex items-center justify-center">
-                <Brain size={16} className="text-[#E85002]" />
+              <div className="w-8 h-8 rounded-full bg-[#10B981]/20 flex items-center justify-center">
+                <Brain size={16} className="text-[#10B981]" />
               </div>
               <div>
                 <p className="text-sm font-bold">IA Curadora</p>
@@ -94,7 +94,7 @@ export default function IACuradora() {
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                   msg.role === 'user'
-                    ? 'bg-[#E85002] text-white rounded-br-md'
+                    ? 'bg-[#10B981] text-white rounded-br-md'
                     : 'bg-white/5 text-white/80 border border-white/5 rounded-bl-md'
                 }`}>
                   <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -105,7 +105,7 @@ export default function IACuradora() {
             {isThinking && (
               <div className="flex justify-start">
                 <div className="max-w-[85%] px-4 py-3 rounded-2xl bg-white/5 border border-white/5 rounded-bl-md">
-                  <div className="flex items-center gap-2 text-[#E85002]">
+                  <div className="flex items-center gap-2 text-[#10B981]">
                     <Loader2 size={14} className="animate-spin" />
                     <span className="text-xs font-bold uppercase tracking-widest">Pensando...</span>
                   </div>
@@ -123,13 +123,13 @@ export default function IACuradora() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
                 placeholder="Pergunte sobre tags, obras, conexões..."
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#E85002]/50 placeholder:text-white/20"
+                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-[#10B981]/50 placeholder:text-white/20"
                 disabled={isThinking}
               />
               <button
                 onClick={sendMessage}
                 disabled={isThinking || !input.trim()}
-                className="w-11 h-11 rounded-xl bg-[#E85002] flex items-center justify-center hover:bg-[#E85002]/80 transition-colors disabled:opacity-30"
+                className="w-11 h-11 rounded-xl bg-[#10B981] flex items-center justify-center hover:bg-[#10B981]/80 transition-colors disabled:opacity-30"
               >
                 <Send size={16} className="text-white" />
               </button>

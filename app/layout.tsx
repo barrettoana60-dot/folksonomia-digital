@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import AIChatBot from "@/components/AIChatBot";
 
-const inter = Inter({ subsets: ["latin"], display: 'swap' });
+const inter = Inter({ subsets: ["latin"], display: 'swap', variable: '--font-sans' });
+const lora = Lora({ subsets: ["latin"], display: 'swap', variable: '--font-serif' });
 
 export const metadata: Metadata = {
   title: "Sistema de Folksonomia",
@@ -40,9 +41,9 @@ export default function RootLayout({
           })();
         `}} />
       </head>
-      <body className={`${inter.className} antialiased min-h-screen`}>
+      <body className={`${inter.variable} ${lora.variable} font-sans antialiased min-h-screen`}>
         <Header />
-        <div className="pt-2">
+        <div className="pt-4">
           {children}
         </div>
         <AIChatBot />

@@ -24,7 +24,7 @@ export default function Header() {
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 h-20 md:h-24 flex items-center justify-between px-6 md:px-12 bg-black/40 backdrop-blur-xl border-b border-white/5 print:hidden">
+    <header className="fixed top-0 left-0 w-full z-50 h-16 md:h-20 flex items-center justify-between px-6 md:px-12 bg-black/40 backdrop-blur-xl border-b border-white/5 print:hidden">
       
       {/* Branding */}
       <div 
@@ -33,10 +33,10 @@ export default function Header() {
       >
         <Logo className="w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-110" />
         <div className="flex flex-col">
-          <span className="text-white text-sm md:text-lg font-normal serif-title tracking-tight uppercase leading-none">
+          <span className="text-white text-sm md:text-base font-normal serif-title tracking-normal leading-none">
             Sistema de Folksonomia
           </span>
-          <span className="text-[7px] md:text-[9px] text-white/30 font-black uppercase tracking-[0.4em] mt-1">
+          <span className="text-[8px] md:text-[10px] text-white/35 font-semibold uppercase tracking-[0.2em] mt-1">
             Institucional — NUGEP
           </span>
         </div>
@@ -47,8 +47,8 @@ export default function Header() {
         {hasQuiz && (
           <button 
             onClick={() => router.push('/obras')}
-            className={`hidden md:block text-[10px] uppercase font-black tracking-[0.25em] transition-all hover:text-[#E85002] ${
-              pathname === '/obras' ? 'text-[#E85002]' : 'text-white/40'
+            className={`hidden md:block text-[11px] uppercase font-semibold tracking-[0.15em] transition-all hover:text-[#10B981] ${
+              pathname === '/obras' ? 'text-[#10B981]' : 'text-white/40'
             }`}
           >
             Explorar Obras
@@ -57,8 +57,8 @@ export default function Header() {
 
         <button 
           onClick={() => router.push('/acessibilidade')}
-          className={`hidden md:block text-[10px] uppercase font-black tracking-[0.25em] transition-all hover:text-[#E85002] ${
-            pathname === '/acessibilidade' ? 'text-[#E85002]' : 'text-white/40'
+          className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#10B981] ${
+             pathname === '/acessibilidade' ? 'text-[#10B981]' : 'text-white/60'
           }`}
         >
           Acessibilidade
@@ -66,7 +66,7 @@ export default function Header() {
         
         <Link 
           href="/login" 
-          className="liquid-button !py-2 !px-4 md:!py-2.5 md:!px-8 !rounded-lg md:!rounded-xl !text-[9px] md:!text-[10px] !bg-white/5 !border-white/10"
+          className="liquid-button !py-2 !px-4 md:!py-2.5 md:!px-8 !rounded-lg md:!rounded-xl !text-[10px] md:!text-[11px] !bg-white/5 !border-white/10"
         >
           {pathname === '/admin' ? 'PAINEL' : 'GESTÃO'}
         </Link>

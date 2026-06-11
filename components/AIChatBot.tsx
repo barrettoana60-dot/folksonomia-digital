@@ -58,12 +58,12 @@ export default function AIChatBot() {
             {/* Header */}
             <div className="bg-[#1A1A1A]/80 backdrop-blur-md p-4 border-b border-white/10 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#E85002]/20 border border-[#E85002]/50 flex items-center justify-center">
-                  <Cpu size={16} className="text-[#E85002]" />
+                <div className="w-8 h-8 rounded-full bg-[#10B981]/20 border border-[#10B981]/50 flex items-center justify-center">
+                  <Cpu size={16} className="text-[#10B981]" />
                 </div>
                 <div>
-                  <h3 className="text-white font-bold text-sm tracking-wider uppercase">Folksonomia AI</h3>
-                  <p className="text-[#E85002] text-[10px] uppercase font-bold tracking-widest flex items-center gap-1">
+                  <h3 className="text-white font-semibold text-sm tracking-wide">Folksonomia AI</h3>
+                  <p className="text-[#10B981] text-[10px] uppercase font-semibold tracking-wider flex items-center gap-1">
                     <Network size={10} /> Transformer Ativo
                   </p>
                 </div>
@@ -72,7 +72,7 @@ export default function AIChatBot() {
                 <X size={20} />
               </button>
             </div>
-
+ 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-black/40" ref={scrollRef}>
               {messages.map((msg, i) => (
@@ -80,17 +80,17 @@ export default function AIChatBot() {
                   <div className={`max-w-[85%] rounded-2xl p-3 ${
                     msg.role === 'user' 
                       ? 'bg-white/10 text-white rounded-br-none border border-white/10' 
-                      : 'bg-[#E85002]/10 text-white/90 rounded-bl-none border border-[#E85002]/20'
+                      : 'bg-[#10B981]/10 text-white/90 rounded-bl-none border border-[#10B981]/20'
                   }`}>
                     <p className="text-sm leading-relaxed">{msg.content}</p>
                     {msg.mathData && (
-                      <div className="mt-3 pt-3 border-t border-[#E85002]/20">
+                      <div className="mt-3 pt-3 border-t border-[#10B981]/20">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-[9px] uppercase tracking-widest text-[#E85002] font-bold">Similaridade Cosine</span>
-                          <span className="text-xs font-bold text-green-400">{Math.round(msg.mathData.similarity * 100)}%</span>
+                          <span className="text-[10px] uppercase tracking-wider text-[#10B981] font-semibold">Similaridade Cosine</span>
+                          <span className="text-xs font-semibold text-green-400">{Math.round(msg.mathData.similarity * 100)}%</span>
                         </div>
                         <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#E85002]" style={{ width: `${Math.round(msg.mathData.similarity * 100)}%` }} />
+                          <div className="h-full bg-[#10B981]" style={{ width: `${Math.round(msg.mathData.similarity * 100)}%` }} />
                         </div>
                       </div>
                     )}
@@ -99,9 +99,9 @@ export default function AIChatBot() {
               ))}
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-[#E85002]/5 rounded-2xl rounded-bl-none p-3 border border-[#E85002]/10 flex items-center gap-2">
-                    <Loader2 size={14} className="text-[#E85002] animate-spin" />
-                    <span className="text-xs text-white/50 uppercase tracking-widest font-bold">Processando vetores...</span>
+                  <div className="bg-[#10B981]/5 rounded-2xl rounded-bl-none p-3 border border-[#10B981]/10 flex items-center gap-2">
+                    <Loader2 size={14} className="text-[#10B981] animate-spin" />
+                    <span className="text-xs text-white/55 uppercase tracking-wider font-semibold">Processando vetores...</span>
                   </div>
                 </div>
               )}
@@ -116,12 +116,12 @@ export default function AIChatBot() {
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSend()}
                   placeholder="Pergunte sobre conexões de tags..."
-                  className="w-full bg-black/50 border border-white/10 rounded-full pl-4 pr-12 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#E85002]/50 transition-colors"
+                  className="w-full bg-black/50 border border-white/10 rounded-full pl-4 pr-12 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#10B981]/50 transition-colors"
                 />
                 <button 
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
-                  className="absolute right-1 top-1 bottom-1 w-10 bg-[#E85002] hover:bg-[#E85002]/80 disabled:bg-white/10 disabled:text-white/30 text-black flex items-center justify-center rounded-full transition-colors"
+                  className="absolute right-1 top-1 bottom-1 w-10 bg-[#10B981] hover:bg-[#10B981]/80 disabled:bg-white/10 disabled:text-white/30 text-black flex items-center justify-center rounded-full transition-colors"
                 >
                   <Send size={16} />
                 </button>
@@ -133,7 +133,7 @@ export default function AIChatBot() {
 
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 bg-[#E85002] text-black hover:scale-105 transition-transform flex items-center justify-center rounded-full shadow-[0_0_20px_rgba(232,80,2,0.3)] border border-[#E85002]/50"
+        className="w-14 h-14 bg-[#10B981] text-black hover:scale-105 transition-transform flex items-center justify-center rounded-full shadow-[0_0_20px_rgba(16,185,129,0.3)] border border-[#10B981]/50"
       >
         {isOpen ? <X size={24} /> : <Bot size={24} />}
       </button>

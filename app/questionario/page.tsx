@@ -30,10 +30,10 @@ export default function QuestionarioPage() {
     <main className="min-h-screen flex flex-col items-center pt-24 pb-12 px-6">
       
       <div className="text-center space-y-4 mb-12">
-        <h1 className="text-3xl md:text-4xl font-normal serif-title text-white tracking-wide">
+        <h1 className="text-2xl md:text-3xl font-light serif-title text-white tracking-normal">
           Questionário de Acesso
         </h1>
-        <div className="h-[1px] w-12 bg-[#E85002] mx-auto opacity-40" />
+        <div className="h-[1px] w-12 bg-[#10B981] mx-auto opacity-40" />
       </div>
 
       <div className="w-full max-w-4xl">
@@ -42,7 +42,7 @@ export default function QuestionarioPage() {
             
             <div className="space-y-8">
               <div className="space-y-3">
-                <label className="uppercase tracking-[0.2em] text-[9px] font-black text-white/40 block ml-1">
+                <label className="uppercase tracking-[0.12em] text-[11px] font-semibold text-white/45 block ml-1">
                   1. Familiaridade com Museus
                 </label>
                 <select 
@@ -58,7 +58,7 @@ export default function QuestionarioPage() {
               </div>
 
               <div className="space-y-3">
-                <label className="uppercase tracking-[0.2em] text-[9px] font-black text-white/40 block ml-1">
+                <label className="uppercase tracking-[0.12em] text-[11px] font-semibold text-white/45 block ml-1">
                   2. Conhecimento em Documentação
                 </label>
                 <select 
@@ -75,7 +75,7 @@ export default function QuestionarioPage() {
             </div>
 
             <div className="flex flex-col space-y-3">
-              <label className="uppercase tracking-[0.2em] text-[9px] font-black text-white/40 block ml-1">
+              <label className="uppercase tracking-[0.12em] text-[11px] font-semibold text-white/45 block ml-1">
                 3. Entendimento sobre Tags Digitais
               </label>
               <textarea 
@@ -90,7 +90,7 @@ export default function QuestionarioPage() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="liquid-button !px-20 !py-5 !rounded-full !bg-white/10 hover:!bg-[#E85002]/20 hover:!border-[#E85002]/40 transition-all"
+                className="liquid-button !px-14 !py-4 !rounded-full !bg-white/5 hover:!bg-[#10B981]/15 hover:!border-[#10B981]/35 transition-all"
               >
                 {loading ? 'PROCESSANDO...' : 'ACESSAR PLATAFORMA'}
               </button>

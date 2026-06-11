@@ -256,7 +256,7 @@ export async function runSemanticPipeline(tag: string, obraId: string, visitante
     console.warn('[Pipeline] Falha ao carregar validações humanas:', err);
   }
 
-  const calibrated = calculateCalibratedConfidence({
+  const calibrated = await calculateCalibratedConfidence({
     modelProbability: tokenResult.motor !== 'heuristic_fallback' ? tokenResult.confidence : undefined,
     vectorSimilarity: memoryResult.found ? (memoryResult.confidence || 0.5) : undefined,
     externalSourceCount: evidenceResult.sourceCount,

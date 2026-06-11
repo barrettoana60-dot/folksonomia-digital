@@ -10,6 +10,7 @@
 
 import { supabaseAdmin as supabase } from '@/lib/supabase/client';
 import { eventBus, createValidationEvent } from './events';
+import { cognitiveNN } from './cognitive-nn';
 import type { 
   CuratorObservation, 
   CuratorAction, 
@@ -58,7 +59,37 @@ export async function processHumanFeedback(
     comment
   }));
 
-  // 3. Atualizar confiança do núcleo
+  // 3. Aprendizado Neural Online (Backpropagation)
+  try {
+    // Buscar fatores originais do núcleo
+    const { data: nucleo } = await supabase
+      .from('nucleos')
+      .select('metadados')
+      .eq('id', inferenceId)
+      .single();
+
+    if (nucleo?.metadados?.factors) {
+      const inputVec = cognitiveNN.factorsToVector(nucleo.metadados.factors);
+      const target = action === 'approve' ? 1.0 : 0.0;
+      
+      // Ajustar fatores de validação/rejeição humana na hora do treino
+      if (action === 'approve') {
+        nucleo.metadados.factors.humanValidations = (nucleo.metadados.factors.humanValidations || 0) + 1;
+      } else {
+        nucleo.metadados.factors.humanRejections = (nucleo.metadados.factors.humanRejections || 0) + 1;
+      }
+      
+      const newVec = cognitiveNN.factorsToVector(nucleo.metadados.factors);
+      
+      // Rodar um passo de gradiente descendente
+      const errorMargin = await cognitiveNN.trainStep(newVec, target);
+      console.log(`[CognitiveNN] Treino online concluído para tag. Margem de erro: ${(errorMargin * 100).toFixed(2)}%`);
+    }
+  } catch (err) {
+    console.warn('[Feedback] Falha no aprendizado cognitivo online:', err);
+  }
+
+  // 4. Atualizar confiança do núcleo
   const newConfidence = action === 'approve' ? 0.95 : 0.1;
   const newStatus = action === 'approve' ? 'validado' : 'rejeitado';
 
