@@ -125,7 +125,8 @@ export default async function AdminTagsPage() {
                     </td>
                     <td className="px-6 py-5 text-white/50 text-xs italic">
                       {tag.obras?.titulo || <span className="text-white/20">sem obra</span>}
-                                   <td className="px-6 py-5">
+                    </td>
+                    <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
                           <div className="h-full bg-green-400 rounded-full" style={{ width: `${Math.min(confianca, 100)}%` }} />
