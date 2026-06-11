@@ -47,8 +47,8 @@ export default function Header() {
         {hasQuiz && (
           <button 
             onClick={() => router.push('/obras')}
-            className={`hidden md:block text-[11px] uppercase font-semibold tracking-[0.15em] transition-all hover:text-[#10B981] ${
-              pathname === '/obras' ? 'text-[#10B981]' : 'text-white/40'
+            className={`hidden md:block text-[11px] uppercase font-semibold tracking-[0.15em] transition-all hover:text-[#E85002] ${
+              pathname === '/obras' ? 'text-[#E85002]' : 'text-white/40'
             }`}
           >
             Explorar Obras
@@ -57,8 +57,8 @@ export default function Header() {
 
         <button 
           onClick={() => router.push('/acessibilidade')}
-          className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#10B981] ${
-             pathname === '/acessibilidade' ? 'text-[#10B981]' : 'text-white/60'
+          className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#E85002] ${
+             pathname === '/acessibilidade' ? 'text-[#E85002]' : 'text-white/60'
           }`}
         >
           Acessibilidade

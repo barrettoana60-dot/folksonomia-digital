@@ -28,7 +28,7 @@ export default async function ObrasPage() {
           <p className="text-white/30 text-xs uppercase tracking-[0.2em] font-medium">
             Acervo e Documentação Semântica
           </p>
-          <div className="h-[1px] w-12 bg-[#10B981] mx-auto mt-8 opacity-45" />
+          <div className="h-[1px] w-12 bg-[#E85002] mx-auto mt-8 opacity-45" />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-12 gap-y-12">

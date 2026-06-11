@@ -84,9 +84,9 @@ function buildKnowledgeGraph(items: PendingItem[]): { nodes: KnowledgeNode[]; ed
 }
 
 const typeColors: Record<string, string> = {
-  tag: 'bg-[#10B981]/20 border-[#10B981]/40 text-[#10B981]',
+  tag: 'bg-[#E85002]/20 border-[#E85002]/40 text-[#E85002]',
   concept: 'bg-blue-500/20 border-blue-500/40 text-blue-400',
-  source: 'bg-green-500/20 border-green-500/40 text-green-400',
+  source: 'bg-orange-500/20 border-orange-500/40 text-orange-400',
   category: 'bg-purple-500/20 border-purple-500/40 text-purple-400'
 };
 
@@ -134,7 +134,7 @@ export default function ValidacaoPage() {
   const graph = buildKnowledgeGraph(pendingTags);
 
   return (
-    <main className="min-h-screen bg-[#060a08] text-white p-10 pt-24">
+    <main className="min-h-screen bg-[#000000] text-white p-10 pt-24">
       
       <div className="max-w-[95%] mx-auto mb-8 flex items-center justify-between">
         <div>
@@ -200,7 +200,7 @@ export default function ValidacaoPage() {
           /* GRAFO DE CONHECIMENTO */
           <div className="glass-card p-8">
             <h3 className="text-lg font-normal serif-title mb-6 flex items-center gap-3">
-              <Network size={20} className="text-[#10B981]" />
+              <Network size={20} className="text-[#E85002]" />
               Grafo de Conhecimento — Relações entre Tags
             </h3>
             
@@ -240,9 +240,9 @@ export default function ValidacaoPage() {
                       return (
                         <div key={i} className="flex items-center gap-2 text-[10px] text-white/50 bg-white/[0.02] px-3 py-1.5 rounded-lg">
                           <span className="text-white/80 font-medium">{fromNode?.label}</span>
-                          <ArrowRight size={10} className="text-[#10B981]" />
+                          <ArrowRight size={10} className="text-[#E85002]" />
                           <span className="text-white/45 italic">{edge.label}</span>
-                          <ArrowRight size={10} className="text-[#10B981]" />
+                          <ArrowRight size={10} className="text-[#E85002]" />
                           <span className="text-white/80 font-medium">{toNode?.label}</span>
                         </div>
                       );
@@ -262,7 +262,7 @@ export default function ValidacaoPage() {
                 <div className="space-y-8">
                   <div>
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-2">Tag Extraída</label>
-                    <p className="text-3xl font-normal serif-title text-[#0d9488]">{item.conteudo_original}</p>
+                    <p className="text-3xl font-normal serif-title text-[#F16001]">{item.conteudo_original}</p>
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold uppercase tracking-wider text-white/45 block mb-2">Forma Normalizada</label>
@@ -283,7 +283,7 @@ export default function ValidacaoPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
                       <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mb-1">Confiança</p>
-                      <p className="text-2xl font-light text-green-400">{Math.round(item.confianca ?? 0)}%</p>
+                      <p className="text-2xl font-light text-orange-400">{Math.round(item.confianca ?? 0)}%</p>
                     </div>
                     <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center">
                       <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold mb-1">Novidade</p>
@@ -328,7 +328,7 @@ export default function ValidacaoPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <button 
                         onClick={() => handleAction(item.id, 'validar')}
-                        className="liquid-button flex items-center justify-center gap-2 text-xs font-semibold tracking-wider !bg-green-500/20 !border-green-500/40 hover:!bg-green-500/40"
+                        className="liquid-button flex items-center justify-center gap-2 text-xs font-semibold tracking-wider !bg-orange-500/20 !border-orange-500/40 hover:!bg-orange-500/40"
                       >
                         <CheckCircle size={14} /> Validar
                       </button>

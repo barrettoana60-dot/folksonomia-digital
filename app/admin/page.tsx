@@ -253,9 +253,9 @@ export default function AdminPage() {
   };
 
   const stats = [
-    { label: 'Volume de Dados', value: dashboardData?.visaoGeral.totalDados || 0, icon: Database, color: '#10B981' },
-    { label: 'Usuários Únicos', value: dashboardData?.visaoGeral.usuarios || 0, icon: Users, color: '#10B981' },
-    { label: 'Tags Criadas', value: dashboardData?.visaoGeral.tags || 0, icon: TagIcon, color: '#10B981' },
+    { label: 'Volume de Dados', value: dashboardData?.visaoGeral.totalDados || 0, icon: Database, color: '#E85002' },
+    { label: 'Usuários Únicos', value: dashboardData?.visaoGeral.usuarios || 0, icon: Users, color: '#E85002' },
+    { label: 'Tags Criadas', value: dashboardData?.visaoGeral.tags || 0, icon: TagIcon, color: '#E85002' },
     { label: 'Registros Validados', value: dashboardData?.visaoGeral.validados || 0, icon: ShieldCheck, color: '#00FF00' },
   ];
 
@@ -375,7 +375,7 @@ export default function AdminPage() {
           .page { position: relative; z-index: 1; }
           /* CABEÇALHO */
           .header {
-            border-bottom: 3px solid #047857;
+            border-bottom: 3px solid #c44000;
             padding-bottom: 20px;
             margin-bottom: 32px;
           }
@@ -386,11 +386,11 @@ export default function AdminPage() {
           }
           .institution { font-size: 11px; color: #888; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
           .system-name { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #111; }
-          .report-type { font-size: 13px; color: #047857; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+          .report-type { font-size: 13px; color: #c44000; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
           .date-block { text-align: right; font-size: 10px; color: #999; }
           .nugep-badge {
             display: inline-block;
-            background: #047857;
+            background: #c44000;
             color: #fff;
             font-size: 9px;
             font-weight: 900;
@@ -403,13 +403,13 @@ export default function AdminPage() {
           /* BLOCO DA TAG */
           .tag-block {
             background: #fff5f0;
-            border-left: 4px solid #047857;
+            border-left: 4px solid #c44000;
             padding: 20px 24px;
             margin-bottom: 28px;
             border-radius: 0 6px 6px 0;
           }
           .tag-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; font-weight: 700; margin-bottom: 6px; }
-          .tag-value { font-size: 32px; font-weight: 900; color: #047857; letter-spacing: 0.02em; }
+          .tag-value { font-size: 32px; font-weight: 900; color: #c44000; letter-spacing: 0.02em; }
           .tag-meta { display: flex; gap: 24px; margin-top: 12px; }
           .tag-stat { text-align: center; }
           .tag-stat-val { font-size: 20px; font-weight: 700; color: #111; }
@@ -435,7 +435,7 @@ export default function AdminPage() {
             font-weight: 900;
             text-transform: uppercase;
             letter-spacing: 0.25em;
-            color: #047857;
+            color: #c44000;
             border-bottom: 1px solid #f0ddd8;
             padding-bottom: 8px;
             margin-bottom: 14px;
@@ -465,7 +465,7 @@ export default function AdminPage() {
           .tags-internas { display: flex; flex-wrap: wrap; gap: 8px; }
           .tag-interna {
             background: #fff5f0;
-            color: #047857;
+            color: #c44000;
             font-size: 10px;
             font-weight: 700;
             padding: 4px 12px;
@@ -575,7 +575,10 @@ export default function AdminPage() {
     if (!win) return;
     win.document.write(doc);
     win.document.close();
-    win.onload = () => { win.focus(); win.print(); };
+    win.focus();
+    setTimeout(() => {
+      win.print();
+    }, 500);
   };
 
   return (
@@ -614,7 +617,7 @@ export default function AdminPage() {
 
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
-            <div className="w-8 h-8 border-4 border-[#10B981] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
           <>
@@ -638,7 +641,7 @@ export default function AdminPage() {
               <div className="space-y-8 animate-fade-in">
                  <div className="flex justify-between items-center">
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Gestão de Obras</h2>
-                    <button onClick={() => setShowAddForm(true)} className="liquid-button !bg-[#10B981] flex items-center gap-2"><Plus size={16} /> Nova Obra</button>
+                    <button onClick={() => setShowAddForm(true)} className="liquid-button !bg-[#E85002] flex items-center gap-2"><Plus size={16} /> Nova Obra</button>
                  </div>
                  
                  {showAddForm && (
@@ -651,26 +654,26 @@ export default function AdminPage() {
                        <form onSubmit={handleAddObra} className="space-y-4">
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Título</label>
-                           <input required value={obraForm.titulo} onChange={e => setObraForm({...obraForm, titulo: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#10B981] outline-none" placeholder="Ex: Cálice Colonial" />
+                           <input required value={obraForm.titulo} onChange={e => setObraForm({...obraForm, titulo: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Cálice Colonial" />
                          </div>
                          <div className="grid grid-cols-2 gap-4">
                            <div>
                              <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Autor/Artista</label>
-                             <input value={obraForm.artista} onChange={e => setObraForm({...obraForm, artista: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#10B981] outline-none" />
+                             <input value={obraForm.artista} onChange={e => setObraForm({...obraForm, artista: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
                            </div>
                            <div>
                              <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Ano</label>
-                             <input value={obraForm.ano} onChange={e => setObraForm({...obraForm, ano: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#10B981] outline-none" />
+                             <input value={obraForm.ano} onChange={e => setObraForm({...obraForm, ano: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
                            </div>
                          </div>
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Descrição</label>
-                           <textarea value={obraForm.descricao} onChange={e => setObraForm({...obraForm, descricao: e.target.value})} rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#10B981] outline-none"></textarea>
+                           <textarea value={obraForm.descricao} onChange={e => setObraForm({...obraForm, descricao: e.target.value})} rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none"></textarea>
                          </div>
                          <div>
                             <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider mb-2 block">Foto da Obra</label>
                             <div 
-                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${isDragging ? 'border-[#10B981] bg-[#10B981]/10' : imagePreview ? 'border-green-500/30 bg-green-500/5' : 'border-white/10 hover:border-white/20 bg-white/5'}`}
+                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${isDragging ? 'border-[#E85002] bg-[#E85002]/10' : imagePreview ? 'border-orange-500/30 bg-orange-500/5' : 'border-white/10 hover:border-white/20 bg-white/5'}`}
                               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                               onDragLeave={() => setIsDragging(false)}
                               onDrop={(e) => {
@@ -694,7 +697,7 @@ export default function AdminPage() {
                               {imagePreview ? (
                                 <div className="space-y-3">
                                   <img src={imagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg border border-white/10 object-contain" />
-                                  <p className="text-[11px] text-green-400 uppercase tracking-wider font-semibold">✓ Foto carregada — clique para trocar</p>
+                                  <p className="text-[11px] text-orange-400 uppercase tracking-wider font-semibold">✓ Foto carregada — clique para trocar</p>
                                 </div>
                               ) : (
                                 <div className="space-y-2">
@@ -707,7 +710,7 @@ export default function AdminPage() {
                               )}
                             </div>
                           </div>
-                         <button disabled={isSubmitting} type="submit" className="w-full liquid-button !bg-[#10B981] mt-4">
+                         <button disabled={isSubmitting} type="submit" className="w-full liquid-button !bg-[#E85002] mt-4">
                            {isSubmitting ? 'Salvando...' : 'Salvar Obra no Supabase'}
                          </button>
                        </form>
@@ -718,7 +721,7 @@ export default function AdminPage() {
                  {/* GALERIA REAL DE OBRAS */}
                  {obrasLoading ? (
                    <div className="glass-card p-12 text-center">
-                     <div className="w-8 h-8 border-2 border-[#10B981] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                     <div className="w-8 h-8 border-2 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                      <p className="text-white/35 uppercase tracking-wider font-semibold text-xs">Carregando obras do Supabase...</p>
                    </div>
                  ) : obrasList.length === 0 ? (
@@ -729,19 +732,19 @@ export default function AdminPage() {
                  ) : (
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {obrasList.map((obra) => (
-                       <div key={obra.id} className="glass-card overflow-hidden group hover:border-[#10B981]/30 transition-all duration-300">
+                       <div key={obra.id} className="glass-card overflow-hidden group hover:border-[#E85002]/30 transition-all duration-300">
                          {obra.imagem_url ? (
                            <div className="h-48 overflow-hidden bg-black/30">
                              <img src={obra.imagem_url} alt={obra.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                            </div>
                          ) : (
-                           <div className="h-48 bg-gradient-to-br from-[#10B981]/10 to-transparent flex items-center justify-center">
+                           <div className="h-48 bg-gradient-to-br from-[#E85002]/10 to-transparent flex items-center justify-center">
                              <Database size={48} className="text-white/10" />
                            </div>
                          )}
                          <div className="p-5 space-y-3">
                            <h3 className="text-base font-normal serif-title tracking-normal leading-tight">{obra.titulo}</h3>
-                           {obra.artista && <p className="text-[11px] text-[#10B981] font-semibold uppercase tracking-wider">{obra.artista}</p>}
+                           {obra.artista && <p className="text-[11px] text-[#E85002] font-semibold uppercase tracking-wider">{obra.artista}</p>}
                            {obra.ano && <p className="text-[10px] text-white/45 uppercase tracking-wider">Ano: {obra.ano}</p>}
                            {obra.descricao && <p className="text-xs text-white/50 line-clamp-2">{obra.descricao}</p>}
                            <div className="flex items-center justify-between pt-3 border-t border-white/5">
@@ -781,18 +784,18 @@ export default function AdminPage() {
                    {/* Lista de tags recentes */}
                    <div className="glass-card p-8">
                      <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-6">
-                       <TagIcon className="text-[#10B981]" size={18} /> Tags no Sistema
+                       <TagIcon className="text-[#E85002]" size={18} /> Tags no Sistema
                      </h3>
                      <div className="space-y-3 max-h-[500px] overflow-y-auto">
                         {dashboardData?.relatorioSemantico?.recentTags?.length > 0 ? (
                           dashboardData.relatorioSemantico.recentTags.map((tagObj: any, i: number) => (
                             <div key={tagObj.id || i} className={`p-4 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
                               selectedTagForAnalysis === tagObj.tag 
-                                ? 'bg-[#10B981]/10 border-[#10B981]/40' 
+                                ? 'bg-[#E85002]/10 border-[#E85002]/40' 
                                 : 'bg-white/5 border-white/10 hover:border-white/20'
                             }`} onClick={() => handleTagAnalysis(tagObj.tag)}>
                               <div>
-                                <span className="text-[#10B981] font-serif italic text-lg">&quot;{tagObj.tag}&quot;</span>
+                                <span className="text-[#E85002] font-serif italic text-lg">&quot;{tagObj.tag}&quot;</span>
                                 <p className="text-[11px] uppercase tracking-wider font-semibold text-white/45 mt-1">
                                   {tagObj.grupo !== 'Outros' ? tagObj.grupo : 'Clique para analisar'}
                                 </p>
@@ -812,7 +815,7 @@ export default function AdminPage() {
                    <div className="space-y-4">
                      {isAnalyzingTag && (
                        <div className="glass-card p-12 text-center">
-                         <div className="w-8 h-8 border-4 border-[#10B981] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                         <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                          <p className="text-white/45 text-[11px] uppercase tracking-wider font-semibold">Analisando tag com motor ML...</p>
                        </div>
                      )}
@@ -822,10 +825,10 @@ export default function AdminPage() {
                          {/* Identidade da Tag */}
                          <div className="glass-card p-6 space-y-4">
                            <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                             <Network size={16} className="text-[#10B981]" /> Identidade Semântica
+                             <Network size={16} className="text-[#E85002]" /> Identidade Semântica
                            </h3>
                            <div className="flex items-center gap-3">
-                             <span className="text-2xl font-serif italic text-[#10B981]">&quot;{tagAnalysisResult.tag}&quot;</span>
+                             <span className="text-2xl font-serif italic text-[#E85002]">&quot;{tagAnalysisResult.tag}&quot;</span>
                              {tagAnalysisResult.family && (
                                <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-[10px] uppercase font-semibold tracking-wider text-purple-400">
                                  {tagAnalysisResult.family.name}
@@ -844,7 +847,7 @@ export default function AdminPage() {
                                  {tagAnalysisResult.family.members.slice(0, 12).map((m: string, i: number) => (
                                    <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold ${
                                      m.toLowerCase() === tagAnalysisResult.tag.toLowerCase() 
-                                       ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30' 
+                                       ? 'bg-[#E85002]/20 text-[#E85002] border border-[#E85002]/30' 
                                        : 'bg-purple-500/10 text-purple-300'
                                    }`}>{m}</span>
                                  ))}
@@ -900,7 +903,7 @@ export default function AdminPage() {
                              <h3 className="text-xs font-semibold uppercase tracking-wider mb-3">Sugestões do Cérebro</h3>
                              {tagAnalysisResult.suggestions.map((s: string, i: number) => (
                                <p key={i} className="text-[11px] text-white/60 leading-relaxed flex items-start gap-2">
-                                 <span className="text-[#10B981] mt-0.5">→</span> {s}
+                                 <span className="text-[#E85002] mt-0.5">→</span> {s}
                                </p>
                              ))}
                            </div>
@@ -908,16 +911,16 @@ export default function AdminPage() {
 
                          {/* Conexões Propagadas (A→B + B→C = A↔C) */}
                          {tagAnalysisResult.propagated?.length > 0 && (
-                           <div className="glass-card p-6 border border-green-500/20 space-y-3">
+                           <div className="glass-card p-6 border border-orange-500/20 space-y-3">
                              <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <TrendingUp size={16} className="text-green-400" /> Conexões Propagadas ({tagAnalysisResult.propagated.length})
+                               <TrendingUp size={16} className="text-orange-400" /> Conexões Propagadas ({tagAnalysisResult.propagated.length})
                              </h3>
                              <p className="text-[10px] text-white/35 uppercase tracking-wider">Inferidas automaticamente: se A→B e B→C, então A↔C</p>
                              {tagAnalysisResult.propagated.map((p: any, i: number) => (
-                               <div key={i} className="p-3 bg-green-500/5 rounded-lg">
+                               <div key={i} className="p-3 bg-orange-500/5 rounded-lg">
                                  <div className="flex items-center justify-between">
                                    <span className="text-white/80 font-serif italic">&quot;{p.tag}&quot;</span>
-                                   <span className="text-[10px] text-green-400/80 font-semibold">{Math.round(p.score * 100)}% confiança</span>
+                                   <span className="text-[10px] text-orange-400/80 font-semibold">{Math.round(p.score * 100)}% confiança</span>
                                  </div>
                                  <p className="text-[10px] text-white/45 italic mt-1">{p.reason}</p>
                                </div>
@@ -929,7 +932,7 @@ export default function AdminPage() {
                          {tagAnalysisResult.dna && (
                            <div className="glass-card p-6 space-y-4">
                              <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <Database size={16} className="text-[#10B981]" /> DNA Semântico
+                               <Database size={16} className="text-[#E85002]" /> DNA Semântico
                              </h3>
                              <div className="space-y-2">
                                {Object.entries(tagAnalysisResult.dna)
@@ -941,7 +944,7 @@ export default function AdminPage() {
                                      <div key={key} className="flex items-center gap-3">
                                        <span className="text-[10px] uppercase tracking-wider text-white/45 w-24 text-right font-semibold">{labels[key] || key}</span>
                                        <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden">
-                                         <div className="h-full bg-gradient-to-r from-[#10B981] to-[#0d9488] transition-all duration-700" style={{ width: `${(val as number) * 100}%` }} />
+                                         <div className="h-full bg-gradient-to-r from-[#E85002] to-[#F16001] transition-all duration-700" style={{ width: `${(val as number) * 100}%` }} />
                                        </div>
                                        <span className="text-[10px] text-white/35 font-semibold w-10">{Math.round((val as number) * 100)}%</span>
                                      </div>
@@ -963,10 +966,10 @@ export default function AdminPage() {
                                  const actionColors: Record<string, string> = {
                                    'INGESTAO': 'text-blue-400 bg-blue-500/10',
                                    'CORRELACAO': 'text-purple-400 bg-purple-500/10',
-                                   'PROPAGACAO': 'text-green-400 bg-green-500/10',
+                                   'PROPAGACAO': 'text-orange-400 bg-orange-500/10',
                                    'APRENDIZADO': 'text-yellow-400 bg-yellow-500/10',
-                                   'VALIDACAO': 'text-emerald-400 bg-emerald-500/10',
-                                   'CONEXAO': 'text-[#10B981] bg-[#10B981]/10'
+                                   'VALIDACAO': 'text-orange-400 bg-orange-500/10',
+                                   'CONEXAO': 'text-[#E85002] bg-[#E85002]/10'
                                  };
                                  const colorClass = actionColors[t.action] || 'text-white/50 bg-white/5';
                                  return (
@@ -984,7 +987,7 @@ export default function AdminPage() {
                          )}
 
                          {/* Botão para análise completa no Relatório Semântico */}
-                         <button onClick={() => { setSearchTag(tagAnalysisResult.tag); setActiveTab('relatorios'); setTimeout(() => handleSemanticSearch(), 300); }} className="w-full liquid-button !bg-[#10B981] flex items-center justify-center gap-2">
+                         <button onClick={() => { setSearchTag(tagAnalysisResult.tag); setActiveTab('relatorios'); setTimeout(() => handleSemanticSearch(), 300); }} className="w-full liquid-button !bg-[#E85002] flex items-center justify-center gap-2">
                            <Globe size={16} /> Análise Completa (IBRAM/Tainacan + Tesauro CNFCP)
                          </button>
                        </>
@@ -1013,7 +1016,7 @@ export default function AdminPage() {
                              <span className="text-white/40">{c.valor} tags</span>
                            </div>
                            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                             <div className="h-full bg-[#10B981] transition-all duration-700" style={{ width: `${(c.valor / maxVal) * 100}%` }} />
+                             <div className="h-full bg-[#E85002] transition-all duration-700" style={{ width: `${(c.valor / maxVal) * 100}%` }} />
                            </div>
                          </div>
                        );
@@ -1049,15 +1052,15 @@ export default function AdminPage() {
                     /* Tipografia */
                     * { color: #222 !important; }
                     h1, h2, h3, h4 { color: #000 !important; font-weight: bold !important; }
-                    .text-\\[\\#10B981\\] { color: #047857 !important; font-weight: bold; }
-                    .text-green-400, .text-green-500 { color: #16a34a !important; }
+                    .text-\\[\\#E85002\\] { color: #c44000 !important; font-weight: bold; }
+                    .text-orange-400, .text-orange-500 { color: #16a34a !important; }
                     .text-blue-400, .text-blue-300 { color: #2563eb !important; }
                     .text-purple-400, .text-purple-300 { color: #7c3aed !important; }
                     .text-amber-400, .text-amber-300 { color: #d97706 !important; }
                     .text-red-400, .text-red-500 { color: #dc2626 !important; }
                     
                     /* Badges e tags coloridas */
-                    .bg-\\[\\#10B981\\]\\/10, .bg-blue-500\\/10, .bg-green-500\\/10, .bg-purple-500\\/10, .bg-amber-500\\/10 { 
+                    .bg-\\[\\#E85002\\]\\/10, .bg-blue-500\\/10, .bg-orange-500\\/10, .bg-purple-500\\/10, .bg-amber-500\\/10 { 
                       background: #f5f5f5 !important; 
                       border: 1px solid #ccc !important; 
                     }
@@ -1066,7 +1069,7 @@ export default function AdminPage() {
                     .prose, .prose * { color: #222 !important; line-height: 1.8 !important; }
                     
                     /* Barras de progresso */
-                    .bg-\\[\\#10B981\\] { background: #047857 !important; }
+                    .bg-\\[\\#E85002\\] { background: #c44000 !important; }
                     
                     /* Cabeçalho do print */
                     .print-header { display: block !important; }
@@ -1088,7 +1091,7 @@ export default function AdminPage() {
                     <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
                       <FileText size={16} /> Exportar PDF
                     </button>
-                    <button onClick={handleExportCSV} className="liquid-button !bg-[#10B981] flex items-center gap-2 flex-1 md:flex-none justify-center">
+                    <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
                       <Download size={16} /> CSV
                     </button>
                   </div>
@@ -1097,14 +1100,14 @@ export default function AdminPage() {
                 {/* GRÁFICO TEMPORAL RESTAURADO */}
                 <div className="glass-card p-8 md:p-12 space-y-8 print:hidden">
                   <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                    <TrendingUp className="text-[#10B981]" size={18} /> Fluxo Temporal de Tags (Últimos 7 dias)
+                    <TrendingUp className="text-[#E85002]" size={18} /> Fluxo Temporal de Tags (Últimos 7 dias)
                   </h3>
                   <div className="h-48 w-full flex items-end gap-3 border-b border-white/10 pb-2">
                     {dashboardData?.relatorioSemantico?.fluxoTemporal?.map((val: number, i: number) => {
                       const maxVal = Math.max(...(dashboardData?.relatorioSemantico?.fluxoTemporal || [1]), 1);
                       const percent = (val / maxVal) * 100;
                       return (
-                        <div key={i} className="flex-1 bg-gradient-to-t from-[#10B981] to-[#0d9488] rounded-t-lg relative group transition-all duration-500" style={{ height: `${percent}%` }}>
+                        <div key={i} className="flex-1 bg-gradient-to-t from-[#E85002] to-[#F16001] rounded-t-lg relative group transition-all duration-500" style={{ height: `${percent}%` }}>
                           <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">{val}</span>
                         </div>
                       )
@@ -1119,11 +1122,11 @@ export default function AdminPage() {
 
                 {/* Cabeçalho institucional — só aparece no PDF */}
                 <div className="print-header hidden mb-8">
-                  <div style={{borderBottom: '2px solid #047857', paddingBottom: '16px', marginBottom: '24px'}}>
+                  <div style={{borderBottom: '2px solid #c44000', paddingBottom: '16px', marginBottom: '24px'}}>
                     <h1 style={{fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.1em', textTransform: 'uppercase'}}>Sistema de Folksonomia Digital 2.0</h1>
                     <p style={{fontSize: '11px', color: '#666', marginTop: '4px'}}>Relatório Semântico — Gerado em {new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>
                     {semanticResult && !semanticResult.tagNaoExiste && (
-                      <p style={{fontSize: '18px', fontWeight: 'bold', marginTop: '12px', color: '#047857'}}>Tag analisada: &quot;{semanticResult.tag}&quot;</p>
+                      <p style={{fontSize: '18px', fontWeight: 'bold', marginTop: '12px', color: '#c44000'}}>Tag analisada: &quot;{semanticResult.tag}&quot;</p>
                     )}
                   </div>
                 </div>
@@ -1138,7 +1141,7 @@ export default function AdminPage() {
                     placeholder="Buscar tag para análise semântica profunda (ex: espada, liturgia, barroco, cubismo...)"
                     className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-white/30"
                   />
-                  <button onClick={handleSemanticSearch} disabled={isAnalyzing} className="liquid-button !bg-[#10B981] !px-8">
+                  <button onClick={handleSemanticSearch} disabled={isAnalyzing} className="liquid-button !bg-[#E85002] !px-8">
                     {isAnalyzing ? 'Analisando...' : 'Analisar'}
                   </button>
                 </div>
@@ -1155,18 +1158,18 @@ export default function AdminPage() {
 
                 {semanticResult && !semanticResult.tagNaoExiste && (
                   <div className="space-y-6">
-                    <div className="glass-card p-6 border-l-4 border-[#10B981]/50">
-                      <h3 className="text-base font-semibold">Resultados para <span className="text-[#10B981] italic font-serif">&quot;{semanticResult.tag}&quot;</span></h3>
+                    <div className="glass-card p-6 border-l-4 border-[#E85002]/50">
+                      <h3 className="text-base font-semibold">Resultados para <span className="text-[#E85002] italic font-serif">&quot;{semanticResult.tag}&quot;</span></h3>
                       <div className="flex items-center gap-3">
                         {semanticResult.layers && (
                           <div className="flex gap-2">
                             <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">Factual: {semanticResult.layers.factual}</span>
-                            <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">Inferida: {semanticResult.layers.inferred}</span>
-                            <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-green-500/10 text-green-400 border border-green-500/20">Validada: {semanticResult.layers.validated}</span>
+                            <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-[#E85002]/10 text-[#E85002] border border-[#E85002]/20">Inferida: {semanticResult.layers.inferred}</span>
+                            <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20">Validada: {semanticResult.layers.validated}</span>
                           </div>
                         )}
                         <span className={`px-4 py-1 rounded-full text-[10px] uppercase font-semibold tracking-wider border ${
-                          semanticResult.profundidade === 'ALTA' ? 'text-green-500 border-green-500/30 bg-green-500/10' :
+                          semanticResult.profundidade === 'ALTA' ? 'text-orange-500 border-orange-500/30 bg-orange-500/10' :
                           semanticResult.profundidade === 'MÉDIA' ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10' :
                           'text-red-500 border-red-500/30 bg-red-500/10'
                         }`}>Profundidade: {semanticResult.profundidade}</span>
@@ -1242,12 +1245,12 @@ export default function AdminPage() {
                           <div key={fonte} className="glass-card p-6 space-y-4">
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-semibold uppercase tracking-wider">{label}</h4>
-                              <span className="text-[#10B981] font-semibold text-lg">{data.total}</span>
+                              <span className="text-[#E85002] font-semibold text-lg">{data.total}</span>
                             </div>
                             {fonte === 'ibram' && data.museus?.length > 0 && (
                               <div className="flex flex-wrap gap-1">
                                 {data.museus.map((m: string, mi: number) => (
-                                  <span key={mi} className="px-2 py-0.5 bg-[#10B981]/10 text-[#10B981] text-[9px] font-semibold uppercase rounded">{m}</span>
+                                  <span key={mi} className="px-2 py-0.5 bg-[#E85002]/10 text-[#E85002] text-[9px] font-semibold uppercase rounded">{m}</span>
                                 ))}
                               </div>
                             )}
@@ -1257,7 +1260,7 @@ export default function AdminPage() {
                                 return (
                                   <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
                                     <p className="text-sm font-semibold leading-tight">{item.titulo}</p>
-                                    {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#10B981] font-medium">{item.criador}</p>}
+                                    {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002] font-medium">{item.criador}</p>}
                                     {item.museu && <p className="text-[10px] text-white/50">{item.museu} {item.localizacao ? `— ${item.localizacao}` : ''}</p>}
                                     {item.material && <p className="text-[10px] text-white/45">Material: {item.material}</p>}
                                     {item.tecnica && <p className="text-[10px] text-white/45">Técnica: {item.tecnica}</p>}
@@ -1266,17 +1269,17 @@ export default function AdminPage() {
                                     {corr?.reasons?.length > 0 && (
                                       <div className="pt-2 border-t border-white/5 space-y-1">
                                         {corr.reasons.slice(0, 3).map((r: any, ri: number) => (
-                                          <p key={ri} className="text-[10px] text-green-400/85">✓ {r.description}</p>
+                                          <p key={ri} className="text-[10px] text-orange-400/85">✓ {r.description}</p>
                                         ))}
                                         <div className="flex items-center gap-2 mt-1">
                                           <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
-                                            <div className="h-full bg-[#10B981]" style={{ width: `${(corr.score || 0) * 100}%` }} />
+                                            <div className="h-full bg-[#E85002]" style={{ width: `${(corr.score || 0) * 100}%` }} />
                                           </div>
                                           <span className="text-[10px] text-white/35 font-semibold">{Math.round((corr.score || 0) * 100)}%</span>
                                         </div>
                                       </div>
                                     )}
-                                    {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[10px] text-[#10B981] underline block">Ver na fonte →</a>}
+                                    {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[10px] text-[#E85002] underline block">Ver na fonte →</a>}
                                   </div>
                                 );
                               })}
@@ -1309,9 +1312,9 @@ export default function AdminPage() {
  
                     {/* Conexões Cruzadas */}
                     {semanticResult.crossConnections?.length > 0 && (
-                      <div className="glass-card p-6 border border-[#10B981]/20">
+                      <div className="glass-card p-6 border border-[#E85002]/20">
                         <h4 className="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2">
-                          <Share2 size={16} className="text-[#10B981]" /> Conexões Cruzadas Entre Fontes ({semanticResult.crossConnections.length})
+                          <Share2 size={16} className="text-[#E85002]" /> Conexões Cruzadas Entre Fontes ({semanticResult.crossConnections.length})
                         </h4>
                         <div className="space-y-3">
                           {semanticResult.crossConnections.slice(0, 5).map((conn: any, i: number) => (
@@ -1319,7 +1322,7 @@ export default function AdminPage() {
                               <div className="flex items-center gap-3 mb-2">
                                 <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-semibold uppercase rounded">{conn.sourceA}</span>
                                 <span className="text-white/20">↔</span>
-                                <span className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-semibold uppercase rounded">{conn.sourceB}</span>
+                                <span className="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-semibold uppercase rounded">{conn.sourceB}</span>
                                 <span className="text-[10px] text-white/35 ml-auto font-medium">{Math.round(conn.confidence * 100)}% confidence</span>
                               </div>
                               <p className="text-[11px] text-white/70 leading-relaxed">{conn.description}</p>
@@ -1335,7 +1338,7 @@ export default function AdminPage() {
                         <h4 className="text-xs font-semibold uppercase tracking-wider mb-4 relative z-10">Tags internas correlacionadas ({semanticResult.correlacoes.internas.total})</h4>
                         <div className="flex flex-wrap gap-2 relative z-10">
                           {semanticResult.correlacoes.internas.items.map((t: any, i: number) => (
-                            <span key={i} className="px-3 py-1 bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20 rounded-full text-[10px] uppercase font-semibold">
+                            <span key={i} className="px-3 py-1 bg-[#E85002]/10 text-[#E85002] border border-[#E85002]/20 rounded-full text-[10px] uppercase font-semibold">
                               {t.tag_original} → {t.grupo_tematico || 'Outros'}
                             </span>
                           ))}
@@ -1345,17 +1348,17 @@ export default function AdminPage() {
  
                     {/* Conhecimento acumulado */}
                     {semanticResult.knowledge && (semanticResult.knowledge.previousCorrelations > 0 || semanticResult.knowledge.learningEvents > 0) && (
-                      <div className="glass-card p-6 border border-green-500/10">
+                      <div className="glass-card p-6 border border-orange-500/10">
                         <h4 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <TrendingUp size={16} className="text-green-400" /> Conhecimento Acumulado
+                          <TrendingUp size={16} className="text-orange-400" /> Conhecimento Acumulado
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="text-center p-3 bg-white/5 rounded-lg">
-                            <p className="text-2xl font-bold text-green-400">{semanticResult.knowledge.previousCorrelations}</p>
+                            <p className="text-2xl font-bold text-orange-400">{semanticResult.knowledge.previousCorrelations}</p>
                             <p className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Correlações Prévias</p>
                           </div>
                           <div className="text-center p-3 bg-white/5 rounded-lg">
-                            <p className="text-2xl font-bold text-green-400">{semanticResult.knowledge.learningEvents}</p>
+                            <p className="text-2xl font-bold text-orange-400">{semanticResult.knowledge.learningEvents}</p>
                             <p className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Eventos de Aprendizado</p>
                           </div>
                         </div>
@@ -1364,7 +1367,7 @@ export default function AdminPage() {
  
                     {/* Nível de Confiança Semântica */}
                     {semanticResult.motores?.transformer && (
-                      <div className={`glass-card p-6 border ${semanticResult.motores.transformer.aguardandoTreino ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-green-500/30 bg-green-500/5'}`}>
+                      <div className={`glass-card p-6 border ${semanticResult.motores.transformer.aguardandoTreino ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-orange-500/30 bg-orange-500/5'}`}>
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                           <div>
                             <h4 className="text-xs font-semibold uppercase tracking-wider mb-1 flex items-center gap-2">
@@ -1377,7 +1380,7 @@ export default function AdminPage() {
                             </p>
                           </div>
                           <div className="text-right flex flex-col items-center">
-                            <div className={`text-4xl font-black tracking-tighter ${semanticResult.motores.transformer.aguardandoTreino ? 'text-yellow-400' : 'text-green-400'}`}>
+                            <div className={`text-4xl font-black tracking-tighter ${semanticResult.motores.transformer.aguardandoTreino ? 'text-yellow-400' : 'text-orange-400'}`}>
                               {semanticResult.motores.transformer.certeza}%
                             </div>
                           </div>
@@ -1411,7 +1414,7 @@ export default function AdminPage() {
                     ) : (
                       <div className="glass-card p-8 relative overflow-hidden mt-6">
                         <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
-                          <FileText size={16} className="text-[#10B981]" /> Análise Escrita
+                          <FileText size={16} className="text-[#E85002]" /> Análise Escrita
                         </h4>
                         <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed whitespace-pre-line relative z-10">
                           {semanticResult.analiseEscrita}
@@ -1424,11 +1427,11 @@ export default function AdminPage() {
                 {isAnalyzing && (
                   <div className="glass-card p-16 flex flex-col items-center justify-center space-y-6">
                     <div className="flex gap-2">
-                      <div className="w-4 h-4 rounded-full bg-[#10B981] animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-4 h-4 rounded-full bg-[#10B981] animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-4 h-4 rounded-full bg-[#10B981] animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
-                    <p className="text-[#10B981]/80 text-xs uppercase tracking-widest font-bold">O Cérebro Semântico está pesquisando e calculando correlações...</p>
+                    <p className="text-[#E85002]/80 text-xs uppercase tracking-widest font-bold">O Cérebro Semântico está pesquisando e calculando correlações...</p>
                   </div>
                 )}
 
@@ -1446,13 +1449,13 @@ export default function AdminPage() {
                  <div className="flex justify-between items-center">
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Sistema de Validação (Grafo Ativo)</h2>
                     <div className="flex gap-2">
-                       <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#10B981] flex items-center gap-2"><Network size={14}/> Explorar Rede</span>
+                       <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Explorar Rede</span>
                     </div>
                  </div>
                  
                  {/* O GRAFO ATIVO MOVIDO PARA CÁ COMO PEDIDO NA ETAPA 4 */}
-                 <div className="glass-card overflow-hidden h-[600px] relative border border-[#10B981]/30">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#10B981]/10 via-transparent to-transparent opacity-50 z-0"></div>
+                 <div className="glass-card overflow-hidden h-[600px] relative border border-[#E85002]/30">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#E85002]/10 via-transparent to-transparent opacity-50 z-0"></div>
                     <ForceGraph2D
                      graphData={graphData}
                      nodeLabel="id"
@@ -1465,7 +1468,7 @@ export default function AdminPage() {
                        ctx.font = `${fontSize}px Inter`;
                        
                        // Diferencia nó de Obra (1) e nó de Grupo Temático (2) e nó de Factual (3)
-                       ctx.fillStyle = node.group === 1 ? '#ffffff' : node.group === 2 ? '#10B981' : '#aaaaaa';
+                       ctx.fillStyle = node.group === 1 ? '#ffffff' : node.group === 2 ? '#E85002' : '#aaaaaa';
                        ctx.beginPath(); 
                        ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI, false); 
                        ctx.fill();
@@ -1491,7 +1494,7 @@ export default function AdminPage() {
                          <X size={24} />
                        </button>
                        <h3 className="text-xl serif-title mb-1">Análise Neural</h3>
-                       <p className="text-[#10B981] font-semibold font-serif italic text-lg mb-6">&quot;{graphNodeSelected}&quot;</p>
+                       <p className="text-[#E85002] font-semibold font-serif italic text-lg mb-6">&quot;{graphNodeSelected}&quot;</p>
                        
                        {/* Família */}
                        {tagAnalysisResult.family && (
@@ -1528,7 +1531,7 @@ export default function AdminPage() {
                                <div key={k} className="flex items-center gap-2">
                                  <span className="text-[10px] text-white/45 w-20 text-right uppercase font-semibold">{labels[k]||k}</span>
                                  <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
-                                   <div className="h-full bg-[#10B981]" style={{ width: `${(v as number)*100}%` }} />
+                                   <div className="h-full bg-[#E85002]" style={{ width: `${(v as number)*100}%` }} />
                                  </div>
                                  <span className="text-[10px] text-white/35 font-semibold">{Math.round((v as number)*100)}%</span>
                                </div>
@@ -1539,7 +1542,7 @@ export default function AdminPage() {
  
                        {/* Ações */}
                        <div className="flex gap-3 mt-4">
-                         <button onClick={() => { setSearchTag(graphNodeSelected); setActiveTab('relatorios'); setGraphNodeSelected(null); setTimeout(() => handleSemanticSearch(), 300); }} className="flex-1 liquid-button !bg-[#10B981] text-xs font-semibold tracking-wider">
+                         <button onClick={() => { setSearchTag(graphNodeSelected); setActiveTab('relatorios'); setGraphNodeSelected(null); setTimeout(() => handleSemanticSearch(), 300); }} className="flex-1 liquid-button !bg-[#E85002] text-xs font-semibold tracking-wider">
                            Relatório Semântico Completo
                          </button>
                          <button onClick={() => { setActiveTab('tags'); setGraphNodeSelected(null); }} className="flex-1 liquid-button !bg-white/10 text-xs font-semibold tracking-wider">
@@ -1553,7 +1556,7 @@ export default function AdminPage() {
                  {graphNodeSelected && isAnalyzingTag && (
                    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
                      <div className="glass-card p-12 text-center">
-                       <div className="w-8 h-8 border-4 border-[#10B981] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                       <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                        <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Cérebro analisando &quot;{graphNodeSelected}&quot;...</p>
                      </div>
                    </div>
@@ -1565,7 +1568,7 @@ export default function AdminPage() {
               <div className="space-y-8 animate-fade-in">
                  <div className="flex justify-between items-center">
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Ontologias & Vocabulários</h2>
-                    <button onClick={() => setShowOntologiaForm(true)} className="liquid-button !bg-[#10B981] flex items-center gap-2"><Plus size={16} /> Nova Ontologia</button>
+                    <button onClick={() => setShowOntologiaForm(true)} className="liquid-button !bg-[#E85002] flex items-center gap-2"><Plus size={16} /> Nova Ontologia</button>
                  </div>
 
                  {/* MODAL NOVA ONTOLOGIA */}
@@ -1579,17 +1582,17 @@ export default function AdminPage() {
                        <form onSubmit={(e) => { e.preventDefault(); alert('Ontologia mapeada com sucesso!'); setShowOntologiaForm(false); }} className="space-y-4">
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Nome da Ontologia / Padrão</label>
-                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#10B981] outline-none" placeholder="Ex: Dublin Core" />
+                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Dublin Core" />
                          </div>
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Provedor / Instituição</label>
-                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#10B981] outline-none" placeholder="Ex: DCMI" />
+                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: DCMI" />
                          </div>
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">URL do Endpoint (SPARQL/API)</label>
-                           <input type="url" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#10B981] outline-none" placeholder="https://..." />
+                           <input type="url" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="https://..." />
                          </div>
-                         <button type="submit" className="w-full liquid-button !bg-[#10B981] mt-4 flex justify-center items-center gap-2">
+                         <button type="submit" className="w-full liquid-button !bg-[#E85002] mt-4 flex justify-center items-center gap-2">
                            <Database size={16} /> Iniciar Mapeamento Neural
                          </button>
                        </form>
@@ -1602,17 +1605,17 @@ export default function AdminPage() {
                       { name: 'Tesauro CNFCP/IPHAN', provider: 'IPHAN', terms: 'Vocabulário Controlado' },
                       { name: 'Tainacan Core', provider: 'IBRAM', terms: 'Padrão Brasil' }
                     ].map((o, i) => (
-                      <div key={i} className="glass-card p-8 space-y-6 hover:border-[#10B981]/40 group transition-all cursor-pointer">
+                      <div key={i} className="glass-card p-8 space-y-6 hover:border-[#E85002]/40 group transition-all cursor-pointer">
                         <div className="flex justify-between items-start">
-                           <Database className="w-8 h-8 opacity-50 text-[#10B981] group-hover:opacity-100 transition-opacity" />
-                           <ArrowUpRight size={18} className="text-white/20 group-hover:text-[#10B981]" />
+                           <Database className="w-8 h-8 opacity-50 text-[#E85002] group-hover:opacity-100 transition-opacity" />
+                           <ArrowUpRight size={18} className="text-white/20 group-hover:text-[#E85002]" />
                         </div>
                         <div className="space-y-2">
                            <h3 className="text-lg font-bold leading-tight">{o.name}</h3>
                            <p className="text-[10px] uppercase font-semibold tracking-wider text-white/35">{o.provider}</p>
                         </div>
                         <div className="pt-4 border-t border-white/5 flex justify-between items-center text-[10px] uppercase font-semibold tracking-wider">
-                           <span className="text-green-500">Mapeado no Banco</span>
+                           <span className="text-orange-500">Mapeado no Banco</span>
                            <span className="text-white/40">{o.terms}</span>
                         </div>
                       </div>
@@ -1634,16 +1637,16 @@ export default function AdminPage() {
                       { name: 'DBPedia Sparql', status: 'Online', delay: '89ms', region: 'Global' }
                     ].map((conn, i) => (
                       <div key={i} className="glass-card p-8 flex flex-col items-center gap-6 text-center group hover:bg-white/[0.04]">
-                        <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border ${conn.status === 'Online' ? 'border-green-500/20' : 'border-red-500/20'}`}>
-                           <Globe size={32} className={conn.status === 'Online' ? 'text-green-500' : 'text-red-500'} />
-                           {conn.status === 'Online' && <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full animate-pulse" />}
+                        <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border ${conn.status === 'Online' ? 'border-orange-500/20' : 'border-red-500/20'}`}>
+                           <Globe size={32} className={conn.status === 'Online' ? 'text-orange-500' : 'text-red-500'} />
+                           {conn.status === 'Online' && <div className="absolute top-0 right-0 w-3 h-3 bg-orange-500 rounded-full animate-pulse" />}
                         </div>
                         <div>
                            <p className="font-bold text-lg">{conn.name}</p>
                            <p className="text-[9px] uppercase font-black tracking-widest text-white/30">{conn.region}</p>
                         </div>
                         <div className="text-[10px] uppercase font-black tracking-widest flex items-center justify-center gap-4 w-full pt-4 border-t border-white/5">
-                           <span className={conn.status === 'Online' ? 'text-green-500' : 'text-red-500'}>{conn.status}</span>
+                           <span className={conn.status === 'Online' ? 'text-orange-500' : 'text-red-500'}>{conn.status}</span>
                            <span className="text-white/20">|</span>
                            <span className="text-white/40">{conn.delay}</span>
                         </div>

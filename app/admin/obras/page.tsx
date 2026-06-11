@@ -11,12 +11,12 @@ export default async function AdminObrasPage() {
     .order('titulo');
 
   return (
-    <div className="p-10 bg-[#060a08] min-h-screen text-white">
+    <div className="p-10 bg-[#000000] min-h-screen text-white">
       <div className="max-w-[95%] mx-auto">
         <div className="flex justify-between items-end mb-12">
           <div>
             <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-4">
-              <BookOpen className="text-[#10B981]" size={36} />
+              <BookOpen className="text-[#E85002]" size={36} />
               Gestão do Acervo
             </h1>
             <p className="text-white/35 text-[11px] uppercase tracking-wider mt-2 font-semibold">Inventário e Metadados Institucionais</p>
@@ -55,7 +55,7 @@ export default async function AdminObrasPage() {
                       ) : (
                         <div className="w-12 h-12 bg-white/5 rounded-md border border-white/10 flex items-center justify-center text-[10px] text-white/20">IMG</div>
                       )}
-                      <span className="font-medium text-white group-hover:text-[#10B981] transition-colors">{obra.titulo}</span>
+                      <span className="font-medium text-white group-hover:text-[#E85002] transition-colors">{obra.titulo}</span>
                     </div>
                   </td>
                   <td className="px-8 py-6 text-white/50">{obra.artista || '-'}</td>
@@ -63,7 +63,7 @@ export default async function AdminObrasPage() {
                   <td className="px-8 py-6 text-white/50 font-semibold text-[11px] uppercase tracking-wider">{obra.tipo || '-'}</td>
                   <td className="px-8 py-6">
                     {obra.publicado ? (
-                      <span className="px-3 py-1 bg-green-500/10 text-green-400 text-[11px] font-semibold uppercase tracking-wider rounded-full border border-green-500/20">Publicado</span>
+                      <span className="px-3 py-1 bg-orange-500/10 text-orange-400 text-[11px] font-semibold uppercase tracking-wider rounded-full border border-orange-500/20">Publicado</span>
                     ) : (
                       <span className="px-3 py-1 bg-yellow-500/10 text-yellow-400 text-[11px] font-semibold uppercase tracking-wider rounded-full border border-yellow-500/20">Rascunho</span>
                     )}

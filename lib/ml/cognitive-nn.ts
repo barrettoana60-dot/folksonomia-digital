@@ -227,6 +227,13 @@ export class CognitiveNeuralNetwork {
     } finally {
       this.isLoaded = true;
     }
+  public getWeights(): NeuralWeights {
+    return {
+      weights1: this.weights1,
+      bias1: this.bias1,
+      weights2: this.weights2,
+      bias2: this.bias2
+    };
   }
 
   /**

@@ -29,8 +29,8 @@ export default function LoginPage() {
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
       
       <div className="text-center space-y-6 mb-12">
-        <div className="w-16 h-16 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center mx-auto">
-          <ShieldCheck className="text-[#10B981]" size={32} />
+        <div className="w-16 h-16 rounded-full bg-[#E85002]/10 border border-[#E85002]/30 flex items-center justify-center mx-auto">
+          <ShieldCheck className="text-[#E85002]" size={32} />
         </div>
         <div className="space-y-1">
           <h1 className="text-xl md:text-2xl font-normal serif-title text-white tracking-wider">
@@ -74,7 +74,7 @@ export default function LoginPage() {
 
             <button 
               type="submit" 
-              className="liquid-button w-full !py-4 !rounded-xl !bg-[#10B981] !text-black !font-semibold !tracking-wider hover:!bg-[#0d9488]"
+              className="liquid-button w-full !py-4 !rounded-xl !bg-[#E85002] !text-black !font-semibold !tracking-wider hover:!bg-[#F16001]"
             >
               Acessar Sistema
             </button>

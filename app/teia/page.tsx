@@ -16,12 +16,12 @@ export default function TeiaPublicaPage() {
     // Simular dados para demonstração do grafo institucional
     const data = {
       nodes: [
-        { id: '1', name: 'Escultura Mãe e Filho', type: 'obra', color: '#10B981' },
-        { id: '2', name: 'Guernica', type: 'obra', color: '#10B981' },
+        { id: '1', name: 'Escultura Mãe e Filho', type: 'obra', color: '#E85002' },
+        { id: '2', name: 'Guernica', type: 'obra', color: '#E85002' },
         { id: '3', name: 'Maternidade', type: 'conceito', color: '#D9C3AB' },
         { id: '4', name: 'Guerra', type: 'conceito', color: '#D9C3AB' },
-        { id: '5', name: 'mamãe', type: 'tag', color: '#0d9488' },
-        { id: '6', name: 'conflito', type: 'tag', color: '#0d9488' },
+        { id: '5', name: 'mamãe', type: 'tag', color: '#F16001' },
+        { id: '6', name: 'conflito', type: 'tag', color: '#F16001' },
         { id: '7', name: 'IBRAM/Tainacan', type: 'fonte', color: '#A7A7A7' },
       ],
       links: [
@@ -39,13 +39,13 @@ export default function TeiaPublicaPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#060a08] text-white selection:bg-[#10B981]/30">
+    <main className="min-h-screen bg-[#000000] text-white selection:bg-[#E85002]/30">
       
       {/* Header Interativo */}
       <div className="fixed top-0 left-0 right-0 z-50 p-6 flex items-center justify-between pointer-events-none">
         <div className="pointer-events-auto">
           <h1 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-3">
-            <Network className="text-[#10B981]" size={28} />
+            <Network className="text-[#E85002]" size={28} />
             Teia Semântica
           </h1>
           <p className="text-white/35 text-[10px] uppercase tracking-wider mt-1">Mapa de conexões e indicadores semânticos</p>
@@ -71,7 +71,7 @@ export default function TeiaPublicaPage() {
           <ForceGraph2D
             ref={graphRef}
             graphData={graphData}
-            backgroundColor="#060a08"
+            backgroundColor="#000000"
             nodeLabel="name"
             nodeRelSize={6}
             nodeColor={node => (node as any).color}
@@ -89,7 +89,7 @@ export default function TeiaPublicaPage() {
       {selectedNode && (
         <div className="fixed top-24 right-6 bottom-6 w-80 glass-card p-8 animate-in slide-in-from-right-10 duration-500 z-50 overflow-y-auto">
           <div className="flex items-center justify-between mb-8">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#10B981]">{selectedNode.type}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#E85002]">{selectedNode.type}</span>
             <button onClick={() => setSelectedNode(null)} className="text-white/30 hover:text-white">
               <X size={20} />
             </button>
@@ -109,7 +109,7 @@ export default function TeiaPublicaPage() {
                 </div>
                 <div className="p-3 bg-white/5 rounded-lg border border-white/5">
                   <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Estado de Validação</p>
-                  <p className="text-xs text-green-400">Validado institucionalmente</p>
+                  <p className="text-xs text-orange-400">Validado institucionalmente</p>
                 </div>
               </div>
             </div>
@@ -133,10 +133,10 @@ export default function TeiaPublicaPage() {
       {/* Legenda Institucional */}
       <div className="fixed bottom-6 left-6 glass-card px-6 py-4 flex gap-6 text-[10px] font-semibold uppercase tracking-wider text-white/45">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#10B981]" /> Obra
+          <div className="w-2 h-2 rounded-full bg-[#E85002]" /> Obra
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#0d9488]" /> Tag pública
+          <div className="w-2 h-2 rounded-full bg-[#F16001]" /> Tag pública
         </div>
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-[#D9C3AB]" /> Conceito

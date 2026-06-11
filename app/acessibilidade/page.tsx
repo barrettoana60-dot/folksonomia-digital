@@ -64,7 +64,7 @@ export default function AcessibilidadePage() {
           
           {/* Theme Control */}
           <div className="glass-card p-10 space-y-6">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] flex items-center gap-3 text-[#10B981]">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] flex items-center gap-3 text-[#E85002]">
               <Sun size={16} />
               Preferência Visual
             </h2>
@@ -73,13 +73,13 @@ export default function AcessibilidadePage() {
                 <button
                   key={t.id}
                   onClick={() => changeTheme(t.id)}
-                  className={`flex items-center justify-between p-4 !rounded-xl !bg-transparent border transition-all ${activeTheme === t.id ? 'border-[#10B981]' : 'border-white/5'}`}
+                  className={`flex items-center justify-between p-4 !rounded-xl !bg-transparent border transition-all ${activeTheme === t.id ? 'border-[#E85002]' : 'border-white/5'}`}
                 >
                   <div className="text-left">
                     <p className="text-[11px] font-semibold uppercase tracking-wider">{t.label}</p>
                     <p className="text-[10px] opacity-40">{t.desc}</p>
                   </div>
-                  {activeTheme === t.id && <CheckCircle2 size={16} className="text-[#10B981]" />}
+                  {activeTheme === t.id && <CheckCircle2 size={16} className="text-[#E85002]" />}
                 </button>
               ))}
             </div>
@@ -88,7 +88,7 @@ export default function AcessibilidadePage() {
           {/* Audio & Font */}
           <div className="glass-card p-10 space-y-8">
             <div className="space-y-6">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] flex items-center gap-3 text-[#10B981]">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] flex items-center gap-3 text-[#E85002]">
                 <VolumeX size={16} />
                 Controle de Voz
               </h2>
@@ -103,7 +103,7 @@ export default function AcessibilidadePage() {
             </div>
 
             <div className="space-y-6 pt-6 border-t border-white/5">
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] flex items-center gap-3 text-[#10B981]">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] flex items-center gap-3 text-[#E85002]">
                 <Type size={16} />
                 Tamanho da Fonte
               </h2>
@@ -113,7 +113,7 @@ export default function AcessibilidadePage() {
                 max={24}
                 value={fontSize}
                 onChange={e => changeFontSize(parseInt(e.target.value))}
-                className="w-full accent-[#10B981]"
+                className="w-full accent-[#E85002]"
               />
               <div className="p-4 bg-white/5 rounded-lg border border-white/5">
                 <p style={{ fontSize: `${fontSize}px` }}>Exemplo de visualização tipográfica. (Tamanho: {fontSize}px)</p>

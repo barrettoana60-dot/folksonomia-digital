@@ -23,11 +23,11 @@ const Logo = ({ className = "w-10 h-10" }) => {
     <div className={`relative flex items-center justify-center ${className}`}>
       {/* Background Pie Chart */}
       <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0">
-        {createSlice(288, 360, '#064e3b')} {/* Forest Green */}
-        {createSlice(0, 72, '#0f766e')}    {/* Teal */}
-        {createSlice(72, 144, '#10b981')}  {/* Emerald */}
-        {createSlice(144, 216, '#14b8a6')} {/* Soft Teal */}
-        {createSlice(216, 288, '#34d399')} {/* Mint/Light Emerald */}
+        {createSlice(288, 360, '#d35400')} {/* Orange */}
+        {createSlice(0, 72, '#c0392b')}    {/* Red */}
+        {createSlice(72, 144, '#27ae60')}  {/* Green */}
+        {createSlice(144, 216, '#f39c12')} {/* Yellow */}
+        {createSlice(216, 288, '#2980b9')} {/* Blue */}
       </svg>
 
       {/* Icons overlay using absolute positioning percentages */}

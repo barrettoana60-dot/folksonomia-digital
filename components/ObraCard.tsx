@@ -82,7 +82,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
 
   return (
     <div className="flex flex-col space-y-4 animate-fade-in">
-      <div className="glass-card overflow-hidden bg-white/[0.01] border-white/5 hover:border-[#10B981]/30 flex flex-col transition-all duration-500 shadow-2xl">
+      <div className="glass-card overflow-hidden bg-white/[0.01] border-white/5 hover:border-[#E85002]/30 flex flex-col transition-all duration-500 shadow-2xl">
         
         {/* Image */}
         <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden bg-black/40">
@@ -95,7 +95,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
           
           <button 
             onClick={handleSpeech}
-            className={`absolute top-3 right-3 md:top-4 md:right-4 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all ${speaking ? 'bg-[#10B981] text-white border-[#10B981] shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-black/20 text-white/50'}`}
+            className={`absolute top-3 right-3 md:top-4 md:right-4 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/10 transition-all ${speaking ? 'bg-[#E85002] text-white border-[#E85002] shadow-[0_0_15px_rgba(232,80,2,0.5)]' : 'bg-black/20 text-white/50'}`}
           >
             {speaking ? <VolumeX size={16} /> : <Volume2 size={16} />}
           </button>
@@ -103,7 +103,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
 
         {/* Info Area */}
         <div className="p-6 md:p-8 space-y-2 md:space-y-3">
-          <p className="text-[10px] md:text-[11px] text-[#10B981] uppercase font-semibold tracking-[0.15em]">{obra.artista}</p>
+          <p className="text-[10px] md:text-[11px] text-[#E85002] uppercase font-semibold tracking-[0.15em]">{obra.artista}</p>
           <h3 className="text-base md:text-lg font-normal serif-title text-white">{obra.titulo}</h3>
           <p className="text-[10px] md:text-[11px] text-white/35 tracking-wider">{obra.ano}</p>
           
@@ -116,7 +116,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
             </button>
             
             {tagsSentCount > 0 && (
-              <p className="text-center text-[9px] uppercase tracking-wider text-green-400/60 mt-3 font-medium">
+              <p className="text-center text-[9px] uppercase tracking-wider text-orange-400/60 mt-3 font-medium">
                 {tagsSentCount === 1 ? '1 Percepção Registrada' : `${tagsSentCount} Percepções Registradas`}
               </p>
             )}
@@ -128,8 +128,8 @@ export default function ObraCard({ obra }: ObraCardProps) {
       {isTagging && (
         <div className="glass-card p-6 md:p-10 bg-[#040f0c] border-white/10 space-y-6 md:space-y-8 animate-fade-in shadow-2xl">
           <div className="flex items-start gap-4 md:gap-5">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0 border border-[#10B981]/20">
-              <TagIcon size={18} className="text-[#10B981]" />
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#E85002]/10 flex items-center justify-center shrink-0 border border-[#E85002]/20">
+              <TagIcon size={18} className="text-[#E85002]" />
             </div>
             <div className="space-y-1">
               <h4 className="text-base md:text-lg font-normal serif-title text-white">Registro Semântico</h4>
@@ -151,7 +151,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
             <button 
               type="submit"
               disabled={submitting || !tagInput.trim()}
-              className="liquid-button w-full !rounded-xl !bg-[#10B981] !text-black font-bold uppercase tracking-[0.2em] text-[10px] md:text-[11px] py-4 md:py-5 hover:!bg-[#0d9488]"
+              className="liquid-button w-full !rounded-xl !bg-[#E85002] !text-black font-bold uppercase tracking-[0.2em] text-[10px] md:text-[11px] py-4 md:py-5 hover:!bg-[#F16001]"
             >
               {submitting ? 'PROCESSANDO...' : 'ENVIAR PERCEPÇÃO'}
             </button>

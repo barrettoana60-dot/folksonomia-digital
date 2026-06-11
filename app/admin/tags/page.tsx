@@ -45,7 +45,7 @@ const statusStyle: Record<string, string> = {
   'em análise': 'bg-amber-500/10 border-amber-500/20 text-amber-400',
   'em_analise': 'bg-amber-500/10 border-amber-500/20 text-amber-400',
   'bruto': 'bg-gray-500/10 border-gray-500/20 text-gray-400',
-  validado: 'bg-green-500/10 border-green-500/20 text-green-400',
+  validado: 'bg-orange-500/10 border-orange-500/20 text-orange-400',
   publicado: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
   rejeitado: 'bg-red-500/10 border-red-500/20 text-red-400'
 };
@@ -56,12 +56,12 @@ export default async function AdminTagsPage() {
   const mlOnline = !!ML_SERVICE_URL;
 
   return (
-    <div className="p-10 bg-[#060a08] min-h-screen text-white pt-24">
+    <div className="p-10 bg-[#000000] min-h-screen text-white pt-24">
       <div className="max-w-[95%] mx-auto">
         <div className="flex justify-between items-end mb-8">
           <div>
             <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-4">
-              <TagIcon className="text-[#10B981]" size={36} />
+              <TagIcon className="text-[#E85002]" size={36} />
               Análise de Tags
             </h1>
             <p className="text-white/35 text-[11px] uppercase tracking-wider mt-2 font-semibold">
@@ -73,7 +73,7 @@ export default async function AdminTagsPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
           <div className="glass-card p-4 text-center">
-            <div className="text-2xl font-bold text-[#10B981]">{tags.length}</div>
+            <div className="text-2xl font-bold text-[#E85002]">{tags.length}</div>
             <div className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Tags</div>
           </div>
           <div className="glass-card p-4 text-center">
@@ -116,7 +116,7 @@ export default async function AdminTagsPage() {
                 return (
                   <tr key={tag.id} className="hover:bg-white/5 transition-all group">
                     <td className="px-6 py-5">
-                      <div className="font-medium text-white group-hover:text-[#0d9488] transition-colors text-base">
+                      <div className="font-medium text-white group-hover:text-[#F16001] transition-colors text-base">
                         {tag.tag_original}
                       </div>
                       <div className="text-white/30 text-[10px] mt-1">
@@ -129,9 +129,9 @@ export default async function AdminTagsPage() {
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                          <div className="h-full bg-green-400 rounded-full" style={{ width: `${Math.min(confianca, 100)}%` }} />
+                          <div className="h-full bg-orange-400 rounded-full" style={{ width: `${Math.min(confianca, 100)}%` }} />
                         </div>
-                        <span className="text-[11px] font-semibold text-green-400">{Math.round(confianca)}%</span>
+                        <span className="text-[11px] font-semibold text-orange-400">{Math.round(confianca)}%</span>
                       </div>
                     </td>
                     <td className="px-6 py-5">

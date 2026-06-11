@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import AIChatBot from "@/components/AIChatBot";
 
 const inter = Inter({ subsets: ["latin"], display: 'swap', variable: '--font-sans' });
 const lora = Lora({ subsets: ["latin"], display: 'swap', variable: '--font-serif' });
@@ -46,7 +45,6 @@ export default function RootLayout({
         <div className="pt-4">
           {children}
         </div>
-        <AIChatBot />
       </body>
     </html>
   );

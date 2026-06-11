@@ -124,7 +124,7 @@ export default async function RelatoriosPage() {
         {/* FLUXO TEMPORAL */}
         <div className="glass-card p-8 mb-8">
           <h3 className="text-lg font-normal serif-title text-white mb-2 flex items-center gap-3">
-            <Clock size={20} className="text-[#10B981]" />
+            <Clock size={20} className="text-[#E85002]" />
             Fluxo Temporal de Contribuições
           </h3>
           <p className="text-white/30 text-[10px] uppercase tracking-widest mb-6">Distribuição de tags ao longo do tempo</p>
@@ -138,7 +138,7 @@ export default async function RelatoriosPage() {
                   <span className="text-white/50 text-xs w-24 text-right font-mono">{day}</span>
                   <div className="flex-1 h-6 bg-white/5 rounded-full overflow-hidden relative">
                     <div 
-                      className="h-full bg-gradient-to-r from-[#10B981] to-[#10B981]/60 rounded-full transition-all"
+                      className="h-full bg-gradient-to-r from-[#E85002] to-[#E85002]/60 rounded-full transition-all"
                       style={{ width: `${(count / maxCount) * 100}%` }}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-white/80">
@@ -183,7 +183,7 @@ export default async function RelatoriosPage() {
           {/* Evidências Cross-Source */}
           <div className="glass-card p-6">
             <h3 className="text-lg font-normal serif-title text-white mb-4 flex items-center gap-2">
-              <Globe size={16} className="text-green-400" /> Evidências por Fonte
+              <Globe size={16} className="text-orange-400" /> Evidências por Fonte
             </h3>
             {Object.keys(evidenciasPorFonte).length === 0 ? (
               <p className="text-white/30 text-sm">Nenhuma evidência cross-source ainda.</p>
@@ -216,7 +216,7 @@ export default async function RelatoriosPage() {
             {nucleos.length > 0 ? (() => {
               const avg = (key: string) => Math.round(nucleos.reduce((s: number, n: any) => s + (n[key] || 0), 0) / nucleos.length);
               return [
-                { label: 'Confiança calibrada', val: avg('confianca'), color: 'bg-green-400' },
+                { label: 'Confiança calibrada', val: avg('confianca'), color: 'bg-orange-400' },
                 { label: 'Novidade semântica', val: avg('novidade'), color: 'bg-blue-400' },
                 { label: 'Tensão documental', val: avg('tensao'), color: 'bg-amber-400' },
                 { label: 'Ressonância', val: avg('ressonancia'), color: 'bg-purple-400' }

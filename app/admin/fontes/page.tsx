@@ -110,7 +110,7 @@ export default async function FontesPage() {
                 </div>
                 <div className={`px-2 py-1 rounded-full text-xs font-medium border ${
                   fonte.ativo
-                    ? 'bg-green-500/20 border-green-500/40 text-green-300'
+                    ? 'bg-orange-500/20 border-orange-500/40 text-green-300'
                     : 'bg-red-500/20 border-red-500/40 text-red-300'
                 }`}>
                   {fonte.ativo ? 'Ativa' : 'Inativa'}

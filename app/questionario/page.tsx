@@ -33,7 +33,7 @@ export default function QuestionarioPage() {
         <h1 className="text-2xl md:text-3xl font-light serif-title text-white tracking-normal">
           Questionário de Acesso
         </h1>
-        <div className="h-[1px] w-12 bg-[#10B981] mx-auto opacity-40" />
+        <div className="h-[1px] w-12 bg-[#E85002] mx-auto opacity-40" />
       </div>
 
       <div className="w-full max-w-4xl">
@@ -90,7 +90,7 @@ export default function QuestionarioPage() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="liquid-button !px-14 !py-4 !rounded-full !bg-white/5 hover:!bg-[#10B981]/15 hover:!border-[#10B981]/35 transition-all"
+                className="liquid-button !px-14 !py-4 !rounded-full !bg-white/5 hover:!bg-[#E85002]/15 hover:!border-[#E85002]/35 transition-all"
               >
                 {loading ? 'PROCESSANDO...' : 'ACESSAR PLATAFORMA'}
               </button>

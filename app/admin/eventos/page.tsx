@@ -13,7 +13,7 @@ async function getEventos() {
 
 const eventColors: Record<string, string> = {
   tag_criada: 'bg-blue-500/20 text-blue-300',
-  validacao_validado: 'bg-green-500/20 text-green-300',
+  validacao_validado: 'bg-orange-500/20 text-green-300',
   validacao_publicado: 'bg-cyan-500/20 text-cyan-300',
   validacao_rejeitado: 'bg-red-500/20 text-red-300',
   validacao_revisado: 'bg-purple-500/20 text-purple-300',
@@ -25,7 +25,7 @@ export default async function EventosPage() {
   const eventos = await getEventos();
 
   return (
-    <main className="min-h-screen px-6 py-24 bg-[#060a08]">
+    <main className="min-h-screen px-6 py-24 bg-[#000000]">
       <div className="max-w-5xl mx-auto">
         <div className="mb-10">
           <h1 className="text-2xl md:text-3xl font-normal text-white serif-title tracking-normal">Trilha de Proveniência</h1>
@@ -49,7 +49,7 @@ export default async function EventosPage() {
                 return (
                   <div key={ev.id} className="relative pl-20">
                     {/* Dot */}
-                    <div className="absolute left-6 top-5 w-4 h-4 rounded-full bg-[#10B981]/40 border border-[#10B981]/60" />
+                    <div className="absolute left-6 top-5 w-4 h-4 rounded-full bg-[#E85002]/40 border border-[#E85002]/60" />
 
                     <div className="glass-card p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">

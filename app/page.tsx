@@ -44,7 +44,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="h-[1px] w-16 bg-[#10B981] mx-auto opacity-40" />
+        <div className="h-[1px] w-16 bg-[#E85002] mx-auto opacity-40" />
 
         <p className="text-white/50 text-sm md:text-base leading-relaxed font-light max-w-md mx-auto">
           Participe da construção coletiva do conhecimento institucional através de percepções e tags semânticas.
@@ -53,7 +53,7 @@ export default function LandingPage() {
         <div className="pt-6">
           <button 
             onClick={() => router.push('/questionario')}
-            className="liquid-button !px-12 md:!px-16 !py-4 md:!py-5 !rounded-full !text-xs !font-medium !tracking-[0.12em] !bg-white/5 hover:!bg-[#10B981]/15 hover:!border-[#10B981]/35 transition-all shadow-xl"
+            className="liquid-button !px-12 md:!px-16 !py-4 md:!py-5 !rounded-full !text-xs !font-medium !tracking-[0.12em] !bg-white/5 hover:!bg-[#E85002]/15 hover:!border-[#E85002]/35 transition-all shadow-xl"
           >
             Acessar Sistema
           </button>

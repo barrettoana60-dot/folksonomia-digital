@@ -132,7 +132,7 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
             
             <button 
               onClick={handleSpeech}
-              className={`liquid-button w-full flex items-center justify-center gap-4 py-6 !rounded-2xl transition-all ${speaking ? '!bg-[#10B981] border-[#10B981] shadow-[0_0_30px_rgba(16,185,129,0.3)] !text-black' : ''}`}
+              className={`liquid-button w-full flex items-center justify-center gap-4 py-6 !rounded-2xl transition-all ${speaking ? '!bg-[#E85002] border-[#E85002] shadow-[0_0_30px_rgba(232,80,2,0.3)] !text-black' : ''}`}
             >
               {speaking ? <VolumeX size={20} /> : <Volume2 size={20} />}
               <span className="font-semibold uppercase tracking-wider text-xs">
@@ -144,12 +144,12 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
           <div className="space-y-12 flex flex-col justify-center">
             <div className="space-y-6">
               <h1 className="text-2xl md:text-3xl font-light serif-title leading-tight tracking-tight">{obra.titulo}</h1>
-              <div className="flex items-center gap-6 text-[#10B981] text-sm font-semibold uppercase tracking-[0.15em]">
+              <div className="flex items-center gap-6 text-[#E85002] text-sm font-semibold uppercase tracking-[0.15em]">
                 <span>{obra.artista}</span>
                 <span className="w-1.5 h-1.5 bg-white/10 rounded-full" />
                 <span>{obra.ano}</span>
               </div>
-              <p className="text-white/40 leading-relaxed text-sm font-light border-l-2 border-[#10B981]/20 pl-6">
+              <p className="text-white/40 leading-relaxed text-sm font-light border-l-2 border-[#E85002]/20 pl-6">
                 "{obra.descricao}"
               </p>
             </div>
@@ -157,7 +157,7 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
             <div className="glass-card p-12 bg-white/[0.01] border-white/10 space-y-10">
               <div className="space-y-2">
                 <h2 className="text-lg font-normal serif-title flex items-center gap-3">
-                  <TagIcon size={20} className="text-[#10B981]" />
+                  <TagIcon size={20} className="text-[#E85002]" />
                   Registro Semântico
                 </h2>
                 <p className="text-white/30 text-xs uppercase tracking-wider leading-loose">
@@ -179,7 +179,7 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
                   <button 
                     type="submit"
                     disabled={submitting}
-                    className="liquid-button w-full !rounded-xl !bg-[#10B981] !text-black font-bold uppercase tracking-[0.2em] text-[10px] hover:!bg-[#0d9488]"
+                    className="liquid-button w-full !rounded-xl !bg-[#E85002] !text-black font-bold uppercase tracking-[0.2em] text-[10px] hover:!bg-[#F16001]"
                   >
                     {submitting ? 'Processando...' : 'Enviar Percepção'}
                   </button>
@@ -191,12 +191,12 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
                 </form>
               ) : (
                 <div className="text-center p-8 space-y-6">
-                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10 mb-2">
-                    <CheckCircle size={24} className="text-green-400" />
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-orange-500/10 mb-2">
+                    <CheckCircle size={24} className="text-orange-400" />
                   </div>
                   <div className="space-y-2">
                     <p className="text-white/30 text-xs uppercase tracking-wider">Sua Tag Registrada:</p>
-                    <p className="text-2xl font-normal serif-title text-[#10B981]">{myTag}</p>
+                    <p className="text-2xl font-normal serif-title text-[#E85002]">{myTag}</p>
                   </div>
                   <p className="text-white/20 text-xs leading-relaxed italic">
                     Sua contribuição foi processada pelo motor semântico e agora faz parte da teia de conhecimento institucional.

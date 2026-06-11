@@ -2,6 +2,8 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 import { ML_SERVICE_URL } from '@/lib/core/env';
 import { Brain, Activity, Database, BarChart3, Clock, CheckCircle, XCircle, AlertTriangle, Layers, Globe, Cpu } from 'lucide-react';
 import Link from 'next/link';
+import { cognitiveNN } from '@/lib/ml/cognitive-nn';
+import MLPVisualizer from '@/components/MLPVisualizer';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,9 @@ export default async function ModelosPage() {
   const mlHealth = await checkMLHealth();
   const mlOnline = !!mlHealth;
 
+  await cognitiveNN.ensureLoaded();
+  const weights = cognitiveNN.getWeights();
+
   const motors = {
     tokenClassifier: { name: 'Token Classifier', engine: mlOnline ? 'modernbert_ner' : 'heuristic_fallback', desc: 'NER museológico — MATERIAL, TECNICA, AUTORIA, DATA, PERIODO, LUGAR, ICONOGRAFIA, TEMA, ESTILO' },
     knowledgeGraph: { name: 'Knowledge Graph', engine: mlOnline ? 'rotate_link_prediction' : 'heuristic_fallback', desc: 'Previsão de links e relações entre entidades (RotatE)' },
@@ -80,13 +85,13 @@ export default async function ModelosPage() {
   }, {});
 
   return (
-    <main className="min-h-screen bg-[#060a08] text-white p-10 pt-24">
+    <main className="min-h-screen bg-[#000000] text-white p-10 pt-24">
       <div className="max-w-[95%] mx-auto">
         
         <div className="flex justify-between items-end mb-10">
           <div>
             <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-4">
-              <Cpu className="text-[#10B981]" size={36} />
+              <Cpu className="text-[#E85002]" size={36} />
               Painel de Modelos
             </h1>
             <p className="text-white/35 text-[11px] uppercase tracking-wider mt-2 font-semibold">
@@ -97,10 +102,10 @@ export default async function ModelosPage() {
         </div>
 
         {/* ML Service Status */}
-        <div className={`glass-card p-6 mb-8 border ${mlOnline ? 'border-green-500/30' : 'border-red-500/30'}`}>
+        <div className={`glass-card p-6 mb-8 border ${mlOnline ? 'border-orange-500/30' : 'border-red-500/30'}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`w-3 h-3 rounded-full ${mlOnline ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+              <div className={`w-3 h-3 rounded-full ${mlOnline ? 'bg-orange-400 animate-pulse' : 'bg-red-400'}`} />
               <div>
                 <h3 className="text-lg font-bold">{mlOnline ? 'ML Service ONLINE' : 'ML Service OFFLINE'}</h3>
                 <p className="text-white/40 text-xs">
@@ -113,10 +118,10 @@ export default async function ModelosPage() {
             </div>
             {mlHealth && (
               <div className="flex gap-4 text-xs">
-                <span className={mlHealth.models?.embedder ? 'text-green-400' : 'text-red-400'}>
+                <span className={mlHealth.models?.embedder ? 'text-orange-400' : 'text-red-400'}>
                   Embedder: {mlHealth.models?.embedder ? 'OK' : 'OFF'}
                 </span>
-                <span className={mlHealth.models?.ner ? 'text-green-400' : 'text-red-400'}>
+                <span className={mlHealth.models?.ner ? 'text-orange-400' : 'text-red-400'}>
                   NER: {mlHealth.models?.ner ? `v${mlHealth.models?.ner_version || '1'}` : 'não treinado'}
                 </span>
               </div>
@@ -129,16 +134,21 @@ export default async function ModelosPage() {
           {Object.entries(motors).map(([key, motor]) => {
             const isReal = !motor.engine.includes('heuristic') && !motor.engine.includes('hash');
             return (
-              <div key={key} className={`glass-card p-5 border ${isReal ? 'border-green-500/20' : 'border-amber-500/20'}`}>
+              <div key={key} className={`glass-card p-5 border ${isReal ? 'border-orange-500/20' : 'border-amber-500/20'}`}>
                 <div className="flex items-center gap-2 mb-2">
-                  {isReal ? <CheckCircle size={14} className="text-green-400" /> : <AlertTriangle size={14} className="text-amber-400" />}
+                  {isReal ? <CheckCircle size={14} className="text-orange-400" /> : <AlertTriangle size={14} className="text-amber-400" />}
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-white/80">{motor.name}</h4>
                 </div>
-                <p className={`text-sm font-semibold mb-2 ${isReal ? 'text-green-400' : 'text-amber-400'}`}>{motor.engine}</p>
+                <p className={`text-sm font-semibold mb-2 ${isReal ? 'text-orange-400' : 'text-amber-400'}`}>{motor.engine}</p>
                 <p className="text-[10px] text-white/30 leading-relaxed">{motor.desc}</p>
               </div>
             );
           })}
+        </div>
+
+        {/* Visualizador Interativo da Rede Neural MLP */}
+        <div className="mb-10">
+          <MLPVisualizer initialWeights={weights} />
         </div>
 
         {/* Metrics Row */}
@@ -146,7 +156,7 @@ export default async function ModelosPage() {
           {[
             { label: 'Predições', value: data.predictions.length, color: 'text-blue-300' },
             { label: 'Validações humanas', value: feedbackCount, color: 'text-green-300' },
-            { label: 'Aceitas', value: validatedCount, color: 'text-green-400' },
+            { label: 'Aceitas', value: validatedCount, color: 'text-orange-400' },
             { label: 'Rejeitadas', value: rejectedCount, color: 'text-red-400' },
             { label: 'Memórias', value: data.memory.length, color: 'text-amber-300' },
             { label: 'Termos desconhecidos', value: data.unknowns.length, color: 'text-purple-300' }
@@ -162,7 +172,7 @@ export default async function ModelosPage() {
           {/* Confidence Distribution */}
           <div className="glass-card p-6">
             <h3 className="text-lg font-normal serif-title mb-4 flex items-center gap-2">
-              <BarChart3 size={18} className="text-[#10B981]" /> Confiança Média Calibrada
+              <BarChart3 size={18} className="text-[#E85002]" /> Confiança Média Calibrada
             </h3>
             <div className="text-center py-6">
               <div className="text-6xl font-bold text-white/90">{avgConfidence}%</div>
@@ -173,7 +183,7 @@ export default async function ModelosPage() {
             <div className="h-3 rounded-full bg-white/10 overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all ${
-                  avgConfidence > 80 ? 'bg-green-400' : avgConfidence > 50 ? 'bg-amber-400' : 'bg-red-400'
+                  avgConfidence > 80 ? 'bg-orange-400' : avgConfidence > 50 ? 'bg-amber-400' : 'bg-red-400'
                 }`}
                 style={{ width: `${Math.min(avgConfidence, 100)}%` }}
               />
@@ -183,7 +193,7 @@ export default async function ModelosPage() {
           {/* Predictions by Category */}
           <div className="glass-card p-6">
             <h3 className="text-lg font-normal serif-title mb-4 flex items-center gap-2">
-              <Layers size={18} className="text-[#10B981]" /> Predições por Categoria
+              <Layers size={18} className="text-[#E85002]" /> Predições por Categoria
             </h3>
             {Object.keys(predByCategory).length === 0 ? (
               <p className="text-white/30 text-sm text-center py-8">Nenhuma predição registrada — aguardando primeiro uso.</p>
@@ -221,7 +231,7 @@ export default async function ModelosPage() {
           {/* Evidence by Source */}
           <div className="glass-card p-6">
             <h3 className="text-lg font-normal serif-title mb-4 flex items-center gap-2">
-              <Globe size={18} className="text-green-400" /> Evidências Cross-Source
+              <Globe size={18} className="text-orange-400" /> Evidências Cross-Source
             </h3>
             {Object.keys(evidenceBySource).length === 0 ? (
               <p className="text-white/30 text-sm text-center py-8">Sem evidências — serão geradas ao processar tags.</p>
@@ -241,7 +251,7 @@ export default async function ModelosPage() {
         {/* Model Versions */}
         <div className="glass-card p-6 mb-8">
           <h3 className="text-lg font-normal serif-title mb-4 flex items-center gap-2">
-            <Activity size={18} className="text-[#10B981]" /> Versões do Modelo
+            <Activity size={18} className="text-[#E85002]" /> Versões do Modelo
           </h3>
           {data.versions.length === 0 ? (
             <p className="text-white/30 text-sm text-center py-8">
@@ -263,7 +273,7 @@ export default async function ModelosPage() {
                   <tr key={v.id} className="hover:bg-white/5">
                     <td className="px-4 py-3 text-blue-300 font-mono">{v.versao || v.version || '—'}</td>
                     <td className="px-4 py-3 text-white/70">{v.modelo || v.model_name || '—'}</td>
-                    <td className="px-4 py-3 text-green-400 font-bold">{v.f1_score ? `${(v.f1_score * 100).toFixed(1)}%` : '—'}</td>
+                    <td className="px-4 py-3 text-orange-400 font-bold">{v.f1_score ? `${(v.f1_score * 100).toFixed(1)}%` : '—'}</td>
                     <td className="px-4 py-3 text-white/50">{v.num_exemplos || v.num_examples || '—'}</td>
                     <td className="px-4 py-3 text-white/30">{v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}</td>
                   </tr>
@@ -297,7 +307,7 @@ export default async function ModelosPage() {
                   <tr key={r.id} className="hover:bg-white/5">
                     <td className="px-4 py-3">
                       <span className={`px-2 py-1 rounded text-[10px] font-bold ${
-                        r.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'
+                        r.status === 'completed' ? 'bg-orange-500/20 text-orange-400' : 'bg-amber-500/20 text-amber-400'
                       }`}>{r.status || '—'}</span>
                     </td>
                     <td className="px-4 py-3 text-white/70">{r.modelo || r.model_name || '—'}</td>
@@ -327,7 +337,7 @@ export default async function ModelosPage() {
                   {u.hipotese_categoria && (
                     <span className="text-white/30 text-[10px] ml-2">→ {u.hipotese_categoria}</span>
                   )}
-                  <span className={`ml-2 text-[9px] uppercase ${u.status === 'resolved' ? 'text-green-400' : 'text-amber-400'}`}>
+                  <span className={`ml-2 text-[9px] uppercase ${u.status === 'resolved' ? 'text-orange-400' : 'text-amber-400'}`}>
                     {u.status || 'pendente'}
                   </span>
                 </div>
