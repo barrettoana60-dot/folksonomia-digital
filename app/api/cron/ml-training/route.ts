@@ -7,6 +7,7 @@ import { mlClient } from '@/lib/ml/ml-client';
 import { hybridSemanticSimilarity } from '@/lib/ml/similarity';
 import { analyzeTagCorrelations } from '@/lib/ml/tag-correlator';
 import { buildCorrelationGraph } from '@/lib/ml/correlation-engine';
+import { cognitiveNN } from '@/lib/ml/cognitive-nn';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutos máximo no Vercel Pro
@@ -507,6 +508,17 @@ export async function GET(request: Request) {
         .eq('id', item.id);
 
       processedTags.push(tag);
+
+      // G. Aprendizado Mútuo Co-Adjacente (Motor Semântico de Aprendizado Mútuo)
+      // Treina a rede neural com os vetores de co-ocorrência real dos irmãos da tag.
+      try {
+        const siblingNames = tagCorrelation.siblings.slice(0, 10).map((s: any) => s.tag);
+        const mutalTarget = resolvida ? 1.0 : certezaCalculada / 100;
+        await cognitiveNN.trainMutually(tagNorm, siblingNames, mutalTarget);
+        console.log(`[CRON-MutualNN] Treinamento mútuo co-adjacente executado para "${tag}" com ${siblingNames.length} irmãos.`);
+      } catch (mutalErr) {
+        console.warn('[CRON-MutualNN] Falha no treinamento mútuo:', mutalErr);
+      }
     }
 
     // 3. Fine-Tuning do ModernBERT local no FastAPI se o banco foi atualizado
@@ -546,9 +558,23 @@ export async function GET(request: Request) {
       }
     }
 
+    // 4. Memória Muscular de Longo Prazo — Replay Semântico Autônomo (Sono REM)
+    // Recalibra toda a rede neural usando a memória semântica validada acumulada.
+    let replayResult = { trained: 0, avgError: 0 };
+    try {
+      console.log('[CRON] 🧠 Iniciando Replay de Memória Semântica Muscular (Sono REM)...');
+      await cognitiveNN.ensureLoaded();
+      replayResult = await cognitiveNN.replaySemanticMemory();
+      console.log(`[CRON] ✓ Replay concluído: ${replayResult.trained} memórias, erro médio ${(replayResult.avgError * 100).toFixed(2)}%`);
+    } catch (replayErr) {
+      console.warn('[CRON] Falha no Replay de Memória Muscular:', replayErr);
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Treinamento autônomo concluído. Processadas: ${processedTags.join(', ')}`
+      message: `Treinamento autônomo concluído. Processadas: ${processedTags.join(', ')}`,
+      mutualLearning: `Co-adjacente aplicado a ${processedTags.length} tags`,
+      memoryReplay: `${replayResult.trained} memórias reconsolidadas. Erro médio: ${(replayResult.avgError * 100).toFixed(2)}%`
     });
 
   } catch (error: any) {

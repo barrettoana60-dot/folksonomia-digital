@@ -2,7 +2,8 @@
   "crons": [
     {
       "path": "/api/cron/ml-training",
-      "schedule": "0 7 * * *"
+      "schedule": "0 7 * * *",
+      "comment": "Executa às 7h UTC = 4h da manhã (Brasília / BRT = UTC-3) — Treino autônomo + Replay de Memória Muscular"
     }
   ]
 }
