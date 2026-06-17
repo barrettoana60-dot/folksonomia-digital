@@ -1,151 +1,153 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import dynamic from 'next/dynamic';
-import { Network, Search, Filter, Info, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { supabaseClient as supabase } from '@/lib/supabase/client';
+import { Network, ArrowLeft, Info, HelpCircle } from 'lucide-react';
+import NodeGraph from '@/components/NodeGraph';
 
-const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
+interface NodeSocket {
+  id: string;
+  label: string;
+}
+
+interface NodeData {
+  id: string;
+  title: string;
+  subtitle?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  inputs: NodeSocket[];
+  outputs: NodeSocket[];
+  type: 'prompt' | 'image' | 'text' | 'engine' | 'result';
+  content: React.ReactNode;
+}
+
+interface NodeLink {
+  id: string;
+  fromNode: string;
+  fromSocket: string;
+  toNode: string;
+  toSocket: string;
+}
 
 export default function TeiaPublicaPage() {
-  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [nodes, setNodes] = useState<NodeData[]>([]);
+  const [links, setLinks] = useState<NodeLink[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedNode, setSelectedNode] = useState<any>(null);
-  const graphRef = useRef<any>();
 
   useEffect(() => {
-    // Simular dados para demonstração do grafo institucional
-    const data = {
-      nodes: [
-        { id: '1', name: 'Escultura Mãe e Filho', type: 'obra', color: '#E85002' },
-        { id: '2', name: 'Guernica', type: 'obra', color: '#E85002' },
-        { id: '3', name: 'Maternidade', type: 'conceito', color: '#D9C3AB' },
-        { id: '4', name: 'Guerra', type: 'conceito', color: '#D9C3AB' },
-        { id: '5', name: 'mamãe', type: 'tag', color: '#F16001' },
-        { id: '6', name: 'conflito', type: 'tag', color: '#F16001' },
-        { id: '7', name: 'IBRAM/Tainacan', type: 'fonte', color: '#A7A7A7' },
-      ],
-      links: [
-        { source: '1', target: '3', type: 'broader' },
-        { source: '2', target: '4', type: 'broader' },
-        { source: '5', target: '1', type: 'mentions' },
-        { source: '5', target: '3', type: 'closeMatch' },
-        { source: '6', target: '2', type: 'mentions' },
-        { source: '6', target: '4', type: 'closeMatch' },
-        { source: '3', target: '7', type: 'sourceLink' },
-      ]
-    };
-    setGraphData(data);
-    setLoading(false);
+    async function loadGraph() {
+      try {
+        const { data: nucleos } = await supabase
+          .from('nucleos')
+          .select('id, conteudo_original, status_validacao')
+          .limit(8);
+
+        const { data: relacoes } = await supabase
+          .from('relacoes')
+          .select('id, origem_id, destino_id, tipo_relacao')
+          .limit(10);
+
+        if (!nucleos || nucleos.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        const mappedNodes: NodeData[] = nucleos.map((n, index) => {
+          const col = index % 3;
+          const row = Math.floor(index / 3);
+          return {
+            id: n.id,
+            title: `Núcleo Semântico`,
+            subtitle: n.status_validacao.toUpperCase(),
+            x: 50 + col * 320,
+            y: 40 + row * 260,
+            width: 260,
+            height: 160,
+            inputs: [{ id: `in-${n.id}`, label: 'Origem' }],
+            outputs: [{ id: `out-${n.id}`, label: 'Destino' }],
+            type: 'text',
+            content: (
+              <div className="space-y-2 text-xs">
+                <label className="text-[9px] text-white/35 uppercase font-mono">Folksonomia ID: {n.id.substring(0, 8)}</label>
+                <p className="text-white bg-black/40 p-2.5 rounded-xl border border-white/5 font-semibold text-xs leading-normal">
+                  {n.conteudo_original}
+                </p>
+              </div>
+            )
+          };
+        });
+
+        const mappedLinks: NodeLink[] = (relacoes || [])
+          .filter(r => nucleos.some(n => n.id === r.origem_id) && nucleos.some(n => n.id === r.destino_id))
+          .map(r => ({
+            id: r.id || `l-${r.origem_id}-${r.destino_id}`,
+            fromNode: r.origem_id,
+            fromSocket: `out-${r.origem_id}`,
+            toNode: r.destino_id,
+            toSocket: `in-${r.destino_id}`
+          }));
+
+        setNodes(mappedNodes);
+        setLinks(mappedLinks);
+      } catch (e) {
+        console.warn('Erro ao mapear nós da teia, usando fallback:', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadGraph();
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#000000] text-white selection:bg-[#E85002]/30">
-      
-      {/* Header Interativo */}
-      <div className="fixed top-0 left-0 right-0 z-50 p-6 flex items-center justify-between pointer-events-none">
-        <div className="pointer-events-auto">
-          <h1 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-3">
-            <Network className="text-[#E85002]" size={28} />
-            Teia Semântica
-          </h1>
-          <p className="text-white/35 text-[10px] uppercase tracking-wider mt-1">Mapa de conexões e indicadores semânticos</p>
-        </div>
+    <main className="min-h-screen pt-24 pb-20 px-6 bg-[#000000] text-white">
+      <div className="max-w-[1400px] mx-auto space-y-10">
         
-        <div className="pointer-events-auto flex gap-4">
-          <div className="glass-card flex items-center px-4 py-2 gap-3">
-            <Search size={16} className="text-white/40" />
-            <input 
-              placeholder="Buscar núcleo..." 
-              className="bg-transparent border-none outline-none text-sm placeholder:text-white/20 w-48"
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-white/5">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-tight flex items-center gap-3">
+              <Network className="text-[#E85002]" size={30} />
+              Teia Semântica Pública
+            </h1>
+            <p className="text-white/35 text-[11px] uppercase tracking-wider mt-2 font-semibold">
+              Mapa coletivo e associativo de conceitos e acervos
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link href="/" className="liquid-button liquid-glass-orange flex items-center gap-2">
+              <ArrowLeft size={14} /> Voltar ao Início
+            </Link>
+          </div>
+        </div>
+
+        {/* Node Editor Frame */}
+        <div className="rounded-3xl border border-white/5 overflow-hidden bg-black/40">
+          {loading ? (
+            <div className="h-[600px] flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : (
+            <NodeGraph 
+              initialNodes={nodes.length > 0 ? nodes : undefined} 
+              initialLinks={links.length > 0 ? links : undefined} 
             />
-          </div>
-          <button className="liquid-button !p-3">
-            <Filter size={18} />
-          </button>
+          )}
         </div>
+
+        {/* Info Box */}
+        <div className="glass-card p-6 border border-white/5 bg-[#121214]/10 text-center">
+          <p className="text-white/40 text-xs leading-relaxed max-w-2xl mx-auto flex items-center justify-center gap-2">
+            <Info size={16} className="text-[#00A3FF]" />
+            Você pode arrastar e organizar os blocos para explorar as conexões conceituais mapeadas pela curadoria institucional.
+          </p>
+        </div>
+
       </div>
-
-      {/* Canvas do Grafo */}
-      <div className="w-full h-screen">
-        {!loading && (
-          <ForceGraph2D
-            ref={graphRef}
-            graphData={graphData}
-            backgroundColor="#000000"
-            nodeLabel="name"
-            nodeRelSize={6}
-            nodeColor={node => (node as any).color}
-            linkColor={() => 'rgba(255, 255, 255, 0.1)'}
-            linkDirectionalParticles={2}
-            linkDirectionalParticleSpeed={0.005}
-            onNodeClick={(node) => setSelectedNode(node)}
-            width={typeof window !== 'undefined' ? window.innerWidth : 1200}
-            height={typeof window !== 'undefined' ? window.innerHeight : 800}
-          />
-        )}
-      </div>
-
-      {/* Painel Lateral de Detalhes (Friendly) */}
-      {selectedNode && (
-        <div className="fixed top-24 right-6 bottom-6 w-80 glass-card p-8 animate-in slide-in-from-right-10 duration-500 z-50 overflow-y-auto">
-          <div className="flex items-center justify-between mb-8">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#E85002]">{selectedNode.type}</span>
-            <button onClick={() => setSelectedNode(null)} className="text-white/30 hover:text-white">
-              <X size={20} />
-            </button>
-          </div>
-
-          <h2 className="text-xl font-light serif-title mb-6">{selectedNode.name}</h2>
-          
-          <div className="space-y-6">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45 mb-3 flex items-center gap-2">
-                <Info size={12} /> Camadas do Registro
-              </p>
-              <div className="space-y-2">
-                <div className="p-3 bg-white/5 rounded-lg border border-white/5">
-                  <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Origem da Informação</p>
-                  <p className="text-xs">Participação Colaborativa</p>
-                </div>
-                <div className="p-3 bg-white/5 rounded-lg border border-white/5">
-                  <p className="text-[10px] text-white/35 uppercase tracking-wider font-semibold">Estado de Validação</p>
-                  <p className="text-xs text-orange-400">Validado institucionalmente</p>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45 mb-3">Relações Encontradas</p>
-              <div className="flex flex-wrap gap-2">
-                {['Maternidade', 'Afeto', 'Cuidado'].map(tag => (
-                  <span key={tag} className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-medium uppercase tracking-wider">{tag}</span>
-                ))}
-              </div>
-            </div>
-
-            <button className="liquid-button w-full mt-4 text-xs font-semibold tracking-wider">
-              Ver Trilha de Validação
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Legenda Institucional */}
-      <div className="fixed bottom-6 left-6 glass-card px-6 py-4 flex gap-6 text-[10px] font-semibold uppercase tracking-wider text-white/45">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#E85002]" /> Obra
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#F16001]" /> Tag pública
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#D9C3AB]" /> Conceito
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#A7A7A7]" /> Fonte externa
-        </div>
-      </div>
-
     </main>
   );
 }

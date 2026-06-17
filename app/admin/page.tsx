@@ -8,10 +8,8 @@ import {
   Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-
-const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
-
 import Logo from '@/components/Logo';
+import NodeGraph from '@/components/NodeGraph';
 
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
@@ -309,6 +307,56 @@ export default function AdminPage() {
 
     return { nodes, links };
   }, [dashboardData]);
+
+  const nodeGraphData = useMemo(() => {
+    const nodesList = (graphData.nodes || []).map((node: any, index: number) => {
+      const col = index % 3;
+      const row = Math.floor(index / 3);
+      const isGroup = node.group === 2;
+      return {
+        id: node.id,
+        title: isGroup ? 'Grupo Temático' : 'Núcleo / Tag',
+        subtitle: isGroup ? 'CATEGORIA' : 'CONCEITO',
+        x: 50 + col * 340,
+        y: 40 + row * 240,
+        width: 280,
+        height: 160,
+        inputs: [{ id: `in-${node.id}`, label: 'Origem' }],
+        outputs: [{ id: `out-${node.id}`, label: 'Destino' }],
+        type: isGroup ? 'engine' : 'prompt',
+        content: (
+          <div className="space-y-2 text-xs">
+            <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 flex items-center justify-between">
+              <span className="font-semibold text-white/90 truncate mr-2">{node.id}</span>
+              <button 
+                onClick={() => {
+                  handleTagAnalysis(node.id);
+                  setGraphNodeSelected(node.id);
+                }}
+                className="text-[10px] text-[#00A3FF] hover:underline flex-shrink-0"
+              >
+                Analisar
+              </button>
+            </div>
+          </div>
+        )
+      };
+    });
+
+    const linksList = (graphData.links || []).map((link: any, idx: number) => {
+      const fromId = typeof link.source === 'object' ? link.source.id : link.source;
+      const toId = typeof link.target === 'object' ? link.target.id : link.target;
+      return {
+        id: `l-${idx}-${fromId}-${toId}`,
+        fromNode: fromId,
+        fromSocket: `out-${fromId}`,
+        toNode: toId,
+        toSocket: `in-${toId}`
+      };
+    });
+
+    return { nodes: nodesList, links: linksList };
+  }, [graphData]);
 
   const handleExportCSV = () => {
     const data = [['ID', 'Obra', 'Tag', 'Visitante', 'Data'], ['1', 'Guernica', 'Caos', 'Visitante #A2', '2026-04-26']];
@@ -1456,34 +1504,10 @@ export default function AdminPage() {
                  {/* O GRAFO ATIVO MOVIDO PARA CÁ COMO PEDIDO NA ETAPA 4 */}
                  <div className="glass-card overflow-hidden h-[600px] relative border border-[#E85002]/30">
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#E85002]/10 via-transparent to-transparent opacity-50 z-0"></div>
-                    <ForceGraph2D
-                     graphData={graphData}
-                     nodeLabel="id"
-                     backgroundColor="transparent"
-                     linkColor={() => 'rgba(255,255,255,0.1)'}
-                     nodeRelSize={8}
-                     nodeCanvasObject={(node: any, ctx, globalScale) => {
-                       const label = node.id;
-                       const fontSize = 14/globalScale;
-                       ctx.font = `${fontSize}px Inter`;
-                       
-                       // Diferencia nó de Obra (1) e nó de Grupo Temático (2) e nó de Factual (3)
-                       ctx.fillStyle = node.group === 1 ? '#ffffff' : node.group === 2 ? '#E85002' : '#aaaaaa';
-                       ctx.beginPath(); 
-                       ctx.arc(node.x, node.y, 6, 0, 2 * Math.PI, false); 
-                       ctx.fill();
-                       
-                       ctx.fillStyle = 'rgba(255,255,255,0.9)'; 
-                       ctx.fillText(label, node.x + 10, node.y + (fontSize/3));
-                     }}
-                     onNodeClick={(node: any) => {
-                       // Executar análise cerebral do nó clicado
-                       handleTagAnalysis(node.id);
-                       setGraphNodeSelected(node.id);
-                     }}
-                     width={1300}
-                     height={600}
-                   />
+                    <NodeGraph 
+                      initialNodes={nodeGraphData.nodes.length > 0 ? nodeGraphData.nodes : undefined} 
+                      initialLinks={nodeGraphData.links.length > 0 ? nodeGraphData.links : undefined} 
+                    />
                  </div>
  
                  {/* Modal de Análise Neural do Nó Clicado */}

@@ -105,22 +105,78 @@ body {
 
 .liquid-button {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: white;
-  padding: 0.8rem 2rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .liquid-button:hover {
-  background: rgba(232, 80, 2, 0.15);
-  border-color: rgba(232, 80, 2, 0.3);
-  box-shadow: 0 0 20px rgba(232, 80, 2, 0.2);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
+}
+
+/* Liquid Glass Colors */
+.liquid-glass-orange {
+  background: rgba(232, 80, 2, 0.08);
+  border-color: rgba(232, 80, 2, 0.25);
+  color: #ff8533;
+}
+.liquid-glass-orange:hover {
+  background: rgba(232, 80, 2, 0.18);
+  border-color: rgba(232, 80, 2, 0.45);
+  box-shadow: 0 0 15px rgba(232, 80, 2, 0.25);
+  color: #ffffff;
+}
+
+.liquid-glass-blue {
+  background: rgba(0, 163, 255, 0.08);
+  border-color: rgba(0, 163, 255, 0.25);
+  color: #66c7ff;
+}
+.liquid-glass-blue:hover {
+  background: rgba(0, 163, 255, 0.18);
+  border-color: rgba(0, 163, 255, 0.45);
+  box-shadow: 0 0 15px rgba(0, 163, 255, 0.25);
+  color: #ffffff;
+}
+
+.liquid-glass-red {
+  background: rgba(255, 59, 48, 0.08);
+  border-color: rgba(255, 59, 48, 0.25);
+  color: #ff7b72;
+}
+.liquid-glass-red:hover {
+  background: rgba(255, 59, 48, 0.18);
+  border-color: rgba(255, 59, 48, 0.45);
+  box-shadow: 0 0 15px rgba(255, 59, 48, 0.25);
+  color: #ffffff;
+}
+
+.liquid-glass-green {
+  background: rgba(52, 199, 89, 0.08);
+  border-color: rgba(52, 199, 89, 0.25);
+  color: #8ce8a5;
+}
+.liquid-glass-green:hover {
+  background: rgba(52, 199, 89, 0.18);
+  border-color: rgba(52, 199, 89, 0.45);
+  box-shadow: 0 0 15px rgba(52, 199, 89, 0.25);
+  color: #ffffff;
 }
 
 .liquid-input {

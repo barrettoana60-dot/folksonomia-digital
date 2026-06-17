@@ -23,6 +23,30 @@ export default function Header() {
     }
   };
 
+  // Profile Dropdown state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const checkToken = () => {
+      const token = localStorage.getItem('admin_token');
+      setIsAdmin(!!token);
+    };
+    checkToken();
+    // Listen to storage events (in case token changes in other tabs)
+    window.addEventListener('storage', checkToken);
+    return () => window.removeEventListener('storage', checkToken);
+  }, [pathname]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    setIsAdmin(false);
+    setDropdownOpen(false);
+    router.push('/');
+    // Trigger storage event manually for same-tab updates
+    window.dispatchEvent(new Event('storage'));
+  };
+
   return (
     <header className="fixed top-0 left-0 w-full z-50 h-16 md:h-20 flex items-center justify-between px-6 md:px-12 bg-black/40 backdrop-blur-xl border-b border-white/5 print:hidden">
       
@@ -43,7 +67,7 @@ export default function Header() {
       </div>
 
       {/* Nav */}
-      <nav className="flex items-center gap-4 md:gap-12">
+      <nav className="flex items-center gap-4 md:gap-12 relative">
         {hasQuiz && (
           <button 
             onClick={() => router.push('/obras')}
@@ -63,13 +87,62 @@ export default function Header() {
         >
           Acessibilidade
         </button>
+
+        {pathname !== '/' && (
+          <button 
+            onClick={() => router.push('/teia')}
+            className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#E85002] ${
+               pathname === '/teia' ? 'text-[#E85002]' : 'text-white/60'
+            }`}
+          >
+            Teia Semântica
+          </button>
+        )}
         
-        <Link 
-          href="/login" 
-          className="liquid-button !py-2 !px-4 md:!py-2.5 md:!px-8 !rounded-lg md:!rounded-xl !text-[10px] md:!text-[11px] !bg-white/5 !border-white/10"
-        >
-          {pathname === '/admin' ? 'PAINEL' : 'GESTÃO'}
-        </Link>
+        {isAdmin ? (
+          <div className="relative">
+            <button 
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs"
+            >
+              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#E85002] to-[#00A3FF] flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                C
+              </div>
+              <span className="text-white/80 hidden sm:inline">Curador NUGEP</span>
+            </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-[#0f0f11] border border-white/10 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="px-3 py-2 border-b border-white/5 mb-1.5">
+                  <p className="text-xs font-semibold text-white">NUGEP Curador</p>
+                  <p className="text-[9px] text-white/45 uppercase tracking-wider mt-0.5">Administrador</p>
+                </div>
+                {pathname !== '/admin' && (
+                  <Link 
+                    href="/admin" 
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/70 hover:bg-white/5 hover:text-white transition-all text-left"
+                  >
+                    Painel Gestão
+                  </Link>
+                )}
+                <button 
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all text-left"
+                >
+                  Sair
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link 
+            href="/login" 
+            className="liquid-button !py-2 !px-4 md:!py-2.5 md:!px-8 !rounded-lg md:!rounded-xl !text-[10px] md:!text-[11px] !bg-white/5 !border-white/10"
+          >
+            GESTÃO
+          </Link>
+        )}
       </nav>
 
     </header>
