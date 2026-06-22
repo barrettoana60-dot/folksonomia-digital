@@ -324,6 +324,7 @@ export default function AdminPage() {
         inputs: [{ id: `in-${node.id}`, label: 'Origem' }],
         outputs: [{ id: `out-${node.id}`, label: 'Destino' }],
         type: isGroup ? 'engine' : 'prompt',
+        status: node.status || (isGroup ? 'validado' : 'em_analise'),
         content: (
           <div className="space-y-2 text-xs">
             <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 flex items-center justify-between">
@@ -347,11 +348,15 @@ export default function AdminPage() {
       const fromId = typeof link.source === 'object' ? link.source.id : link.source;
       const toId = typeof link.target === 'object' ? link.target.id : link.target;
       return {
-        id: `l-${idx}-${fromId}-${toId}`,
+        id: link.id || `l-${idx}-${fromId}-${toId}`,
         fromNode: fromId,
         fromSocket: `out-${fromId}`,
         toNode: toId,
-        toSocket: `in-${toId}`
+        toSocket: `in-${toId}`,
+        tipo_relacao: link.tipo_relacao || 'closeMatch',
+        peso: link.peso || 0.8,
+        hash_dna: link.hash_dna,
+        metadados: link.metadados
       };
     });
 

@@ -34,6 +34,13 @@ export class CognitiveNeuralNetwork {
   private learningRate: number = 0.05;
   private isLoaded: boolean = false;
 
+  // Matematica Avancada: Velocidades para Momentum e Contador para Decay
+  private vWeights1: number[][];
+  private vBias1: number[];
+  private vWeights2: number[];
+  private vBias2: number;
+  private trainStepCount: number = 0;
+
   constructor() {
     // Inicialização He/Xavier básica para fallback
     this.weights1 = Array.from({ length: HIDDEN_DIM }, () =>
@@ -41,6 +48,12 @@ export class CognitiveNeuralNetwork {
     );
     this.bias1 = Array(HIDDEN_DIM).fill(0);
     
+    // Inicialização das velocidades para momentum
+    this.vWeights1 = Array.from({ length: HIDDEN_DIM }, () => Array(INPUT_DIM).fill(0));
+    this.vBias1 = Array(HIDDEN_DIM).fill(0);
+    this.vWeights2 = Array(HIDDEN_DIM).fill(0);
+    this.vBias2 = 0;
+
     // Warm-start: Pesos iniciais da camada oculta para corresponder 
     // aproximadamente às heurísticas de pontuação estática originais.
     // Fatores de entrada:
@@ -208,12 +221,16 @@ export class CognitiveNeuralNetwork {
     return error;
   }
 
-  /**
-   * Treina a rede neural utilizando Retropropagação (Backpropagation) online
-   * baseado em um único exemplo de feedback.
-   */
   public async trainStep(input: number[], target: number): Promise<number> {
     await this.ensureLoaded();
+
+    this.trainStepCount++;
+    // Learning Rate Decay
+    const lr = this.learningRate / (1 + 0.0005 * this.trainStepCount);
+    // Momentum coefficient
+    const alpha = 0.9;
+    // L2 Regularization (weight decay)
+    const lambda = 0.001;
 
     // 1. Forward Pass
     const { output, hidden } = this.forward(input);
@@ -231,19 +248,28 @@ export class CognitiveNeuralNetwork {
       hiddenDeltas[i] = outputDelta * this.weights2[i] * deriv;
     }
 
-    // 3. Atualização de Pesos e Bias (Gradient Descent)
+    // 3. Atualização de Pesos e Bias com Regularização L2 e Momentum
     // Atualizar camada de saída
     for (let i = 0; i < HIDDEN_DIM; i++) {
-      this.weights2[i] += this.learningRate * outputDelta * hidden[i];
+      const dW2 = lr * outputDelta * hidden[i] - lr * lambda * this.weights2[i];
+      this.vWeights2[i] = alpha * this.vWeights2[i] + dW2;
+      this.weights2[i] += this.vWeights2[i];
     }
-    this.bias2 += this.learningRate * outputDelta;
+    
+    const dB2 = lr * outputDelta;
+    this.vBias2 = alpha * this.vBias2 + dB2;
+    this.bias2 += this.vBias2;
 
     // Atualizar camada oculta
     for (let i = 0; i < HIDDEN_DIM; i++) {
       for (let j = 0; j < INPUT_DIM; j++) {
-        this.weights1[i][j] += this.learningRate * hiddenDeltas[i] * input[j];
+        const dW1 = lr * hiddenDeltas[i] * input[j] - lr * lambda * this.weights1[i][j];
+        this.vWeights1[i][j] = alpha * this.vWeights1[i][j] + dW1;
+        this.weights1[i][j] += this.vWeights1[i][j];
       }
-      this.bias1[i] += this.learningRate * hiddenDeltas[i];
+      const dB1 = lr * hiddenDeltas[i];
+      this.vBias1[i] = alpha * this.vBias1[i] + dB1;
+      this.bias1[i] += this.vBias1[i];
     }
 
     // 4. Persistir pesos no banco

@@ -48,7 +48,7 @@ export default function TeiaPage() {
 
         const { data: relacoes } = await supabase
           .from('relacoes')
-          .select('id, origem_id, destino_id, tipo_relacao')
+          .select('id, origem_id, destino_id, tipo_relacao, peso, hash_dna, metadados')
           .limit(10);
 
         if (!nucleos || nucleos.length === 0) {
@@ -70,6 +70,7 @@ export default function TeiaPage() {
             inputs: [{ id: `in-${n.id}`, label: 'Origem' }],
             outputs: [{ id: `out-${n.id}`, label: 'Destino' }],
             type: 'text',
+            status: n.status_validacao,
             content: (
               <div className="space-y-2 text-xs">
                 <label className="text-[9px] text-white/35 uppercase font-mono">Folksonomia ID: {n.id.substring(0, 8)}</label>
@@ -88,7 +89,11 @@ export default function TeiaPage() {
             fromNode: r.origem_id,
             fromSocket: `out-${r.origem_id}`,
             toNode: r.destino_id,
-            toSocket: `in-${r.destino_id}`
+            toSocket: `in-${r.destino_id}`,
+            tipo_relacao: r.tipo_relacao || 'closeMatch',
+            peso: r.peso || 0.8,
+            hash_dna: r.hash_dna,
+            metadados: r.metadados
           }));
 
         setNodes(mappedNodes);

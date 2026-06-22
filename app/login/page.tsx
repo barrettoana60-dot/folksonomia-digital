@@ -5,22 +5,21 @@ import { useRouter } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim().toLowerCase();
     
     // Suportar 'nugep 123' ou 'nugep123'
-    if (cleanUser === 'nugep' && (cleanPass === 'nugep 123' || cleanPass === 'nugep123')) {
+    if (cleanPass === 'nugep 123' || cleanPass === 'nugep123') {
       localStorage.setItem('admin_token', 'true');
       router.push('/admin');
+      window.dispatchEvent(new Event('storage'));
     } else {
-      setError('Credenciais Institucionais Inválidas');
+      setError('Senha Curatorial Inválida');
     }
   };
 
@@ -47,23 +46,13 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-8">
             <div className="space-y-6">
               <div className="space-y-3">
-                <label className="text-[11px] uppercase tracking-wider font-semibold text-white/45 ml-2">Identificação</label>
-                <input 
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="liquid-input w-full"
-                  placeholder="nugep"
-                />
-              </div>
-              <div className="space-y-3">
-                <label className="text-[11px] uppercase tracking-wider font-semibold text-white/45 ml-2">Senha Institucional</label>
+                <label className="text-[11px] uppercase tracking-wider font-semibold text-white/45 ml-2">Senha Curatorial</label>
                 <input 
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="liquid-input w-full"
-                  placeholder="••••••••"
+                  placeholder="Insira a senha do curador"
                 />
               </div>
             </div>

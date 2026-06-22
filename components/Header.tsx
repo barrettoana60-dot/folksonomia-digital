@@ -88,7 +88,7 @@ export default function Header() {
           Acessibilidade
         </button>
 
-        {pathname !== '/' && (
+        {pathname !== '/' && isAdmin && (
           <button 
             onClick={() => router.push('/teia')}
             className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#E85002] ${
