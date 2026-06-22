@@ -1506,14 +1506,21 @@ export default function AdminPage() {
                     </div>
                  </div>
                  
-                 {/* O GRAFO ATIVO MOVIDO PARA CÁ COMO PEDIDO NA ETAPA 4 */}
-                 <div className="glass-card overflow-hidden h-[600px] relative border border-[#E85002]/30">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#E85002]/10 via-transparent to-transparent opacity-50 z-0"></div>
-                    <NodeGraph 
-                      initialNodes={nodeGraphData.nodes.length > 0 ? nodeGraphData.nodes : undefined} 
-                      initialLinks={nodeGraphData.links.length > 0 ? nodeGraphData.links : undefined} 
-                    />
-                 </div>
+                 {/* Redirecionar para o painel de curadoria clássico onde o curador pode dar análise e validar ligações e demarcações */}
+                  <div className="glass-card p-12 text-center border-orange-500/30 border space-y-6">
+                    <CheckCircle size={48} className="mx-auto text-[#E85002]" />
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-normal serif-title">Painel de Validação e Curadoria Ativa</h3>
+                      <p className="text-white/50 text-sm max-w-lg mx-auto">
+                        Acesse a trilha de validação dedicada para aprovar/rejeitar demarcações, ajustar ligações e visualizar o DNA Semântico imutável.
+                      </p>
+                    </div>
+                    <Link href="/admin/validacao" className="liquid-button !bg-[#E85002] inline-flex items-center gap-2">
+                       Acessar Painel de Validação <ArrowRight size={14} />
+                    </Link>
+                  </div>
+                 
+
  
                  {/* Modal de Análise Neural do Nó Clicado */}
                  {graphNodeSelected && tagAnalysisResult && !isAnalyzingTag && (
