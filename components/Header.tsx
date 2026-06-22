@@ -88,16 +88,6 @@ export default function Header() {
           Acessibilidade
         </button>
 
-        {pathname !== '/' && isAdmin && (
-          <button 
-            onClick={() => router.push('/admin/grafo')}
-            className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#E85002] ${
-               pathname === '/admin/grafo' ? 'text-[#E85002]' : 'text-white/60'
-            }`}
-          >
-            Grafo
-          </button>
-        )}
         
         {isAdmin ? (
           <div className="relative">
