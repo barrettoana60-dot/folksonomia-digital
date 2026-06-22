@@ -9,34 +9,23 @@ export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const [hasQuiz, setHasQuiz] = useState(false);
-
-  useEffect(() => {
-    const completed = localStorage.getItem('visitante_quiz_completado');
-    setHasQuiz(!!completed);
-  }, [pathname]);
-
-  const handleNav = (href: string) => {
-    if (hasQuiz && href === '/') {
-      router.push('/obras');
-    } else {
-      router.push(href);
-    }
-  };
-
-  // Profile Dropdown state
   const [isAdmin, setIsAdmin] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+    const completed = localStorage.getItem('visitante_quiz_completado');
+    setHasQuiz(!!completed);
+    
     const checkToken = () => {
       const token = localStorage.getItem('admin_token');
       setIsAdmin(!!token);
     };
     checkToken();
-    // Listen to storage events (in case token changes in other tabs)
     window.addEventListener('storage', checkToken);
     return () => window.removeEventListener('storage', checkToken);
-  }, [pathname]);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
@@ -52,7 +41,7 @@ export default function Header() {
       
       {/* Branding */}
       <div 
-        onClick={() => handleNav('/')} 
+        onClick={() => router.push('/')} 
         className="flex items-center gap-3 md:gap-5 group cursor-pointer"
       >
         <Logo className="w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-110" />

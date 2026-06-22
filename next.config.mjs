@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ['onnxruntime-node', '@xenova/transformers'],
   webpack: (config) => {
     config.resolve.alias = {
         ...config.resolve.alias,
