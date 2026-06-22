@@ -7,7 +7,7 @@ export default function TeiaPublicaPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/admin/teia');
+    router.replace('/admin/grafo');
   }, [router]);
 
   return (

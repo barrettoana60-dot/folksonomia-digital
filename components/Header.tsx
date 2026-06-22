@@ -90,12 +90,12 @@ export default function Header() {
 
         {pathname !== '/' && isAdmin && (
           <button 
-            onClick={() => router.push('/admin/teia')}
+            onClick={() => router.push('/admin/grafo')}
             className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#E85002] ${
-               pathname === '/admin/teia' ? 'text-[#E85002]' : 'text-white/60'
+               pathname === '/admin/grafo' ? 'text-[#E85002]' : 'text-white/60'
             }`}
           >
-            Teia Semântica
+            Grafo
           </button>
         )}
         

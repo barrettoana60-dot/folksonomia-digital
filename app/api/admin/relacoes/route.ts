@@ -267,7 +267,7 @@ export async function DELETE(req: Request) {
         entidade_tipo: 'relacao',
         entidade_id: id,
         tipo_evento: 'validacao_rejeitado',
-        resumo: `Ligação ID ${id} excluída da teia semântica pelo curador.`
+        resumo: `Ligação ID ${id} excluída do grafo semântico pelo curador.`
       });
     } catch {
       // Ignorar falha de eventos

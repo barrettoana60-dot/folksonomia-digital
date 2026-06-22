@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabaseClient as supabase } from '@/lib/supabase/client';
-import { Share2, Maximize2, ArrowLeft, Network } from 'lucide-react';
+import { ArrowLeft, Network } from 'lucide-react';
 import NodeGraph from '@/components/NodeGraph';
 
 interface NodeSocket {
@@ -33,7 +33,7 @@ interface NodeLink {
   toSocket: string;
 }
 
-export default function TeiaPage() {
+export default function GrafoPage() {
   const [nodes, setNodes] = useState<NodeData[]>([]);
   const [links, setLinks] = useState<NodeLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +99,7 @@ export default function TeiaPage() {
         setNodes(mappedNodes);
         setLinks(mappedLinks);
       } catch (e) {
-        console.warn('Erro ao mapear nós da teia, usando fallback:', e);
+        console.warn('Erro ao mapear nós do grafo, usando fallback:', e);
       } finally {
         setLoading(false);
       }
@@ -116,7 +116,7 @@ export default function TeiaPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-tight flex items-center gap-3">
               <Network className="text-[#E85002]" size={30} />
-              Teia Semântica (Grafo de Fluxo)
+              Grafo Semântico de Fluxo
             </h1>
             <p className="text-white/35 text-[11px] uppercase tracking-wider mt-2 font-semibold">
               Mapa conceitual e proveniência modelados em nó-editor

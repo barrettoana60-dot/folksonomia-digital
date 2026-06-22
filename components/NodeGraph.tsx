@@ -166,6 +166,17 @@ export default function NodeGraph({ initialNodes, initialLinks, interactive = tr
   const [submittingRelation, setSubmittingRelation] = useState(false);
   const [actionStatus, setActionStatus] = useState('');
 
+  const translateRelationType = (type: string): string => {
+    const mapping: Record<string, string> = {
+      closeMatch: 'Correspondência Próxima',
+      exactMatch: 'Correspondência Exata',
+      broader: 'Termo Genérico',
+      narrower: 'Termo Específico',
+      related: 'Termo Associado'
+    };
+    return mapping[type] || type || 'LIGAÇÃO';
+  };
+
   function nodesFromProps(propNodes?: NodeData[]): NodeData[] | null {
     if (!propNodes) return null;
     return propNodes.map(n => ({
@@ -571,11 +582,11 @@ export default function NodeGraph({ initialNodes, initialLinks, interactive = tr
                   onChange={e => setRelType(e.target.value)}
                   className="w-full bg-[#131315] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-[#ff8533]"
                 >
-                  <option value="closeMatch">Correspondência Próxima (closeMatch)</option>
-                  <option value="exactMatch">Correspondência Exata (exactMatch)</option>
-                  <option value="broader">Termo Genérico (broader)</option>
-                  <option value="narrower">Termo Específico (narrower)</option>
-                  <option value="related">Termo Associado (related)</option>
+                  <option value="closeMatch">Correspondência Próxima</option>
+                  <option value="exactMatch">Correspondência Exata</option>
+                  <option value="broader">Termo Genérico</option>
+                  <option value="narrower">Termo Específico</option>
+                  <option value="related">Termo Associado</option>
                 </select>
 
                 <div className="space-y-1">
@@ -620,7 +631,7 @@ export default function NodeGraph({ initialNodes, initialLinks, interactive = tr
                       <div key={link.id} className="bg-black/30 border border-white/5 rounded-xl p-2.5 flex items-center justify-between text-xs gap-2">
                         <div className="truncate">
                           <span className="text-[9px] font-mono text-white/30 uppercase block">
-                            {link.tipo_relacao || 'LIGAÇÃO'} ({Math.round((link.peso || 0.8) * 100)}%)
+                            {translateRelationType(link.tipo_relacao)} ({Math.round((link.peso || 0.8) * 100)}%)
                           </span>
                           <span className="text-white/80 font-light truncate block">
                             {isFromMe ? '→' : '←'} {otherNode?.title || otherNodeId.substring(0,8)}
@@ -667,7 +678,7 @@ export default function NodeGraph({ initialNodes, initialLinks, interactive = tr
                       {link.metadados && (
                         <div className="space-y-1.5 text-[9px] text-white/50 leading-relaxed font-light">
                           {link.metadados.externalApis && link.metadados.externalApis.length > 0 && (
-                            <p className="flex items-center gap-1"><Globe size={9} className="text-[#00A3FF]" /> {link.metadados.externalApis[0].fonte.toUpperCase()} Matched</p>
+                            <p className="flex items-center gap-1"><Globe size={9} className="text-[#00A3FF]" /> Correspondido com {link.metadados.externalApis[0].fonte.toUpperCase()}</p>
                           )}
                           {link.metadados.bibliographies && (
                             <p className="flex items-center gap-1"><FileText size={9} className="text-[#34C759]" /> DNA Registro Imutável</p>
