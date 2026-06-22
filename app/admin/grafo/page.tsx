@@ -21,8 +21,9 @@ interface NodeData {
   height: number;
   inputs: NodeSocket[];
   outputs: NodeSocket[];
-  type: 'prompt' | 'image' | 'text' | 'engine' | 'result';
+  type: string;
   content: React.ReactNode;
+  status: string;
 }
 
 interface NodeLink {

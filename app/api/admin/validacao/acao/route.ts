@@ -1,7 +1,22 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+
+export const dynamic = 'force-dynamic';
+
+const EXPECTED_TOKENS = [
+  crypto.createHash('sha256').update('nugep123-nugep-curator-salt-2026').digest('hex'),
+  crypto.createHash('sha256').update('nugep 123-nugep-curator-salt-2026').digest('hex')
+];
+
+function checkAuthToken(req: Request): boolean {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return false;
+  const token = authHeader.replace('Bearer ', '').trim();
+  return EXPECTED_TOKENS.includes(token);
+}
 
 function saveValidationLocally(data: any) {
   try {
@@ -23,15 +38,52 @@ function saveValidationLocally(data: any) {
 
 export async function POST(req: Request) {
   try {
-    const { id, action, justificativa } = await req.json();
-
-    if (!id || !action) {
-      return NextResponse.json({ success: false, error: 'Missing ID or Action' }, { status: 400 });
+    if (!checkAuthToken(req)) {
+      return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 });
     }
 
+    const body = await req.json();
+    const { id, action, justificativa, conteudo_original, conteudo_normalizado, confianca, metadados } = body;
+
+    if (!id || !action) {
+      return NextResponse.json({ success: false, error: 'Faltando ID ou Ação' }, { status: 400 });
+    }
+
+    // Ação 1: Ajustar (editar) demarcação
+    if (action === 'editar') {
+      const updateData: any = {
+        atualizado_em: new Date().toISOString()
+      };
+
+      if (conteudo_original !== undefined) updateData.conteudo_original = conteudo_original;
+      if (conteudo_normalizado !== undefined) updateData.conteudo_normalizado = conteudo_normalizado;
+      if (confianca !== undefined) updateData.confianca = confianca;
+      if (metadados !== undefined) updateData.metadados = metadados;
+
+      const { error: updateError } = await supabaseAdmin
+        .from('nucleos')
+        .update(updateData)
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+
+      // Event log
+      try {
+        await supabaseAdmin.from('eventos').insert({
+          entidade_tipo: 'nucleo',
+          entidade_id: id,
+          tipo_evento: 'tag_editada',
+          resumo: `Demarcação semântica (ID: ${id}) foi ajustada pelo curador.`
+        });
+      } catch { /* ignore */ }
+
+      return NextResponse.json({ success: true, message: 'Demarcação ajustada com sucesso' });
+    }
+
+    // Ação 2: Validar ou Rejeitar demarcação
     const newStatus = action === 'validar' ? 'validado' : 'rejeitado';
 
-    // 1. Atualizar o nucleo
+    // Atualizar o status do núcleo
     const { error: updateError } = await supabaseAdmin
       .from('nucleos')
       .update({ status_validacao: newStatus, atualizado_em: new Date().toISOString() })
@@ -39,7 +91,7 @@ export async function POST(req: Request) {
 
     if (updateError) throw updateError;
 
-    // 2. Registrar na tabela de validacoes (proveniencia)
+    // Registrar na tabela de validacoes (proveniencia)
     try {
       const { error: validacaoError } = await supabaseAdmin
         .from('validacoes')
@@ -67,4 +119,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
-

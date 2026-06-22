@@ -12,12 +12,43 @@ export default function AdminLayout({
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    if (!token) {
-      router.push('/login');
-    } else {
-      setAuthorized(true);
+    async function checkAuth() {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/auth/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authorized) {
+            setAuthorized(true);
+            return;
+          }
+        }
+
+        // Se falhar na validação
+        localStorage.removeItem('admin_token');
+        router.push('/login');
+      } catch (err) {
+        console.error('Erro ao verificar autenticação com o backend:', err);
+        // Fallback temporário apenas se o backend estiver inacessível e houver token
+        if (token && token.length > 10) {
+          setAuthorized(true);
+        } else {
+          router.push('/login');
+        }
+      }
     }
+
+    checkAuth();
   }, [router]);
 
   if (!authorized) {
@@ -30,3 +61,4 @@ export default function AdminLayout({
 
   return <>{children}</>;
 }
+

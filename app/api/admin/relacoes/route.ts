@@ -3,10 +3,24 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { IbramConnector } from '@/lib/connectors/ibram';
+import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
 
 export const dynamic = 'force-dynamic';
 
 const localRelationsFilePath = path.join(process.cwd(), 'scratch', 'local_relations.json');
+
+const EXPECTED_TOKENS = [
+  crypto.createHash('sha256').update('nugep123-nugep-curator-salt-2026').digest('hex'),
+  crypto.createHash('sha256').update('nugep 123-nugep-curator-salt-2026').digest('hex')
+];
+
+function checkAuthToken(req: Request): boolean {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return false;
+  const token = authHeader.replace('Bearer ', '').trim();
+  return EXPECTED_TOKENS.includes(token);
+}
 
 function readLocalRelations(): any[] {
   try {
@@ -36,7 +50,6 @@ function writeLocalRelations(relations: any[]) {
   }
 }
 
-// Helper to generate a SHA-256 hash (Semantic DNA)
 function generateSemanticDna(payload: any): string {
   const hash = crypto.createHash('sha256');
   hash.update(JSON.stringify(payload));
@@ -47,8 +60,12 @@ function generateSemanticDna(payload: any): string {
  * GET /api/admin/relacoes
  * List all knowledge relations in the database or fallback.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    if (!checkAuthToken(req)) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('relacoes')
       .select('*')
@@ -72,6 +89,10 @@ export async function GET() {
  */
 export async function POST(req: Request) {
   try {
+    if (!checkAuthToken(req)) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { origem_id, destino_id, tipo_relacao, peso, metodo, fonte } = body;
 
@@ -115,6 +136,31 @@ export async function POST(req: Request) {
       externalResults = extRes.data || [];
     } catch {
       // Ignorar erro se tabela resultados_externos não existe
+    }
+
+    // Enriquecimento em tempo real consultando as APIs dos acervos nacionais (IBRAM/Brasiliana) se resultados externos estiver vazio
+    if (externalResults.length === 0) {
+      try {
+        const ibram = new IbramConnector();
+        const brasiliana = new BrasilianaConnector();
+        
+        const [ibramOrigem, ibramDestino, brasilianaOrigem, brasilianaDestino] = await Promise.all([
+          ibram.searchExternalSource(nOrigem.conteudo_original).catch(() => []),
+          ibram.searchExternalSource(nDestino.conteudo_original).catch(() => []),
+          brasiliana.searchExternalSource(nOrigem.conteudo_original).catch(() => []),
+          brasiliana.searchExternalSource(nDestino.conteudo_original).catch(() => [])
+        ]);
+
+        const mergedMatches = [...ibramOrigem, ...ibramDestino, ...brasilianaOrigem, ...brasilianaDestino];
+        externalResults = mergedMatches.slice(0, 6).map(m => ({
+          fonte: m.source,
+          titulo: m.title,
+          url: m.url,
+          match_score: m.match_score
+        }));
+      } catch (err) {
+        console.warn('Erro na consulta direta às APIs dos acervos:', err);
+      }
     }
 
     // 3. Assemble Semantic DNA parameters
@@ -199,7 +245,7 @@ export async function POST(req: Request) {
       writeLocalRelations(list);
     }
 
-    // 5. Audit log in events, ignore if events table is missing
+    // 5. Audit log in events
     try {
       await supabaseAdmin.from('eventos').insert({
         entidade_tipo: 'relacao',
@@ -221,11 +267,112 @@ export async function POST(req: Request) {
 }
 
 /**
+ * PUT /api/admin/relacoes
+ * Update a relation (type or weight) in the database or fallback.
+ */
+export async function PUT(req: Request) {
+  try {
+    if (!checkAuthToken(req)) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { id, tipo_relacao, peso } = body;
+
+    if (!id || !tipo_relacao) {
+      return NextResponse.json({ error: 'Parâmetros inválidos' }, { status: 400 });
+    }
+
+    // Check if relation is local or remote
+    const localList = readLocalRelations();
+    const localIdx = localList.findIndex(r => r.id === id);
+
+    let updatedRelation: any = null;
+
+    if (localIdx >= 0) {
+      localList[localIdx].tipo_relacao = tipo_relacao;
+      localList[localIdx].peso = peso !== undefined ? peso : localList[localIdx].peso;
+      
+      // Atualizar o timestamp do metadado e regenerar o hash DNA
+      if (localList[localIdx].metadados) {
+        localList[localIdx].metadados.relacao = {
+          tipo: tipo_relacao,
+          peso: peso !== undefined ? peso : localList[localIdx].peso
+        };
+        localList[localIdx].hash_dna = generateSemanticDna(localList[localIdx].metadados);
+      }
+      writeLocalRelations(localList);
+      updatedRelation = localList[localIdx];
+    } else {
+      // Atualizar no Supabase
+      const { data: currentRelation } = await supabaseAdmin
+        .from('relacoes')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (currentRelation) {
+        const newDnaPayload = currentRelation.metadados ? {
+          ...currentRelation.metadados,
+          relacao: {
+            tipo: tipo_relacao,
+            peso: peso !== undefined ? peso : currentRelation.peso
+          }
+        } : {
+          timestamp: new Date().toISOString(),
+          relacao: { tipo: tipo_relacao, peso: peso !== undefined ? peso : currentRelation.peso }
+        };
+        
+        const newHash = generateSemanticDna(newDnaPayload);
+
+        const { data, error } = await supabaseAdmin
+          .from('relacoes')
+          .update({
+            tipo_relacao,
+            peso: peso !== undefined ? peso : currentRelation.peso,
+            hash_dna: newHash,
+            metadados: newDnaPayload
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        updatedRelation = data;
+      }
+    }
+
+    if (!updatedRelation) {
+      return NextResponse.json({ error: 'Relação não encontrada' }, { status: 404 });
+    }
+
+    // Log de evento
+    try {
+      await supabaseAdmin.from('eventos').insert({
+        entidade_tipo: 'relacao',
+        entidade_id: id,
+        tipo_evento: 'tag_editada',
+        resumo: `Ligação semântica ID ${id} foi ajustada pelo curador para tipo "${tipo_relacao}" e peso ${peso}.`
+      });
+    } catch { /* ignore */ }
+
+    return NextResponse.json({ success: true, relation: updatedRelation });
+  } catch (error: any) {
+    console.error('Erro ao atualizar relação:', error);
+    return NextResponse.json({ error: 'Erro ao atualizar relação', details: error.message }, { status: 500 });
+  }
+}
+
+/**
  * DELETE /api/admin/relacoes
  * Remove a semantic relation and log the audited trace.
  */
 export async function DELETE(req: Request) {
   try {
+    if (!checkAuthToken(req)) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -278,4 +425,3 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Erro ao excluir relação', details: error.message }, { status: 500 });
   }
 }
-

@@ -9,17 +9,35 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanPass = password.trim().toLowerCase();
-    
-    // Suportar 'nugep 123' ou 'nugep123'
-    if (cleanPass === 'nugep 123' || cleanPass === 'nugep123') {
-      localStorage.setItem('admin_token', 'true');
-      router.push('/admin');
-      window.dispatchEvent(new Event('storage'));
-    } else {
-      setError('Senha Curatorial Inválida');
+    if (loading) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.token) {
+        localStorage.setItem('admin_token', data.token);
+        router.push('/admin');
+        window.dispatchEvent(new Event('storage'));
+      } else {
+        setError(data.error || 'Senha Curatorial Inválida');
+      }
+    } catch (err) {
+      console.error('Erro de rede ao autenticar:', err);
+      setError('Erro de conexão com o servidor');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,9 +81,10 @@ export default function LoginPage() {
 
             <button 
               type="submit" 
-              className="liquid-button w-full !py-4 !rounded-xl !bg-[#E85002] !text-black !font-semibold !tracking-wider hover:!bg-[#F16001]"
+              disabled={loading}
+              className={`liquid-button w-full !py-4 !rounded-xl !bg-[#E85002] !text-black !font-semibold !tracking-wider hover:!bg-[#F16001] ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              Acessar Sistema
+              {loading ? 'Validando Acesso...' : 'Acessar Sistema'}
             </button>
           </form>
         </div>

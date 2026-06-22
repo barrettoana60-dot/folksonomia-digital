@@ -31,14 +31,26 @@ export class CognitiveNeuralNetwork {
   private bias1: number[];
   private weights2: number[];
   private bias2: number;
-  private learningRate: number = 0.05;
+  private learningRate: number = 0.01; // Taxa de aprendizado inicial ideal para Adam
   private isLoaded: boolean = false;
 
-  // Matematica Avancada: Velocidades para Momentum e Contador para Decay
+  // Hiperparâmetros Adam
+  private beta1: number = 0.9;
+  private beta2: number = 0.999;
+  private epsilon: number = 1e-8;
+
+  // Adam: Momentos de primeira ordem (m)
+  private mWeights1: number[][];
+  private mBias1: number[];
+  private mWeights2: number[];
+  private mBias2: number;
+
+  // Adam: Momentos de segunda ordem (v)
   private vWeights1: number[][];
   private vBias1: number[];
   private vWeights2: number[];
   private vBias2: number;
+  
   private trainStepCount: number = 0;
 
   constructor() {
@@ -48,10 +60,16 @@ export class CognitiveNeuralNetwork {
     );
     this.bias1 = Array(HIDDEN_DIM).fill(0);
     
-    // Inicialização das velocidades para momentum
+    // Inicialização de Adam (Momentos m e v) para a primeira camada
+    this.mWeights1 = Array.from({ length: HIDDEN_DIM }, () => Array(INPUT_DIM).fill(0));
     this.vWeights1 = Array.from({ length: HIDDEN_DIM }, () => Array(INPUT_DIM).fill(0));
+    this.mBias1 = Array(HIDDEN_DIM).fill(0);
     this.vBias1 = Array(HIDDEN_DIM).fill(0);
+
+    // Inicialização de Adam (Momentos m e v) para a segunda camada (saída)
+    this.mWeights2 = Array(HIDDEN_DIM).fill(0);
     this.vWeights2 = Array(HIDDEN_DIM).fill(0);
+    this.mBias2 = 0;
     this.vBias2 = 0;
 
     // Warm-start: Pesos iniciais da camada oculta para corresponder 
@@ -102,12 +120,12 @@ export class CognitiveNeuralNetwork {
     return y * (1 - y);
   }
 
-  private relu(x: number): number {
-    return Math.max(0, x);
+  private leakyRelu(x: number): number {
+    return Math.max(0.01 * x, x);
   }
 
-  private reluDerivative(x: number): number {
-    return x > 0 ? 1 : 0;
+  private leakyReluDerivative(x: number): number {
+    return x > 0 ? 1 : 0.01;
   }
 
   /**
@@ -144,13 +162,13 @@ export class CognitiveNeuralNetwork {
   public forward(input: number[]): { output: number; hidden: number[] } {
     const hidden: number[] = [];
     
-    // Camada Oculta: Input -> Hidden (Ativação ReLU para maior linearidade cognitiva)
+    // Camada Oculta: Input -> Hidden (Ativação LeakyReLU para evitar Dead Neurons)
     for (let i = 0; i < HIDDEN_DIM; i++) {
       let sum = this.bias1[i];
       for (let j = 0; j < INPUT_DIM; j++) {
         sum += input[j] * this.weights1[i][j];
       }
-      hidden.push(this.relu(sum));
+      hidden.push(this.leakyRelu(sum));
     }
 
     // Camada de Saída: Hidden -> Output (Ativação Sigmoid para probabilidade)
@@ -178,7 +196,7 @@ export class CognitiveNeuralNetwork {
   }
 
   public getCoAdjacentMatrix(tagNormalized: string, siblingTags: string[]): number[] {
-    // Computa a assinatura vetorial co-adjacente de co-ocorrência baseada em hash semântico muscular
+    // Computa a assinatura vetorial co-adjacente de co-ocorrência baseada em Jaccard de caracteres e hash
     const vec = Array(10).fill(0);
     const swappedMain = this.swapPrepositions(tagNormalized);
 
@@ -193,15 +211,19 @@ export class CognitiveNeuralNetwork {
       }
       const hashVal = (hash % 100) / 100;
 
-      // Mede a adjacência baseada na sobreposição de caracteres comuns
-      let common = 0;
+      // Jaccard Similarity Index de caracteres entre termos normalizados
       const setA = new Set(swappedMain.split(''));
-      swappedSibling.split('').forEach(char => {
-        if (setA.has(char)) common++;
+      const setB = new Set(swappedSibling.split(''));
+      
+      let intersection = 0;
+      setA.forEach(char => {
+        if (setB.has(char)) intersection++;
       });
       
-      const overlap = swappedMain.length > 0 ? common / swappedMain.length : 0;
-      vec[idx] = (hashVal * 0.4) + (overlap * 0.6); // Fusão mútua do vetor
+      const union = new Set([...setA, ...setB]).size;
+      const jaccard = union > 0 ? intersection / union : 0;
+      
+      vec[idx] = (hashVal * 0.3) + (jaccard * 0.7); // Fusão matemática co-adjacente
     });
 
     return vec;
@@ -225,51 +247,73 @@ export class CognitiveNeuralNetwork {
     await this.ensureLoaded();
 
     this.trainStepCount++;
-    // Learning Rate Decay
-    const lr = this.learningRate / (1 + 0.0005 * this.trainStepCount);
-    // Momentum coefficient
-    const alpha = 0.9;
-    // L2 Regularization (weight decay)
-    const lambda = 0.001;
+    const t = this.trainStepCount;
+
+    // Hiperparâmetros Adam
+    const lr = this.learningRate;
+    const beta1 = this.beta1;
+    const beta2 = this.beta2;
+    const eps = this.epsilon;
+    const lambda = 0.0001; // Regularização L2 (Weight Decay)
 
     // 1. Forward Pass
     const { output, hidden } = this.forward(input);
     const error = target - output;
 
-    // 2. Cálculo dos Gradientes (Backpropagation)
-    // Gradiente da camada de saída
+    // 2. Backpropagation - Gradiente da camada de saída
     const outputDelta = error * this.sigmoidDerivative(output);
 
-    // Gradientes da camada oculta
+    // Gradientes da camada oculta (LeakyReLU Derivative)
     const hiddenDeltas: number[] = Array(HIDDEN_DIM).fill(0);
     for (let i = 0; i < HIDDEN_DIM; i++) {
-      // Usamos a derivada de ReLU com base na ativação oculta (ReLU derivativa é 1 se ativo, 0 caso contrário)
-      const deriv = hidden[i] > 0 ? 1 : 0;
+      const deriv = this.leakyReluDerivative(hidden[i]);
       hiddenDeltas[i] = outputDelta * this.weights2[i] * deriv;
     }
 
-    // 3. Atualização de Pesos e Bias com Regularização L2 e Momentum
-    // Atualizar camada de saída
+    // 3. Atualização de parâmetros com Adam Optimizer
+    
+    // Atualizar Pesos da Camada de Saída (weights2)
     for (let i = 0; i < HIDDEN_DIM; i++) {
-      const dW2 = lr * outputDelta * hidden[i] - lr * lambda * this.weights2[i];
-      this.vWeights2[i] = alpha * this.vWeights2[i] + dW2;
-      this.weights2[i] += this.vWeights2[i];
+      const gW2 = -outputDelta * hidden[i] + lambda * this.weights2[i];
+      this.mWeights2[i] = beta1 * this.mWeights2[i] + (1 - beta1) * gW2;
+      this.vWeights2[i] = beta2 * this.vWeights2[i] + (1 - beta2) * gW2 * gW2;
+      
+      const mHat = this.mWeights2[i] / (1 - Math.pow(beta1, t));
+      const vHat = this.vWeights2[i] / (1 - Math.pow(beta2, t));
+      
+      this.weights2[i] -= lr * mHat / (Math.sqrt(vHat) + eps);
     }
     
-    const dB2 = lr * outputDelta;
-    this.vBias2 = alpha * this.vBias2 + dB2;
-    this.bias2 += this.vBias2;
+    // Atualizar Bias da Camada de Saída (bias2)
+    const gB2 = -outputDelta;
+    this.mBias2 = beta1 * this.mBias2 + (1 - beta1) * gB2;
+    this.vBias2 = beta2 * this.vBias2 + (1 - beta2) * gB2 * gB2;
+    
+    const mBias2Hat = this.mBias2 / (1 - Math.pow(beta1, t));
+    const vBias2Hat = this.vBias2 / (1 - Math.pow(beta2, t));
+    this.bias2 -= lr * mBias2Hat / (Math.sqrt(vBias2Hat) + eps);
 
-    // Atualizar camada oculta
+    // Atualizar Pesos da Camada Oculta (weights1)
     for (let i = 0; i < HIDDEN_DIM; i++) {
       for (let j = 0; j < INPUT_DIM; j++) {
-        const dW1 = lr * hiddenDeltas[i] * input[j] - lr * lambda * this.weights1[i][j];
-        this.vWeights1[i][j] = alpha * this.vWeights1[i][j] + dW1;
-        this.weights1[i][j] += this.vWeights1[i][j];
+        const gW1 = -hiddenDeltas[i] * input[j] + lambda * this.weights1[i][j];
+        this.mWeights1[i][j] = beta1 * this.mWeights1[i][j] + (1 - beta1) * gW1;
+        this.vWeights1[i][j] = beta2 * this.vWeights1[i][j] + (1 - beta2) * gW1 * gW1;
+        
+        const mHat = this.mWeights1[i][j] / (1 - Math.pow(beta1, t));
+        const vHat = this.vWeights1[i][j] / (1 - Math.pow(beta2, t));
+        
+        this.weights1[i][j] -= lr * mHat / (Math.sqrt(vHat) + eps);
       }
-      const dB1 = lr * hiddenDeltas[i];
-      this.vBias1[i] = alpha * this.vBias1[i] + dB1;
-      this.bias1[i] += this.vBias1[i];
+      
+      // Atualizar Bias da Camada Oculta (bias1)
+      const gB1 = -hiddenDeltas[i];
+      this.mBias1[i] = beta1 * this.mBias1[i] + (1 - beta1) * gB1;
+      this.vBias1[i] = beta2 * this.vBias1[i] + (1 - beta2) * gB1 * gB1;
+      
+      const mBias1Hat = this.mBias1[i] / (1 - Math.pow(beta1, t));
+      const vBias1Hat = this.vBias1[i] / (1 - Math.pow(beta2, t));
+      this.bias1[i] -= lr * mBias1Hat / (Math.sqrt(vBias1Hat) + eps);
     }
 
     // 4. Persistir pesos no banco
@@ -277,6 +321,7 @@ export class CognitiveNeuralNetwork {
 
     return Math.abs(error);
   }
+
 
   /**
    * Carrega os pesos mais recentes salvos no Supabase.
