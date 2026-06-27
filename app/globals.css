@@ -1,27 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   DESIGN TOKENS — FOLKSONOMIA DIGITAL
+   Paleta: creme/claro com formas geométricas coloridas
+   ============================================================ */
+
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --bg-color: #000000;
-  --text-color: #ffffff;
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --primary: #E85002;
-  --primary-hover: rgba(232, 80, 2, 0.5);
-  --bg-image: radial-gradient(circle at 0% 0%, rgba(193, 8, 1, 0.25) 0%, transparent 45%), radial-gradient(circle at 100% 100%, rgba(241, 96, 1, 0.2) 0%, transparent 45%), radial-gradient(circle at 50% 50%, rgba(217, 195, 171, 0.08) 0%, transparent 65%);
+  --background: #F2EDE4;
+  --foreground: #1A1A1A;
+  --bg-color: #F2EDE4;
+  --text-color: #1A1A1A;
+
+  /* Liquid glass claro */
+  --glass-bg: rgba(255, 255, 255, 0.52);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+
+  /* Cores institucionais (extraídas das formas) */
+  --primary: #E8490A;           /* laranja — CTA principal */
+  --primary-hover: #C03808;
+  --blue: #1E3A8A;
+  --green: #1A6B3A;
+  --red: #C0252B;
+  --yellow: #E8A920;
+
+  --bg-image: none;
+}
+
+/* Tema claro explícito (mesmo que o padrão) */
+[data-theme="creme"],
+[data-theme="escuro"] {
+  --background: #F2EDE4;
+  --foreground: #1A1A1A;
+  --bg-color: #F2EDE4;
+  --text-color: #1A1A1A;
+  --glass-bg: rgba(255, 255, 255, 0.52);
+  --glass-border: rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="claro"] {
-  --background: #f5f5f5;
+  --background: #FAFAFA;
   --foreground: #111111;
-  --bg-color: #f5f5f5;
+  --bg-color: #FAFAFA;
   --text-color: #111111;
   --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(232, 80, 2, 0.15);
-  --bg-image: radial-gradient(circle at 0% 0%, rgba(232, 80, 2, 0.08) 0%, transparent 45%), radial-gradient(circle at 100% 100%, rgba(241, 96, 1, 0.04) 0%, transparent 45%);
+  --glass-border: rgba(0, 0, 0, 0.10);
 }
 
 [data-theme="contraste"] {
@@ -36,26 +63,21 @@
   --bg-image: none;
 }
 
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+
 * {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Elegant Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(232, 80, 2, 0.25);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(232, 80, 2, 0.45);
-}
+/* Scrollbar elegante */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(30, 58, 138, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(30, 58, 138, 0.4); }
 
 html, body {
   margin: 0;
@@ -72,136 +94,216 @@ body {
   min-height: 100vh;
 }
 
-[data-theme="contraste"] * {
-  color: var(--text-color) !important;
-  border-color: var(--glass-border) !important;
-}
-
-[data-theme="claro"] .text-white\/40, 
-[data-theme="claro"] .text-white\/30, 
-[data-theme="claro"] .text-white\/50, 
-[data-theme="claro"] .text-white\/20, 
-[data-theme="claro"] .text-white\/80 {
-  color: rgba(12, 26, 21, 0.6) !important;
-}
-
-[data-theme="claro"] .bg-white\/5 {
-  background-color: rgba(232, 80, 2, 0.05) !important;
-}
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
 
 .serif-title {
-  font-family: var(--font-serif), serif;
-  font-weight: 400; /* Peso equilibrado para tom nobre e institucional */
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
 }
+
+.font-sans-system {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.label-sm {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 26, 0.45);
+}
+
+.text-balance { text-wrap: balance; }
+
+/* ============================================================
+   LIQUID GLASS — TEMA CLARO
+   Fundo semitransparente branco com blur e borda sutil
+   ============================================================ */
 
 .glass-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
-  border-radius: 1.75rem; /* cantos redondos mais fluidos e orgânicos */
-  box-shadow: 0 6px 24px 0 rgba(0, 0, 0, 0.15);
+  border-radius: 1.5rem;
+  box-shadow: var(--glass-shadow);
 }
 
+/* Botão liquid glass padrão — claro */
 .liquid-button {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
-  padding: 0.5rem 1.25rem;
-  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  color: #1A1A1A;
+  padding: 0.55rem 1.35rem;
+  border-radius: 0.85rem;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.09em;
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07), inset 0 1px 0 rgba(255,255,255,0.8);
 }
 
 .liquid-button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.80);
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255,255,255,0.9);
   transform: translateY(-1px);
 }
 
-/* Liquid Glass Colors */
-.liquid-glass-orange {
-  background: rgba(232, 80, 2, 0.08);
-  border-color: rgba(232, 80, 2, 0.25);
-  color: #ff8533;
+.liquid-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
-.liquid-glass-orange:hover {
-  background: rgba(232, 80, 2, 0.18);
-  border-color: rgba(232, 80, 2, 0.45);
-  box-shadow: 0 0 15px rgba(232, 80, 2, 0.25);
-  color: #ffffff;
+
+/* Liquid Glass variantes coloridas */
+.liquid-glass-primary {
+  background: rgba(232, 73, 10, 0.12);
+  border-color: rgba(232, 73, 10, 0.28);
+  color: #C03808;
+}
+.liquid-glass-primary:hover {
+  background: rgba(232, 73, 10, 0.22);
+  border-color: rgba(232, 73, 10, 0.50);
+  box-shadow: 0 6px 20px rgba(232, 73, 10, 0.18);
+  color: #8B2A05;
 }
 
 .liquid-glass-blue {
-  background: rgba(0, 163, 255, 0.08);
-  border-color: rgba(0, 163, 255, 0.25);
-  color: #66c7ff;
+  background: rgba(30, 58, 138, 0.08);
+  border-color: rgba(30, 58, 138, 0.22);
+  color: #1E3A8A;
 }
 .liquid-glass-blue:hover {
-  background: rgba(0, 163, 255, 0.18);
-  border-color: rgba(0, 163, 255, 0.45);
-  box-shadow: 0 0 15px rgba(0, 163, 255, 0.25);
-  color: #ffffff;
-}
-
-.liquid-glass-red {
-  background: rgba(255, 59, 48, 0.08);
-  border-color: rgba(255, 59, 48, 0.25);
-  color: #ff7b72;
-}
-.liquid-glass-red:hover {
-  background: rgba(255, 59, 48, 0.18);
-  border-color: rgba(255, 59, 48, 0.45);
-  box-shadow: 0 0 15px rgba(255, 59, 48, 0.25);
-  color: #ffffff;
+  background: rgba(30, 58, 138, 0.18);
+  border-color: rgba(30, 58, 138, 0.42);
+  box-shadow: 0 6px 20px rgba(30, 58, 138, 0.18);
 }
 
 .liquid-glass-green {
-  background: rgba(52, 199, 89, 0.08);
-  border-color: rgba(52, 199, 89, 0.25);
-  color: #8ce8a5;
+  background: rgba(26, 107, 58, 0.08);
+  border-color: rgba(26, 107, 58, 0.22);
+  color: #1A6B3A;
 }
 .liquid-glass-green:hover {
-  background: rgba(52, 199, 89, 0.18);
-  border-color: rgba(52, 199, 89, 0.45);
-  box-shadow: 0 0 15px rgba(52, 199, 89, 0.25);
-  color: #ffffff;
+  background: rgba(26, 107, 58, 0.18);
+  border-color: rgba(26, 107, 58, 0.42);
+  box-shadow: 0 6px 20px rgba(26, 107, 58, 0.18);
 }
 
+.liquid-glass-red {
+  background: rgba(192, 37, 43, 0.08);
+  border-color: rgba(192, 37, 43, 0.22);
+  color: #C0252B;
+}
+.liquid-glass-red:hover {
+  background: rgba(192, 37, 43, 0.18);
+  border-color: rgba(192, 37, 43, 0.42);
+  box-shadow: 0 6px 20px rgba(192, 37, 43, 0.18);
+}
+
+/* Input liquid glass */
 .liquid-input {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.60);
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  color: #1A1A1A;
+  padding: 0.9rem 1.4rem;
+  border-radius: 1rem;
   font-size: 0.9rem;
   outline: none;
-  transition: all 0.3s;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.25s;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.liquid-input::placeholder {
+  color: rgba(26, 26, 26, 0.35);
 }
 
 .liquid-input:focus {
-  background: rgba(232, 80, 2, 0.04);
-  border-color: rgba(232, 80, 2, 0.4);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(232, 73, 10, 0.45);
+  box-shadow: 0 0 0 3px rgba(232, 73, 10, 0.10), inset 0 1px 3px rgba(0,0,0,0.04);
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+/* ============================================================
+   ALTO CONTRASTE
+   ============================================================ */
+
+[data-theme="contraste"] * {
+  color: var(--text-color) !important;
+  border-color: var(--glass-border) !important;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+[data-theme="contraste"] .liquid-button {
+  background: #000 !important;
+  color: #FFFF00 !important;
+  border: 2px solid #FFFF00 !important;
 }
+
+[data-theme="contraste"] .glass-card {
+  background: #000 !important;
+  border: 2px solid #FFFF00 !important;
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.45s ease-out forwards; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+.organic-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.organic-hover:hover {
+  transform: scale(1.015);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Acessibilidade: rem escaláveis */
+.text-\[8px\]  { font-size: 0.5rem !important;    line-height: 0.75rem !important; }
+.text-\[9px\]  { font-size: 0.5625rem !important; line-height: 0.75rem !important; }
+.text-\[10px\] { font-size: 0.625rem !important;  line-height: 1rem !important; }
+.text-\[11px\] { font-size: 0.6875rem !important; line-height: 1rem !important; }
+.text-\[12px\] { font-size: 0.75rem !important;   line-height: 1rem !important; }
+.text-\[14px\] { font-size: 0.875rem !important;  line-height: 1.25rem !important; }
+
+/* ============================================================
+   PRINT
+   ============================================================ */
 
 @media print {
   body {
@@ -216,65 +318,8 @@ body {
     box-shadow: none !important;
     backdrop-filter: none !important;
   }
-  h1, h2, h3, h4, p, span, th, td {
-    color: black !important;
-  }
   .liquid-button, .print-hidden, nav, header {
     display: none !important;
   }
-  .bg-gradient-to-t {
-    background: #E85002 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  main {
-    padding-top: 0 !important;
-  }
+  main { padding-top: 0 !important; }
 }
-
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out forwards;
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-slide-up {
-  animation: slide-up 0.5s ease-out forwards;
-}
-
-.organic-hover {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.organic-hover:hover {
-  transform: scale(1.015);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-}
-
-.label-sm {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.text-balance {
-  text-wrap: balance;
-}
-
-/* FIX ACESSIBILIDADE: Conversão de valores fixos para REM (escaláveis) */
-.text-\[8px\] { font-size: 0.5rem !important; line-height: 0.75rem !important; }
-.text-\[9px\] { font-size: 0.5625rem !important; line-height: 0.75rem !important; }
-.text-\[10px\] { font-size: 0.625rem !important; line-height: 1rem !important; }
-.text-\[11px\] { font-size: 0.6875rem !important; line-height: 1rem !important; }
-.text-\[12px\] { font-size: 0.75rem !important; line-height: 1rem !important; }
-.text-\[14px\] { font-size: 0.875rem !important; line-height: 1.25rem !important; }
-
