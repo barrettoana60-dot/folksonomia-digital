@@ -8,7 +8,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
-
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -41,48 +40,69 @@ export default function LoginPage() {
     }
   };
 
-
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
-      
-      <div className="text-center space-y-6 mb-12">
-        <div className="w-16 h-16 rounded-full bg-[#E85002]/10 border border-[#E85002]/30 flex items-center justify-center mx-auto">
-          <ShieldCheck className="text-[#E85002]" size={32} />
+
+      <div className="text-center space-y-5 mb-10 animate-fade-in">
+        {/* Ícone */}
+        <div
+          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
+          style={{
+            background: 'rgba(232,73,10,0.10)',
+            border: '1px solid rgba(232,73,10,0.22)',
+          }}
+        >
+          <ShieldCheck size={30} style={{ color: '#E8490A' }} />
         </div>
+
         <div className="space-y-1">
-          <h1 className="text-xl md:text-2xl font-normal serif-title text-white tracking-wider">
+          <h1 className="text-xl md:text-2xl font-normal serif-title text-[#1A1A1A] tracking-tight">
             Curadoria NUGEP
           </h1>
-          <p className="text-[10px] text-white/35 uppercase tracking-[0.2em] font-semibold">
+          <p className="text-[10px] text-[#1A1A1A]/35 uppercase tracking-[0.22em] font-semibold">
             Acesso Restrito
           </p>
         </div>
       </div>
 
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md animate-slide-up">
         <div className="glass-card p-10 space-y-8">
-          <form onSubmit={handleLogin} className="space-y-8">
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <label className="text-[11px] uppercase tracking-wider font-semibold text-white/45 ml-2">Senha Curatorial</label>
-                <input 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="liquid-input w-full"
-                  placeholder="Insira a senha do curador"
-                />
-              </div>
+          <form onSubmit={handleLogin} className="space-y-6">
+
+            <div className="space-y-2">
+              <label
+                htmlFor="input-senha"
+                className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/45 ml-1 block"
+              >
+                Senha Curatorial
+              </label>
+              <input
+                id="input-senha"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="liquid-input w-full"
+                placeholder="Insira a senha do curador"
+              />
             </div>
 
             {error && (
-              <p className="text-red-400 text-[11px] uppercase tracking-wider font-semibold text-center animate-fade-in">{error}</p>
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-center animate-fade-in"
+                style={{ color: '#C0252B' }}>
+                {error}
+              </p>
             )}
 
-            <button 
-              type="submit" 
+            <button
+              id="btn-login"
+              type="submit"
               disabled={loading}
-              className={`liquid-button w-full !py-4 !rounded-xl !bg-[#E85002] !text-black !font-semibold !tracking-wider hover:!bg-[#F16001] ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className="liquid-button w-full !py-4 !rounded-xl !text-[11px] !font-semibold !tracking-[0.15em] disabled:opacity-50"
+              style={{
+                background: '#E8490A',
+                borderColor: '#C03808',
+                color: '#fff',
+              }}
             >
               {loading ? 'Validando Acesso...' : 'Acessar Sistema'}
             </button>
