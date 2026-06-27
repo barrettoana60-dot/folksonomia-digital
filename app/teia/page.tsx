@@ -11,9 +11,11 @@ export default function TeiaPublicaPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin"></div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div
+        className="w-9 h-9 rounded-full border-4 border-t-transparent animate-spin"
+        style={{ borderColor: '#E8490A', borderTopColor: 'transparent' }}
+      />
     </div>
   );
 }
-
