@@ -17,7 +17,7 @@ export default function Header() {
     setIsMounted(true);
     const completed = localStorage.getItem('visitante_quiz_completado');
     setHasQuiz(!!completed);
-    
+
     const checkToken = () => {
       const token = localStorage.getItem('admin_token');
       setIsAdmin(!!token);
@@ -32,29 +32,41 @@ export default function Header() {
     setIsAdmin(false);
     setDropdownOpen(false);
     router.push('/');
-    // Trigger storage event manually for same-tab updates
     window.dispatchEvent(new Event('storage'));
   };
 
+  const navLinkClass = (active: boolean) =>
+    `hidden md:block text-[11px] font-semibold uppercase tracking-[0.13em] transition-all ${
+      active
+        ? 'text-[#E8490A]'
+        : 'text-[#1A1A1A]/55 hover:text-[#E8490A]'
+    }`;
+
+  /* Skeleton SSR */
   if (!isMounted) {
     return (
-      <header className="fixed top-0 left-0 w-full z-50 h-16 md:h-20 flex items-center justify-between px-6 md:px-12 bg-black/40 backdrop-blur-xl border-b border-white/5 print:hidden">
-        <div className="flex items-center gap-3 md:gap-5 group cursor-pointer">
-          <Logo className="w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-110" />
+      <header className="fixed top-0 left-0 w-full z-50 h-16 md:h-20 flex items-center justify-between px-6 md:px-12 print:hidden"
+        style={{
+          background: 'rgba(255,255,255,0.60)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          borderBottom: '1px solid rgba(0,0,0,0.07)',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+        }}
+      >
+        <div className="flex items-center gap-3 md:gap-4 group cursor-pointer">
+          <Logo className="w-9 h-9 md:w-11 md:h-11 transition-transform group-hover:scale-105" />
           <div className="flex flex-col">
-            <span className="text-white text-sm md:text-base font-normal serif-title tracking-normal leading-none">
-              Sistema de Folksonomia
+            <span className="text-[#1A1A1A] text-sm md:text-base font-normal serif-title tracking-normal leading-none">
+              Folksonomia Digital
             </span>
-            <span className="text-[8px] md:text-[10px] text-white/35 font-semibold uppercase tracking-[0.2em] mt-1">
-              Institucional — NUGEP
+            <span className="text-[8px] md:text-[10px] text-[#1A1A1A]/35 font-semibold uppercase tracking-[0.22em] mt-1">
+              NUGEP — Documentação Semântica
             </span>
           </div>
         </div>
-        <nav className="flex items-center gap-4 md:gap-12 relative">
-          <button className="hidden md:block text-[11px] font-medium transition-all hover:text-[#E85002] text-white/60">
-            Acessibilidade
-          </button>
-          <Link href="/login" className="liquid-button !py-2 !px-4 md:!py-2.5 md:!px-8 !rounded-lg md:!rounded-xl !text-[10px] md:!text-[11px] !bg-white/5 !border-white/10">
+        <nav className="flex items-center gap-4 md:gap-10">
+          <Link href="/login" className="liquid-button !py-2 !px-5 md:!py-2.5 md:!px-8 !rounded-xl !text-[10px] md:!text-[11px]">
             GESTÃO
           </Link>
         </nav>
@@ -63,77 +75,90 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 h-16 md:h-20 flex items-center justify-between px-6 md:px-12 bg-black/40 backdrop-blur-xl border-b border-white/5 print:hidden">
-      
+    <header
+      className="fixed top-0 left-0 w-full z-50 h-16 md:h-20 flex items-center justify-between px-6 md:px-12 print:hidden"
+      style={{
+        background: 'rgba(255,255,255,0.60)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        borderBottom: '1px solid rgba(0,0,0,0.07)',
+        boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+      }}
+    >
       {/* Branding */}
-      <div 
-        onClick={() => router.push('/')} 
-        className="flex items-center gap-3 md:gap-5 group cursor-pointer"
+      <div
+        onClick={() => router.push('/')}
+        className="flex items-center gap-3 md:gap-4 group cursor-pointer"
       >
-        <Logo className="w-10 h-10 md:w-12 md:h-12 transition-transform group-hover:scale-110" />
+        <Logo className="w-9 h-9 md:w-11 md:h-11 transition-transform group-hover:scale-105" />
         <div className="flex flex-col">
-          <span className="text-white text-sm md:text-base font-normal serif-title tracking-normal leading-none">
-            Sistema de Folksonomia
+          <span className="text-[#1A1A1A] text-sm md:text-[15px] font-normal serif-title tracking-normal leading-none">
+            Folksonomia Digital
           </span>
-          <span className="text-[8px] md:text-[10px] text-white/35 font-semibold uppercase tracking-[0.2em] mt-1">
-            Institucional — NUGEP
+          <span className="text-[8px] md:text-[10px] text-[#1A1A1A]/35 font-semibold uppercase tracking-[0.22em] mt-1">
+            NUGEP — Documentação Semântica
           </span>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex items-center gap-4 md:gap-12 relative">
+      <nav className="flex items-center gap-5 md:gap-10 relative">
         {hasQuiz && (
-          <button 
+          <button
             onClick={() => router.push('/obras')}
-            className={`hidden md:block text-[11px] uppercase font-semibold tracking-[0.15em] transition-all hover:text-[#E85002] ${
-              pathname === '/obras' ? 'text-[#E85002]' : 'text-white/40'
-            }`}
+            className={navLinkClass(pathname === '/obras')}
           >
             Explorar Obras
           </button>
         )}
 
-        <button 
+        <button
           onClick={() => router.push('/acessibilidade')}
-          className={`hidden md:block text-[11px] font-medium transition-all hover:text-[#E85002] ${
-             pathname === '/acessibilidade' ? 'text-[#E85002]' : 'text-white/60'
-          }`}
+          className={navLinkClass(pathname === '/acessibilidade')}
         >
           Acessibilidade
         </button>
 
-        
         {isAdmin ? (
           <div className="relative">
-            <button 
+            <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-xs"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl liquid-button"
             >
-              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-[#E85002] to-[#00A3FF] flex items-center justify-center text-[10px] font-bold text-white uppercase">
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white uppercase"
+                style={{ background: 'linear-gradient(135deg, #E8490A, #1E3A8A)' }}
+              >
                 C
               </div>
-              <span className="text-white/80 hidden sm:inline">Curador NUGEP</span>
+              <span className="text-[#1A1A1A]/70 hidden sm:inline text-[11px] font-semibold">Curador NUGEP</span>
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[#0f0f11] border border-white/10 rounded-2xl p-2 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="px-3 py-2 border-b border-white/5 mb-1.5">
-                  <p className="text-xs font-semibold text-white">NUGEP Curador</p>
-                  <p className="text-[9px] text-white/45 uppercase tracking-wider mt-0.5">Administrador</p>
+              <div
+                className="absolute right-0 mt-2 w-52 rounded-2xl p-2 z-50 animate-fade-in"
+                style={{
+                  background: 'rgba(255,255,255,0.92)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(0,0,0,0.10)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                }}
+              >
+                <div className="px-3 py-2 border-b border-black/5 mb-1.5">
+                  <p className="text-xs font-semibold text-[#1A1A1A]">NUGEP Curador</p>
+                  <p className="text-[9px] text-[#1A1A1A]/40 uppercase tracking-wider mt-0.5">Administrador</p>
                 </div>
                 {pathname !== '/admin' && (
-                  <Link 
-                    href="/admin" 
+                  <Link
+                    href="/admin"
                     onClick={() => setDropdownOpen(false)}
-                    className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-white/70 hover:bg-white/5 hover:text-white transition-all text-left"
+                    className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#1A1A1A]/70 hover:bg-black/5 hover:text-[#1A1A1A] transition-all text-left"
                   >
                     Painel Gestão
                   </Link>
                 )}
-                <button 
+                <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all text-left"
+                  className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#C0252B] hover:bg-red-50 hover:text-[#8B1A1F] transition-all text-left"
                 >
                   Sair
                 </button>
@@ -141,15 +166,14 @@ export default function Header() {
             )}
           </div>
         ) : (
-          <Link 
-            href="/login" 
-            className="liquid-button !py-2 !px-4 md:!py-2.5 md:!px-8 !rounded-lg md:!rounded-xl !text-[10px] md:!text-[11px] !bg-white/5 !border-white/10"
+          <Link
+            href="/login"
+            className="liquid-button !py-2 !px-5 md:!py-2.5 md:!px-8 !rounded-xl !text-[10px] md:!text-[11px]"
           >
             GESTÃO
           </Link>
         )}
       </nav>
-
     </header>
   );
 }
