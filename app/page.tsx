@@ -14,7 +14,6 @@ export default function LandingPage() {
     }
   }, [router]);
 
-  // Registrar visita ao sistema (conta visitantes únicos)
   useEffect(() => {
     try {
       const hash = localStorage.getItem('visitante_hash') || '';
@@ -26,37 +25,59 @@ export default function LandingPage() {
     } catch { /* silencioso */ }
   }, []);
 
-
   return (
     <main className="min-h-screen flex flex-col items-center justify-center px-6">
-      <div className="max-w-[800px] text-center space-y-12">
-        
-        <div className="space-y-8">
-          <Logo className="w-20 h-20 md:w-28 md:h-28 mx-auto" />
-          
-          <div className="space-y-4">
-            <h1 className="text-2xl md:text-4xl font-light serif-title text-white tracking-wide leading-tight">
+      <div className="max-w-[720px] text-center space-y-10">
+
+        {/* Logo + título */}
+        <div className="space-y-7">
+          <div className="flex justify-center animate-float">
+            <Logo className="w-20 h-20 md:w-24 md:h-24" />
+          </div>
+
+          <div className="space-y-3">
+            <h1 className="text-3xl md:text-[2.6rem] font-normal serif-title text-[#1A1A1A] tracking-tight leading-tight">
               Sistema de Folksonomia
             </h1>
-            <p className="text-white/30 text-xs uppercase tracking-[0.25em] font-semibold">
-              Documentação Semântica Institucional
+            <p className="text-[#1A1A1A]/40 text-[11px] uppercase tracking-[0.28em] font-semibold">
+              Documentação Semântica Institucional · NUGEP
             </p>
           </div>
         </div>
 
-        <div className="h-[1px] w-16 bg-[#E85002] mx-auto opacity-40" />
+        {/* Divisor */}
+        <div className="flex items-center gap-4 max-w-xs mx-auto">
+          <div className="flex-1 h-px bg-[#1A1A1A]/10" />
+          <div className="w-2 h-2 rounded-full" style={{ background: '#E8490A' }} />
+          <div className="flex-1 h-px bg-[#1A1A1A]/10" />
+        </div>
 
-        <p className="text-white/50 text-sm md:text-base leading-relaxed font-light max-w-md mx-auto">
-          Participe da construção coletiva do conhecimento institucional através de percepções e tags semânticas.
+        {/* Descrição */}
+        <p className="text-[#1A1A1A]/55 text-sm md:text-base leading-relaxed font-light max-w-md mx-auto">
+          Participe da construção coletiva do conhecimento institucional
+          através de percepções e tags semânticas sobre o acervo.
         </p>
 
-        <div className="pt-6">
-          <button 
+        {/* CTA */}
+        <div className="pt-2">
+          <button
+            id="btn-acessar-sistema"
             onClick={() => router.push('/questionario')}
-            className="liquid-button !px-12 md:!px-16 !py-4 md:!py-5 !rounded-full !text-xs !font-medium !tracking-[0.12em] !bg-white/5 hover:!bg-[#E85002]/15 hover:!border-[#E85002]/35 transition-all shadow-xl"
+            className="liquid-button !px-14 md:!px-20 !py-4 md:!py-5 !rounded-full !text-[11px] !font-semibold !tracking-[0.15em] shadow-lg hover:shadow-xl transition-shadow"
+            style={{
+              background: 'rgba(255,255,255,0.70)',
+              borderColor: 'rgba(0,0,0,0.12)',
+            }}
           >
             Acessar Sistema
           </button>
+        </div>
+
+        {/* Cores decorativas pequenas */}
+        <div className="flex justify-center gap-2 pt-4">
+          {['#1E3A8A','#E8490A','#1A6B3A','#C0252B','#E8A920'].map((c) => (
+            <div key={c} className="w-2 h-2 rounded-full opacity-60" style={{ background: c }} />
+          ))}
         </div>
 
       </div>
