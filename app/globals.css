@@ -3,64 +3,96 @@
 @tailwind utilities;
 
 /* ============================================================
-   DESIGN TOKENS — FOLKSONOMIA DIGITAL
-   Fundo: SVG creme com formas geométricas
+   VARIÁVEIS GLOBAIS
    ============================================================ */
-
 :root {
-  --background: #EEEBE3;
-  --foreground: #1A1A1A;
-  --primary: #E8500A;
-  --blue:    #1B3A8A;
-  --green:   #1A6B3A;
-  --red:     #C12028;
-  --yellow:  #E9A91B;
-  --glass-bg:     rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(0, 0, 0, 0.10);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --primary:    #E8490A;
+  --blue:       #1E3A8A;
+  --green:      #1A6B3A;
+  --red:        #C0252B;
+  --yellow:     #E8A920;
+  --text:       #1A1A1A;
+  --glass-bg:   rgba(255, 255, 255, 0.58);
+  --glass-brd:  rgba(0, 0, 0, 0.09);
 }
 
 /* ============================================================
-   BASE
+   BASE — fundo via SVG fixo
    ============================================================ */
-
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
-html, body {
+html {
+  scroll-behavior: smooth;
+}
+
+body {
   margin: 0;
   padding: 0;
   color: #1A1A1A;
-  overflow-x: hidden;
-}
-
-/* FUNDO: SVG como background-image fixo — cobre toda a tela */
-body {
   background-color: #EEEBE3;
   background-image: url('/bg.svg');
   background-size: cover;
-  background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  background-position: center center;
   min-height: 100vh;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Sobrescrever QUALQUER classe Tailwind que force texto branco */
+.text-white   { color: #1A1A1A !important; }
+.text-white\/90 { color: rgba(26,26,26,0.90) !important; }
+.text-white\/80 { color: rgba(26,26,26,0.80) !important; }
+.text-white\/70 { color: rgba(26,26,26,0.70) !important; }
+.text-white\/60 { color: rgba(26,26,26,0.65) !important; }
+.text-white\/55 { color: rgba(26,26,26,0.60) !important; }
+.text-white\/50 { color: rgba(26,26,26,0.55) !important; }
+.text-white\/45 { color: rgba(26,26,26,0.50) !important; }
+.text-white\/40 { color: rgba(26,26,26,0.45) !important; }
+.text-white\/35 { color: rgba(26,26,26,0.40) !important; }
+.text-white\/30 { color: rgba(26,26,26,0.35) !important; }
+.text-white\/25 { color: rgba(26,26,26,0.30) !important; }
+.text-white\/20 { color: rgba(26,26,26,0.25) !important; }
+.text-white\/15 { color: rgba(26,26,26,0.20) !important; }
+.text-white\/10 { color: rgba(26,26,26,0.15) !important; }
+
+/* Fundos escuros que aparecem em cards -->  glass claro */
+.bg-black,
+.bg-black\/40,
+.bg-black\/50,
+.bg-black\/60,
+.bg-black\/80,
+.bg-black\/90,
+.bg-\[\#0f0f11\],
+.bg-\[\#040f0c\],
+.bg-\[\#1a1a1a\],
+.bg-\[\#111\] {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(16px) !important;
 }
 
 /* ============================================================
    TIPOGRAFIA
    ============================================================ */
-
 .serif-title {
   font-family: var(--font-serif), 'Georgia', serif;
   font-weight: 400;
 }
 
-/* ============================================================
-   LIQUID GLASS — TEMA CLARO
-   ============================================================ */
+.label-sm {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 26, 0.45);
+}
 
+/* ============================================================
+   GLASS CARD
+   ============================================================ */
 .glass-card {
   background: rgba(255, 255, 255, 0.58);
   backdrop-filter: blur(20px) saturate(180%);
@@ -70,11 +102,13 @@ body {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
-/* Liquid Glass Button — padrão claro */
+/* ============================================================
+   LIQUID GLASS BUTTON — claro
+   ============================================================ */
 .liquid-button {
-  background: rgba(255, 255, 255, 0.60);
+  background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(0, 0, 0, 0.11);
-  color: #1A1A1A;
+  color: #1A1A1A !important;
   padding: 0.55rem 1.4rem;
   border-radius: 0.85rem;
   font-size: 0.7rem;
@@ -93,7 +127,7 @@ body {
 }
 
 .liquid-button:hover {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.85);
   border-color: rgba(0, 0, 0, 0.16);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255,255,255,0.95);
   transform: translateY(-1px);
@@ -101,10 +135,11 @@ body {
 
 .liquid-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-/* Input glass */
+/* ============================================================
+   LIQUID INPUT
+   ============================================================ */
 .liquid-input {
   background: rgba(255, 255, 255, 0.65);
   border: 1px solid rgba(0, 0, 0, 0.10);
@@ -116,50 +151,43 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: all 0.25s;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
   width: 100%;
 }
 
-.liquid-input::placeholder {
-  color: rgba(26, 26, 26, 0.38);
-}
+.liquid-input::placeholder { color: rgba(26,26,26,0.38); }
 
 .liquid-input:focus {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(232, 80, 10, 0.45);
-  box-shadow: 0 0 0 3px rgba(232, 80, 10, 0.10), inset 0 1px 3px rgba(0,0,0,0.04);
+  background: rgba(255,255,255,0.90);
+  border-color: rgba(232,73,10,0.45);
+  box-shadow: 0 0 0 3px rgba(232,73,10,0.10);
 }
 
 /* ============================================================
    ALTO CONTRASTE
    ============================================================ */
-
 [data-theme="contraste"] body {
   background: #000 !important;
   background-image: none !important;
-  color: #FFFF00 !important;
 }
-
 [data-theme="contraste"] * {
   color: #FFFF00 !important;
   border-color: #FFFF00 !important;
 }
-
-[data-theme="contraste"] .liquid-button {
-  background: #000 !important;
-  color: #FFFF00 !important;
-  border: 2px solid #FFFF00 !important;
-}
-
+[data-theme="contraste"] .liquid-button,
 [data-theme="contraste"] .glass-card {
   background: #000 !important;
   border: 2px solid #FFFF00 !important;
+}
+/* Anular os overrides de text-white no modo contraste */
+[data-theme="contraste"] .text-white,
+[data-theme="contraste"] .text-white\/80,
+[data-theme="contraste"] .text-white\/60 {
+  color: #FFFF00 !important;
 }
 
 /* ============================================================
    ANIMAÇÕES
    ============================================================ */
-
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -185,41 +213,27 @@ body {
 }
 
 /* ============================================================
-   UTILITÁRIOS
+   UTILS
    ============================================================ */
-
-.serif-title { font-family: var(--font-serif), 'Georgia', serif; }
-
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(27, 58, 138, 0.25); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(27, 58, 138, 0.45); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: rgba(30,58,138,0.25); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(30,58,138,0.45); }
 
-.label-sm {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(26, 26, 26, 0.45);
-}
-
-/* Acessibilidade: rem */
-.text-\[8px\]  { font-size: 0.5rem !important;    line-height: 0.75rem !important; }
-.text-\[9px\]  { font-size: 0.5625rem !important; line-height: 0.75rem !important; }
-.text-\[10px\] { font-size: 0.625rem !important;  line-height: 1rem !important; }
-.text-\[11px\] { font-size: 0.6875rem !important; line-height: 1rem !important; }
-.text-\[12px\] { font-size: 0.75rem !important;   line-height: 1rem !important; }
-.text-\[14px\] { font-size: 0.875rem !important;  line-height: 1.25rem !important; }
+/* Fonte escalável para acessibilidade */
+.text-\[8px\]  { font-size: 0.5rem !important; }
+.text-\[9px\]  { font-size: 0.5625rem !important; }
+.text-\[10px\] { font-size: 0.625rem !important; }
+.text-\[11px\] { font-size: 0.6875rem !important; }
+.text-\[12px\] { font-size: 0.75rem !important; }
+.text-\[14px\] { font-size: 0.875rem !important; }
 
 /* ============================================================
    PRINT
    ============================================================ */
-
 @media print {
-  body { background: white !important; background-image: none !important; color: black !important; }
+  body { background: white !important; background-image: none !important; }
   .liquid-button, .print-hidden, nav, header { display: none !important; }
-  main { padding-top: 0 !important; }
 }
