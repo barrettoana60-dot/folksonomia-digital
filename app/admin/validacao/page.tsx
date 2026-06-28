@@ -86,14 +86,15 @@ function safeTrim(text: unknown, max = 30): string {
 }
 
 // Auxiliar para gerar hash de DNA semântico baseado no conteúdo
-function generateDnaHash(seed: string): string {
+function generateDnaHash(seed: any): string {
+  const str = seed ? String(seed) : '';
   let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash << 5) - hash + seed.charCodeAt(i);
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
     hash |= 0;
   }
   const hex = Math.abs(hash).toString(16).padStart(8, '0');
-  return `dna_delta_${hex}_alfa_${Math.floor(Math.random() * 9000 + 1000)}`;
+  return `dna_delta_${hex}_alfa_9901`;
 }
 
 export default function ValidacaoPage() {
@@ -234,7 +235,7 @@ export default function ValidacaoPage() {
     setEditingNucleoId(n.id);
     setEditOriginal(n.conteudo_original || '');
     setEditNormalizado(n.conteudo_normalizado || '');
-    setEditConfianca(Math.round(asNumber(n.confianca, 80)));
+    setEditConfianca(Math.round(asNumber(n.confianca, 0.8) * 100));
   };
 
   const handleSaveEditNucleo = async (id: string) => {
@@ -363,10 +364,10 @@ export default function ValidacaoPage() {
     }
   };
 
-  const getNucleoName = (id?: string) => {
+  const getNucleoName = (id?: any) => {
     if (!id) return 'Nó desconhecido';
-    const found = allNucleos.find(n => n.id === id);
-    return found?.conteudo_original || `Nó [${id.substring(0, 8)}]`;
+    const found = allNucleos.find(n => n && String(n.id) === String(id));
+    return found?.conteudo_original || `Nó [${String(id).substring(0, 8)}]`;
   };
 
   return (
