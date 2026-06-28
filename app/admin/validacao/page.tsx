@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -395,8 +395,9 @@ export default function ValidacaoPage() {
   const conceptList = useMemo(() => pendingNucleos, [pendingNucleos]);
 
   return (
-    <main className="min-h-screen bg-[#000000] text-white p-6 md:p-10 pt-24">
-      <div className="max-w-[95%] mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-white/5">
+    <main className="min-h-screen p-6 md:p-10 pt-24 text-[#1A1A1A]">
+      <div className="max-w-[95%] mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-black/10">
+
         <div>
           <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-3">
             <Network className="text-[#E85002]" size={30} />
@@ -409,7 +410,7 @@ export default function ValidacaoPage() {
         <div className="flex gap-3">
           <Link
             href="/admin"
-            className="liquid-button text-[11px] py-2.5 px-6 font-semibold tracking-wider !bg-white/5 hover:!bg-white/10 !border-white/10"
+            className="liquid-button text-[11px] py-2.5 px-6 font-semibold tracking-wider !bg-white/55 hover:!bg-white/10 !border-black/10"
           >
             Voltar ao Início
           </Link>
@@ -428,7 +429,7 @@ export default function ValidacaoPage() {
         </div>
       ) : null}
 
-      <div className="max-w-[95%] mx-auto mb-8 flex border-b border-white/10">
+      <div className="max-w-[95%] mx-auto mb-8 flex border-b border-black/10">
         <button
           type="button"
           onClick={() => setActiveTab('demarcas')}
@@ -463,7 +464,7 @@ export default function ValidacaoPage() {
           <>
             {activeTab === 'demarcas' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                <div className="flex justify-between items-center bg-white/[0.02] border border-black/07 rounded-2xl p-6">
                   <div>
                     <h2 className="text-sm font-semibold uppercase tracking-wider text-white">
                       Fila de Demarcações Pendentes
@@ -478,7 +479,7 @@ export default function ValidacaoPage() {
                 </div>
 
                 {pendingNucleos.length === 0 ? (
-                  <div className="text-center py-20 bg-white/[0.01] border border-white/5 rounded-3xl text-white/30 text-sm uppercase tracking-wider">
+                  <div className="text-center py-20 bg-white/[0.01] border border-black/07 rounded-3xl text-white/30 text-sm uppercase tracking-wider">
                     Não há demarcações aguardando curadoria ativa no momento.
                   </div>
                 ) : (
@@ -489,11 +490,11 @@ export default function ValidacaoPage() {
                     return (
                       <div
                         key={itemId}
-                        className="glass-card p-8 md:p-10 border border-white/5 rounded-3xl hover:border-white/10 transition-all"
+                        className="glass-card p-8 md:p-10 border border-black/07 rounded-3xl hover:border-black/10 transition-all"
                       >
                         {editingNucleoId === item.id ? (
                           <div className="space-y-6">
-                            <div className="border-b border-white/10 pb-4 flex justify-between items-center">
+                            <div className="border-b border-black/10 pb-4 flex justify-between items-center">
                               <span className="text-[10px] uppercase text-[#E85002] font-semibold tracking-wider">
                                 Ajuste Fino de Demarcação
                               </span>
@@ -509,7 +510,7 @@ export default function ValidacaoPage() {
                                   type="text"
                                   value={editOriginal}
                                   onChange={(e) => setEditOriginal(e.target.value)}
-                                  className="liquid-input w-full text-white bg-black/40 border-white/10"
+                                  className="liquid-input w-full text-white bg-white/550/40 border-black/10"
                                 />
                               </div>
                               <div className="space-y-2">
@@ -520,7 +521,7 @@ export default function ValidacaoPage() {
                                   type="text"
                                   value={editNormalizado}
                                   onChange={(e) => setEditNormalizado(e.target.value)}
-                                  className="liquid-input w-full text-white bg-black/40 border-white/10"
+                                  className="liquid-input w-full text-white bg-white/550/40 border-black/10"
                                 />
                               </div>
                             </div>
@@ -543,7 +544,7 @@ export default function ValidacaoPage() {
                                 <button
                                   type="button"
                                   onClick={() => setEditingNucleoId(null)}
-                                  className="px-4 py-2 border border-white/10 rounded-xl text-xs hover:bg-white/5"
+                                  className="px-4 py-2 border border-black/10 rounded-xl text-xs hover:bg-white/55"
                                 >
                                   Cancelar
                                 </button>
@@ -591,25 +592,25 @@ export default function ValidacaoPage() {
                                 Métricas Cognitivas do Motor ML
                               </label>
                               <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center">
+                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
                                   <span className="text-[9px] text-white/35 uppercase font-semibold">Confiança</span>
                                   <p className="text-lg font-light text-orange-400 mt-1">
                                     {Math.round(asNumber(item.confianca, 0))}%
                                   </p>
                                 </div>
-                                <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center">
+                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
                                   <span className="text-[9px] text-white/35 uppercase font-semibold">Novidade</span>
                                   <p className="text-lg font-light text-blue-400 mt-1">
                                     {Math.round(asNumber(item.novidade, 0))}%
                                   </p>
                                 </div>
-                                <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center">
+                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
                                   <span className="text-[9px] text-white/35 uppercase font-semibold">Tensão</span>
                                   <p className="text-lg font-light text-yellow-400 mt-1">
                                     {Math.round(asNumber(item.tensao, 0))}%
                                   </p>
                                 </div>
-                                <div className="p-3 bg-white/5 rounded-xl border border-white/5 text-center">
+                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
                                   <span className="text-[9px] text-white/35 uppercase font-semibold">Ressonância</span>
                                   <p className="text-lg font-light text-purple-400 mt-1">
                                     {Math.round(asNumber(item.ressonancia, 0))}%
@@ -641,7 +642,7 @@ export default function ValidacaoPage() {
                                 <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45 block">
                                   Proveniência de Origem
                                 </label>
-                                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-md text-[10px] font-medium tracking-wider w-max">
+                                <div className="flex items-center gap-2 px-3 py-1 bg-white/55 border border-black/10 rounded-md text-[10px] font-medium tracking-wider w-max">
                                   <Database size={10} /> {item.origem || 'Folksonomia_Crawler'}
                                 </div>
 
@@ -651,7 +652,7 @@ export default function ValidacaoPage() {
                                   onChange={(e) =>
                                     setJustificativas(prev => ({ ...prev, [item.id]: e.target.value }))
                                   }
-                                  className="liquid-input w-full bg-white/5 border-white/10 rounded-xl px-4 py-2.5 text-xs placeholder:text-white/20 min-h-[60px]"
+                                  className="liquid-input w-full bg-white/55 border-black/10 rounded-xl px-4 py-2.5 text-xs placeholder:text-white/20 min-h-[60px]"
                                 />
                               </div>
 
@@ -673,7 +674,7 @@ export default function ValidacaoPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleStartEditNucleo(item)}
-                                  className="liquid-button flex-shrink-0 flex items-center justify-center gap-1.5 text-xs font-semibold !py-3 !px-3 !bg-white/5 !border-white/10 hover:!bg-white/10"
+                                  className="liquid-button flex-shrink-0 flex items-center justify-center gap-1.5 text-xs font-semibold !py-3 !px-3 !bg-white/55 !border-black/10 hover:!bg-white/10"
                                   title="Ajustar Parâmetros"
                                 >
                                   <Edit3 size={13} />
@@ -691,7 +692,7 @@ export default function ValidacaoPage() {
 
             {activeTab === 'ligacoes' && (
               <div className="space-y-8">
-                <div className="glass-card p-8 border border-white/5 rounded-3xl">
+                <div className="glass-card p-8 border border-black/07 rounded-3xl">
                   <h3 className="text-base font-normal serif-title text-[#E85002] mb-6 flex items-center gap-2">
                     <Plus size={18} /> Estabelecer Nova Ligação Semântica
                   </h3>
@@ -702,7 +703,7 @@ export default function ValidacaoPage() {
                       <select
                         value={newOrigemId}
                         onChange={(e) => setNewOrigemId(e.target.value)}
-                        className="liquid-input w-full !bg-[#0f0f11] !border-white/10 text-xs"
+                        className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
                       >
                         <option value="">Selecione...</option>
                         {allNucleos.map((n, idx) => (
@@ -718,7 +719,7 @@ export default function ValidacaoPage() {
                       <select
                         value={newDestinoId}
                         onChange={(e) => setNewDestinoId(e.target.value)}
-                        className="liquid-input w-full !bg-[#0f0f11] !border-white/10 text-xs"
+                        className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
                       >
                         <option value="">Selecione...</option>
                         {allNucleos.map((n, idx) => (
@@ -734,7 +735,7 @@ export default function ValidacaoPage() {
                       <select
                         value={newTipoRelacao}
                         onChange={(e) => setNewTipoRelacao(e.target.value)}
-                        className="liquid-input w-full !bg-[#0f0f11] !border-white/10 text-xs"
+                        className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
                       >
                         {Object.entries(TIPO_RELACAO_MAP).map(([val, label]) => (
                           <option key={val} value={val}>
@@ -781,7 +782,7 @@ export default function ValidacaoPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                  <div className="flex justify-between items-center bg-white/[0.02] border border-black/07 rounded-2xl p-6">
                     <div>
                       <h2 className="text-sm font-semibold uppercase tracking-wider text-white">
                         Ligações Ativas no Grafo Semântico
@@ -805,7 +806,7 @@ export default function ValidacaoPage() {
                       const bibliographies = toArray<string>(rel?.metadados?.bibliographies);
 
                       return (
-                        <div key={relId} className="p-6 bg-white/[0.02] border border-white/5 rounded-2xl hover:border-white/10 transition-all">
+                        <div key={relId} className="p-6 bg-white/[0.02] border border-black/07 rounded-2xl hover:border-black/10 transition-all">
                           {editingRelationId === rel.id ? (
                             <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
                               <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -816,7 +817,7 @@ export default function ValidacaoPage() {
                                   <select
                                     value={editTipoRelacao}
                                     onChange={(e) => setEditTipoRelacao(e.target.value)}
-                                    className="liquid-input w-full !bg-[#0f0f11] !border-white/10 text-xs"
+                                    className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
                                   >
                                     {Object.entries(TIPO_RELACAO_MAP).map(([val, label]) => (
                                       <option key={val} value={val}>
@@ -844,7 +845,7 @@ export default function ValidacaoPage() {
                                 <button
                                   type="button"
                                   onClick={() => setEditingRelationId(null)}
-                                  className="px-3 py-2 border border-white/10 rounded-xl text-xs hover:bg-white/5"
+                                  className="px-3 py-2 border border-black/10 rounded-xl text-xs hover:bg-white/55"
                                 >
                                   Cancelar
                                 </button>
@@ -861,7 +862,7 @@ export default function ValidacaoPage() {
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                               <div className="space-y-1.5 flex-1">
                                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                                  <span className="font-semibold text-white bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                                  <span className="font-semibold text-white bg-white/55 border border-black/10 px-2.5 py-1 rounded-lg">
                                     {origemNome}
                                   </span>
                                   <ArrowRight size={14} className="text-[#E85002]" />
@@ -869,7 +870,7 @@ export default function ValidacaoPage() {
                                     {TIPO_RELACAO_MAP[rel.tipo_relacao] || rel.tipo_relacao || 'Relação'}
                                   </span>
                                   <ArrowRight size={14} className="text-[#E85002]" />
-                                  <span className="font-semibold text-white bg-white/5 border border-white/10 px-2.5 py-1 rounded-lg">
+                                  <span className="font-semibold text-white bg-white/55 border border-black/10 px-2.5 py-1 rounded-lg">
                                     {destinoNome}
                                   </span>
                                 </div>
@@ -898,7 +899,7 @@ export default function ValidacaoPage() {
                                     className={`px-3 py-1.5 rounded-lg border text-[10px] font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
                                       selectedDnaRelation?.id === rel.id
                                         ? 'bg-[#E85002]/20 border-[#E85002]/40 text-[#E85002]'
-                                        : 'bg-white/5 border-white/10 text-white/55 hover:text-white hover:bg-white/10'
+                                        : 'bg-white/55 border-black/10 text-white/55 hover:text-white hover:bg-white/10'
                                     }`}
                                   >
                                     <FileText size={11} /> DNA Semântico
@@ -907,7 +908,7 @@ export default function ValidacaoPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleStartEditRelation(rel)}
-                                  className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/60 hover:text-white"
+                                  className="p-2 rounded-lg bg-white/55 border border-black/10 hover:bg-white/10 text-white/60 hover:text-white"
                                   title="Ajustar Conexão"
                                 >
                                   <Edit3 size={12} />
@@ -925,8 +926,8 @@ export default function ValidacaoPage() {
                           )}
 
                           {selectedDnaRelation?.id === rel.id && rel.hash_dna && (
-                            <div className="mt-5 pt-5 border-t border-white/5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 bg-black/40 border border-white/5 rounded-xl">
+                            <div className="mt-5 pt-5 border-t border-black/07 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 bg-white/550/40 border border-black/07 rounded-xl">
                                 <div className="space-y-1">
                                   <span className="text-[9px] uppercase tracking-wider text-[#E85002] font-semibold">
                                     DNA Semântico SHA-256 (Imutável)
@@ -938,7 +939,7 @@ export default function ValidacaoPage() {
                                 <button
                                   type="button"
                                   onClick={() => copyToClipboard(rel.hash_dna || '', rel.id)}
-                                  className="liquid-button text-[10px] !py-1.5 !px-3 font-medium flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border-white/10 flex-shrink-0"
+                                  className="liquid-button text-[10px] !py-1.5 !px-3 font-medium flex items-center gap-1.5 bg-white/55 hover:bg-white/10 border-black/10 flex-shrink-0"
                                 >
                                   {copiedId === rel.id ? (
                                     <Check size={11} className="text-green-400" />
@@ -951,7 +952,7 @@ export default function ValidacaoPage() {
 
                               {rel.metadados ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="space-y-3 p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                                  <div className="space-y-3 p-4 bg-white/[0.01] border border-black/07 rounded-xl">
                                     <h4 className="text-[10px] uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
                                       <Brain size={12} /> Contexto e Co-Ocorrências
                                     </h4>
@@ -964,7 +965,7 @@ export default function ValidacaoPage() {
                                           {familyTags.slice(0, 6).map((t: string, i: number) => (
                                             <span
                                               key={`${relId}-family-${i}-${t}`}
-                                              className="px-1.5 py-0.5 bg-white/5 border border-white/5 rounded text-[9px] text-white/60"
+                                              className="px-1.5 py-0.5 bg-white/55 border border-black/07 rounded text-[9px] text-white/60"
                                             >
                                               {t}
                                             </span>
@@ -978,7 +979,7 @@ export default function ValidacaoPage() {
                                     </div>
                                   </div>
 
-                                  <div className="space-y-3 p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                                  <div className="space-y-3 p-4 bg-white/[0.01] border border-black/07 rounded-xl">
                                     <h4 className="text-[10px] uppercase tracking-wider text-white/44 font-semibold flex items-center gap-1.5">
                                       <Database size={12} /> Integração APIs de Acervos Nacionais
                                     </h4>
@@ -989,7 +990,7 @@ export default function ValidacaoPage() {
                                           {externalApis.slice(0, 3).map((api: any, index: number) => (
                                             <div
                                               key={`${relId}-api-${index}`}
-                                              className="flex justify-between items-center bg-black/20 p-2 rounded border border-white/5"
+                                              className="flex justify-between items-center bg-white/550/20 p-2 rounded border border-black/07"
                                             >
                                               <div className="text-[10px] truncate max-w-[70%]">
                                                 <span className="text-[#E85002] font-semibold">
@@ -1020,7 +1021,7 @@ export default function ValidacaoPage() {
                                     </div>
                                   </div>
 
-                                  <div className="md:col-span-2 p-4 bg-white/[0.01] border border-white/5 rounded-xl">
+                                  <div className="md:col-span-2 p-4 bg-white/[0.01] border border-black/07 rounded-xl">
                                     <span className="text-[9px] text-white/35 block mb-1">
                                       Referência Bibliográfica & Regulamentação
                                     </span>
