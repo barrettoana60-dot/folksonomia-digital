@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -327,7 +327,7 @@ export default function AdminPage() {
         status: node.status || (isGroup ? 'validado' : 'em_analise'),
         content: (
           <div className="space-y-2 text-xs">
-            <div className="bg-black/30 p-2.5 rounded-xl border border-white/5 flex items-center justify-between">
+            <div className="bg-white/550/30 p-2.5 rounded-xl border border-black/07 flex items-center justify-between">
               <span className="font-semibold text-white/90 truncate mr-2">{node.id}</span>
               <button 
                 onClick={() => {
@@ -639,28 +639,28 @@ export default function AdminPage() {
       <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-12">
         
         {/* LOGO INSTITUCIONAL */}
-        <div className="flex items-center gap-6 pb-6 border-b border-white/5 print:border-black/10 print:pb-10 print:mb-10">
+        <div className="flex items-center gap-6 pb-6 border-b border-black/07 print:border-black/10 print:pb-10 print:mb-10">
           <Logo className="w-12 h-12 md:w-16 md:h-16" />
           <div>
             <h1 className="text-xl md:text-2xl font-semibold tracking-normal print:text-black">
               Sistema de Folksonomia Digital
             </h1>
-            <p className="text-[9px] md:text-[11px] uppercase font-medium tracking-[0.2em] text-white/35 print:text-black/50">
+            <p className="text-[9px] md:text-[11px] uppercase font-medium tracking-[0.2em] text-[#1A1A1A]/38 print:text-black/50">
               Gestão Semântica Institucional — NUGEP
             </p>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <nav className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-white/5 print:hidden">
+        <nav className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-black/07 print:hidden">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`whitespace-nowrap px-5 md:px-7 py-2.5 rounded-xl text-[10px] md:text-xs font-semibold uppercase tracking-wider transition-all ${
                 activeTab === tab.id 
-                  ? 'bg-white/10 text-white border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
-                  : 'text-white/40 border-transparent hover:text-white hover:bg-white/5'
+                  ? 'bg-white/10 text-white border border-black/18 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
+                  : 'text-[#1A1A1A]/45 border-transparent hover:text-white hover:bg-white/550'
               }`}
             >
               {tab.label}
@@ -678,12 +678,12 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 animate-fade-in">
                 {stats.map((s, i) => (
                   <div key={i} className="glass-card p-6 md:p-10 flex flex-col items-center text-center space-y-3 md:space-y-6">
-                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border border-white/10 flex items-center justify-center bg-white/5">
+                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border border-black/10 flex items-center justify-center bg-white/550">
                       <s.icon size={20} className="md:size-[28px]" style={{ color: s.color }} />
                     </div>
                     <div className="space-y-1 md:space-y-2">
                       <p className="text-2xl md:text-4xl font-normal serif-title text-white tracking-tight">{s.value}</p>
-                      <p className="text-[8px] md:text-[11px] uppercase tracking-[0.12em] text-white/40 font-semibold">{s.label}</p>
+                      <p className="text-[8px] md:text-[11px] uppercase tracking-[0.12em] text-[#1A1A1A]/45 font-semibold">{s.label}</p>
                     </div>
                   </div>
                 ))}
@@ -698,35 +698,35 @@ export default function AdminPage() {
                  </div>
                  
                  {showAddForm && (
-                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4">
                      <div className="glass-card p-8 w-full max-w-2xl relative animate-fade-in">
-                       <button onClick={() => setShowAddForm(false)} className="absolute top-6 right-6 text-white/50 hover:text-white">
+                       <button onClick={() => setShowAddForm(false)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
                        </button>
                        <h3 className="text-lg serif-title mb-6">Adicionar Nova Obra</h3>
                        <form onSubmit={handleAddObra} className="space-y-4">
                          <div>
-                           <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Título</label>
-                           <input required value={obraForm.titulo} onChange={e => setObraForm({...obraForm, titulo: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Cálice Colonial" />
+                           <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Título</label>
+                           <input required value={obraForm.titulo} onChange={e => setObraForm({...obraForm, titulo: e.target.value})} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Cálice Colonial" />
                          </div>
                          <div className="grid grid-cols-2 gap-4">
                            <div>
-                             <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Autor/Artista</label>
-                             <input value={obraForm.artista} onChange={e => setObraForm({...obraForm, artista: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
+                             <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Autor/Artista</label>
+                             <input value={obraForm.artista} onChange={e => setObraForm({...obraForm, artista: e.target.value})} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
                            </div>
                            <div>
-                             <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Ano</label>
-                             <input value={obraForm.ano} onChange={e => setObraForm({...obraForm, ano: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
+                             <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Ano</label>
+                             <input value={obraForm.ano} onChange={e => setObraForm({...obraForm, ano: e.target.value})} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
                            </div>
                          </div>
                          <div>
-                           <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Descrição</label>
-                           <textarea value={obraForm.descricao} onChange={e => setObraForm({...obraForm, descricao: e.target.value})} rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none"></textarea>
+                           <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Descrição</label>
+                           <textarea value={obraForm.descricao} onChange={e => setObraForm({...obraForm, descricao: e.target.value})} rows={3} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none"></textarea>
                          </div>
                          <div>
-                            <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider mb-2 block">Foto da Obra</label>
+                            <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider mb-2 block">Foto da Obra</label>
                             <div 
-                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${isDragging ? 'border-[#E85002] bg-[#E85002]/10' : imagePreview ? 'border-orange-500/30 bg-orange-500/5' : 'border-white/10 hover:border-white/20 bg-white/5'}`}
+                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${isDragging ? 'border-[#E85002] bg-[#E85002]/10' : imagePreview ? 'border-orange-500/30 bg-orange-500/5' : 'border-black/10 hover:border-black/15 bg-white/550'}`}
                               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                               onDragLeave={() => setIsDragging(false)}
                               onDrop={(e) => {
@@ -749,16 +749,16 @@ export default function AdminPage() {
                               />
                               {imagePreview ? (
                                 <div className="space-y-3">
-                                  <img src={imagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg border border-white/10 object-contain" />
+                                  <img src={imagePreview} alt="Preview" className="max-h-40 mx-auto rounded-lg border border-black/10 object-contain" />
                                   <p className="text-[11px] text-orange-400 uppercase tracking-wider font-semibold">✓ Foto carregada — clique para trocar</p>
                                 </div>
                               ) : (
                                 <div className="space-y-2">
-                                  <div className="w-12 h-12 mx-auto rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/30"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                  <div className="w-12 h-12 mx-auto rounded-full bg-white/550 border border-black/10 flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#1A1A1A]/35"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                                   </div>
-                                  <p className="text-white/40 text-xs">Arraste uma foto aqui ou clique para selecionar</p>
-                                  <p className="text-white/20 text-[10px] uppercase tracking-wider font-medium">JPG, PNG, WebP</p>
+                                  <p className="text-[#1A1A1A]/45 text-xs">Arraste uma foto aqui ou clique para selecionar</p>
+                                  <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider font-medium">JPG, PNG, WebP</p>
                                 </div>
                               )}
                             </div>
@@ -775,40 +775,40 @@ export default function AdminPage() {
                  {obrasLoading ? (
                    <div className="glass-card p-12 text-center">
                      <div className="w-8 h-8 border-2 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                     <p className="text-white/35 uppercase tracking-wider font-semibold text-xs">Carregando obras do Supabase...</p>
+                     <p className="text-[#1A1A1A]/38 uppercase tracking-wider font-semibold text-xs">Carregando obras do Supabase...</p>
                    </div>
                  ) : obrasList.length === 0 ? (
                    <div className="glass-card p-12 text-center">
-                     <Database size={48} className="mx-auto text-white/10 mb-6" />
-                     <p className="text-white/35 uppercase tracking-wider font-semibold text-xs">Nenhuma obra cadastrada ainda. Clique em "+ Nova Obra" para começar.</p>
+                     <Database size={48} className="mx-auto text-[#1A1A1A]/15 mb-6" />
+                     <p className="text-[#1A1A1A]/38 uppercase tracking-wider font-semibold text-xs">Nenhuma obra cadastrada ainda. Clique em "+ Nova Obra" para começar.</p>
                    </div>
                  ) : (
                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                      {obrasList.map((obra) => (
                        <div key={obra.id} className="glass-card overflow-hidden group hover:border-[#E85002]/30 transition-all duration-300">
                          {obra.imagem_url ? (
-                           <div className="h-48 overflow-hidden bg-black/30">
+                           <div className="h-48 overflow-hidden bg-white/550/30">
                              <img src={obra.imagem_url} alt={obra.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                            </div>
                          ) : (
                            <div className="h-48 bg-gradient-to-br from-[#E85002]/10 to-transparent flex items-center justify-center">
-                             <Database size={48} className="text-white/10" />
+                             <Database size={48} className="text-[#1A1A1A]/15" />
                            </div>
                          )}
                          <div className="p-5 space-y-3">
                            <h3 className="text-base font-normal serif-title tracking-normal leading-tight">{obra.titulo}</h3>
                            {obra.artista && <p className="text-[11px] text-[#E85002] font-semibold uppercase tracking-wider">{obra.artista}</p>}
-                           {obra.ano && <p className="text-[10px] text-white/45 uppercase tracking-wider">Ano: {obra.ano}</p>}
-                           {obra.descricao && <p className="text-xs text-white/50 line-clamp-2">{obra.descricao}</p>}
-                           <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                             <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">
+                           {obra.ano && <p className="text-[10px] text-[#1A1A1A]/48 uppercase tracking-wider">Ano: {obra.ano}</p>}
+                           {obra.descricao && <p className="text-xs text-[#1A1A1A]/55 line-clamp-2">{obra.descricao}</p>}
+                           <div className="flex items-center justify-between pt-3 border-t border-black/07">
+                             <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/38 font-semibold">
                                <TagIcon size={10} className="inline mr-1" />
                                {obra.total_tags || 0} tags
                              </span>
                              <div className="flex gap-2">
                                <button
                                  onClick={() => handleDeleteObra(obra.id)}
-                                 className="text-white/20 hover:text-red-400 transition-colors p-1"
+                                 className="text-[#1A1A1A]/25 hover:text-red-400 transition-colors p-1"
                                  title="Excluir obra"
                                >
                                  <Trash2 size={14} />
@@ -828,9 +828,9 @@ export default function AdminPage() {
                  <div className="flex justify-between items-center">
                    <div>
                      <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Análise de Tags</h2>
-                     <p className="text-[10px] uppercase tracking-wider font-semibold text-white/35 mt-1">Motor ML: deduplicação, famílias temáticas, erros ortográficos, correlações inter-tags</p>
+                     <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Motor ML: deduplicação, famílias temáticas, erros ortográficos, correlações inter-tags</p>
                    </div>
-                   <button onClick={() => { setTagAnalysisResult(null); setSelectedTagForAnalysis(null); }} className="liquid-button !bg-white/5 text-[11px] font-semibold tracking-wider">Limpar Análise</button>
+                   <button onClick={() => { setTagAnalysisResult(null); setSelectedTagForAnalysis(null); }} className="liquid-button !bg-white/550 text-[11px] font-semibold tracking-wider">Limpar Análise</button>
                  </div>
                  
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -845,19 +845,19 @@ export default function AdminPage() {
                             <div key={tagObj.id || i} className={`p-4 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
                               selectedTagForAnalysis === tagObj.tag 
                                 ? 'bg-[#E85002]/10 border-[#E85002]/40' 
-                                : 'bg-white/5 border-white/10 hover:border-white/20'
+                                : 'bg-white/550 border-black/10 hover:border-black/15'
                             }`} onClick={() => handleTagAnalysis(tagObj.tag)}>
                               <div>
                                 <span className="text-[#E85002] font-serif italic text-lg">&quot;{tagObj.tag}&quot;</span>
-                                <p className="text-[11px] uppercase tracking-wider font-semibold text-white/45 mt-1">
+                                <p className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/48 mt-1">
                                   {tagObj.grupo !== 'Outros' ? tagObj.grupo : 'Clique para analisar'}
                                 </p>
                               </div>
-                              <ChevronRight size={16} className="text-white/30" />
+                              <ChevronRight size={16} className="text-[#1A1A1A]/35" />
                             </div>
                           ))
                         ) : (
-                          <div className="p-4 text-center text-white/45 text-[11px] font-semibold uppercase tracking-wider border border-white/5 rounded-lg">
+                          <div className="p-4 text-center text-[#1A1A1A]/48 text-[11px] font-semibold uppercase tracking-wider border border-black/07 rounded-lg">
                             Nenhuma tag criada ainda
                           </div>
                         )}
@@ -869,7 +869,7 @@ export default function AdminPage() {
                      {isAnalyzingTag && (
                        <div className="glass-card p-12 text-center">
                          <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                         <p className="text-white/45 text-[11px] uppercase tracking-wider font-semibold">Analisando tag com motor ML...</p>
+                         <p className="text-[#1A1A1A]/48 text-[11px] uppercase tracking-wider font-semibold">Analisando tag com motor ML...</p>
                        </div>
                      )}
 
@@ -888,7 +888,7 @@ export default function AdminPage() {
                                </span>
                              )}
                              {!tagAnalysisResult.family && (
-                               <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] uppercase font-semibold tracking-wider text-white/40">
+                               <span className="px-3 py-1 bg-white/550 border border-black/10 rounded-full text-[10px] uppercase font-semibold tracking-wider text-[#1A1A1A]/45">
                                  Sem família detectada
                                </span>
                              )}
@@ -918,8 +918,8 @@ export default function AdminPage() {
                              {tagAnalysisResult.duplicates.map((d: any, i: number) => (
                                <div key={i} className="p-3 bg-red-500/5 rounded-lg flex items-center justify-between">
                                  <div>
-                                   <span className="text-white/80 font-serif italic">&quot;{d.tag}&quot;</span>
-                                   <span className="text-[10px] text-white/35 ml-2">({Math.round(d.score * 100)}% similar)</span>
+                                   <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{d.tag}&quot;</span>
+                                   <span className="text-[10px] text-[#1A1A1A]/38 ml-2">({Math.round(d.score * 100)}% similar)</span>
                                  </div>
                                  <span className="text-[10px] text-red-400/85 italic max-w-[50%] text-right">{d.reason}</span>
                                </div>
@@ -936,12 +936,12 @@ export default function AdminPage() {
                              {tagAnalysisResult.siblings.slice(0, 8).map((s: any, i: number) => (
                                <div key={i} className="p-3 bg-blue-500/5 rounded-lg flex items-center justify-between">
                                  <div className="flex items-center gap-2">
-                                   <span className="text-white/80 font-serif italic">&quot;{s.tag}&quot;</span>
+                                   <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{s.tag}&quot;</span>
                                    <div className="flex items-center gap-1">
-                                     <div className="h-1 w-16 bg-white/5 rounded-full overflow-hidden">
+                                     <div className="h-1 w-16 bg-white/550 rounded-full overflow-hidden">
                                        <div className="h-full bg-blue-400" style={{ width: `${s.score * 100}%` }} />
                                      </div>
-                                     <span className="text-[10px] text-white/35 font-semibold">{Math.round(s.score * 100)}%</span>
+                                     <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round(s.score * 100)}%</span>
                                    </div>
                                  </div>
                                  <span className="text-[10px] text-blue-400/85 italic max-w-[45%] text-right">{s.reason}</span>
@@ -955,7 +955,7 @@ export default function AdminPage() {
                            <div className="glass-card p-6 space-y-2">
                              <h3 className="text-xs font-semibold uppercase tracking-wider mb-3">Sugestões do Cérebro</h3>
                              {tagAnalysisResult.suggestions.map((s: string, i: number) => (
-                               <p key={i} className="text-[11px] text-white/60 leading-relaxed flex items-start gap-2">
+                               <p key={i} className="text-[11px] text-[#1A1A1A]/60 leading-relaxed flex items-start gap-2">
                                  <span className="text-[#E85002] mt-0.5">→</span> {s}
                                </p>
                              ))}
@@ -968,14 +968,14 @@ export default function AdminPage() {
                              <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
                                <TrendingUp size={16} className="text-orange-400" /> Conexões Propagadas ({tagAnalysisResult.propagated.length})
                              </h3>
-                             <p className="text-[10px] text-white/35 uppercase tracking-wider">Inferidas automaticamente: se A→B e B→C, então A↔C</p>
+                             <p className="text-[10px] text-[#1A1A1A]/38 uppercase tracking-wider">Inferidas automaticamente: se A→B e B→C, então A↔C</p>
                              {tagAnalysisResult.propagated.map((p: any, i: number) => (
                                <div key={i} className="p-3 bg-orange-500/5 rounded-lg">
                                  <div className="flex items-center justify-between">
-                                   <span className="text-white/80 font-serif italic">&quot;{p.tag}&quot;</span>
+                                   <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{p.tag}&quot;</span>
                                    <span className="text-[10px] text-orange-400/80 font-semibold">{Math.round(p.score * 100)}% confiança</span>
                                  </div>
-                                 <p className="text-[10px] text-white/45 italic mt-1">{p.reason}</p>
+                                 <p className="text-[10px] text-[#1A1A1A]/48 italic mt-1">{p.reason}</p>
                                </div>
                              ))}
                            </div>
@@ -995,11 +995,11 @@ export default function AdminPage() {
                                    const labels: Record<string, string> = { period: 'Período', technique: 'Técnica', geography: 'Geografia', material: 'Material', theme: 'Temática', provenance: 'Proveniência', movement: 'Movimento' };
                                    return (
                                      <div key={key} className="flex items-center gap-3">
-                                       <span className="text-[10px] uppercase tracking-wider text-white/45 w-24 text-right font-semibold">{labels[key] || key}</span>
-                                       <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                       <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/48 w-24 text-right font-semibold">{labels[key] || key}</span>
+                                       <div className="h-2 flex-1 bg-white/550 rounded-full overflow-hidden">
                                          <div className="h-full bg-gradient-to-r from-[#E85002] to-[#F16001] transition-all duration-700" style={{ width: `${(val as number) * 100}%` }} />
                                        </div>
-                                       <span className="text-[10px] text-white/35 font-semibold w-10">{Math.round((val as number) * 100)}%</span>
+                                       <span className="text-[10px] text-[#1A1A1A]/38 font-semibold w-10">{Math.round((val as number) * 100)}%</span>
                                      </div>
                                    );
                                  })}
@@ -1011,9 +1011,9 @@ export default function AdminPage() {
                          {tagAnalysisResult.traces?.length > 0 && (
                            <div className="glass-card p-6 space-y-3">
                              <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <Clock size={16} className="text-white/50" /> Rastro Neural ({tagAnalysisResult.totalTraces || tagAnalysisResult.traces.length} eventos)
+                               <Clock size={16} className="text-[#1A1A1A]/55" /> Rastro Neural ({tagAnalysisResult.totalTraces || tagAnalysisResult.traces.length} eventos)
                              </h3>
-                             <p className="text-[10px] text-white/35 uppercase tracking-wider">De onde veio → Para onde vai</p>
+                             <p className="text-[10px] text-[#1A1A1A]/38 uppercase tracking-wider">De onde veio → Para onde vai</p>
                              <div className="space-y-2 max-h-48 overflow-y-auto">
                                {tagAnalysisResult.traces.slice(0, 10).map((t: any, i: number) => {
                                  const actionColors: Record<string, string> = {
@@ -1024,13 +1024,13 @@ export default function AdminPage() {
                                    'VALIDACAO': 'text-orange-400 bg-orange-500/10',
                                    'CONEXAO': 'text-[#E85002] bg-[#E85002]/10'
                                  };
-                                 const colorClass = actionColors[t.action] || 'text-white/50 bg-white/5';
+                                 const colorClass = actionColors[t.action] || 'text-[#1A1A1A]/55 bg-white/550';
                                  return (
                                    <div key={t.id || i} className="flex items-center gap-2 text-[10px]">
                                      <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-semibold tracking-wider ${colorClass}`}>{t.action}</span>
-                                     <span className="text-white/30">{t.origin}</span>
+                                     <span className="text-[#1A1A1A]/35">{t.origin}</span>
                                      <span className="text-white/15">→</span>
-                                     <span className="text-white/50">{t.destination}</span>
+                                     <span className="text-[#1A1A1A]/55">{t.destination}</span>
                                      <span className="text-white/15 ml-auto">{Math.round(t.confidence * 100)}%</span>
                                    </div>
                                  );
@@ -1048,9 +1048,9 @@ export default function AdminPage() {
 
                      {!tagAnalysisResult && !isAnalyzingTag && (
                        <div className="glass-card p-12 text-center">
-                         <TagIcon size={48} className="mx-auto text-white/10 mb-4" />
-                         <p className="text-white/35 text-xs uppercase tracking-wider font-semibold">Clique em uma tag à esquerda para ver a análise ML completa</p>
-                         <p className="text-white/20 text-[10px] uppercase tracking-wider mt-2 font-medium">Família temática • Duplicatas • Erros ortográficos • Tags relacionadas</p>
+                         <TagIcon size={48} className="mx-auto text-[#1A1A1A]/15 mb-4" />
+                         <p className="text-[#1A1A1A]/38 text-xs uppercase tracking-wider font-semibold">Clique em uma tag à esquerda para ver a análise ML completa</p>
+                         <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider mt-2 font-medium">Família temática • Duplicatas • Erros ortográficos • Tags relacionadas</p>
                        </div>
                      )}
                    </div>
@@ -1066,9 +1066,9 @@ export default function AdminPage() {
                          <div key={i} className="space-y-2">
                            <div className="flex justify-between text-[11px] font-semibold uppercase tracking-wider">
                              <span>{c.nome}</span>
-                             <span className="text-white/40">{c.valor} tags</span>
+                             <span className="text-[#1A1A1A]/45">{c.valor} tags</span>
                            </div>
-                           <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                           <div className="h-1.5 bg-white/550 rounded-full overflow-hidden">
                              <div className="h-full bg-[#E85002] transition-all duration-700" style={{ width: `${(c.valor / maxVal) * 100}%` }} />
                            </div>
                          </div>
@@ -1138,10 +1138,10 @@ export default function AdminPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Relatório Semântico</h2>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-white/35 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
-                    <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/5 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/550 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
                       <FileText size={16} /> Exportar PDF
                     </button>
                     <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
@@ -1155,7 +1155,7 @@ export default function AdminPage() {
                   <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
                     <TrendingUp className="text-[#E85002]" size={18} /> Fluxo Temporal de Tags (Últimos 7 dias)
                   </h3>
-                  <div className="h-48 w-full flex items-end gap-3 border-b border-white/10 pb-2">
+                  <div className="h-48 w-full flex items-end gap-3 border-b border-black/10 pb-2">
                     {dashboardData?.relatorioSemantico?.fluxoTemporal?.map((val: number, i: number) => {
                       const maxVal = Math.max(...(dashboardData?.relatorioSemantico?.fluxoTemporal || [1]), 1);
                       const percent = (val / maxVal) * 100;
@@ -1165,10 +1165,10 @@ export default function AdminPage() {
                         </div>
                       )
                     }) || (
-                      <div className="w-full h-full flex items-center justify-center text-white/35 text-xs font-semibold uppercase tracking-wider">Carregando dados temporais...</div>
+                      <div className="w-full h-full flex items-center justify-center text-[#1A1A1A]/38 text-xs font-semibold uppercase tracking-wider">Carregando dados temporais...</div>
                     )}
                   </div>
-                  <div className="flex justify-between text-[10px] font-black text-white/30 uppercase tracking-widest">
+                  <div className="flex justify-between text-[10px] font-black text-[#1A1A1A]/35 uppercase tracking-widest">
                     <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
                   </div>
                 </div>
@@ -1186,13 +1186,13 @@ export default function AdminPage() {
 
                 {/* BARRA DE BUSCA SEMÂNTICA — escondida no print */}
                 <div className="glass-card p-6 flex gap-4 items-center print:hidden">
-                  <Search size={20} className="text-white/30" />
+                  <Search size={20} className="text-[#1A1A1A]/35" />
                   <input
                     value={searchTag}
                     onChange={e => setSearchTag(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSemanticSearch()}
                     placeholder="Buscar tag para análise semântica profunda (ex: espada, liturgia, barroco, cubismo...)"
-                    className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-white/30"
+                    className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-[#1A1A1A]/35"
                   />
                   <button onClick={handleSemanticSearch} disabled={isAnalyzing} className="liquid-button !bg-[#E85002] !px-8">
                     {isAnalyzing ? 'Analisando...' : 'Analisar'}
@@ -1205,7 +1205,7 @@ export default function AdminPage() {
                   <div className="glass-card p-12 text-center border-red-500/30 border">
                     <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
                     <h3 className="text-xl font-bold mb-2">Tag não encontrada no sistema</h3>
-                    <p className="text-white/50 text-sm max-w-lg mx-auto">A tag <span className="text-red-400 font-bold">&quot;{semanticResult.tag}&quot;</span> não foi criada por nenhum visitante. Crie a tag primeiro pela interface pública.</p>
+                    <p className="text-[#1A1A1A]/55 text-sm max-w-lg mx-auto">A tag <span className="text-red-400 font-bold">&quot;{semanticResult.tag}&quot;</span> não foi criada por nenhum visitante. Crie a tag primeiro pela interface pública.</p>
                   </div>
                 )}
 
@@ -1243,8 +1243,8 @@ export default function AdminPage() {
                             <div className="space-y-2">
                               {semanticResult.tagAnalysis.duplicates.map((d: any, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-sm">
-                                  <span className="text-white/80">&quot;{d.tag}&quot;</span>
-                                  <span className="text-[10px] text-white/45 italic max-w-[60%] text-right">{d.reason}</span>
+                                  <span className="text-[#1A1A1A]/80">&quot;{d.tag}&quot;</span>
+                                  <span className="text-[10px] text-[#1A1A1A]/48 italic max-w-[60%] text-right">{d.reason}</span>
                                 </div>
                               ))}
                             </div>
@@ -1270,8 +1270,8 @@ export default function AdminPage() {
                             <div className="space-y-2">
                               {semanticResult.tagAnalysis.siblings.slice(0, 5).map((s: any, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-sm">
-                                  <span className="text-white/80">&quot;{s.tag}&quot; <span className="text-[10px] text-white/35">({Math.round(s.score * 100)}%)</span></span>
-                                  <span className="text-[10px] text-white/45 italic max-w-[50%] text-right">{s.reason}</span>
+                                  <span className="text-[#1A1A1A]/80">&quot;{s.tag}&quot; <span className="text-[10px] text-[#1A1A1A]/38">({Math.round(s.score * 100)}%)</span></span>
+                                  <span className="text-[10px] text-[#1A1A1A]/48 italic max-w-[50%] text-right">{s.reason}</span>
                                 </div>
                               ))}
                             </div>
@@ -1282,7 +1282,7 @@ export default function AdminPage() {
                         {semanticResult.tagAnalysis.suggestions?.length > 0 && (
                           <div className="space-y-1">
                             {semanticResult.tagAnalysis.suggestions.map((s: string, i: number) => (
-                              <p key={i} className="text-[10px] text-white/50 italic">→ {s}</p>
+                              <p key={i} className="text-[10px] text-[#1A1A1A]/55 italic">→ {s}</p>
                             ))}
                           </div>
                         )}
@@ -1311,24 +1311,24 @@ export default function AdminPage() {
                               {data.items?.map((item: any, i: number) => {
                                 const corr = data.correlations?.[i];
                                 return (
-                                  <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 space-y-2">
+                                  <div key={i} className="p-3 bg-white/550 rounded-lg border border-black/07 space-y-2">
                                     <p className="text-sm font-semibold leading-tight">{item.titulo}</p>
                                     {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002] font-medium">{item.criador}</p>}
-                                    {item.museu && <p className="text-[10px] text-white/50">{item.museu} {item.localizacao ? `— ${item.localizacao}` : ''}</p>}
-                                    {item.material && <p className="text-[10px] text-white/45">Material: {item.material}</p>}
-                                    {item.tecnica && <p className="text-[10px] text-white/45">Técnica: {item.tecnica}</p>}
-                                    {item.data && <p className="text-[10px] text-white/45">{item.data}{item.pais ? ` • ${item.pais}` : ''}</p>}
+                                    {item.museu && <p className="text-[10px] text-[#1A1A1A]/55">{item.museu} {item.localizacao ? `— ${item.localizacao}` : ''}</p>}
+                                    {item.material && <p className="text-[10px] text-[#1A1A1A]/48">Material: {item.material}</p>}
+                                    {item.tecnica && <p className="text-[10px] text-[#1A1A1A]/48">Técnica: {item.tecnica}</p>}
+                                    {item.data && <p className="text-[10px] text-[#1A1A1A]/48">{item.data}{item.pais ? ` • ${item.pais}` : ''}</p>}
                                     {/* Razões da correlação */}
                                     {corr?.reasons?.length > 0 && (
-                                      <div className="pt-2 border-t border-white/5 space-y-1">
+                                      <div className="pt-2 border-t border-black/07 space-y-1">
                                         {corr.reasons.slice(0, 3).map((r: any, ri: number) => (
                                           <p key={ri} className="text-[10px] text-orange-400/85">✓ {r.description}</p>
                                         ))}
                                         <div className="flex items-center gap-2 mt-1">
-                                          <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                          <div className="h-1 flex-1 bg-white/550 rounded-full overflow-hidden">
                                             <div className="h-full bg-[#E85002]" style={{ width: `${(corr.score || 0) * 100}%` }} />
                                           </div>
-                                          <span className="text-[10px] text-white/35 font-semibold">{Math.round((corr.score || 0) * 100)}%</span>
+                                          <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round((corr.score || 0) * 100)}%</span>
                                         </div>
                                       </div>
                                     )}
@@ -1336,7 +1336,7 @@ export default function AdminPage() {
                                   </div>
                                 );
                               })}
-                              {data.total === 0 && <p className="text-white/30 text-xs">Sem resultados</p>}
+                              {data.total === 0 && <p className="text-[#1A1A1A]/35 text-xs">Sem resultados</p>}
                             </div>
                           </div>
                         );
@@ -1350,11 +1350,11 @@ export default function AdminPage() {
                           <FileText size={16} className="text-amber-400" /> Tesauro CNFCP / IPHAN
                         </h4>
                         <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-lg">
-                          <pre className="text-[11px] text-white/70 leading-relaxed whitespace-pre-wrap font-sans">{semanticResult.tesauro.contexto}</pre>
+                          <pre className="text-[11px] text-[#1A1A1A]/70 leading-relaxed whitespace-pre-wrap font-sans">{semanticResult.tesauro.contexto}</pre>
                         </div>
                         {semanticResult.tesauro.termosExpandidos?.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <span className="text-[10px] uppercase tracking-wider text-white/35 font-semibold mr-2">Expansão:</span>
+                            <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/38 font-semibold mr-2">Expansão:</span>
                             {semanticResult.tesauro.termosExpandidos.map((t: string, i: number) => (
                               <span key={i} className="px-2 py-0.5 bg-amber-500/10 text-amber-300 text-[10px] font-bold rounded">{t}</span>
                             ))}
@@ -1371,14 +1371,14 @@ export default function AdminPage() {
                         </h4>
                         <div className="space-y-3">
                           {semanticResult.crossConnections.slice(0, 5).map((conn: any, i: number) => (
-                            <div key={i} className="p-4 bg-white/5 rounded-lg border border-white/5">
+                            <div key={i} className="p-4 bg-white/550 rounded-lg border border-black/07">
                               <div className="flex items-center gap-3 mb-2">
                                 <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-semibold uppercase rounded">{conn.sourceA}</span>
-                                <span className="text-white/20">↔</span>
+                                <span className="text-[#1A1A1A]/25">↔</span>
                                 <span className="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-semibold uppercase rounded">{conn.sourceB}</span>
-                                <span className="text-[10px] text-white/35 ml-auto font-medium">{Math.round(conn.confidence * 100)}% confidence</span>
+                                <span className="text-[10px] text-[#1A1A1A]/38 ml-auto font-medium">{Math.round(conn.confidence * 100)}% confidence</span>
                               </div>
-                              <p className="text-[11px] text-white/70 leading-relaxed">{conn.description}</p>
+                              <p className="text-[11px] text-[#1A1A1A]/70 leading-relaxed">{conn.description}</p>
                             </div>
                           ))}
                         </div>
@@ -1406,13 +1406,13 @@ export default function AdminPage() {
                           <TrendingUp size={16} className="text-orange-400" /> Conhecimento Acumulado
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                          <div className="text-center p-3 bg-white/550 rounded-lg">
                             <p className="text-2xl font-bold text-orange-400">{semanticResult.knowledge.previousCorrelations}</p>
-                            <p className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Correlações Prévias</p>
+                            <p className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/38 font-semibold">Correlações Prévias</p>
                           </div>
-                          <div className="text-center p-3 bg-white/5 rounded-lg">
+                          <div className="text-center p-3 bg-white/550 rounded-lg">
                             <p className="text-2xl font-bold text-orange-400">{semanticResult.knowledge.learningEvents}</p>
-                            <p className="text-[10px] uppercase tracking-wider text-white/35 font-semibold">Eventos de Aprendizado</p>
+                            <p className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/38 font-semibold">Eventos de Aprendizado</p>
                           </div>
                         </div>
                       </div>
@@ -1426,7 +1426,7 @@ export default function AdminPage() {
                             <h4 className="text-xs font-semibold uppercase tracking-wider mb-1 flex items-center gap-2">
                               Nível de Confiança Semântica
                             </h4>
-                            <p className="text-xs text-white/60">
+                            <p className="text-xs text-[#1A1A1A]/60">
                               {semanticResult.motores.transformer.aguardandoTreino 
                                 ? 'Classificação conceitual sob análise e monitoramento.' 
                                 : 'Classificação conceitual validada e confirmada.'}
@@ -1469,7 +1469,7 @@ export default function AdminPage() {
                         <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
                           <FileText size={16} className="text-[#E85002]" /> Análise Escrita
                         </h4>
-                        <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed whitespace-pre-line relative z-10">
+                        <div className="prose prose-invert prose-sm max-w-none text-[#1A1A1A]/80 leading-relaxed whitespace-pre-line relative z-10">
                           {semanticResult.analiseEscrita}
                         </div>
                       </div>
@@ -1490,8 +1490,8 @@ export default function AdminPage() {
 
                 {!semanticResult && !isAnalyzing && (
                   <div className="glass-card p-16 text-center">
-                    <Search size={48} className="mx-auto text-white/10 mb-4" />
-                    <p className="text-white/30 text-xs uppercase tracking-wider font-semibold">Busque uma tag para ver a inteligência em ação.</p>
+                    <Search size={48} className="mx-auto text-[#1A1A1A]/15 mb-4" />
+                    <p className="text-[#1A1A1A]/35 text-xs uppercase tracking-wider font-semibold">Busque uma tag para ver a inteligência em ação.</p>
                   </div>
                 )}
               </div>
@@ -1502,7 +1502,7 @@ export default function AdminPage() {
                  <div className="flex justify-between items-center">
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Sistema de Validação (Grafo Ativo)</h2>
                     <div className="flex gap-2">
-                       <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Explorar Rede</span>
+                       <span className="px-4 py-2 bg-white/550 border border-black/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Explorar Rede</span>
                     </div>
                  </div>
                  
@@ -1511,7 +1511,7 @@ export default function AdminPage() {
                     <CheckCircle size={48} className="mx-auto text-[#E85002]" />
                     <div className="space-y-2">
                       <h3 className="text-xl font-normal serif-title">Painel de Validação e Curadoria Ativa</h3>
-                      <p className="text-white/50 text-sm max-w-lg mx-auto">
+                      <p className="text-[#1A1A1A]/55 text-sm max-w-lg mx-auto">
                         Acesse a trilha de validação dedicada para aprovar/rejeitar demarcações, ajustar ligações e visualizar o DNA Semântico imutável.
                       </p>
                     </div>
@@ -1524,9 +1524,9 @@ export default function AdminPage() {
  
                  {/* Modal de Análise Neural do Nó Clicado */}
                  {graphNodeSelected && tagAnalysisResult && !isAnalyzingTag && (
-                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setGraphNodeSelected(null)}>
+                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4" onClick={() => setGraphNodeSelected(null)}>
                      <div className="glass-card p-8 w-full max-w-2xl relative animate-fade-in max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                       <button onClick={() => setGraphNodeSelected(null)} className="absolute top-6 right-6 text-white/50 hover:text-white">
+                       <button onClick={() => setGraphNodeSelected(null)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
                        </button>
                        <h3 className="text-xl serif-title mb-1">Análise Neural</h3>
@@ -1546,12 +1546,12 @@ export default function AdminPage() {
  
                        {/* Conexões */}
                        {(tagAnalysisResult.siblings?.length > 0 || tagAnalysisResult.duplicates?.length > 0) && (
-                         <div className="p-4 bg-white/5 border border-white/10 rounded-lg mb-4 space-y-2">
-                           <p className="text-[10px] uppercase font-black tracking-widest text-white/50 mb-2">Conexões ({tagAnalysisResult.totalRelated})</p>
+                         <div className="p-4 bg-white/550 border border-black/10 rounded-lg mb-4 space-y-2">
+                           <p className="text-[10px] uppercase font-black tracking-widest text-[#1A1A1A]/55 mb-2">Conexões ({tagAnalysisResult.totalRelated})</p>
                            {[...(tagAnalysisResult.duplicates || []), ...(tagAnalysisResult.siblings || [])].slice(0, 6).map((s: any, i: number) => (
                              <div key={i} className="flex items-center justify-between text-sm">
-                               <span className="text-white/80 font-serif italic">&quot;{s.tag}&quot;</span>
-                               <span className="text-[10px] text-white/40">{Math.round(s.score * 100)}%</span>
+                               <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{s.tag}&quot;</span>
+                               <span className="text-[10px] text-[#1A1A1A]/45">{Math.round(s.score * 100)}%</span>
                              </div>
                            ))}
                          </div>
@@ -1559,17 +1559,17 @@ export default function AdminPage() {
  
                        {/* DNA */}
                        {tagAnalysisResult.dna && Object.values(tagAnalysisResult.dna).some((v: any) => v > 0) && (
-                         <div className="p-4 bg-white/5 border border-white/10 rounded-lg mb-4 space-y-2">
-                           <p className="text-[11px] uppercase font-semibold tracking-wider text-white/45 mb-2">DNA Semântico</p>
+                         <div className="p-4 bg-white/550 border border-black/10 rounded-lg mb-4 space-y-2">
+                           <p className="text-[11px] uppercase font-semibold tracking-wider text-[#1A1A1A]/48 mb-2">DNA Semântico</p>
                            {Object.entries(tagAnalysisResult.dna).filter(([,v]) => (v as number) > 0).sort(([,a],[,b]) => (b as number) - (a as number)).map(([k,v]) => {
                              const labels: Record<string,string> = { period:'Período', technique:'Técnica', geography:'Geografia', material:'Material', theme:'Temática', movement:'Movimento', provenance:'Proveniência' };
                              return (
                                <div key={k} className="flex items-center gap-2">
-                                 <span className="text-[10px] text-white/45 w-20 text-right uppercase font-semibold">{labels[k]||k}</span>
-                                 <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                 <span className="text-[10px] text-[#1A1A1A]/48 w-20 text-right uppercase font-semibold">{labels[k]||k}</span>
+                                 <div className="h-1.5 flex-1 bg-white/550 rounded-full overflow-hidden">
                                    <div className="h-full bg-[#E85002]" style={{ width: `${(v as number)*100}%` }} />
                                  </div>
-                                 <span className="text-[10px] text-white/35 font-semibold">{Math.round((v as number)*100)}%</span>
+                                 <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round((v as number)*100)}%</span>
                                </div>
                              );
                            })}
@@ -1590,10 +1590,10 @@ export default function AdminPage() {
                  )}
  
                  {graphNodeSelected && isAnalyzingTag && (
-                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4">
                      <div className="glass-card p-12 text-center">
                        <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                       <p className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Cérebro analisando &quot;{graphNodeSelected}&quot;...</p>
+                       <p className="text-[#1A1A1A]/45 text-[10px] uppercase tracking-widest font-bold">Cérebro analisando &quot;{graphNodeSelected}&quot;...</p>
                      </div>
                    </div>
                  )}
@@ -1609,24 +1609,24 @@ export default function AdminPage() {
 
                  {/* MODAL NOVA ONTOLOGIA */}
                  {showOntologiaForm && (
-                   <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4">
                      <div className="glass-card p-8 w-full max-w-lg relative animate-fade-in">
-                       <button onClick={() => setShowOntologiaForm(false)} className="absolute top-6 right-6 text-white/50 hover:text-white">
+                       <button onClick={() => setShowOntologiaForm(false)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
                        </button>
                        <h3 className="text-xl serif-title mb-6">Mapear Nova Ontologia</h3>
                        <form onSubmit={(e) => { e.preventDefault(); alert('Ontologia mapeada com sucesso!'); setShowOntologiaForm(false); }} className="space-y-4">
                          <div>
-                           <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Nome da Ontologia / Padrão</label>
-                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Dublin Core" />
+                           <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Nome da Ontologia / Padrão</label>
+                           <input required className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Dublin Core" />
                          </div>
                          <div>
-                           <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">Provedor / Instituição</label>
-                           <input required className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: DCMI" />
+                           <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Provedor / Instituição</label>
+                           <input required className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: DCMI" />
                          </div>
                          <div>
-                           <label className="text-[11px] uppercase font-semibold text-white/45 tracking-wider">URL do Endpoint (SPARQL/API)</label>
-                           <input type="url" className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="https://..." />
+                           <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">URL do Endpoint (SPARQL/API)</label>
+                           <input type="url" className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="https://..." />
                          </div>
                          <button type="submit" className="w-full liquid-button !bg-[#E85002] mt-4 flex justify-center items-center gap-2">
                            <Database size={16} /> Iniciar Mapeamento Neural
@@ -1644,15 +1644,15 @@ export default function AdminPage() {
                       <div key={i} className="glass-card p-8 space-y-6 hover:border-[#E85002]/40 group transition-all cursor-pointer">
                         <div className="flex justify-between items-start">
                            <Database className="w-8 h-8 opacity-50 text-[#E85002] group-hover:opacity-100 transition-opacity" />
-                           <ArrowUpRight size={18} className="text-white/20 group-hover:text-[#E85002]" />
+                           <ArrowUpRight size={18} className="text-[#1A1A1A]/25 group-hover:text-[#E85002]" />
                         </div>
                         <div className="space-y-2">
                            <h3 className="text-lg font-bold leading-tight">{o.name}</h3>
-                           <p className="text-[10px] uppercase font-semibold tracking-wider text-white/35">{o.provider}</p>
+                           <p className="text-[10px] uppercase font-semibold tracking-wider text-[#1A1A1A]/38">{o.provider}</p>
                         </div>
-                        <div className="pt-4 border-t border-white/5 flex justify-between items-center text-[10px] uppercase font-semibold tracking-wider">
+                        <div className="pt-4 border-t border-black/07 flex justify-between items-center text-[10px] uppercase font-semibold tracking-wider">
                            <span className="text-orange-500">Mapeado no Banco</span>
-                           <span className="text-white/40">{o.terms}</span>
+                           <span className="text-[#1A1A1A]/45">{o.terms}</span>
                         </div>
                       </div>
                     ))}
@@ -1679,12 +1679,12 @@ export default function AdminPage() {
                         </div>
                         <div>
                            <p className="font-bold text-lg">{conn.name}</p>
-                           <p className="text-[9px] uppercase font-black tracking-widest text-white/30">{conn.region}</p>
+                           <p className="text-[9px] uppercase font-black tracking-widest text-[#1A1A1A]/35">{conn.region}</p>
                         </div>
-                        <div className="text-[10px] uppercase font-black tracking-widest flex items-center justify-center gap-4 w-full pt-4 border-t border-white/5">
+                        <div className="text-[10px] uppercase font-black tracking-widest flex items-center justify-center gap-4 w-full pt-4 border-t border-black/07">
                            <span className={conn.status === 'Online' ? 'text-orange-500' : 'text-red-500'}>{conn.status}</span>
-                           <span className="text-white/20">|</span>
-                           <span className="text-white/40">{conn.delay}</span>
+                           <span className="text-[#1A1A1A]/25">|</span>
+                           <span className="text-[#1A1A1A]/45">{conn.delay}</span>
                         </div>
                       </div>
                     ))}
