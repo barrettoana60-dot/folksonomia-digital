@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import BgShapes from "@/components/BgShapes";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,22 +39,20 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `
           (function() {
             try {
-              const theme = localStorage.getItem('theme') || 'creme';
-              document.documentElement.setAttribute('data-theme', theme);
-              const savedFontSize = localStorage.getItem('fontSize');
+              var theme = localStorage.getItem('theme') || 'padrao';
+              if (theme === 'contraste') {
+                document.documentElement.setAttribute('data-theme', 'contraste');
+              }
+              var savedFontSize = localStorage.getItem('fontSize');
               if (savedFontSize) {
                 document.documentElement.style.fontSize = savedFontSize + 'px';
               }
-            } catch (e) {}
+            } catch(e) {}
           })();
         `}} />
       </head>
       <body className={`${inter.variable} ${dmSerif.variable} font-sans antialiased min-h-screen`}>
-        {/* Formas geométricas decorativas (fixas, z-0) */}
-        <BgShapes />
-        {/* Header (z-50) */}
         <Header />
-        {/* Conteúdo principal (z-10) */}
         <div className="relative z-10 pt-4">
           {children}
         </div>
