@@ -8,6 +8,7 @@ import {
   Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import Logo from '@/components/Logo';
 import NodeGraph from '@/components/NodeGraph';
 
