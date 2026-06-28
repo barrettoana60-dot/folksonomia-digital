@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
 import { supabaseClient } from '@/lib/supabase/client';
 import { Volume2, VolumeX, CheckCircle, Info, ArrowLeft, Tag as TagIcon } from 'lucide-react';
 import Link from 'next/link';
