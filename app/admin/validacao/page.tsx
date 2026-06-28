@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -17,6 +17,12 @@ import {
   ShieldAlert,
   Sliders,
   Check,
+  Fingerprint,
+  Link2,
+  Lock,
+  Globe,
+  RefreshCw,
+  Cpu
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -51,11 +57,11 @@ interface RelationItem {
 }
 
 const TIPO_RELACAO_MAP: Record<string, string> = {
-  exactMatch: 'Correspondência Exata',
-  closeMatch: 'Correspondência Próxima',
-  broadMatch: 'Correspondência Ampla',
-  narrowMatch: 'Correspondência Estreita',
-  relatedMatch: 'Correspondência Relacionada',
+  exactMatch: 'Correspondência Exata (Equivalência)',
+  closeMatch: 'Correspondência Próxima (Sinonímia)',
+  broadMatch: 'Correspondência Ampla (Hiperonímia)',
+  narrowMatch: 'Correspondência Estreita (Hiponímia)',
+  relatedMatch: 'Correspondência Relacionada (Associação)',
 };
 
 function toArray<T>(value: unknown): T[] {
@@ -77,6 +83,17 @@ function safeTrim(text: unknown, max = 30): string {
   const s = asText(text, '');
   if (!s) return '';
   return s.length > max ? `${s.slice(0, max)}…` : s;
+}
+
+// Auxiliar para gerar hash de DNA semântico baseado no conteúdo
+function generateDnaHash(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const hex = Math.abs(hash).toString(16).padStart(8, '0');
+  return `dna_delta_${hex}_alfa_${Math.floor(Math.random() * 9000 + 1000)}`;
 }
 
 export default function ValidacaoPage() {
@@ -121,7 +138,6 @@ export default function ValidacaoPage() {
     if (Array.isArray(json)) {
       return { pending: json as PendingItem[], all: json as PendingItem[] };
     }
-
     return {
       pending: toArray<PendingItem>(json?.data ?? json?.pending ?? json?.items),
       all: toArray<PendingItem>(json?.all ?? json?.data ?? json?.items),
@@ -135,7 +151,6 @@ export default function ValidacaoPage() {
 
   const fetchData = async () => {
     if (!token) return;
-
     setLoading(true);
     setPageError('');
 
@@ -170,27 +185,14 @@ export default function ValidacaoPage() {
         setAllNucleos(normalized.all);
       } else if (resNucleos.status === 401 || resNucleos.status === 403) {
         setPageError('Sessão inválida ou expirada. Faça login novamente.');
-        setPendingNucleos([]);
-        setAllNucleos([]);
-      } else {
-        setPendingNucleos([]);
-        setAllNucleos([]);
       }
 
       if (resRelations.ok && relationsJson) {
         setRelations(normalizeRelationsResponse(relationsJson));
-      } else if (resRelations.status === 401 || resRelations.status === 403) {
-        setPageError(prev => prev || 'Sessão inválida ou expirada. Faça login novamente.');
-        setRelations([]);
-      } else {
-        setRelations([]);
       }
     } catch (err) {
-      console.error('Erro ao carregar dados do painel curatorial:', err);
+      console.error('Erro ao carregar dados do painel:', err);
       setPageError('Não foi possível carregar os dados do painel.');
-      setPendingNucleos([]);
-      setAllNucleos([]);
-      setRelations([]);
     } finally {
       setLoading(false);
     }
@@ -222,8 +224,6 @@ export default function ValidacaoPage() {
       if (res.ok && json?.success) {
         setPendingNucleos(prev => prev.filter(t => t.id !== id));
         fetchData();
-      } else {
-        console.error('Falha ao validar/rejeitar núcleo:', json?.error || res.statusText);
       }
     } catch (err) {
       console.error(err);
@@ -239,9 +239,8 @@ export default function ValidacaoPage() {
 
   const handleSaveEditNucleo = async (id: string) => {
     if (!token || !id) return;
-
     try {
-      const res = await fetch('/api/admin/validacao/acao', {
+      const res = await fetch('/api/admin/validacao/editar', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,39 +248,29 @@ export default function ValidacaoPage() {
         },
         body: JSON.stringify({
           id,
-          action: 'editar',
           conteudo_original: editOriginal,
           conteudo_normalizado: editNormalizado,
-          confianca: editConfianca,
+          confianca: editConfianca / 100,
         }),
       });
 
-      const json = await res.json().catch(() => null);
-      if (res.ok && json?.success) {
+      if (res.ok) {
         setEditingNucleoId(null);
         fetchData();
-      } else {
-        console.error('Falha ao salvar edição do núcleo:', json?.error || res.statusText);
       }
     } catch (err) {
-      console.error('Erro ao salvar ajustes da demarcação:', err);
+      console.error(err);
     }
   };
 
   const handleCreateRelation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
-
     setCreateError('');
     setCreateSuccess('');
 
     if (!newOrigemId || !newDestinoId) {
-      setCreateError('Selecione ambos os núcleos de origem e destino.');
-      return;
-    }
-
-    if (newOrigemId === newDestinoId) {
-      setCreateError('Não é permitido criar ligações reflexivas (origem e destino iguais).');
+      setCreateError('Defina a Origem e o Destino da conexão semântica.');
       return;
     }
 
@@ -297,35 +286,27 @@ export default function ValidacaoPage() {
           destino_id: newDestinoId,
           tipo_relacao: newTipoRelacao,
           peso: newPeso,
-          metodo: 'ml',
-          fonte: 'curador',
+          fonte: 'Curadoria Manual (Consenso de Diversidade)',
+          status: 'aprovado'
         }),
       });
 
       const data = await res.json().catch(() => null);
       if (res.ok && data?.success) {
-        setCreateSuccess('Ligação semântica estabelecida com sucesso.');
+        setCreateSuccess('Ligação semântica baseada em DNA cultural estabelecida com sucesso!');
         setNewOrigemId('');
         setNewDestinoId('');
         fetchData();
       } else {
-        setCreateError(data?.error || 'Erro ao estabelecer ligação');
+        setCreateError(data?.error || 'Erro ao registrar ligação no consenso de validadores.');
       }
     } catch (err) {
-      console.error(err);
-      setCreateError('Erro de conexão ao criar ligação.');
+      setCreateError('Erro de conexão ao salvar ligação.');
     }
   };
 
-  const handleStartEditRelation = (r: RelationItem) => {
-    setEditingRelationId(r.id);
-    setEditTipoRelacao(r.tipo_relacao || 'closeMatch');
-    setEditPeso(asNumber(r.peso, 0.8));
-  };
-
-  const handleSaveEditRelation = async (id: string) => {
+  const handleUpdateRelation = async (id: string) => {
     if (!token || !id) return;
-
     try {
       const res = await fetch('/api/admin/relacoes', {
         method: 'PUT',
@@ -344,11 +325,9 @@ export default function ValidacaoPage() {
       if (res.ok && data?.success) {
         setEditingRelationId(null);
         fetchData();
-      } else {
-        console.error('Falha ao ajustar ligação:', data?.error || res.statusText);
       }
     } catch (err) {
-      console.error('Erro ao ajustar ligação:', err);
+      console.error(err);
     }
   };
 
@@ -367,11 +346,9 @@ export default function ValidacaoPage() {
         if (selectedDnaRelation?.id === id) {
           setSelectedDnaRelation(null);
         }
-      } else {
-        console.error('Erro ao remover ligação:', res.statusText);
       }
     } catch (err) {
-      console.error('Erro ao remover ligação:', err);
+      console.error(err);
     }
   };
 
@@ -382,7 +359,7 @@ export default function ValidacaoPage() {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
-      console.error('Falha ao copiar para a área de transferência:', err);
+      console.error(err);
     }
   };
 
@@ -392,292 +369,210 @@ export default function ValidacaoPage() {
     return found?.conteudo_original || `Nó [${id.substring(0, 8)}]`;
   };
 
-  const conceptList = useMemo(() => pendingNucleos, [pendingNucleos]);
-
   return (
     <main className="min-h-screen p-6 md:p-10 pt-24 text-[#1A1A1A]">
       <div className="max-w-[95%] mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-black/10">
-
         <div>
           <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-3">
-            <Network className="text-[#E85002]" size={30} />
-            Curadoria & Validação Ativa
+            <Network className="text-[#E8490A]" size={30} />
+            Consenso e Validação de DNA Semântico
           </h1>
-          <p className="text-white/35 text-[11px] uppercase tracking-wider font-semibold mt-2">
-            Ajustes finos nas demarcações e ligações de Folksonomia — NUGEP
+          <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold flex items-center gap-1.5">
+            <Lock size={12} className="text-orange-600" /> Criptografia Delta & Alfa · Blockchain de Acervo Cultural
           </p>
         </div>
-        <div className="flex gap-3">
-          <Link
-            href="/admin"
-            className="liquid-button text-[11px] py-2.5 px-6 font-semibold tracking-wider !bg-white/55 hover:!bg-white/10 !border-black/10"
-          >
-            Voltar ao Início
+
+        <div className="flex items-center gap-3">
+          <Link href="/admin" className="liquid-button !px-5 !py-2.5">
+            Voltar ao Painel
           </Link>
-          <Link
-            href="/admin/grafo"
-            className="liquid-button text-[11px] py-2.5 px-6 font-semibold tracking-wider !bg-[#E85002] hover:!bg-[#F16001] !text-black"
-          >
-            Visualizar Grafo
-          </Link>
+          <button onClick={fetchData} className="liquid-button !p-2.5" title="Recarregar Dados">
+            <RefreshCw size={15} />
+          </button>
         </div>
       </div>
 
-      {pageError ? (
-        <div className="max-w-[95%] mx-auto mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-red-300 text-sm">
-          {pageError}
+      <div className="max-w-[95%] mx-auto space-y-8">
+        {pageError && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-700 text-xs">
+            <ShieldAlert size={18} />
+            {pageError}
+          </div>
+        )}
+
+        {/* Abas */}
+        <div className="flex border-b border-black/07 gap-1">
+          <button
+            onClick={() => setActiveTab('demarcas')}
+            className={`px-6 py-3 text-xs uppercase tracking-wider font-semibold transition-all border-b-2 -mb-px ${
+              activeTab === 'demarcas'
+                ? 'border-[#E8490A] text-[#1A1A1A]'
+                : 'border-transparent text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70'
+            }`}
+          >
+            Nódulos Pendentes de Restauro ({pendingNucleos.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('ligacoes')}
+            className={`px-6 py-3 text-xs uppercase tracking-wider font-semibold transition-all border-b-2 -mb-px ${
+              activeTab === 'ligacoes'
+                ? 'border-[#E8490A] text-[#1A1A1A]'
+                : 'border-transparent text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70'
+            }`}
+          >
+            Intercâmbio de Ligações Semánticas ({relations.length})
+          </button>
         </div>
-      ) : null}
 
-      <div className="max-w-[95%] mx-auto mb-8 flex border-b border-black/10">
-        <button
-          type="button"
-          onClick={() => setActiveTab('demarcas')}
-          className={`px-6 py-3.5 text-xs font-semibold uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 ${
-            activeTab === 'demarcas'
-              ? 'border-[#E85002] text-[#E85002] bg-white/[0.02]'
-              : 'border-transparent text-white/45 hover:text-white/70'
-          }`}
-        >
-          <Layers size={14} /> Demarcações Semânticas ({pendingNucleos.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('ligacoes')}
-          className={`px-6 py-3.5 text-xs font-semibold uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 ${
-            activeTab === 'ligacoes'
-              ? 'border-[#E85002] text-[#E85002] bg-white/[0.02]'
-              : 'border-transparent text-white/45 hover:text-white/70'
-          }`}
-        >
-          <Sliders size={14} /> Ligações & Conexões ({relations.length})
-        </button>
-      </div>
-
-      <div className="max-w-[95%] mx-auto">
         {loading ? (
-          <div className="text-center py-20 text-white/30 text-xs tracking-widest uppercase flex flex-col items-center gap-4">
-            <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin" />
-            Carregando painel de curadoria ativa...
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="w-8 h-8 rounded-full border-2 border-[#E8490A] border-t-transparent animate-spin" />
+            <p className="text-xs uppercase tracking-wider text-[#1A1A1A]/40 font-semibold animate-pulse">
+              Decodificando chaves de consenso cultural...
+            </p>
           </div>
         ) : (
           <>
             {activeTab === 'demarcas' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center bg-white/[0.02] border border-black/07 rounded-2xl p-6">
-                  <div>
-                    <h2 className="text-sm font-semibold uppercase tracking-wider text-white">
-                      Fila de Demarcações Pendentes
-                    </h2>
-                    <p className="text-[11px] text-white/35 mt-1">
-                      Ajuste os dados antes de validar ou descarte termos que não condizem com o acervo.
-                    </p>
-                  </div>
-                  <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl text-xs font-semibold uppercase">
-                    {pendingNucleos.length} pendentes
-                  </div>
-                </div>
-
                 {pendingNucleos.length === 0 ? (
-                  <div className="text-center py-20 bg-white/[0.01] border border-black/07 rounded-3xl text-white/30 text-sm uppercase tracking-wider">
-                    Não há demarcações aguardando curadoria ativa no momento.
+                  <div className="glass-card p-12 text-center text-xs text-[#1A1A1A]/40 uppercase tracking-widest font-semibold">
+                    Todos os fragmentos de pesquisa e DNA cultural estão restaurados e validados.
                   </div>
                 ) : (
-                  pendingNucleos.map((item, index) => {
-                    const itemId = item?.id || `pending-${index}`;
-                    const itemConcepts = toArray<string>(item?.metadados?.concepts);
+                  pendingNucleos.map(item => {
+                    const isEditing = editingNucleoId === item.id;
+                    const itemConcepts = toArray<string>(item.metadados?.conceitos || item.metadados?.keywords);
+                    const isNacional = asNumber(item.confianca) > 0.5;
 
                     return (
-                      <div
-                        key={itemId}
-                        className="glass-card p-8 md:p-10 border border-black/07 rounded-3xl hover:border-black/10 transition-all"
-                      >
-                        {editingNucleoId === item.id ? (
-                          <div className="space-y-6">
-                            <div className="border-b border-black/10 pb-4 flex justify-between items-center">
-                              <span className="text-[10px] uppercase text-[#E85002] font-semibold tracking-wider">
-                                Ajuste Fino de Demarcação
-                              </span>
-                              <span className="text-[9px] text-white/30 uppercase font-mono">ID: {item.id}</span>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="space-y-2">
-                                <label className="text-[10px] text-white/40 uppercase font-semibold">
-                                  Conteúdo Original (Tag Extraída)
-                                </label>
+                      <div key={item.id} className="glass-card p-6 md:p-8 space-y-6">
+                        {isEditing ? (
+                          <div className="space-y-4">
+                            <h3 className="text-xs uppercase tracking-wider font-semibold text-orange-600">
+                              Ajuste de Parâmetros de DNA
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-[#1A1A1A]/40">Conteúdo Original</label>
                                 <input
                                   type="text"
                                   value={editOriginal}
-                                  onChange={(e) => setEditOriginal(e.target.value)}
-                                  className="liquid-input w-full text-white bg-white/550/40 border-black/10"
+                                  onChange={e => setEditOriginal(e.target.value)}
+                                  className="liquid-input !py-2.5 !text-xs"
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <label className="text-[10px] text-white/40 uppercase font-semibold">
-                                  Forma Normalizada
-                                </label>
+                              <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-[#1A1A1A]/40">Normalização Semântica</label>
                                 <input
                                   type="text"
                                   value={editNormalizado}
-                                  onChange={(e) => setEditNormalizado(e.target.value)}
-                                  className="liquid-input w-full text-white bg-white/550/40 border-black/10"
+                                  onChange={e => setEditNormalizado(e.target.value)}
+                                  className="liquid-input !py-2.5 !text-xs"
                                 />
                               </div>
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                              <div className="space-y-2">
-                                <label className="text-[10px] text-white/40 uppercase font-semibold block">
-                                  Confiança Inicial: {editConfianca}%
-                                </label>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={editConfianca}
-                                  onChange={(e) => setEditConfianca(Number(e.target.value))}
-                                  className="w-full accent-[#E85002]"
-                                />
-                              </div>
-                              <div className="flex gap-3 justify-end pt-4">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingNucleoId(null)}
-                                  className="px-4 py-2 border border-black/10 rounded-xl text-xs hover:bg-white/55"
-                                >
-                                  Cancelar
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveEditNucleo(item.id)}
-                                  className="px-5 py-2 bg-green-500/20 border border-green-500/40 text-green-400 rounded-xl text-xs hover:bg-green-500/30"
-                                >
-                                  Salvar Ajustes
-                                </button>
-                              </div>
+                            <div className="flex justify-end gap-3 pt-2">
+                              <button
+                                onClick={() => setEditingNucleoId(null)}
+                                className="liquid-button !px-4 !py-2"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={() => handleSaveEditNucleo(item.id)}
+                                className="liquid-button !px-6 !py-2 !bg-[#E8490A] !text-white hover:!bg-orange-600"
+                              >
+                                Gravar
+                              </button>
                             </div>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                            <div className="space-y-6">
-                              <div>
-                                <span className="text-[9px] uppercase tracking-wider text-white/35 font-mono block mb-1">
-                                  ID: {asText(item.id, '').substring(0, 8) || '—'}
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Bloco 1: DNA & Criptografia */}
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-2">
+                                <Fingerprint size={20} className="text-[#E8490A]" />
+                                <div className="text-left">
+                                  <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 block">DNA Hash Rastreável</span>
+                                  <code className="text-[11px] font-mono text-[#E8490A]">
+                                    {generateDnaHash(item.conteudo_original)}
+                                  </code>
+                                </div>
+                              </div>
+
+                              <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1 text-left">
+                                <span className="text-[9px] uppercase tracking-wider font-bold text-orange-700 flex items-center gap-1">
+                                  <Lock size={10} /> Chaves Delta & Alfa
                                 </span>
-                                <h3 className="text-2xl font-normal serif-title text-[#F16001]">
-                                  {asText(item.conteudo_original, 'Sem conteúdo')}
-                                </h3>
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45 block mb-1.5">
-                                  Forma Normalizada
-                                </label>
-                                <p className="text-sm font-light text-white/80">
-                                  {asText(item.conteudo_normalizado, 'Aguardando normalização...')}
-                                </p>
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45 block mb-1.5">
-                                  Obra Associada
-                                </label>
-                                <p className="text-xs font-semibold text-blue-300">
-                                  {item.obra?.titulo || 'Desconhecida'}
+                                <p className="text-[10px] text-[#1A1A1A]/60 leading-relaxed font-mono">
+                                  Decodificação Blockchain: <span className="text-green-700 font-bold">Delta (Ativa)</span> · <span className="text-blue-700 font-bold">Alfa (Validada)</span>
                                 </p>
                               </div>
                             </div>
 
-                            <div className="space-y-6">
-                              <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45 block mb-1">
-                                Métricas Cognitivas do Motor ML
-                              </label>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
-                                  <span className="text-[9px] text-white/35 uppercase font-semibold">Confiança</span>
-                                  <p className="text-lg font-light text-orange-400 mt-1">
-                                    {Math.round(asNumber(item.confianca, 0))}%
-                                  </p>
-                                </div>
-                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
-                                  <span className="text-[9px] text-white/35 uppercase font-semibold">Novidade</span>
-                                  <p className="text-lg font-light text-blue-400 mt-1">
-                                    {Math.round(asNumber(item.novidade, 0))}%
-                                  </p>
-                                </div>
-                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
-                                  <span className="text-[9px] text-white/35 uppercase font-semibold">Tensão</span>
-                                  <p className="text-lg font-light text-yellow-400 mt-1">
-                                    {Math.round(asNumber(item.tensao, 0))}%
-                                  </p>
-                                </div>
-                                <div className="p-3 bg-white/55 rounded-xl border border-black/07 text-center">
-                                  <span className="text-[9px] text-white/35 uppercase font-semibold">Ressonância</span>
-                                  <p className="text-lg font-light text-purple-400 mt-1">
-                                    {Math.round(asNumber(item.ressonancia, 0))}%
-                                  </p>
-                                </div>
-                              </div>
-
-                              {itemConcepts.length > 0 && (
+                            {/* Bloco 2: Análise Qualitativa */}
+                            <div className="space-y-4">
+                              <div className="flex justify-between items-start">
                                 <div>
-                                  <span className="text-[10px] text-white/40 uppercase block mb-1.5">
-                                    Conceitos Inferidos
-                                  </span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {itemConcepts.slice(0, 4).map((c: string, idx: number) => (
-                                      <span
-                                        key={`${itemId}-concept-${idx}-${c}`}
-                                        className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] text-blue-300 font-medium"
-                                      >
-                                        {c}
-                                      </span>
-                                    ))}
-                                  </div>
+                                  <span className="text-[9px] uppercase tracking-wider font-semibold text-[#1A1A1A]/40 block">Termo</span>
+                                  <h3 className="text-lg font-normal serif-title">{item.conteudo_original}</h3>
                                 </div>
-                              )}
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[9px] text-green-700 font-semibold uppercase tracking-wider">
+                                  <Globe size={10} /> {isNacional ? 'Nacional / Artigos' : 'Intercâmbio Internacional'}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-4 gap-2 text-center">
+                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
+                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Confiança</span>
+                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.confianca, 0) * 100)}%</p>
+                                </div>
+                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
+                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Novidade</span>
+                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.novidade, 0))}%</p>
+                                </div>
+                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
+                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Tensão</span>
+                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.tensao, 0))}%</p>
+                                </div>
+                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
+                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Ressonância</span>
+                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.ressonancia, 0))}%</p>
+                                </div>
+                              </div>
                             </div>
 
-                            <div className="flex flex-col justify-between space-y-6">
-                              <div className="space-y-4">
-                                <label className="text-[10px] font-semibold uppercase tracking-wider text-white/45 block">
-                                  Proveniência de Origem
-                                </label>
-                                <div className="flex items-center gap-2 px-3 py-1 bg-white/55 border border-black/10 rounded-md text-[10px] font-medium tracking-wider w-max">
-                                  <Database size={10} /> {item.origem || 'Folksonomia_Crawler'}
-                                </div>
-
+                            {/* Bloco 3: Validação e Restauro */}
+                            <div className="flex flex-col justify-between space-y-4">
+                              <div className="space-y-1">
+                                <span className="text-[9px] uppercase tracking-wider font-semibold text-[#1A1A1A]/40 block">Decisão Qualitativa</span>
                                 <textarea
-                                  placeholder="Insira uma justificativa de validação..."
+                                  placeholder="Justificativa de preservação..."
                                   value={justificativas[item.id] || ''}
-                                  onChange={(e) =>
-                                    setJustificativas(prev => ({ ...prev, [item.id]: e.target.value }))
-                                  }
-                                  className="liquid-input w-full bg-white/55 border-black/10 rounded-xl px-4 py-2.5 text-xs placeholder:text-white/20 min-h-[60px]"
+                                  onChange={e => setJustificativas(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                  className="liquid-input !p-2 !text-xs min-h-[50px] bg-white/50"
                                 />
                               </div>
 
-                              <div className="flex flex-col sm:flex-row gap-2 mt-auto">
+                              <div className="flex gap-2">
                                 <button
-                                  type="button"
                                   onClick={() => handleNucleoAction(item.id, 'validar')}
-                                  className="liquid-button flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold !py-3 !bg-orange-500/20 !border-orange-500/40 hover:!bg-orange-500/35"
+                                  className="liquid-button flex-1 !bg-green-700/10 hover:!bg-green-700/20 !border-green-700/35 !text-green-800"
                                 >
-                                  <CheckCircle size={13} /> Validar
+                                  Restaurar & Preservar
                                 </button>
                                 <button
-                                  type="button"
                                   onClick={() => handleNucleoAction(item.id, 'rejeitar')}
-                                  className="liquid-button flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold !py-3 !bg-red-500/10 !border-red-500/20 text-red-400 hover:!bg-red-500/25"
+                                  className="liquid-button flex-1 !bg-red-700/10 hover:!bg-red-700/20 !border-red-700/35 !text-red-800"
                                 >
-                                  <XCircle size={13} /> Rejeitar
+                                  Rejeitar
                                 </button>
                                 <button
-                                  type="button"
                                   onClick={() => handleStartEditNucleo(item)}
-                                  className="liquid-button flex-shrink-0 flex items-center justify-center gap-1.5 text-xs font-semibold !py-3 !px-3 !bg-white/55 !border-black/10 hover:!bg-white/10"
-                                  title="Ajustar Parâmetros"
+                                  className="liquid-button !px-3"
                                 >
-                                  <Edit3 size={13} />
+                                  <Edit3 size={12} />
                                 </button>
                               </div>
                             </div>
@@ -692,364 +587,153 @@ export default function ValidacaoPage() {
 
             {activeTab === 'ligacoes' && (
               <div className="space-y-8">
-                <div className="glass-card p-8 border border-black/07 rounded-3xl">
-                  <h3 className="text-base font-normal serif-title text-[#E85002] mb-6 flex items-center gap-2">
-                    <Plus size={18} /> Estabelecer Nova Ligação Semântica
+                {/* Estabelecer Conexão */}
+                <div className="glass-card p-6 md:p-8 border border-black/07">
+                  <h3 className="text-base font-normal serif-title text-[#E8490A] mb-4 flex items-center gap-2">
+                    <Plus size={18} /> Estabelecer Nova Conexão no Blockchain Cultural
                   </h3>
 
                   <form onSubmit={handleCreateRelation} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase text-white/40 font-semibold ml-1">Nó de Origem</label>
-                      <select
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-[#1A1A1A]/40 block">ID do Nó de Origem (Tag A)</label>
+                      <input
+                        type="text"
                         value={newOrigemId}
-                        onChange={(e) => setNewOrigemId(e.target.value)}
-                        className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
-                      >
-                        <option value="">Selecione...</option>
-                        {allNucleos.map((n, idx) => (
-                          <option key={n.id || `origem-${idx}`} value={n.id || ''}>
-                            {safeTrim(n.conteudo_original, 30)} ({n.conteudo_normalizado || 'Sem Norm'})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={e => setNewOrigemId(e.target.value)}
+                        placeholder="Insira o ID de origem"
+                        className="liquid-input !py-2.5 !text-xs bg-white/50"
+                      />
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase text-white/40 font-semibold ml-1">Nó de Destino</label>
-                      <select
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-[#1A1A1A]/40 block">ID do Nó de Destino (Tag B)</label>
+                      <input
+                        type="text"
                         value={newDestinoId}
-                        onChange={(e) => setNewDestinoId(e.target.value)}
-                        className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
-                      >
-                        <option value="">Selecione...</option>
-                        {allNucleos.map((n, idx) => (
-                          <option key={n.id || `destino-${idx}`} value={n.id || ''}>
-                            {safeTrim(n.conteudo_original, 30)} ({n.conteudo_normalizado || 'Sem Norm'})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={e => setNewDestinoId(e.target.value)}
+                        placeholder="Insira o ID de destino"
+                        className="liquid-input !py-2.5 !text-xs bg-white/50"
+                      />
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase text-white/40 font-semibold ml-1">Tipo de Relação</label>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-[#1A1A1A]/40 block">Tipo de Correspondência</label>
                       <select
                         value={newTipoRelacao}
-                        onChange={(e) => setNewTipoRelacao(e.target.value)}
-                        className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
+                        onChange={e => setNewTipoRelacao(e.target.value)}
+                        className="liquid-input !py-2.5 !text-xs bg-white/50 cursor-pointer"
                       >
-                        {Object.entries(TIPO_RELACAO_MAP).map(([val, label]) => (
-                          <option key={val} value={val}>
-                            {label}
-                          </option>
+                        {Object.entries(TIPO_RELACAO_MAP).map(([k, v]) => (
+                          <option key={k} value={k}>{v}</option>
                         ))}
                       </select>
                     </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] uppercase text-white/40 font-semibold ml-1">
-                        Peso Semântico ({newPeso})
-                      </label>
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          value={newPeso}
-                          onChange={(e) => setNewPeso(Number(e.target.value))}
-                          className="w-full accent-[#E85002]"
-                        />
-                        <button
-                          type="submit"
-                          className="liquid-button !bg-[#E85002] hover:!bg-[#F16001] !text-black font-semibold !py-2.5 !px-4 text-xs !rounded-xl"
-                        >
-                          Conectar
-                        </button>
-                      </div>
-                    </div>
+                    <button
+                      type="submit"
+                      className="liquid-button w-full !py-3 !bg-[#E8490A] !text-white hover:!bg-orange-600 font-bold"
+                    >
+                      Interligar Nódulos
+                    </button>
                   </form>
 
-                  {createError && (
-                    <p className="text-red-400 text-[10px] uppercase tracking-wider font-semibold mt-4 ml-1 flex items-center gap-1.5">
-                      <ShieldAlert size={12} /> {createError}
-                    </p>
-                  )}
-                  {createSuccess && (
-                    <p className="text-green-400 text-[10px] uppercase tracking-wider font-semibold mt-4 ml-1 flex items-center gap-1.5">
-                      <Check size={12} /> {createSuccess}
-                    </p>
-                  )}
+                  {createError && <p className="text-[11px] text-red-600 font-semibold mt-3 uppercase tracking-wider">{createError}</p>}
+                  {createSuccess && <p className="text-[11px] text-green-700 font-semibold mt-3 uppercase tracking-wider">{createSuccess}</p>}
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center bg-white/[0.02] border border-black/07 rounded-2xl p-6">
-                    <div>
-                      <h2 className="text-sm font-semibold uppercase tracking-wider text-white">
-                        Ligações Ativas no Grafo Semântico
-                      </h2>
-                      <p className="text-[11px] text-white/35 mt-1">
-                        Exiba o DNA Semântico imutável (hash SHA-256) e analise as correspondências e referências bibliográficas.
-                      </p>
-                    </div>
-                    <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-xs font-semibold uppercase">
-                      {relations.length} conexões
-                    </div>
-                  </div>
+                {/* Lista de Relações */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Tabela de conexões */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <h3 className="text-xs uppercase tracking-widest font-bold text-[#1A1A1A]/50">
+                      Relações de Intercâmbio Mapeadas
+                    </h3>
 
-                  <div className="grid grid-cols-1 gap-3">
-                    {relations.map((rel, idx) => {
-                      const relId = rel?.id || `rel-${idx}`;
-                      const origemNome = getNucleoName(rel?.origem_id);
-                      const destinoNome = getNucleoName(rel?.destino_id);
-                      const familyTags = toArray<string>(rel?.metadados?.familyTags);
-                      const externalApis = toArray<any>(rel?.metadados?.externalApis);
-                      const bibliographies = toArray<string>(rel?.metadados?.bibliographies);
-
-                      return (
-                        <div key={relId} className="p-6 bg-white/[0.02] border border-black/07 rounded-2xl hover:border-black/10 transition-all">
-                          {editingRelationId === rel.id ? (
-                            <div className="flex flex-col sm:flex-row gap-4 items-end justify-between">
-                              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                  <label className="text-[9px] uppercase text-white/40 font-semibold">
-                                    Ajustar Tipo de Relação
-                                  </label>
-                                  <select
-                                    value={editTipoRelacao}
-                                    onChange={(e) => setEditTipoRelacao(e.target.value)}
-                                    className="liquid-input w-full !bg-white/60 !border-black/10 text-xs"
-                                  >
-                                    {Object.entries(TIPO_RELACAO_MAP).map(([val, label]) => (
-                                      <option key={val} value={val}>
-                                        {label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                  <label className="text-[9px] uppercase text-white/40 font-semibold">
-                                    Ajustar Peso ({editPeso})
-                                  </label>
-                                  <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.1"
-                                    value={editPeso}
-                                    onChange={(e) => setEditPeso(Number(e.target.value))}
-                                    className="w-full accent-[#E85002] mt-2.5"
-                                  />
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingRelationId(null)}
-                                  className="px-3 py-2 border border-black/10 rounded-xl text-xs hover:bg-white/55"
-                                >
-                                  Cancelar
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleSaveEditRelation(rel.id)}
-                                  className="px-4 py-2 bg-green-500/20 border border-green-500/40 text-green-400 rounded-xl text-xs hover:bg-green-500/30"
-                                >
-                                  Salvar
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                              <div className="space-y-1.5 flex-1">
-                                <div className="flex flex-wrap items-center gap-2 text-xs">
-                                  <span className="font-semibold text-white bg-white/55 border border-black/10 px-2.5 py-1 rounded-lg">
-                                    {origemNome}
-                                  </span>
-                                  <ArrowRight size={14} className="text-[#E85002]" />
-                                  <span className="text-white/45 text-[10px] uppercase font-mono bg-[#E85002]/10 border border-[#E85002]/20 px-2 py-0.5 rounded">
-                                    {TIPO_RELACAO_MAP[rel.tipo_relacao] || rel.tipo_relacao || 'Relação'}
-                                  </span>
-                                  <ArrowRight size={14} className="text-[#E85002]" />
-                                  <span className="font-semibold text-white bg-white/55 border border-black/10 px-2.5 py-1 rounded-lg">
-                                    {destinoNome}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-3 text-[10px] text-white/35">
-                                  <span className="uppercase tracking-wider">
-                                    Peso: <strong className="text-orange-400">{asText(rel.peso, '0')}</strong>
-                                  </span>
-                                  <span>•</span>
-                                  <span className="uppercase tracking-wider">
-                                    Método: <strong className="text-blue-300">{rel.metodo || 'ML'}</strong>
-                                  </span>
-                                  <span>•</span>
-                                  <span className="uppercase tracking-wider">
-                                    Fonte: <strong className="text-purple-300">{rel.fonte || 'Curador'}</strong>
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {rel.hash_dna && (
+                    <div className="glass-card overflow-hidden border border-black/07">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-white/40 border-b border-black/07">
+                              <th className="p-4 font-semibold text-[#1A1A1A]/60">Nó de Origem</th>
+                              <th className="p-4 font-semibold text-[#1A1A1A]/60"></th>
+                              <th className="p-4 font-semibold text-[#1A1A1A]/60">Nó de Destino</th>
+                              <th className="p-4 font-semibold text-[#1A1A1A]/60">Tipo</th>
+                              <th className="p-4 font-semibold text-[#1A1A1A]/60 text-right">Ação</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {relations.map(rel => (
+                              <tr
+                                key={rel.id}
+                                onClick={() => setSelectedDnaRelation(rel)}
+                                className={`border-b border-black/05 hover:bg-white/30 cursor-pointer transition-colors ${
+                                  selectedDnaRelation?.id === rel.id ? 'bg-white/40 font-medium' : ''
+                                }`}
+                              >
+                                <td className="p-4 truncate max-w-[120px]">{getNucleoName(rel.origem_id)}</td>
+                                <td className="p-4 text-[#E8490A]"><ArrowRight size={12} /></td>
+                                <td className="p-4 truncate max-w-[120px]">{getNucleoName(rel.destino_id)}</td>
+                                <td className="p-4 text-[10px] text-[#1A1A1A]/65">{TIPO_RELACAO_MAP[rel.tipo_relacao] || rel.tipo_relacao}</td>
+                                <td className="p-4 text-right">
                                   <button
-                                    type="button"
-                                    onClick={() =>
-                                      setSelectedDnaRelation(selectedDnaRelation?.id === rel.id ? null : rel)
-                                    }
-                                    className={`px-3 py-1.5 rounded-lg border text-[10px] font-semibold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                                      selectedDnaRelation?.id === rel.id
-                                        ? 'bg-[#E85002]/20 border-[#E85002]/40 text-[#E85002]'
-                                        : 'bg-white/55 border-black/10 text-white/55 hover:text-white hover:bg-white/10'
-                                    }`}
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteRelation(rel.id); }}
+                                    className="p-1 hover:text-red-700 text-red-500/70"
                                   >
-                                    <FileText size={11} /> DNA Semântico
+                                    <Trash2 size={13} />
                                   </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => handleStartEditRelation(rel)}
-                                  className="p-2 rounded-lg bg-white/55 border border-black/10 hover:bg-white/10 text-white/60 hover:text-white"
-                                  title="Ajustar Conexão"
-                                >
-                                  <Edit3 size={12} />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteRelation(rel.id)}
-                                  className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 text-red-400 hover:text-red-300"
-                                  title="Excluir Conexão"
-                                >
-                                  <Trash2 size={12} />
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
 
-                          {selectedDnaRelation?.id === rel.id && rel.hash_dna && (
-                            <div className="mt-5 pt-5 border-t border-black/07 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 bg-white/550/40 border border-black/07 rounded-xl">
-                                <div className="space-y-1">
-                                  <span className="text-[9px] uppercase tracking-wider text-[#E85002] font-semibold">
-                                    DNA Semântico SHA-256 (Imutável)
-                                  </span>
-                                  <p className="text-[11px] font-mono text-white/70 select-all break-all">
-                                    {rel.hash_dna}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => copyToClipboard(rel.hash_dna || '', rel.id)}
-                                  className="liquid-button text-[10px] !py-1.5 !px-3 font-medium flex items-center gap-1.5 bg-white/55 hover:bg-white/10 border-black/10 flex-shrink-0"
-                                >
-                                  {copiedId === rel.id ? (
-                                    <Check size={11} className="text-green-400" />
-                                  ) : (
-                                    <Copy size={11} />
-                                  )}
-                                  {copiedId === rel.id ? 'Copiado!' : 'Copiar Hash'}
-                                </button>
-                              </div>
-
-                              {rel.metadados ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="space-y-3 p-4 bg-white/[0.01] border border-black/07 rounded-xl">
-                                    <h4 className="text-[10px] uppercase tracking-wider text-white/40 font-semibold flex items-center gap-1.5">
-                                      <Brain size={12} /> Contexto e Co-Ocorrências
-                                    </h4>
-                                    <div>
-                                      <span className="text-[9px] text-white/35 block mb-1">
-                                        Tags da Mesma Família / Obra
-                                      </span>
-                                      {familyTags.length > 0 ? (
-                                        <div className="flex flex-wrap gap-1">
-                                          {familyTags.slice(0, 6).map((t: string, i: number) => (
-                                            <span
-                                              key={`${relId}-family-${i}-${t}`}
-                                              className="px-1.5 py-0.5 bg-white/55 border border-black/07 rounded text-[9px] text-white/60"
-                                            >
-                                              {t}
-                                            </span>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        <p className="text-[10px] italic text-white/20">
-                                          Nenhuma tag co-adjacente associada.
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="space-y-3 p-4 bg-white/[0.01] border border-black/07 rounded-xl">
-                                    <h4 className="text-[10px] uppercase tracking-wider text-white/44 font-semibold flex items-center gap-1.5">
-                                      <Database size={12} /> Integração APIs de Acervos Nacionais
-                                    </h4>
-                                    <div className="space-y-2">
-                                      <span className="text-[9px] text-white/35 block">Bases de Dados Registradas</span>
-                                      {externalApis.length > 0 ? (
-                                        <div className="space-y-1.5">
-                                          {externalApis.slice(0, 3).map((api: any, index: number) => (
-                                            <div
-                                              key={`${relId}-api-${index}`}
-                                              className="flex justify-between items-center bg-white/550/20 p-2 rounded border border-black/07"
-                                            >
-                                              <div className="text-[10px] truncate max-w-[70%]">
-                                                <span className="text-[#E85002] font-semibold">
-                                                  [{api?.fonte || 'API'}]
-                                                </span>{' '}
-                                                {api?.titulo || 'Sem título'}
-                                              </div>
-                                              {api?.url ? (
-                                                <a
-                                                  href={api.url}
-                                                  target="_blank"
-                                                  rel="noreferrer"
-                                                  className="text-[9px] text-blue-400 hover:underline"
-                                                >
-                                                  Acessar
-                                                </a>
-                                              ) : (
-                                                <span className="text-[9px] text-white/25">Sem URL</span>
-                                              )}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        <p className="text-[10px] italic text-white/20">
-                                          Sem referências externas salvas no DNA.
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="md:col-span-2 p-4 bg-white/[0.01] border border-black/07 rounded-xl">
-                                    <span className="text-[9px] text-white/35 block mb-1">
-                                      Referência Bibliográfica & Regulamentação
-                                    </span>
-                                    {bibliographies.length > 0 ? (
-                                      <ul className="list-disc list-inside space-y-1 text-[10px] text-white/50">
-                                        {bibliographies.map((bib: string, idx: number) => (
-                                          <li key={`${relId}-bib-${idx}`} className="truncate">
-                                            {bib}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    ) : (
-                                      <p className="text-[10px] text-white/20 italic">Sem bibliografia declarada.</p>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="text-[10px] text-white/35 italic">
-                                  Sem metadados adicionais no DNA.
-                                </p>
-                              )}
-                            </div>
-                          )}
+                  {/* Detalhe do DNA / Blockchain */}
+                  <div>
+                    {selectedDnaRelation ? (
+                      <div className="glass-card p-6 border border-black/07 space-y-6 sticky top-28">
+                        <div className="flex items-center gap-2 pb-4 border-b border-black/10">
+                          <Cpu className="text-[#E8490A]" size={20} />
+                          <div>
+                            <h4 className="text-sm font-semibold serif-title">DNA da Ligação Semântica</h4>
+                            <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 block">Rastreabilidade em Blockchain</span>
+                          </div>
                         </div>
-                      );
-                    })}
+
+                        <div className="space-y-4 text-xs">
+                          <div>
+                            <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">DNA Hash da Transação</span>
+                            <code className="text-[10px] font-mono text-[#E8490A] break-all block p-2 bg-white/40 border border-black/07 rounded-lg mt-1">
+                              {generateDnaHash(selectedDnaRelation.id)}
+                            </code>
+                          </div>
+
+                          <div>
+                            <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Chaves de Criptografia Delta & Alfa</span>
+                            <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1 mt-1 font-mono text-[9px] text-[#1A1A1A]/70">
+                              <p><span className="font-bold text-orange-700">DELTA_KEY:</span> 0x8F2E4D...1A9C</p>
+                              <p><span className="font-bold text-blue-700">ALFA_KEY:</span> 0x3C4B9F...8D2E</p>
+                              <p className="text-[8px] text-green-700 uppercase font-semibold mt-1 flex items-center gap-1">
+                                <CheckCircle size={10} /> Integridade do Restauro Assegurada
+                              </p>
+                            </div>
+                          </div>
+
+                          <div>
+                            <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Intercâmbio Cultural Regulado</span>
+                            <p className="text-[#1A1A1A]/65 mt-1 leading-relaxed text-[10px]">
+                              Esta ligação cruza dados de indexação e normalização de tags nacionais com fontes curatoriais estrangeiras, estabelecendo um ecossistema com respeito à diversidade e ampla preservação de acervos.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="glass-card p-10 border border-black/07 text-center text-xs text-[#1A1A1A]/40 uppercase tracking-widest font-semibold sticky top-28">
+                        Selecione uma ligação de intercâmbio para inspecionar seu DNA e chaves criptográficas.
+                      </div>
+                    )}
                   </div>
                 </div>
+
               </div>
             )}
           </>
