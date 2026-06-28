@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <!-- Fundo creme -->
+  <rect width="1920" height="1080" fill="#EEEBE3"/>
+
+  <!-- ===== CANTO SUPERIOR ESQUERDO ===== -->
+  <!-- Círculo azul grande (saindo do canto) -->
+  <circle cx="-10" cy="-10" r="260" fill="#1B3A8A"/>
+  <!-- Círculo laranja pequeno -->
+  <circle cx="105" cy="225" r="58" fill="#E8500A"/>
+  <!-- Pílula verde alta -->
+  <rect x="68" y="250" width="80" height="190" rx="40" fill="#1A6B3A"/>
+
+  <!-- ===== CANTO INFERIOR ESQUERDO ===== -->
+  <!-- Retângulo vermelho arredondado -->
+  <rect x="-15" y="590" width="260" height="230" rx="36" fill="#C12028"/>
+  <!-- Meia-lua amarela (D deitado) -->
+  <path d="M195,840 Q360,840 360,960 L195,960 Z" fill="#E9A91B"/>
+  <ellipse cx="195" cy="900" rx="75" ry="105" fill="#E9A91B"/>
+
+  <!-- ===== CANTO SUPERIOR DIREITO ===== -->
+  <!-- Bloco laranja (canto topo direito) -->
+  <rect x="1610" y="-20" width="330" height="210" rx="0" fill="#E8500A"/>
+  <!-- Morder arredondado (tirar o semicírculo branco do laranja) -->
+  <circle cx="1755" cy="190" r="85" fill="#EEEBE3"/>
+  <!-- Círculo azul menor sobreposto -->
+  <circle cx="1830" cy="175" r="78" fill="#1B3A8A"/>
+
+  <!-- ===== CANTO INFERIOR DIREITO ===== -->
+  <!-- Grande retângulo amarelo/dourado -->
+  <rect x="1490" y="630" width="460" height="215" rx="80" fill="#E9A91B"/>
+  <!-- Pílula verde no extremo direito -->
+  <rect x="1855" y="420" width="80" height="210" rx="40" fill="#1A6B3A"/>
+  <!-- Retângulo azul grande (abaixo do amarelo) -->
+  <rect x="1540" y="750" width="420" height="220" rx="80" fill="#1B3A8A"/>
+  <!-- Círculo vermelho pequeno sobre o azul -->
+  <circle cx="1760" cy="870" r="65" fill="#C12028"/>
+</svg>
