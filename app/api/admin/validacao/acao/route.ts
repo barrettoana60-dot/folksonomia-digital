@@ -30,37 +30,43 @@ function saveValidationLocally(data: any) {
     if (fs.existsSync(filePath)) {
       list = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     }
-    list.push({ ...data, timestamp: new Date().toISOString() });
+    list.push({ ...data, persisted_at: new Date().toISOString() });
     fs.writeFileSync(filePath, JSON.stringify(list, null, 2), 'utf-8');
   } catch (err) {
     console.error('Erro ao salvar validação local:', err);
   }
 }
 
-function buildValidationDnaPayload(nucleo: any, body: any, newStatus: string, previousHash: string | null) {
+function buildInteroperabilityDnaPayload(nucleo: any, body: any, newStatus: string, previousHash: string | null) {
   const now = new Date().toISOString();
   const relatedTags = nucleo.tags || [];
   const externalSources = nucleo.externalResults || [];
 
   return {
     version: '1.0',
-    tipo: 'validacao_dna',
+    tipo: 'interoperability_dna',
     nucleo_id: nucleo.id,
     original: body.conteudo_original ?? nucleo.conteudo_original,
     normalizado: body.conteudo_normalizado ?? nucleo.conteudo_normalizado,
     status_anterior: nucleo.status_validacao,
     status_novo: newStatus,
-    acao: body.action,
+    interoperability_action: body.action,
     justificativa: body.justificativa || '',
     confianca: body.confianca ?? nucleo.confianca,
     metadados: body.metadados ?? nucleo.metadados,
     contexto: nucleo.contexto || {},
     related_tags: relatedTags,
-    external_articles: externalSources,
+    external_sources: externalSources,
+    ledger_sequence: (currentLedgerLength(nucleo) + 1),
     previous_hash: previousHash,
+    cultural_locale: nucleo.origem || 'global',
     timestamp: now,
-    checksum: generateSignature({ id: nucleo.id, newStatus, timestamp: now, previousHash })
+    ledger_checksum: generateSignature({ id: nucleo.id, newStatus, timestamp: now, previousHash })
   };
+}
+
+function currentLedgerLength(nucleo: any): number {
+  return Array.isArray(nucleo.metadados?.validation_chain) ? nucleo.metadados.validation_chain.length : 0;
 }
 
 export async function POST(req: Request) {
@@ -168,7 +174,7 @@ export async function POST(req: Request) {
       .eq('nucleo_id', id)
       .limit(8);
 
-    const dnaPayload = buildValidationDnaPayload(
+    const dnaPayload = buildInteroperabilityDnaPayload(
       {
         ...currentNucleo,
         tags: relatedTags,
@@ -232,15 +238,17 @@ export async function POST(req: Request) {
       await supabaseAdmin.from('eventos').insert({
         entidade_tipo: 'nucleo',
         entidade_id: id,
-        tipo_evento: `validacao_${newStatus}`,
-        resumo: `Núcleo ${id} foi ${newStatus} com validação estilo DNA criptográfico.`,
+        tipo_evento: `interoperability_${newStatus}`,
+        resumo: `Núcleo ${id} foi ${newStatus} no registro de intercâmbio cultural.`,
         payload: {
-          dnaPayload,
+          interoperabilityPayload: dnaPayload,
           encrypted_delta: encryptPayloadDelta(dnaPayload),
           encrypted_alfa: encryptPayloadAlpha(dnaPayload),
           audit: {
             related_tags: relatedTags,
-            external_articles: externalResults
+            external_sources: externalSources,
+            cultural_locale: dnaPayload.cultural_locale,
+            ledger_sequence: dnaPayload.ledger_sequence
           }
         },
         hash_evento: validationHash,
