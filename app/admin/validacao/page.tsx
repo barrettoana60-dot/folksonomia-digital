@@ -85,7 +85,7 @@ function safeTrim(text: unknown, max = 30): string {
   return s.length > max ? `${s.slice(0, max)}…` : s;
 }
 
-// Auxiliar para gerar hash de DNA semântico baseado no conteúdo
+// Auxiliar para gerar hash de DNA de intercâmbio internacional baseado no conteúdo
 function generateDnaHash(seed: any): string {
   const str = seed ? String(seed) : '';
   let hash = 0;
@@ -94,7 +94,7 @@ function generateDnaHash(seed: any): string {
     hash |= 0;
   }
   const hex = Math.abs(hash).toString(16).padStart(8, '0');
-  return `dna_delta_${hex}_alfa_9901`;
+  return `interoperability_dna_${hex}_delta_alfa`;
 }
 
 export default function ValidacaoPage() {
@@ -376,10 +376,10 @@ export default function ValidacaoPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-3">
             <Network className="text-[#E8490A]" size={30} />
-            Consenso e Validação de DNA Semântico
+            Intercâmbio Internacional de DNA Cultural
           </h1>
           <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold flex items-center gap-1.5">
-            <Lock size={12} className="text-orange-600" /> Criptografia Delta & Alfa · Blockchain de Acervo Cultural
+            <Lock size={12} className="text-orange-600" /> Rede global de informações criptografadas Delta & Alfa para intercâmbio cultural auditável
           </p>
         </div>
 
@@ -411,7 +411,7 @@ export default function ValidacaoPage() {
                 : 'border-transparent text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70'
             }`}
           >
-            Nódulos Pendentes de Restauro ({pendingNucleos.length})
+            Fragmentos de Intercâmbio Cultural ({pendingNucleos.length})
           </button>
           <button
             onClick={() => setActiveTab('ligacoes')}
@@ -421,7 +421,7 @@ export default function ValidacaoPage() {
                 : 'border-transparent text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70'
             }`}
           >
-            Intercâmbio de Ligações Semánticas ({relations.length})
+            Rede Global de Interoperabilidade ({relations.length})
           </button>
         </div>
 

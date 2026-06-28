@@ -17,7 +17,7 @@ const tabs = [
   { id: 'obras', label: 'Gestão de Obras' },
   { id: 'tags', label: 'Análise de Tags' },
   { id: 'relatorios', label: 'Relatório Semântico' },
-  { id: 'validacao', label: 'Sistema de Validação' },
+  { id: 'validacao', label: 'Interoperabilidade Cultural' },
   { id: 'ontologia', label: 'Ontologias' },
   { id: 'interoperabilidade', label: 'Conexões Globais' },
 ];
@@ -1501,23 +1501,23 @@ export default function AdminPage() {
             {activeTab === 'validacao' && (
               <div className="space-y-8 animate-fade-in">
                  <div className="flex justify-between items-center">
-                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Sistema de Validação (Grafo Ativo)</h2>
+                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Interoperabilidade Internacional de Acervos</h2>
                     <div className="flex gap-2">
-                       <span className="px-4 py-2 bg-white/550 border border-black/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Explorar Rede</span>
+                       <span className="px-4 py-2 bg-white/550 border border-black/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Visualizar Culturas</span>
                     </div>
                  </div>
                  
-                 {/* Redirecionar para o painel de curadoria clássico onde o curador pode dar análise e validar ligações e demarcações */}
+                 {/* Redirecionar para o painel de curadoria internacional e blockchain cultural */}
                   <div className="glass-card p-12 text-center border-orange-500/30 border space-y-6">
                     <CheckCircle size={48} className="mx-auto text-[#E85002]" />
                     <div className="space-y-2">
-                      <h3 className="text-xl font-normal serif-title">Painel de Validação e Curadoria Ativa</h3>
+                      <h3 className="text-xl font-normal serif-title">Painel de Intercâmbio Cultural Global</h3>
                       <p className="text-[#1A1A1A]/55 text-sm max-w-lg mx-auto">
-                        Acesse a trilha de validação dedicada para aprovar/rejeitar demarcações, ajustar ligações e visualizar o DNA Semântico imutável.
+                        Acesse a trilha internacional onde cada demarcação e ligação é registrada em um ledger cultural, com DNA criptográfico e auditoria Delta/Alfa.
                       </p>
                     </div>
                     <Link href="/admin/validacao" className="liquid-button !bg-[#E85002] inline-flex items-center gap-2">
-                       Acessar Painel de Validação <ArrowRight size={14} />
+                       Acessar Intercâmbio Internacional <ArrowRight size={14} />
                     </Link>
                   </div>
                  
