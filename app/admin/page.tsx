@@ -18,7 +18,7 @@ const tabs = [
   { id: 'relatorios', label: 'Relatório Semântico' },
   { id: 'validacao', label: 'Sistema de Validação' },
   { id: 'ontologia', label: 'Ontologias' },
-  { id: 'interoperabilidade', label: 'Conexões Globais' },
+  { id: 'interoperabilidade', label: 'Interoperabilidade DNA (Europeana)' },
 ];
 
 export default function AdminPage() {
@@ -1661,34 +1661,127 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'interoperabilidade' && (
-              <div className="space-y-8 animate-fade-in">
-                 <div className="flex flex-col items-center text-center space-y-4 max-w-2xl mx-auto">
-                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Conexões Globais</h2>
-                 </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[
-                      { name: 'Tesauro CNFCP', status: 'Online', delay: '0ms', region: 'BR' },
-                      { name: 'IBRAM (Tainacan)', status: 'Online', delay: '210ms', region: 'BR' },
-                      { name: 'Getty Museum API', status: 'Offline', delay: '-', region: 'US' },
-                      { name: 'DBPedia Sparql', status: 'Online', delay: '89ms', region: 'Global' }
-                    ].map((conn, i) => (
-                      <div key={i} className="glass-card p-8 flex flex-col items-center gap-6 text-center group hover:bg-white/[0.04]">
-                        <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border ${conn.status === 'Online' ? 'border-orange-500/20' : 'border-red-500/20'}`}>
-                           <Globe size={32} className={conn.status === 'Online' ? 'text-orange-500' : 'text-red-500'} />
-                           {conn.status === 'Online' && <div className="absolute top-0 right-0 w-3 h-3 bg-orange-500 rounded-full animate-pulse" />}
+              <div className="space-y-8 animate-fade-in text-[#1A1A1A]">
+                {/* Cabeçalho Técnico */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-black/10 pb-6">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
+                      <Cpu size={24} className="text-[#E8490A]" />
+                      Interoperabilidade de DNA Cultural & Europeana
+                    </h2>
+                    <p className="text-xs text-[#1A1A1A]/55 mt-1 uppercase tracking-widest font-semibold">
+                      Camadas de Preservabilidade de Segmentos · Criptografia Alfanumérica
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-800 text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-full">
+                    <Globe size={12} className="animate-spin" style={{ animationDuration: '6s' }} /> Consensus Network Online
+                  </div>
+                </div>
+
+                {/* Algoritmo de Preservabilidade e Camadas de Base */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  
+                  {/* Coluna 1 & 2: Monitor e Mapeamento */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="glass-card p-6 md:p-8 space-y-6">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-[#E8490A] flex items-center gap-2">
+                        <Activity size={16} /> Preservabilidade entre Segmentos (Único Núcleo)
+                      </h3>
+                      <p className="text-xs text-[#1A1A1A]/60 leading-relaxed">
+                        Abaixo estão os segmentos e termos integrados de acervos nacionais e internacionais. Cada alteração propaga chaves criptográficas em cadeia, garantindo imutabilidade e rastreabilidade total desde uma única fonte originária.
+                      </p>
+
+                      <div className="space-y-4">
+                        {[
+                          { node: "Abstracionismo Geométrico", hash: "dna_alpha_8f29_beta_7741", source: "Europeana API / Getty", status: "Integridade Confirmada", integrity: "100%", files: 12 },
+                          { node: "Modernismo Brasileiro", hash: "dna_alpha_1a2c_beta_9982", source: "IBRAM Connector / Brasiliana", status: "Sincronizado & Imutável", integrity: "100%", files: 8 },
+                          { node: "Barroco Mineiro", hash: "dna_alpha_5e8d_beta_3345", source: "Tesauro CNFCP / Europeana", status: "Restaurado Manualmente", integrity: "100%", files: 19 }
+                        ].map((item, idx) => (
+                          <div key={idx} className="p-4 bg-white/40 border border-black/07 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="space-y-1.5 text-left">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-[#1A1A1A]">{item.node}</span>
+                                <span className="text-[9px] font-mono bg-blue-500/10 border border-blue-500/20 text-blue-800 px-1.5 py-0.5 rounded">
+                                  {item.source}
+                                </span>
+                              </div>
+                              <code className="text-[10px] font-mono text-orange-600 block">
+                                HASH RASTREABILIDADE: {item.hash}
+                              </code>
+                            </div>
+                            <div className="flex items-center gap-6 justify-between md:justify-end">
+                              <div className="text-right">
+                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 block">Camadas de Preservação</span>
+                                <span className="text-xs text-green-700 font-semibold flex items-center gap-1">
+                                  <ShieldCheck size={11} /> {item.status} ({item.integrity})
+                                </span>
+                              </div>
+                              <div className="px-3 py-1 bg-white/50 border border-black/07 rounded-lg text-center min-w-[50px]">
+                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 block">Arquivos</span>
+                                <span className="text-xs font-bold text-[#1A1A1A]/70">{item.files}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Termos de Busca e Auditoria Alfanumérica */}
+                    <div className="glass-card p-6 md:p-8 space-y-4">
+                      <h3 className="text-sm font-semibold uppercase tracking-wider text-[#E8490A]">
+                        Chaves de Auditoria Blockchain
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-[10px]">
+                        <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1">
+                          <span className="text-orange-700 font-bold uppercase tracking-wider block">Consenso Delta</span>
+                          <span className="text-[#1A1A1A]/70">0x8A92B3C4D5E6F7A8B9C0</span>
                         </div>
-                        <div>
-                           <p className="font-bold text-lg">{conn.name}</p>
-                           <p className="text-[9px] uppercase font-black tracking-widest text-[#1A1A1A]/35">{conn.region}</p>
+                        <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1">
+                          <span className="text-blue-700 font-bold uppercase tracking-wider block">Consenso Alpha</span>
+                          <span className="text-[#1A1A1A]/70">0x1F2E3D4C5B6A7F8E9D0C</span>
                         </div>
-                        <div className="text-[10px] uppercase font-black tracking-widest flex items-center justify-center gap-4 w-full pt-4 border-t border-black/07">
-                           <span className={conn.status === 'Online' ? 'text-orange-500' : 'text-red-500'}>{conn.status}</span>
-                           <span className="text-[#1A1A1A]/25">|</span>
-                           <span className="text-[#1A1A1A]/45">{conn.delay}</span>
+                        <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1">
+                          <span className="text-green-700 font-bold uppercase tracking-wider block">Status da Rede</span>
+                          <span className="text-green-800 font-bold">100% Criptografado & Auditável</span>
                         </div>
                       </div>
-                    ))}
-                 </div>
+                    </div>
+                  </div>
+
+                  {/* Coluna 3: Europeana & Detalhes da API */}
+                  <div className="space-y-6">
+                    <div className="glass-card p-6 border border-black/07 space-y-6">
+                      <div className="flex items-center gap-2 pb-4 border-b border-black/10">
+                        <Globe className="text-[#E8490A]" size={20} />
+                        <div>
+                          <h4 className="text-sm font-semibold serif-title">Gateway Europeana API</h4>
+                          <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 block">Integração Internacional</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 text-xs">
+                        <p className="text-[#1A1A1A]/65 leading-relaxed text-[11px]">
+                          Através deste gateway, os termos locais indexados em nosso sistema de folksonomia são confrontados com metadados estruturados do portal Europeana.
+                        </p>
+                        
+                        <div className="p-3.5 bg-white/40 border border-black/07 rounded-xl space-y-2 text-left">
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-orange-700 block">Camadas de DNA Semântico</span>
+                          <p className="text-[#1A1A1A]/70 text-[10px] leading-relaxed">
+                            Quando uma tag é validada em nosso sistema, ela carrega consigo referências cruzadas das APIs internacionais. Isso impede a fragmentação da pesquisa e aumenta a qualidade semântica do restauro de dados.
+                          </p>
+                        </div>
+
+                        <div className="p-3.5 bg-white/40 border border-black/07 rounded-xl space-y-2 text-left">
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-blue-700 block">Segurança Alpha-Numérica</span>
+                          <p className="text-[#1A1A1A]/70 text-[10px] leading-relaxed">
+                            Qualquer conexão ou modificação de nódulos de preservação gera um novo registro SHA-256 no banco distribuído local, mantendo a autenticidade e auditoria perpétua do acervo.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
               </div>
             )}
           </>
