@@ -10,8 +10,7 @@ import {
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
-import NodeGraph from '@/components/NodeGraph';
-
+const NodeGraph = dynamic(() => import('@/components/NodeGraph'), { ssr: false });
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
   { id: 'obras', label: 'Gestão de Obras' },
