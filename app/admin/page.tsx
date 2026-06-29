@@ -1,11 +1,11 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { 
   Users, Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieIcon, 
   CheckCircle2, Settings, ChevronRight, ShieldCheck, Network, Globe, 
-  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen, ArrowRight
+  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen, ArrowRight, Fingerprint
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Logo from '@/components/Logo';
@@ -582,7 +582,7 @@ export default function AdminPage() {
           <div class="section">
             <p class="section-title">Tesauro CNFCP / IPHAN — Definição Normativa</p>
             <div class="tesauro-box">
-              <p class="section-body">${tesauro.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              <p class="section-body">${tesauro.replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;')}</p>
               ${termosExpandidos.length > 0 ? `
               <div class="termos-list">
                 ${termosExpandidos.map((t: string) => `<span class="termo-badge">${t}</span>`).join('')}
@@ -593,7 +593,7 @@ export default function AdminPage() {
           <div class="section">
             <p class="section-title">Conexões Cruzadas e Malha Vetorial</p>
             <div class="tesauro-box" style="background: #f8fafc; border-color: #cbd5e1;">
-              <p class="section-body">${matrizCruzadaTexto.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              <p class="section-body">${matrizCruzadaTexto.replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;')}</p>
             </div>
           </div>
 
@@ -608,7 +608,7 @@ export default function AdminPage() {
           <div class="section">
             <p class="section-title">Dedução Cognitiva da Inteligência Artificial</p>
             <div class="tesauro-box" style="background: #fff; border-color: #e2e8f0; border-left: 4px solid #0f172a;">
-              <p class="section-body" style="font-size: 11px; font-weight: 600;">${deducaoCognitiva.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+              <p class="section-body" style="font-size: 11px; font-weight: 600;">${deducaoCognitiva.replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;')}</p>
               ${estruturado ? `<p class="section-body" style="font-size: 9px; margin-top: 12px; color: #64748b;">[OPERAÇÃO VETORIAL DA IA: ${estruturado.vetorial}]</p>` : ''}
             </div>
           </div>
