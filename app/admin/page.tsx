@@ -116,86 +116,109 @@ export default function AdminPage() {
 
   // ─── MOTOR DE APRENDIZADO DA REDE NEURAL ─────────────────────────────────────
   const runTrainingEpoch = useCallback(() => {
-    setNnEpoch(prev => {
-      const newEpoch = prev + 1;
+    // 1. Escolher nó de disparo para propagação (forward pass)
+    const nodeIds = ["frevo","carranca","bilro","dossie","artigo_popular","museografia","coco","capoeira","tapeçaria"];
+    const firedId = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+    setFiringNode(firedId);
+    setTimeout(() => setFiringNode(null), 800);
 
-      // 1. Propagação: acionar sinal em nó aleatório (forward pass)
-      const nodeIds = ["frevo","carranca","bilro","dossie","artigo_popular","museografia","coco","capoeira","tapeçaria"];
-      const firedId = nodeIds[newEpoch % nodeIds.length];
-      setFiringNode(firedId);
-      setTimeout(() => setFiringNode(null), 800);
+    // 2. Atualizar ativação dos nós (efeito de propagação)
+    setInteropNodes(nodes => nodes.map(n => {
+      if (n.id === firedId || n.id === 'core') {
+        return { ...n, activation: Math.min(1.0, n.activation + 0.20 + Math.random() * 0.1) };
+      }
+      return { ...n, activation: Math.max(0.0, n.activation - 0.05) };
+    }));
 
-      // 2. Atualizar ativação dos nós (sigmoid-like)
-      setInteropNodes(nodes => nodes.map(n => {
-        if (n.id === firedId || n.id === 'core') {
-          return { ...n, activation: Math.min(1, n.activation + 0.15 + Math.random() * 0.1) };
-        }
-        return { ...n, activation: Math.max(0, n.activation - 0.02) };
-      }));
+    // 3. Atualizar métricas gerais
+    let calculatedLoss = 1.0;
+    setNnLoss(prevLoss => {
+      const noise = (Math.random() - 0.5) * 0.03;
+      const decay = 0.022;
+      const nextLoss = Math.max(0.03, prevLoss - decay + noise);
+      calculatedLoss = nextLoss; // Captura para uso síncrono no mesmo tick
+      setLossHistory(h => [...h.slice(-39), nextLoss]);
+      return nextLoss;
+    });
 
-      // 3. Atualizar pesos das sinapses (Hebbian learning: "cells that fire together wire together")
-      setInteropConnections(conns => conns.map(c => {
-        const delta = (Math.random() * 0.06 - 0.01); // Gradiente estocástico
-        const newWeight = Math.min(1.0, Math.max(0.1, c.weight + delta));
-        return { ...c, weight: newWeight, isNew: false };
-      }));
+    setNnAccuracy(prevAcc => Math.min(0.99, prevAcc + 0.012 + Math.random() * 0.005));
+    
+    setNnEpoch(prevEpoch => {
+      const nextEpoch = prevEpoch + 1;
 
-      // 4. Loss decay com ruído (simula convergência)
-      const noise = (Math.random() - 0.5) * 0.04;
-      const decayRate = 0.015;
-      setNnLoss(prev => {
-        const next = Math.max(0.04, prev - decayRate + noise);
-        setLossHistory(h => [...h.slice(-39), next]);
-        return next;
-      });
-
-      // 5. Accuracy sobe gradualmente
-      setNnAccuracy(prev => Math.min(0.99, prev + 0.008 + Math.random() * 0.005));
-
-      // 6. Emitir sinal visual nas arestas conectadas ao nó ativo
-      setActiveSignals(prev => {
-        const relevant = ["core","frevo","carranca","bilro","dossie","artigo_popular","museografia","coco","capoeira","tapeçaria"];
-        const from = relevant[newEpoch % relevant.length];
-        const to   = relevant[(newEpoch + 3) % relevant.length];
-        const sig = { id: `sig-${newEpoch}`, from, to, progress: 0 };
-        return [...prev.slice(-4), sig];
-      });
-
-      // 7. Descoberta de novas conexões latentes baseada no threshold de perda
-      setNnLoss(currentLoss => {
-        setNnDiscovered(discovered => {
-          latentConnections.current.forEach(latent => {
-            const alreadyExists = discovered.some(d => d.from === latent.from && d.to === latent.to);
-            const alreadyConnected = interopConnections.some(c => (c.from === latent.from && c.to === latent.to) || (c.from === latent.to && c.to === latent.from));
-            const conf = 1 - currentLoss;
-            if (!alreadyExists && !alreadyConnected && conf > latent.threshold) {
-              // Nova conexão descoberta!
-              setInteropConnections(prev => [...prev, {
-                from: latent.from,
-                to: latent.to,
-                weight: conf * 0.5,
-                isNew: true,
-                discovered: true
-              }]);
-              const newDisc = {
-                id: `disc-${Date.now()}-${latent.from}`,
+      // 4. Hebbian Learning e Descoberta de Conexões baseada em Limiar de Perda
+      const confidence = 1.0 - calculatedLoss;
+      
+      // Encontrar conexões que atingiram o limiar e ainda não foram adicionadas
+      const newDiscoveredItems: typeof nnDiscovered = [];
+      
+      latentConnections.current.forEach(latent => {
+        const threshold = latent.threshold;
+        if (confidence > threshold) {
+          // Precisamos verificar se já descobrimos ou se já está nas conexões
+          setInteropConnections(currentConns => {
+            const exists = currentConns.some(c => 
+              (c.from === latent.from && c.to === latent.to) || 
+              (c.from === latent.to && c.to === latent.from)
+            );
+            
+            if (!exists) {
+              // Descobriu uma nova sinapse legítima!
+              newDiscoveredItems.push({
+                id: `disc-${Date.now()}-${latent.from}-${latent.to}`,
                 from: latent.from,
                 to: latent.to,
                 label: latent.label,
-                epoch: newEpoch,
-                confidence: Math.round(conf * 100)
-              };
-              return [newDisc, ...discovered].slice(0, 12);
+                epoch: nextEpoch,
+                confidence: Math.round(confidence * 100)
+              });
+              
+              return [...currentConns, {
+                from: latent.from,
+                to: latent.to,
+                weight: confidence * 0.7,
+                isNew: true,
+                discovered: true
+              }];
             }
+            
+            // Se já existe, atualiza pesos normais com hebbian learning
+            return currentConns.map(c => {
+              if ((c.from === latent.from && c.to === latent.to) || (c.from === latent.to && c.to === latent.from)) {
+                return { ...c, weight: Math.min(1.0, c.weight + 0.02 + Math.random() * 0.03) };
+              }
+              return c;
+            });
           });
-          return discovered;
-        });
-        return currentLoss;
+        }
       });
 
-      return newEpoch;
+      // Atualizar pesos das conexões iniciais/existentes que não foram cobertas acima
+      setInteropConnections(currentConns => currentConns.map(c => {
+        if (!c.discovered) {
+          const delta = (Math.random() * 0.05 - 0.01);
+          return { ...c, weight: Math.min(1.0, Math.max(0.1, c.weight + delta)) };
+        }
+        return c;
+      }));
+
+      // Adicionar itens descobertos no estado de feed
+      if (newDiscoveredItems.length > 0) {
+        setNnDiscovered(prevDisc => [...newDiscoveredItems, ...prevDisc].slice(0, 12));
+      }
+
+      // 5. Emitir pulsos elétricos de sinal
+      setActiveSignals(prevSignals => {
+        const relevant = ["core", "frevo", "carranca", "bilro", "dossie", "artigo_popular", "museografia"];
+        const from = firedId;
+        const to = relevant[Math.floor(Math.random() * relevant.length)];
+        const sig = { id: `sig-${nextEpoch}`, from, to, progress: 0 };
+        return [...prevSignals.slice(-3), sig];
+      });
+
+      return nextEpoch;
     });
-  }, [interopConnections]);
+  }, []);
 
   // Iniciar/parar treinamento
   const startTraining = useCallback(() => {
