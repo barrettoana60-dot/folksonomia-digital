@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -326,7 +326,7 @@ export default function AdminPage() {
         status: node.status || (isGroup ? 'validado' : 'em_analise'),
         content: (
           <div className="space-y-2 text-xs">
-            <div className="bg-white/550/30 p-2.5 rounded-xl border border-black/07 flex items-center justify-between">
+            <div className="bg-white/30 p-2.5 rounded-xl border border-black/07 flex items-center justify-between">
               <span className="font-semibold text-white/90 truncate mr-2">{node.id}</span>
               <button 
                 onClick={() => {
@@ -659,7 +659,7 @@ export default function AdminPage() {
               className={`whitespace-nowrap px-5 md:px-7 py-2.5 rounded-xl text-[10px] md:text-xs font-semibold uppercase tracking-wider transition-all ${
                 activeTab === tab.id 
                   ? 'bg-white/10 text-white border border-black/18 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
-                  : 'text-[#1A1A1A]/45 border-transparent hover:text-white hover:bg-white/550'
+                  : 'text-[#1A1A1A]/45 border-transparent hover:text-white hover:bg-white/50'
               }`}
             >
               {tab.label}
@@ -677,7 +677,7 @@ export default function AdminPage() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 animate-fade-in">
                 {stats.map((s, i) => (
                   <div key={i} className="glass-card p-6 md:p-10 flex flex-col items-center text-center space-y-3 md:space-y-6">
-                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border border-black/10 flex items-center justify-center bg-white/550">
+                    <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border border-black/10 flex items-center justify-center bg-white/50">
                       <s.icon size={20} className="md:size-[28px]" style={{ color: s.color }} />
                     </div>
                     <div className="space-y-1 md:space-y-2">
@@ -697,7 +697,7 @@ export default function AdminPage() {
                  </div>
                  
                  {showAddForm && (
-                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4">
+                   <div className="fixed inset-0 z-50 bg-white/80 flex items-center justify-center p-4">
                      <div className="glass-card p-8 w-full max-w-2xl relative animate-fade-in">
                        <button onClick={() => setShowAddForm(false)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
@@ -706,26 +706,26 @@ export default function AdminPage() {
                        <form onSubmit={handleAddObra} className="space-y-4">
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Título</label>
-                           <input required value={obraForm.titulo} onChange={e => setObraForm({...obraForm, titulo: e.target.value})} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Cálice Colonial" />
+                           <input required value={obraForm.titulo} onChange={e => setObraForm({...obraForm, titulo: e.target.value})} className="w-full bg-white/50 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Cálice Colonial" />
                          </div>
                          <div className="grid grid-cols-2 gap-4">
                            <div>
                              <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Autor/Artista</label>
-                             <input value={obraForm.artista} onChange={e => setObraForm({...obraForm, artista: e.target.value})} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
+                             <input value={obraForm.artista} onChange={e => setObraForm({...obraForm, artista: e.target.value})} className="w-full bg-white/50 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
                            </div>
                            <div>
                              <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Ano</label>
-                             <input value={obraForm.ano} onChange={e => setObraForm({...obraForm, ano: e.target.value})} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
+                             <input value={obraForm.ano} onChange={e => setObraForm({...obraForm, ano: e.target.value})} className="w-full bg-white/50 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" />
                            </div>
                          </div>
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Descrição</label>
-                           <textarea value={obraForm.descricao} onChange={e => setObraForm({...obraForm, descricao: e.target.value})} rows={3} className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none"></textarea>
+                           <textarea value={obraForm.descricao} onChange={e => setObraForm({...obraForm, descricao: e.target.value})} rows={3} className="w-full bg-white/50 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none"></textarea>
                          </div>
                          <div>
                             <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider mb-2 block">Foto da Obra</label>
                             <div 
-                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${isDragging ? 'border-[#E85002] bg-[#E85002]/10' : imagePreview ? 'border-orange-500/30 bg-orange-500/5' : 'border-black/10 hover:border-black/15 bg-white/550'}`}
+                              className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer ${isDragging ? 'border-[#E85002] bg-[#E85002]/10' : imagePreview ? 'border-orange-500/30 bg-orange-500/5' : 'border-black/10 hover:border-black/15 bg-white/50'}`}
                               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                               onDragLeave={() => setIsDragging(false)}
                               onDrop={(e) => {
@@ -753,7 +753,7 @@ export default function AdminPage() {
                                 </div>
                               ) : (
                                 <div className="space-y-2">
-                                  <div className="w-12 h-12 mx-auto rounded-full bg-white/550 border border-black/10 flex items-center justify-center">
+                                  <div className="w-12 h-12 mx-auto rounded-full bg-white/50 border border-black/10 flex items-center justify-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#1A1A1A]/35"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                                   </div>
                                   <p className="text-[#1A1A1A]/45 text-xs">Arraste uma foto aqui ou clique para selecionar</p>
@@ -786,7 +786,7 @@ export default function AdminPage() {
                      {obrasList.map((obra) => (
                        <div key={obra.id} className="glass-card overflow-hidden group hover:border-[#E85002]/30 transition-all duration-300">
                          {obra.imagem_url ? (
-                           <div className="h-48 overflow-hidden bg-white/550/30">
+                           <div className="h-48 overflow-hidden bg-white/30">
                              <img src={obra.imagem_url} alt={obra.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                            </div>
                          ) : (
@@ -829,7 +829,7 @@ export default function AdminPage() {
                      <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Análise de Tags</h2>
                      <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Motor ML: deduplicação, famílias temáticas, erros ortográficos, correlações inter-tags</p>
                    </div>
-                   <button onClick={() => { setTagAnalysisResult(null); setSelectedTagForAnalysis(null); }} className="liquid-button !bg-white/550 text-[11px] font-semibold tracking-wider">Limpar Análise</button>
+                   <button onClick={() => { setTagAnalysisResult(null); setSelectedTagForAnalysis(null); }} className="liquid-button !bg-white/50 text-[11px] font-semibold tracking-wider">Limpar Análise</button>
                  </div>
                  
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -844,7 +844,7 @@ export default function AdminPage() {
                             <div key={tagObj.id || i} className={`p-4 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
                               selectedTagForAnalysis === tagObj.tag 
                                 ? 'bg-[#E85002]/10 border-[#E85002]/40' 
-                                : 'bg-white/550 border-black/10 hover:border-black/15'
+                                : 'bg-white/50 border-black/10 hover:border-black/15'
                             }`} onClick={() => handleTagAnalysis(tagObj.tag)}>
                               <div>
                                 <span className="text-[#E85002] font-serif italic text-lg">&quot;{tagObj.tag}&quot;</span>
@@ -887,7 +887,7 @@ export default function AdminPage() {
                                </span>
                              )}
                              {!tagAnalysisResult.family && (
-                               <span className="px-3 py-1 bg-white/550 border border-black/10 rounded-full text-[10px] uppercase font-semibold tracking-wider text-[#1A1A1A]/45">
+                               <span className="px-3 py-1 bg-white/50 border border-black/10 rounded-full text-[10px] uppercase font-semibold tracking-wider text-[#1A1A1A]/45">
                                  Sem família detectada
                                </span>
                              )}
@@ -937,7 +937,7 @@ export default function AdminPage() {
                                  <div className="flex items-center gap-2">
                                    <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{s.tag}&quot;</span>
                                    <div className="flex items-center gap-1">
-                                     <div className="h-1 w-16 bg-white/550 rounded-full overflow-hidden">
+                                     <div className="h-1 w-16 bg-white/50 rounded-full overflow-hidden">
                                        <div className="h-full bg-blue-400" style={{ width: `${s.score * 100}%` }} />
                                      </div>
                                      <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round(s.score * 100)}%</span>
@@ -995,7 +995,7 @@ export default function AdminPage() {
                                    return (
                                      <div key={key} className="flex items-center gap-3">
                                        <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/48 w-24 text-right font-semibold">{labels[key] || key}</span>
-                                       <div className="h-2 flex-1 bg-white/550 rounded-full overflow-hidden">
+                                       <div className="h-2 flex-1 bg-white/50 rounded-full overflow-hidden">
                                          <div className="h-full bg-gradient-to-r from-[#E85002] to-[#F16001] transition-all duration-700" style={{ width: `${(val as number) * 100}%` }} />
                                        </div>
                                        <span className="text-[10px] text-[#1A1A1A]/38 font-semibold w-10">{Math.round((val as number) * 100)}%</span>
@@ -1023,7 +1023,7 @@ export default function AdminPage() {
                                    'VALIDACAO': 'text-orange-400 bg-orange-500/10',
                                    'CONEXAO': 'text-[#E85002] bg-[#E85002]/10'
                                  };
-                                 const colorClass = actionColors[t.action] || 'text-[#1A1A1A]/55 bg-white/550';
+                                 const colorClass = actionColors[t.action] || 'text-[#1A1A1A]/55 bg-white/50';
                                  return (
                                    <div key={t.id || i} className="flex items-center gap-2 text-[10px]">
                                      <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-semibold tracking-wider ${colorClass}`}>{t.action}</span>
@@ -1067,7 +1067,7 @@ export default function AdminPage() {
                              <span>{c.nome}</span>
                              <span className="text-[#1A1A1A]/45">{c.valor} tags</span>
                            </div>
-                           <div className="h-1.5 bg-white/550 rounded-full overflow-hidden">
+                           <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
                              <div className="h-full bg-[#E85002] transition-all duration-700" style={{ width: `${(c.valor / maxVal) * 100}%` }} />
                            </div>
                          </div>
@@ -1140,7 +1140,7 @@ export default function AdminPage() {
                     <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
-                    <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/550 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/50 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
                       <FileText size={16} /> Exportar PDF
                     </button>
                     <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
@@ -1310,7 +1310,7 @@ export default function AdminPage() {
                               {data.items?.map((item: any, i: number) => {
                                 const corr = data.correlations?.[i];
                                 return (
-                                  <div key={i} className="p-3 bg-white/550 rounded-lg border border-black/07 space-y-2">
+                                  <div key={i} className="p-3 bg-white/50 rounded-lg border border-black/07 space-y-2">
                                     <p className="text-sm font-semibold leading-tight">{item.titulo}</p>
                                     {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002] font-medium">{item.criador}</p>}
                                     {item.museu && <p className="text-[10px] text-[#1A1A1A]/55">{item.museu} {item.localizacao ? `— ${item.localizacao}` : ''}</p>}
@@ -1324,7 +1324,7 @@ export default function AdminPage() {
                                           <p key={ri} className="text-[10px] text-orange-400/85">✓ {r.description}</p>
                                         ))}
                                         <div className="flex items-center gap-2 mt-1">
-                                          <div className="h-1 flex-1 bg-white/550 rounded-full overflow-hidden">
+                                          <div className="h-1 flex-1 bg-white/50 rounded-full overflow-hidden">
                                             <div className="h-full bg-[#E85002]" style={{ width: `${(corr.score || 0) * 100}%` }} />
                                           </div>
                                           <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round((corr.score || 0) * 100)}%</span>
@@ -1370,7 +1370,7 @@ export default function AdminPage() {
                         </h4>
                         <div className="space-y-3">
                           {semanticResult.crossConnections.slice(0, 5).map((conn: any, i: number) => (
-                            <div key={i} className="p-4 bg-white/550 rounded-lg border border-black/07">
+                            <div key={i} className="p-4 bg-white/50 rounded-lg border border-black/07">
                               <div className="flex items-center gap-3 mb-2">
                                 <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-semibold uppercase rounded">{conn.sourceA}</span>
                                 <span className="text-[#1A1A1A]/25">↔</span>
@@ -1405,11 +1405,11 @@ export default function AdminPage() {
                           <TrendingUp size={16} className="text-orange-400" /> Conhecimento Acumulado
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="text-center p-3 bg-white/550 rounded-lg">
+                          <div className="text-center p-3 bg-white/50 rounded-lg">
                             <p className="text-2xl font-bold text-orange-400">{semanticResult.knowledge.previousCorrelations}</p>
                             <p className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/38 font-semibold">Correlações Prévias</p>
                           </div>
-                          <div className="text-center p-3 bg-white/550 rounded-lg">
+                          <div className="text-center p-3 bg-white/50 rounded-lg">
                             <p className="text-2xl font-bold text-orange-400">{semanticResult.knowledge.learningEvents}</p>
                             <p className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/38 font-semibold">Eventos de Aprendizado</p>
                           </div>
@@ -1521,7 +1521,7 @@ export default function AdminPage() {
  
                        {/* Conexões */}
                        {(tagAnalysisResult.siblings?.length > 0 || tagAnalysisResult.duplicates?.length > 0) && (
-                         <div className="p-4 bg-white/550 border border-black/10 rounded-lg mb-4 space-y-2">
+                         <div className="p-4 bg-white/50 border border-black/10 rounded-lg mb-4 space-y-2">
                            <p className="text-[10px] uppercase font-black tracking-widest text-[#1A1A1A]/55 mb-2">Conexões ({tagAnalysisResult.totalRelated})</p>
                            {[...(tagAnalysisResult.duplicates || []), ...(tagAnalysisResult.siblings || [])].slice(0, 6).map((s: any, i: number) => (
                              <div key={i} className="flex items-center justify-between text-sm">
@@ -1534,14 +1534,14 @@ export default function AdminPage() {
  
                        {/* DNA */}
                        {tagAnalysisResult.dna && Object.values(tagAnalysisResult.dna).some((v: any) => v > 0) && (
-                         <div className="p-4 bg-white/550 border border-black/10 rounded-lg mb-4 space-y-2">
+                         <div className="p-4 bg-white/50 border border-black/10 rounded-lg mb-4 space-y-2">
                            <p className="text-[11px] uppercase font-semibold tracking-wider text-[#1A1A1A]/48 mb-2">DNA Semântico</p>
                            {Object.entries(tagAnalysisResult.dna).filter(([,v]) => (v as number) > 0).sort(([,a],[,b]) => (b as number) - (a as number)).map(([k,v]) => {
                              const labels: Record<string,string> = { period:'Período', technique:'Técnica', geography:'Geografia', material:'Material', theme:'Temática', movement:'Movimento', provenance:'Proveniência' };
                              return (
                                <div key={k} className="flex items-center gap-2">
                                  <span className="text-[10px] text-[#1A1A1A]/48 w-20 text-right uppercase font-semibold">{labels[k]||k}</span>
-                                 <div className="h-1.5 flex-1 bg-white/550 rounded-full overflow-hidden">
+                                 <div className="h-1.5 flex-1 bg-white/50 rounded-full overflow-hidden">
                                    <div className="h-full bg-[#E85002]" style={{ width: `${(v as number)*100}%` }} />
                                  </div>
                                  <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round((v as number)*100)}%</span>
@@ -1565,7 +1565,7 @@ export default function AdminPage() {
                  )}
  
                  {graphNodeSelected && isAnalyzingTag && (
-                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4">
+                   <div className="fixed inset-0 z-50 bg-white/80 flex items-center justify-center p-4">
                      <div className="glass-card p-12 text-center">
                        <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                        <p className="text-[#1A1A1A]/45 text-[10px] uppercase tracking-widest font-bold">Cérebro analisando &quot;{graphNodeSelected}&quot;...</p>
@@ -1584,7 +1584,7 @@ export default function AdminPage() {
 
                  {/* MODAL NOVA ONTOLOGIA */}
                  {showOntologiaForm && (
-                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4">
+                   <div className="fixed inset-0 z-50 bg-white/80 flex items-center justify-center p-4">
                      <div className="glass-card p-8 w-full max-w-lg relative animate-fade-in">
                        <button onClick={() => setShowOntologiaForm(false)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
@@ -1593,15 +1593,15 @@ export default function AdminPage() {
                        <form onSubmit={(e) => { e.preventDefault(); alert('Ontologia mapeada com sucesso!'); setShowOntologiaForm(false); }} className="space-y-4">
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Nome da Ontologia / Padrão</label>
-                           <input required className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Dublin Core" />
+                           <input required className="w-full bg-white/50 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: Dublin Core" />
                          </div>
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">Provedor / Instituição</label>
-                           <input required className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: DCMI" />
+                           <input required className="w-full bg-white/50 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="Ex: DCMI" />
                          </div>
                          <div>
                            <label className="text-[11px] uppercase font-semibold text-[#1A1A1A]/48 tracking-wider">URL do Endpoint (SPARQL/API)</label>
-                           <input type="url" className="w-full bg-white/550 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="https://..." />
+                           <input type="url" className="w-full bg-white/50 border border-black/10 rounded-lg p-3 text-sm focus:border-[#E85002] outline-none" placeholder="https://..." />
                          </div>
                          <button type="submit" className="w-full liquid-button !bg-[#E85002] mt-4 flex justify-center items-center gap-2">
                            <Database size={16} /> Iniciar Mapeamento Neural
