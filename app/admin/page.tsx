@@ -1572,8 +1572,6 @@ export default function AdminPage() {
                      </div>
                    </div>
                  )}
-              </div>
-            )}
 
              {activeTab === 'ontologia' && (
               <div className="space-y-8 animate-fade-in">
