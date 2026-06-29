@@ -87,6 +87,7 @@ export default function AdminPage() {
   ]);
 
   // ─── ESTADO DO MOTOR DE APRENDIZADO ──────────────────────────────────────────
+  // ─── ESTADO DO MOTOR DE APRENDIZADO ──────────────────────────────────────────
   const [nnEpoch,       setNnEpoch]       = useState(0);
   const [nnLoss,        setNnLoss]        = useState(1.0);
   const [nnAccuracy,    setNnAccuracy]    = useState(0.0);
@@ -97,6 +98,12 @@ export default function AdminPage() {
   const [lossHistory,   setLossHistory]   = useState<number[]>([1.0]);
   const [activeSignals, setActiveSignals] = useState<{id: string; from: string; to: string; progress: number}[]>([]);
   const trainingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Refs síncronas para controle preciso do loop do motor de aprendizado
+  const nnEpochRef = useRef(0);
+  const nnLossRef = useRef(1.0);
+  const nnAccuracyRef = useRef(0.0);
+  const discoveredKeysRef = useRef(new Set<string>());
 
   // Corpus de conexões latentes que a rede pode DESCOBRIR com treinamento
   const latentConnections = useRef([
@@ -130,93 +137,95 @@ export default function AdminPage() {
       return { ...n, activation: Math.max(0.0, n.activation - 0.05) };
     }));
 
-    // 3. Atualizar métricas gerais
-    let calculatedLoss = 1.0;
-    setNnLoss(prevLoss => {
-      const noise = (Math.random() - 0.5) * 0.03;
-      const decay = 0.022;
-      const nextLoss = Math.max(0.03, prevLoss - decay + noise);
-      calculatedLoss = nextLoss; // Captura para uso síncrono no mesmo tick
-      setLossHistory(h => [...h.slice(-39), nextLoss]);
-      return nextLoss;
+    // 3. Atualizar métricas gerais via Refs síncronas para evitar batching lag do React
+    const noise = (Math.random() - 0.5) * 0.03;
+    const decay = 0.022;
+    nnLossRef.current = Math.max(0.03, nnLossRef.current - decay + noise);
+    const nextLoss = nnLossRef.current;
+    setNnLoss(nextLoss);
+    setLossHistory(h => [...h.slice(-39), nextLoss]);
+
+    nnAccuracyRef.current = Math.min(0.99, nnAccuracyRef.current + 0.012 + Math.random() * 0.005);
+    setNnAccuracy(nnAccuracyRef.current);
+    
+    nnEpochRef.current += 1;
+    const nextEpoch = nnEpochRef.current;
+    setNnEpoch(nextEpoch);
+
+    // 4. Hebbian Learning e Descoberta de Conexões baseada em Limiar de Perda
+    const confidence = 1.0 - nextLoss;
+    const newDiscoveredItems: typeof nnDiscovered = [];
+    
+    latentConnections.current.forEach(latent => {
+      const threshold = latent.threshold;
+      const key = `${latent.from}-${latent.to}`;
+      
+      if (confidence > threshold && !discoveredKeysRef.current.has(key)) {
+        // Registrar nova descoberta na Ref síncrona imediatamente para evitar duplicatas
+        discoveredKeysRef.current.add(key);
+
+        newDiscoveredItems.push({
+          id: `disc-${Date.now()}-${latent.from}-${latent.to}`,
+          from: latent.from,
+          to: latent.to,
+          label: latent.label,
+          epoch: nextEpoch,
+          confidence: Math.round(confidence * 100)
+        });
+        
+        // Adicionar a nova sinapse à rede
+        setInteropConnections(currentConns => {
+          const exists = currentConns.some(c => 
+            (c.from === latent.from && c.to === latent.to) || 
+            (c.from === latent.to && c.to === latent.from)
+          );
+          if (!exists) {
+            return [...currentConns, {
+              from: latent.from,
+              to: latent.to,
+              weight: confidence * 0.7,
+              isNew: true,
+              discovered: true
+            }];
+          }
+          return currentConns;
+        });
+      }
     });
 
-    setNnAccuracy(prevAcc => Math.min(0.99, prevAcc + 0.012 + Math.random() * 0.005));
-    
-    setNnEpoch(prevEpoch => {
-      const nextEpoch = prevEpoch + 1;
-
-      // 4. Hebbian Learning e Descoberta de Conexões baseada em Limiar de Perda
-      const confidence = 1.0 - calculatedLoss;
-      
-      // Encontrar conexões que atingiram o limiar e ainda não foram adicionadas
-      const newDiscoveredItems: typeof nnDiscovered = [];
-      
-      latentConnections.current.forEach(latent => {
-        const threshold = latent.threshold;
-        if (confidence > threshold) {
-          // Precisamos verificar se já descobrimos ou se já está nas conexões
-          setInteropConnections(currentConns => {
-            const exists = currentConns.some(c => 
-              (c.from === latent.from && c.to === latent.to) || 
-              (c.from === latent.to && c.to === latent.from)
-            );
-            
-            if (!exists) {
-              // Descobriu uma nova sinapse legítima!
-              newDiscoveredItems.push({
-                id: `disc-${Date.now()}-${latent.from}-${latent.to}`,
-                from: latent.from,
-                to: latent.to,
-                label: latent.label,
-                epoch: nextEpoch,
-                confidence: Math.round(confidence * 100)
-              });
-              
-              return [...currentConns, {
-                from: latent.from,
-                to: latent.to,
-                weight: confidence * 0.7,
-                isNew: true,
-                discovered: true
-              }];
-            }
-            
-            // Se já existe, atualiza pesos normais com hebbian learning
-            return currentConns.map(c => {
-              if ((c.from === latent.from && c.to === latent.to) || (c.from === latent.to && c.to === latent.from)) {
-                return { ...c, weight: Math.min(1.0, c.weight + 0.02 + Math.random() * 0.03) };
-              }
-              return c;
-            });
-          });
+    // Se já foram descobertos, fortalecer conexões existentes baseado nas ativações (Hebbian)
+    setInteropConnections(currentConns => currentConns.map(c => {
+      if (c.discovered) {
+        // Se a conexão atinge o threshold atual, aumenta o peso
+        const key = `${c.from}-${c.to}`;
+        const keyAlt = `${c.to}-${c.from}`;
+        const matchLatent = latentConnections.current.find(l => 
+          (l.from === c.from && l.to === c.to) || 
+          (l.from === c.to && l.to === c.from)
+        );
+        if (matchLatent && confidence > matchLatent.threshold) {
+          return { ...c, weight: Math.min(1.0, c.weight + 0.02 + Math.random() * 0.03) };
         }
-      });
-
-      // Atualizar pesos das conexões iniciais/existentes que não foram cobertas acima
-      setInteropConnections(currentConns => currentConns.map(c => {
-        if (!c.discovered) {
-          const delta = (Math.random() * 0.05 - 0.01);
-          return { ...c, weight: Math.min(1.0, Math.max(0.1, c.weight + delta)) };
-        }
-        return c;
-      }));
-
-      // Adicionar itens descobertos no estado de feed
-      if (newDiscoveredItems.length > 0) {
-        setNnDiscovered(prevDisc => [...newDiscoveredItems, ...prevDisc].slice(0, 12));
+      } else {
+        // Drift natural dos pesos iniciais
+        const delta = (Math.random() * 0.05 - 0.01);
+        return { ...c, weight: Math.min(1.0, Math.max(0.1, c.weight + delta)) };
       }
+      return c;
+    }));
 
-      // 5. Emitir pulsos elétricos de sinal
-      setActiveSignals(prevSignals => {
-        const relevant = ["core", "frevo", "carranca", "bilro", "dossie", "artigo_popular", "museografia"];
-        const from = firedId;
-        const to = relevant[Math.floor(Math.random() * relevant.length)];
-        const sig = { id: `sig-${nextEpoch}`, from, to, progress: 0 };
-        return [...prevSignals.slice(-3), sig];
-      });
+    // Adicionar itens descobertos no estado de feed
+    if (newDiscoveredItems.length > 0) {
+      setNnDiscovered(prevDisc => [...newDiscoveredItems, ...prevDisc].slice(0, 12));
+    }
 
-      return nextEpoch;
+    // 5. Emitir pulsos elétricos de sinal
+    setActiveSignals(prevSignals => {
+      const relevant = ["core", "frevo", "carranca", "bilro", "dossie", "artigo_popular", "museografia"];
+      const from = firedId;
+      const to = relevant[Math.floor(Math.random() * relevant.length)];
+      const sig = { id: `sig-${nextEpoch}`, from, to, progress: 0 };
+      return [...prevSignals.slice(-3), sig];
     });
   }, []);
 
@@ -235,7 +244,15 @@ export default function AdminPage() {
 
   const resetTraining = useCallback(() => {
     stopTraining();
-    setNnEpoch(0); setNnLoss(1.0); setNnAccuracy(0.0); setLossHistory([1.0]);
+    nnEpochRef.current = 0;
+    nnLossRef.current = 1.0;
+    nnAccuracyRef.current = 0.0;
+    discoveredKeysRef.current.clear();
+    
+    setNnEpoch(0);
+    setNnLoss(1.0);
+    setNnAccuracy(0.0);
+    setLossHistory([1.0]);
     setNnDiscovered([]);
     setInteropConnections([
       { from: "core", to: "frevo",          weight: 0.95, isNew: false, discovered: false },
