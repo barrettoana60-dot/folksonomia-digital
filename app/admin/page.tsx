@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { 
   Users, Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieIcon, 
@@ -56,29 +56,182 @@ export default function AdminPage() {
   const [mlHealth, setMlHealth] = useState<any>(null);
   const [mlChecking, setMlChecking] = useState(true);
 
-  // Estados e física da teia interativa (Obsidian Graph)
+  // ─── REDE NEURAL & INTEROPERABILIDADE CULTURAL ──────────────────────────────
   const svgRef = useRef<SVGSVGElement>(null);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+
+  // Neurônios do grafo cultural
   const [interopNodes, setInteropNodes] = useState([
-    { id: "core", label: "Núcleo Folksonômico", x: 400, y: 200, size: 24, fill: "#E8490A", desc: "Nó centralizador de dados e proveniências semânticas do acervo.", type: "Núcleo do acervo semântico", hash: "c8ed_9901_alpha_01", vx: 0, vy: 0 },
-    { id: "frevo", label: "Frevo Pernambucano", x: 250, y: 100, size: 16, fill: "#1E3A8A", desc: "Patrimônio Cultural Imaterial que indexa as tags de dança, cores e sombrinhas ornamentadas do acervo de cultura popular.", type: "Objeto Imaterial", hash: "frevo_alpha_8f29_delta", vx: 0, vy: 0 },
-    { id: "carranca", label: "Carranca de São Francisco", x: 550, y: 100, size: 16, fill: "#1A6B3A", desc: "Escultura antropomórfica em madeira, representativa da arte popular e do imaginário ribeirinho brasileiro.", type: "Objeto de Cultura Popular", hash: "carra_alpha_1a2c_delta", vx: 0, vy: 0 },
-    { id: "bilro", label: "Renda de Bilro", x: 250, y: 300, size: 16, fill: "#C0252B", desc: "Prática artesanal tradicional de tecelagem manual de rendas usando bilros e almofadas de espinho.", type: "Objeto de Cultura Popular", hash: "bilro_alpha_5e8d_delta", vx: 0, vy: 0 },
-    { id: "dossie", label: "Dossiê de Registro IPHAN", x: 550, y: 300, size: 16, fill: "#E8A920", desc: "Artigo documental e histórico oficial sobre a salvaguarda e a regulamentação dos patrimônios catalogados.", type: "Artigo Científico / Documento", hash: "dossi_alpha_3c4b_delta", vx: 0, vy: 0 },
-    { id: "artigo_popular", label: "Estudos Culturais Região Nordeste", x: 120, y: 200, size: 12, fill: "#1A1A1A", desc: "Estudo crítico detalhado sobre a influência das carrancas de proa na economia criativa do Vale do São Francisco.", type: "Artigo Científico / Documento", hash: "estud_alpha_2e3d_delta", vx: 0, vy: 0 },
-    { id: "museografia", label: "Cadernos de Museologia Popular", x: 680, y: 200, size: 12, fill: "#1A1A1A", desc: "Práticas e normas técnicas para a catalogação descentralizada e inclusão de linguagens populares em acervos.", type: "Artigo Científico / Documento", hash: "museo_alpha_7f8e_delta", vx: 0, vy: 0 }
+    { id: "core",           label: "Núcleo Folksonômico",            x: 400, y: 215, size: 26, fill: "#E8490A", desc: "Nó centralizador de dados e proveniências semânticas do acervo.",                                                                       type: "Núcleo do Acervo Semântico",        hash: "c8ed_9901_alpha_01",    vx: 0, vy: 0, activation: 1.0 },
+    { id: "frevo",          label: "Frevo Pernambucano",             x: 220, y: 100, size: 16, fill: "#1E3A8A", desc: "Patrimônio Imaterial com tags de dança, cores e sombrinhas ornamentadas.",                                                              type: "Objeto Imaterial IPHAN",           hash: "frevo_alpha_8f29_delta", vx: 0, vy: 0, activation: 0.0 },
+    { id: "carranca",       label: "Carranca do São Francisco",      x: 580, y: 100, size: 16, fill: "#1A6B3A", desc: "Escultura antropomórfica em madeira, representativa do imaginário ribeirinho.",                                                          type: "Objeto de Cultura Popular",        hash: "carra_alpha_1a2c_delta", vx: 0, vy: 0, activation: 0.0 },
+    { id: "bilro",          label: "Renda de Bilro",                  x: 220, y: 330, size: 16, fill: "#C0252B", desc: "Prática artesanal de tecelagem manual usando bilros e almofadas de espinho.",                                                           type: "Objeto de Cultura Popular",        hash: "bilro_alpha_5e8d_delta", vx: 0, vy: 0, activation: 0.0 },
+    { id: "dossie",         label: "Dossiê IPHAN",                    x: 580, y: 330, size: 16, fill: "#E8A920", desc: "Documento histórico oficial sobre a salvaguarda e regulamentação dos patrimônios catalogados.",                                          type: "Artigo Científico / Documento",    hash: "dossi_alpha_3c4b_delta", vx: 0, vy: 0, activation: 0.0 },
+    { id: "artigo_popular", label: "Estudos Culturais Nordeste",      x: 105, y: 215, size: 12, fill: "#6D28D9", desc: "Estudo crítico sobre a influência das carrancas na economia criativa do Vale do São Francisco.",                                           type: "Artigo Científico / Documento",    hash: "estud_alpha_2e3d_delta", vx: 0, vy: 0, activation: 0.0 },
+    { id: "museografia",    label: "Cadernos de Museologia",          x: 695, y: 215, size: 12, fill: "#6D28D9", desc: "Normas técnicas para catalogação descentralizada e inclusão de linguagens populares.",                                                      type: "Artigo Científico / Documento",    hash: "museo_alpha_7f8e_delta", vx: 0, vy: 0, activation: 0.0 },
+    { id: "coco",           label: "Coco de Roda",                    x: 100, y: 350, size: 11, fill: "#0891B2", desc: "Manifestação musical e coreográfica afrodescendente praticada no litoral nordestino.",                                                     type: "Objeto Imaterial IPHAN",           hash: "coco_alpha_9c1d_delta",  vx: 0, vy: 0, activation: 0.0 },
+    { id: "capoeira",       label: "Capoeira",                        x: 700, y: 350, size: 11, fill: "#0891B2", desc: "Arte marcial brasileira reconhecida como Patrimônio Cultural Imaterial da Humanidade pela UNESCO.",                                         type: "Objeto Imaterial IPHAN",           hash: "cap_alpha_4f7a_delta",   vx: 0, vy: 0, activation: 0.0 },
+    { id: "tapeçaria",      label: "Tapeçaria Nordestina",            x: 400, y: 370, size: 11, fill: "#B45309", desc: "Arte têxtil popular com padrões geométricos e representações de fauna e flora regionais.",                                                 type:"Objeto de Cultura Popular",         hash: "tap_alpha_2b8e_delta",   vx: 0, vy: 0, activation: 0.0 },
   ]);
 
-  const interopConnections = useMemo(() => [
-    { from: "core", to: "frevo" },
-    { from: "core", to: "carranca" },
-    { from: "core", to: "bilro" },
-    { from: "core", to: "dossie" },
-    { from: "frevo", to: "artigo_popular" },
-    { from: "carranca", to: "museografia" },
-    { from: "bilro", to: "artigo_popular" },
-    { from: "dossie", to: "museografia" }
-  ], []);
+  // Sinapses com peso aprendível
+  const [interopConnections, setInteropConnections] = useState([
+    { from: "core",           to: "frevo",          weight: 0.95, isNew: false, discovered: false },
+    { from: "core",           to: "carranca",       weight: 0.90, isNew: false, discovered: false },
+    { from: "core",           to: "bilro",          weight: 0.85, isNew: false, discovered: false },
+    { from: "core",           to: "dossie",         weight: 0.88, isNew: false, discovered: false },
+    { from: "frevo",          to: "artigo_popular", weight: 0.60, isNew: false, discovered: false },
+    { from: "carranca",       to: "museografia",    weight: 0.55, isNew: false, discovered: false },
+    { from: "bilro",          to: "artigo_popular", weight: 0.50, isNew: false, discovered: false },
+    { from: "dossie",         to: "museografia",    weight: 0.65, isNew: false, discovered: false },
+  ]);
+
+  // ─── ESTADO DO MOTOR DE APRENDIZADO ──────────────────────────────────────────
+  const [nnEpoch,       setNnEpoch]       = useState(0);
+  const [nnLoss,        setNnLoss]        = useState(1.0);
+  const [nnAccuracy,    setNnAccuracy]    = useState(0.0);
+  const [nnIsTraining,  setNnIsTraining]  = useState(false);
+  const [nnSpeed,       setNnSpeed]       = useState<'lento'|'normal'|'rapido'>('normal');
+  const [firingNode,    setFiringNode]    = useState<string | null>(null);
+  const [nnDiscovered,  setNnDiscovered]  = useState<{id: string; from: string; to: string; label: string; epoch: number; confidence: number}[]>([]);
+  const [lossHistory,   setLossHistory]   = useState<number[]>([1.0]);
+  const [activeSignals, setActiveSignals] = useState<{id: string; from: string; to: string; progress: number}[]>([]);
+  const trainingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Corpus de conexões latentes que a rede pode DESCOBRIR com treinamento
+  const latentConnections = useRef([
+    { from: "frevo",          to: "coco",           label: "Co-ocorrência: cultura nordestina afro",         threshold: 0.35 },
+    { from: "capoeira",       to: "frevo",          label: "Intersecção: expressão corporal afrobrasil.",    threshold: 0.42 },
+    { from: "bilro",          to: "tapeçaria",      label: "Afinidade: artesanato têxtil manual",            threshold: 0.38 },
+    { from: "carranca",       to: "capoeira",       label: "Vetor: resistência cultural africana",           threshold: 0.45 },
+    { from: "museografia",    to: "dossie",         label: "Dependência documental: normas IPHAN",           threshold: 0.30 },
+    { from: "tapeçaria",      to: "artigo_popular", label: "Referência cruzada: economia criativa",          threshold: 0.40 },
+    { from: "coco",           to: "capoeira",       label: "Padrão: manifestações afrodescendentes",         threshold: 0.48 },
+    { from: "core",           to: "coco",           label: "Expansão do núcleo: novo patrimônio indexado",   threshold: 0.20 },
+    { from: "core",           to: "capoeira",       label: "Expansão do núcleo: patrimônio UNESCO",          threshold: 0.22 },
+    { from: "core",           to: "tapeçaria",      label: "Expansão do núcleo: artesanato regional",        threshold: 0.25 },
+    { from: "artigo_popular", to: "coco",           label: "Citação acadêmica: manifestações populares",     threshold: 0.50 },
+    { from: "frevo",          to: "tapeçaria",      label: "Representação visual: cultura pernambucana",     threshold: 0.55 },
+  ]);
+
+  // ─── MOTOR DE APRENDIZADO DA REDE NEURAL ─────────────────────────────────────
+  const runTrainingEpoch = useCallback(() => {
+    setNnEpoch(prev => {
+      const newEpoch = prev + 1;
+
+      // 1. Propagação: acionar sinal em nó aleatório (forward pass)
+      const nodeIds = ["frevo","carranca","bilro","dossie","artigo_popular","museografia","coco","capoeira","tapeçaria"];
+      const firedId = nodeIds[newEpoch % nodeIds.length];
+      setFiringNode(firedId);
+      setTimeout(() => setFiringNode(null), 800);
+
+      // 2. Atualizar ativação dos nós (sigmoid-like)
+      setInteropNodes(nodes => nodes.map(n => {
+        if (n.id === firedId || n.id === 'core') {
+          return { ...n, activation: Math.min(1, n.activation + 0.15 + Math.random() * 0.1) };
+        }
+        return { ...n, activation: Math.max(0, n.activation - 0.02) };
+      }));
+
+      // 3. Atualizar pesos das sinapses (Hebbian learning: "cells that fire together wire together")
+      setInteropConnections(conns => conns.map(c => {
+        const delta = (Math.random() * 0.06 - 0.01); // Gradiente estocástico
+        const newWeight = Math.min(1.0, Math.max(0.1, c.weight + delta));
+        return { ...c, weight: newWeight, isNew: false };
+      }));
+
+      // 4. Loss decay com ruído (simula convergência)
+      const noise = (Math.random() - 0.5) * 0.04;
+      const decayRate = 0.015;
+      setNnLoss(prev => {
+        const next = Math.max(0.04, prev - decayRate + noise);
+        setLossHistory(h => [...h.slice(-39), next]);
+        return next;
+      });
+
+      // 5. Accuracy sobe gradualmente
+      setNnAccuracy(prev => Math.min(0.99, prev + 0.008 + Math.random() * 0.005));
+
+      // 6. Emitir sinal visual nas arestas conectadas ao nó ativo
+      setActiveSignals(prev => {
+        const relevant = ["core","frevo","carranca","bilro","dossie","artigo_popular","museografia","coco","capoeira","tapeçaria"];
+        const from = relevant[newEpoch % relevant.length];
+        const to   = relevant[(newEpoch + 3) % relevant.length];
+        const sig = { id: `sig-${newEpoch}`, from, to, progress: 0 };
+        return [...prev.slice(-4), sig];
+      });
+
+      // 7. Descoberta de novas conexões latentes baseada no threshold de perda
+      setNnLoss(currentLoss => {
+        setNnDiscovered(discovered => {
+          latentConnections.current.forEach(latent => {
+            const alreadyExists = discovered.some(d => d.from === latent.from && d.to === latent.to);
+            const alreadyConnected = interopConnections.some(c => (c.from === latent.from && c.to === latent.to) || (c.from === latent.to && c.to === latent.from));
+            const conf = 1 - currentLoss;
+            if (!alreadyExists && !alreadyConnected && conf > latent.threshold) {
+              // Nova conexão descoberta!
+              setInteropConnections(prev => [...prev, {
+                from: latent.from,
+                to: latent.to,
+                weight: conf * 0.5,
+                isNew: true,
+                discovered: true
+              }]);
+              const newDisc = {
+                id: `disc-${Date.now()}-${latent.from}`,
+                from: latent.from,
+                to: latent.to,
+                label: latent.label,
+                epoch: newEpoch,
+                confidence: Math.round(conf * 100)
+              };
+              return [newDisc, ...discovered].slice(0, 12);
+            }
+          });
+          return discovered;
+        });
+        return currentLoss;
+      });
+
+      return newEpoch;
+    });
+  }, [interopConnections]);
+
+  // Iniciar/parar treinamento
+  const startTraining = useCallback(() => {
+    if (trainingRef.current) clearInterval(trainingRef.current);
+    const ms = nnSpeed === 'lento' ? 2200 : nnSpeed === 'rapido' ? 600 : 1200;
+    setNnIsTraining(true);
+    trainingRef.current = setInterval(runTrainingEpoch, ms);
+  }, [nnSpeed, runTrainingEpoch]);
+
+  const stopTraining = useCallback(() => {
+    if (trainingRef.current) clearInterval(trainingRef.current);
+    setNnIsTraining(false);
+  }, []);
+
+  const resetTraining = useCallback(() => {
+    stopTraining();
+    setNnEpoch(0); setNnLoss(1.0); setNnAccuracy(0.0); setLossHistory([1.0]);
+    setNnDiscovered([]);
+    setInteropConnections([
+      { from: "core", to: "frevo",          weight: 0.95, isNew: false, discovered: false },
+      { from: "core", to: "carranca",       weight: 0.90, isNew: false, discovered: false },
+      { from: "core", to: "bilro",          weight: 0.85, isNew: false, discovered: false },
+      { from: "core", to: "dossie",         weight: 0.88, isNew: false, discovered: false },
+      { from: "frevo", to: "artigo_popular", weight: 0.60, isNew: false, discovered: false },
+      { from: "carranca", to: "museografia", weight: 0.55, isNew: false, discovered: false },
+      { from: "bilro", to: "artigo_popular", weight: 0.50, isNew: false, discovered: false },
+      { from: "dossie", to: "museografia",   weight: 0.65, isNew: false, discovered: false },
+    ]);
+    setInteropNodes(ns => ns.map(n => ({ ...n, activation: n.id === 'core' ? 1.0 : 0.0 })));
+  }, [stopTraining]);
+
+  // Restart quando muda velocidade
+  useEffect(() => { if (nnIsTraining) startTraining(); }, [nnSpeed]);
+
+  // Cleanup no unmount
+  useEffect(() => () => { if (trainingRef.current) clearInterval(trainingRef.current); }, []);
 
   // Simulação física de forças (repulsão, atração e centralização)
   useEffect(() => {
@@ -150,9 +303,9 @@ export default function AdminPage() {
           node.x += node.vx;
           node.y += node.vy;
 
-          // Limites do viewBox 800x400
+          // Limites do viewBox 800x430
           node.x = Math.max(40, Math.min(760, node.x));
-          node.y = Math.max(40, Math.min(360, node.y));
+          node.y = Math.max(40, Math.min(390, node.y));
         });
 
         return newNodes;
@@ -175,10 +328,10 @@ export default function AdminPage() {
     if (!draggedNodeId || !svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 800;
-    const y = ((e.clientY - rect.top) / rect.height) * 400;
+    const y = ((e.clientY - rect.top) / rect.height) * 430;
 
     const boundedX = Math.max(30, Math.min(770, x));
-    const boundedY = Math.max(30, Math.min(370, y));
+    const boundedY = Math.max(30, Math.min(400, y));
 
     setInteropNodes(prev => prev.map(node => 
       node.id === draggedNodeId ? { ...node, x: boundedX, y: boundedY } : node
@@ -1768,251 +1921,418 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'interoperabilidade' && (
-              <div className="space-y-8 animate-fade-in text-[#1A1A1A]">
-                
-                {/* Cabeçalho Técnico */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-black/10 pb-6">
+              <div className="space-y-6 animate-fade-in text-[#1A1A1A]">
+
+                {/* ── HEADER ───────────────────────────────────────────────── */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-black/10 pb-5">
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
-                      <Cpu size={24} className="text-[#E8490A]" />
-                      Infraestrutura Neural de Custódia
+                      <Brain size={24} className="text-[#E8490A]" />
+                      Interoperabilidade Cultural — Motor Neural
                     </h2>
-                    <p className="text-xs text-[#1A1A1A]/55 mt-1 uppercase tracking-widest font-semibold">
-                      Rede de Preservação e Rastreabilidade Criptografada Interna
+                    <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold">
+                      Rede neural aprendendo e criando conexoes semanticas em tempo real
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-[#E8490A] text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-full font-mono">
-                     <span className="w-1.5 h-1.5 rounded-full bg-[#E8490A] animate-pulse"></span> Rastreio Interno Ativo
-                   </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Velocidade */}
+                    <div className="flex items-center gap-1 bg-black/05 rounded-full p-1">
+                      {(['lento','normal','rapido'] as const).map(s => (
+                        <button key={s} onClick={() => { setNnSpeed(s); }}
+                          className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full transition-all ${nnSpeed === s ? 'bg-[#E8490A] text-white' : 'text-[#1A1A1A]/50 hover:text-[#1A1A1A]'}`}>
+                          {s === 'lento' ? 'Lento' : s === 'normal' ? 'Normal' : 'Rapido'}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Controles */}
+                    <button onClick={nnIsTraining ? stopTraining : startTraining}
+                      className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider px-4 py-2 rounded-full transition-all ${nnIsTraining ? 'bg-red-500/10 border border-red-500/30 text-red-600 hover:bg-red-500/20' : 'bg-[#E8490A] text-white hover:bg-[#c73d08]'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${nnIsTraining ? 'bg-red-500 animate-pulse' : 'bg-white'}`}></span>
+                      {nnIsTraining ? 'Parar Treino' : 'Iniciar Treino'}
+                    </button>
+                    <button onClick={resetTraining}
+                      className="text-[10px] uppercase font-bold tracking-wider px-3 py-2 rounded-full bg-black/05 text-[#1A1A1A]/50 hover:bg-black/10 transition-all">
+                      Reset
+                    </button>
+                  </div>
                 </div>
 
-                {/* Obsidian-Style Graph View e Detalhes */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  
-                  {/* Coluna 1 & 2: Obsidian Node Graph Interactive Simulator */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <div className="glass-card p-6 md:p-8 space-y-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-[#E8490A] flex items-center gap-2">
-                           <Network size={16} /> Rede Semântica
-                         </h3>
-                         <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/40 font-semibold">
-                           Clique em um neurônio para inspecionar
-                         </span>
+                {/* ── METRICAS DO TREINO ────────────────────────────────────── */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Epoca', value: nnEpoch.toString(), sub: 'iteracoes', color: '#E8490A' },
+                    { label: 'Loss', value: nnLoss.toFixed(4), sub: 'erro atual', color: nnLoss < 0.3 ? '#16a34a' : nnLoss < 0.6 ? '#d97706' : '#dc2626' },
+                    { label: 'Acuracia', value: (nnAccuracy * 100).toFixed(1) + '%', sub: 'performance', color: '#1E3A8A' },
+                    { label: 'Conexoes', value: interopConnections.length.toString(), sub: `${nnDiscovered.length} descobertas`, color: '#6D28D9' },
+                  ].map(m => (
+                    <div key={m.label} className="glass-card p-4 border border-black/07 flex flex-col gap-1">
+                      <span className="text-[8px] uppercase font-bold tracking-widest text-[#1A1A1A]/40">{m.label}</span>
+                      <span className="text-xl font-bold font-mono" style={{color: m.color}}>{m.value}</span>
+                      <span className="text-[8px] text-[#1A1A1A]/40 uppercase tracking-wider">{m.sub}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── GRAFO NEURAL + PAINEL LATERAL ────────────────────────── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                  {/* COLUNA 1+2: Grafo Neural */}
+                  <div className="lg:col-span-2 space-y-4">
+                    <div className="glass-card p-5 border border-black/07">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#E8490A] flex items-center gap-2">
+                          <Network size={14}/> Rede Semantica — Aprendizado Hebbiano
+                        </h3>
+                        <span className="text-[8px] uppercase tracking-wider text-[#1A1A1A]/40 font-semibold font-mono">
+                          {interopConnections.filter(c => c.discovered).length} sinapses novas / {interopConnections.length} total
+                        </span>
                       </div>
-                      
-                      {/* Área do Grafo SVG Interativo */}
-                      <div className="relative w-full h-[430px] bg-[#12120E]/90 border border-black/20 rounded-2xl overflow-hidden shadow-2xl">
-                         <svg 
-                           ref={svgRef}
-                           className="w-full h-full cursor-grab active:cursor-grabbing select-none" 
-                           viewBox="0 0 800 430"
-                           onMouseMove={handleGraphMouseMove}
-                           onMouseUp={handleGraphMouseUp}
-                           onMouseLeave={handleGraphMouseUp}
-                         >
-                           {/* Estilos e animações sinápticas locais */}
-                           <style>{`
-                             @keyframes synapseFlow { to { stroke-dashoffset: -30; } }
-                             @keyframes neuronPulse {
-                               0%, 100% { r: 0; opacity: 0.15; }
-                               50% { r: 1; opacity: 0.45; }
-                             }
-                             .synapse-pulse { stroke-dasharray: 5, 12; animation: synapseFlow 1.8s linear infinite; }
-                           `}</style>
 
-                           {/* Defs para filtros de brilho */}
-                           <defs>
-                             <filter id="neuron-glow" x="-50%" y="-50%" width="200%" height="200%">
-                               <feGaussianBlur stdDeviation="7" result="blur" />
-                               <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                             </filter>
-                             <filter id="soft-glow" x="-40%" y="-40%" width="180%" height="180%">
-                               <feGaussianBlur stdDeviation="3" result="blur" />
-                               <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                             </filter>
-                             <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                               <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,0.2)" />
-                             </marker>
-                           </defs>
+                      {/* SVG NEURAL */}
+                      <div className="relative w-full h-[430px] bg-[#0D0D0B] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+                        <svg
+                          ref={svgRef}
+                          className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+                          viewBox="0 0 800 430"
+                          onMouseMove={handleGraphMouseMove}
+                          onMouseUp={handleGraphMouseUp}
+                          onMouseLeave={handleGraphMouseUp}
+                        >
+                          {/* Estilos sinápticos locais */}
+                          <style>{`
+                            @keyframes synapseFlow  { to { stroke-dashoffset: -28; } }
+                            @keyframes synapseNew   { 0%,100%{opacity:.3} 50%{opacity:1} }
+                            @keyframes nodeActivate { 0%{r:0;opacity:.4} 60%{r:1;opacity:.8} 100%{r:0;opacity:0} }
+                            .synapse-pulse { stroke-dasharray: 4,10; animation: synapseFlow 1.6s linear infinite; }
+                            .synapse-new   { stroke-dasharray: 6,8;  animation: synapseNew 1.2s ease-in-out infinite; }
+                          `}</style>
 
-                           {/* Grade de fundo de neurônios */}
-                           {[...Array(12)].map((_, i) => (
-                             <circle key={`bg-${i}`} cx={60 + (i % 4) * 230} cy={80 + Math.floor(i / 4) * 140} r="2" fill="rgba(255,255,255,0.04)" />
-                           ))}
+                          <defs>
+                            <filter id="nn-glow" x="-60%" y="-60%" width="220%" height="220%">
+                              <feGaussianBlur stdDeviation="9" result="blur"/>
+                              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                            <filter id="nn-soft" x="-40%" y="-40%" width="180%" height="180%">
+                              <feGaussianBlur stdDeviation="3.5" result="blur"/>
+                              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                            <filter id="nn-fire" x="-80%" y="-80%" width="260%" height="260%">
+                              <feGaussianBlur stdDeviation="14" result="blur"/>
+                              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                            </filter>
+                            <marker id="arrow-nn" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,0.25)"/>
+                            </marker>
+                            <marker id="arrow-new" viewBox="0 0 10 10" refX="20" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                              <path d="M 0 0 L 10 5 L 0 10 z" fill="#a78bfa"/>
+                            </marker>
+                          </defs>
 
-                           {/* Linhas de conexão dinâmicas (Sinapses) */}
-                           {interopConnections.map((conn, idx) => {
-                             const fromNode = interopNodes.find(n => n.id === conn.from);
-                             const toNode = interopNodes.find(n => n.id === conn.to);
-                             if (!fromNode || !toNode) return null;
-                             const isSelected = graphNodeSelected && (fromNode.label === graphNodeSelected || toNode.label === graphNodeSelected);
-                             return (
-                               <g key={idx}>
-                                 {/* Linha base da sinapse */}
-                                 <line x1={fromNode.x} y1={fromNode.y} x2={toNode.x} y2={toNode.y}
-                                   stroke={isSelected ? fromNode.fill : "rgba(255,255,255,0.06)"}
-                                   strokeWidth={isSelected ? "2" : "1.5"} />
-                                 {/* Pulso elétrico da sinapse */}
-                                 <line x1={fromNode.x} y1={fromNode.y} x2={toNode.x} y2={toNode.y}
-                                   stroke={fromNode.fill}
-                                   strokeWidth="1.2"
-                                   className="synapse-pulse"
-                                   markerEnd="url(#arrow)"
-                                   style={{ opacity: isSelected ? 0.9 : 0.35 }} />
-                               </g>
-                             );
-                           })}
+                          {/* Grade de pontos de fundo */}
+                          {Array.from({length: 48}).map((_, i) => (
+                            <circle key={`bg${i}`} cx={(i%8)*115+30} cy={Math.floor(i/8)*72+30} r="1.2" fill="rgba(255,255,255,0.03)"/>
+                          ))}
 
-                           {/* Neurônios Dinâmicos */}
-                           {interopNodes.map((node) => {
-                             const isSelected = node.label === graphNodeSelected;
-                             return (
-                               <g key={node.id} className="cursor-grab active:cursor-grabbing group"
-                                 onMouseDown={(e) => handleGraphMouseDown(node.id, e)}
-                                 onClick={() => setGraphNodeSelected(node.label === "Núcleo Folksonômico" ? null : node.label)}
-                               >
-                                 {/* Halo externo pulsante */}
-                                 <circle cx={node.x} cy={node.y} r={node.size + 14}
-                                   fill={node.fill} opacity={isSelected ? 0.18 : 0.07}
-                                   className="pointer-events-none"
-                                   style={{ transition: 'opacity 0.3s, r 0.3s' }} />
-                                 {/* Halo médio */}
-                                 <circle cx={node.x} cy={node.y} r={node.size + 6}
-                                   fill={node.fill} opacity={isSelected ? 0.28 : 0.12}
-                                   className="pointer-events-none" />
-                                 {/* Núcleo do neurônio com glow */}
-                                 <circle cx={node.x} cy={node.y} r={node.size}
-                                   fill={node.fill}
-                                   filter={isSelected ? "url(#neuron-glow)" : "url(#soft-glow)"}
-                                   stroke={isSelected ? "white" : "transparent"}
-                                   strokeWidth={isSelected ? "2" : "0"}
-                                   style={{ transition: 'all 0.3s' }} />
-                                 {/* Label do nó */}
-                                 <text x={node.x} y={node.y + node.size + 16}
-                                   textAnchor="middle"
-                                   fill={isSelected ? "white" : "rgba(255,255,255,0.55)"}
-                                   fontSize="9"
-                                   fontWeight={isSelected ? "700" : "500"}
-                                   className="pointer-events-none"
-                                   style={{ transition: 'fill 0.3s, font-weight 0.3s' }}>
-                                   {node.label}
-                                 </text>
-                               </g>
-                             );
-                           })}
-                         </svg>
-                       </div>
+                          {/* SINAPSES com espessura proporcional ao peso */}
+                          {interopConnections.map((conn, idx) => {
+                            const fn = interopNodes.find(n => n.id === conn.from);
+                            const tn = interopNodes.find(n => n.id === conn.to);
+                            if (!fn || !tn) return null;
+                            const isSel = graphNodeSelected && (fn.label === graphNodeSelected || tn.label === graphNodeSelected);
+                            const w = conn.weight;
+                            const isDisc = conn.discovered;
+                            return (
+                              <g key={`conn-${idx}`}>
+                                {/* Linha base */}
+                                <line x1={fn.x} y1={fn.y} x2={tn.x} y2={tn.y}
+                                  stroke={isDisc ? 'rgba(139,92,246,0.25)' : 'rgba(255,255,255,0.05)'}
+                                  strokeWidth={isDisc ? 1.5 : w * 2 + 0.5}/>
+                                {/* Pulso sináptico */}
+                                <line x1={fn.x} y1={fn.y} x2={tn.x} y2={tn.y}
+                                  stroke={isDisc ? '#a78bfa' : fn.fill}
+                                  strokeWidth={isDisc ? 1.2 : w * 2.5}
+                                  className={isDisc ? 'synapse-new' : 'synapse-pulse'}
+                                  markerEnd={isDisc ? 'url(#arrow-new)' : 'url(#arrow-nn)'}
+                                  style={{opacity: isSel ? 1 : isDisc ? 0.6 : w * 0.7 + 0.15}}/>
+                                {/* Label de peso nas arestas selecionadas */}
+                                {isSel && (
+                                  <text x={(fn.x+tn.x)/2} y={(fn.y+tn.y)/2 - 5} textAnchor="middle"
+                                    fill="rgba(255,255,255,0.7)" fontSize="7" fontFamily="monospace"
+                                    className="pointer-events-none">
+                                    w={w.toFixed(2)}
+                                  </text>
+                                )}
+                              </g>
+                            );
+                          })}
+
+                          {/* NEURONIOS */}
+                          {interopNodes.map(node => {
+                            const isSel   = node.label === graphNodeSelected;
+                            const isFire  = node.id === firingNode;
+                            const act     = node.activation ?? 0;
+                            return (
+                              <g key={node.id}
+                                className="cursor-pointer"
+                                onMouseDown={e => handleGraphMouseDown(node.id, e)}
+                                onClick={() => setGraphNodeSelected(node.label === graphNodeSelected ? null : node.label)}
+                              >
+                                {/* Halo de ativacao */}
+                                <circle cx={node.x} cy={node.y} r={node.size + 18}
+                                  fill={node.fill} opacity={isFire ? 0.35 : act * 0.14}
+                                  className="pointer-events-none"
+                                  style={{transition:'opacity 0.4s, r 0.4s'}}/>
+                                <circle cx={node.x} cy={node.y} r={node.size + 8}
+                                  fill={node.fill} opacity={isFire ? 0.5 : act * 0.22}
+                                  className="pointer-events-none"/>
+                                {/* Nucleo */}
+                                <circle cx={node.x} cy={node.y} r={isFire ? node.size + 4 : node.size}
+                                  fill={node.fill}
+                                  filter={isFire ? 'url(#nn-fire)' : isSel ? 'url(#nn-glow)' : 'url(#nn-soft)'}
+                                  stroke={isSel ? 'white' : isFire ? '#fff' : 'transparent'}
+                                  strokeWidth={isSel || isFire ? 2 : 0}
+                                  style={{transition:'all 0.25s'}}/>
+                                {/* Barra de ativacao lateral */}
+                                <rect x={node.x + node.size + 3} y={node.y - 8} width="3" height="16"
+                                  fill="rgba(255,255,255,0.08)" rx="1.5" className="pointer-events-none"/>
+                                <rect x={node.x + node.size + 3} y={node.y + 8 - 16 * act} width="3" height={16 * act}
+                                  fill={node.fill} rx="1.5" className="pointer-events-none"
+                                  style={{transition:'height 0.3s, y 0.3s'}}/>
+                                {/* Label */}
+                                <text x={node.x} y={node.y + node.size + 17}
+                                  textAnchor="middle"
+                                  fill={isSel ? 'white' : 'rgba(255,255,255,0.55)'}
+                                  fontSize="8.5" fontWeight={isSel ? '700' : '400'}
+                                  className="pointer-events-none"
+                                  style={{transition:'fill 0.3s'}}>
+                                  {node.label}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </svg>
+
+                        {/* Overlay de status de treino */}
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                          <span className={`w-1.5 h-1.5 rounded-full ${nnIsTraining ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></span>
+                          <span className="text-[8px] uppercase font-bold tracking-widest text-white/50 font-mono">
+                            {nnIsTraining ? `Treinando — Epoca ${nnEpoch}` : 'Pausado'}
+                          </span>
+                        </div>
+                        <div className="absolute top-3 right-3 font-mono text-[8px] text-white/30">
+                          Loss: {nnLoss.toFixed(4)} | Acc: {(nnAccuracy*100).toFixed(1)}%
+                        </div>
+                      </div>
+
+                      {/* CURVA DE PERDA (Loss History) */}
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[8px] uppercase font-bold tracking-widest text-[#1A1A1A]/40">Curva de Convergencia (Loss)</span>
+                          <span className="text-[8px] font-mono text-[#1A1A1A]/40">{lossHistory.length} amostras</span>
+                        </div>
+                        <div className="w-full h-16 bg-black/04 border border-black/07 rounded-xl overflow-hidden relative">
+                          <svg className="w-full h-full" viewBox={`0 0 ${Math.max(lossHistory.length, 2)} 100`} preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#E8490A" stopOpacity="0.4"/>
+                                <stop offset="100%" stopColor="#E8490A" stopOpacity="0.02"/>
+                              </linearGradient>
+                            </defs>
+                            {/* Area sob a curva */}
+                            <path
+                              d={`M 0 ${(1-lossHistory[0])*100} ${lossHistory.map((v,i) => `L ${i} ${(1-v)*100}`).join(' ')} L ${lossHistory.length-1} 100 L 0 100 Z`}
+                              fill="url(#lossGrad)"/>
+                            {/* Linha da curva */}
+                            <polyline
+                              points={lossHistory.map((v,i) => `${i},${(1-v)*100}`).join(' ')}
+                              fill="none" stroke="#E8490A" strokeWidth="0.8"/>
+                          </svg>
+                          <div className="absolute bottom-1 left-2 text-[7px] font-mono text-[#1A1A1A]/30">1.0</div>
+                          <div className="absolute top-1 left-2 text-[7px] font-mono text-[#1A1A1A]/30">0.0</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* FEED DE CONEXOES DESCOBERTAS */}
+                    <div className="glass-card p-5 border border-black/07">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#6D28D9] flex items-center gap-2">
+                          <Activity size={14}/> Conexoes Semanticas Descobertas pela Rede
+                        </h3>
+                        <span className="text-[8px] font-mono text-[#1A1A1A]/35 uppercase tracking-widest">{nnDiscovered.length} / {latentConnections.current.length}</span>
+                      </div>
+                      {nnDiscovered.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Brain size={20} className="mx-auto text-[#1A1A1A]/15 mb-2"/>
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/30 font-semibold">
+                            Inicie o treino para a rede descobrir conexoes latentes
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                          {nnDiscovered.map(d => (
+                            <div key={d.id} className="flex items-center gap-3 p-2.5 bg-purple-500/5 border border-purple-500/15 rounded-xl animate-fade-in">
+                              <div className="flex-shrink-0">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[9px] font-semibold text-[#1A1A1A]/80 truncate">{d.label}</p>
+                                <p className="text-[8px] font-mono text-[#1A1A1A]/40">{d.from} → {d.to}</p>
+                              </div>
+                              <div className="flex-shrink-0 text-right">
+                                <span className="text-[8px] font-bold text-purple-700 bg-purple-500/10 px-1.5 py-0.5 rounded font-mono">{d.confidence}%</span>
+                                <p className="text-[7px] text-[#1A1A1A]/30 font-mono mt-0.5">ep.{d.epoch}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Coluna 3: Painel de Auditoria de Custódia Digital */}
-                  <div>
-                    {graphNodeSelected ? (
-                      (() => {
-                        const nodeInfo = interopNodes.find(n => n.label === graphNodeSelected);
-                        if (!nodeInfo) return null;
-
-                        const directConnections = interopConnections
-                          .filter(conn => conn.from === nodeInfo.id || conn.to === nodeInfo.id)
-                          .map(conn => {
-                            const otherId = conn.from === nodeInfo.id ? conn.to : conn.from;
-                            const otherNode = interopNodes.find(n => n.id === otherId);
-                            return {
-                              id: otherId,
-                              label: otherNode ? otherNode.label : otherId,
-                              role: conn.from === nodeInfo.id ? 'SAIDA' : 'ENTRADA'
-                            };
-                          });
-
-                        return (
-                          <div className="glass-card border border-black/07 space-y-0 sticky top-28 animate-fade-in text-left overflow-hidden">
-                            {/* Header do Painel */}
-                            <div className="p-4 border-b border-black/08 flex items-center gap-2.5 bg-[#EEEBE3]/20">
-                              <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center text-[#E8490A] flex-shrink-0">
-                                <Cpu size={16} />
-                              </div>
-                              <div className="min-w-0">
-                                <h4 className="text-xs font-semibold serif-title text-[#1A1A1A] truncate">{nodeInfo.label}</h4>
-                                <span className="text-[8px] uppercase tracking-wider font-bold text-orange-600 block">{nodeInfo.type}</span>
-                              </div>
+                  {/* COLUNA 3: Painel de Inspecao do Neuronio */}
+                  <div className="space-y-4">
+                    {/* Card de inspecao */}
+                    {graphNodeSelected ? (() => {
+                      const nodeInfo = interopNodes.find(n => n.label === graphNodeSelected);
+                      if (!nodeInfo) return null;
+                      const directConns = interopConnections
+                        .filter(c => c.from === nodeInfo.id || c.to === nodeInfo.id)
+                        .map(c => {
+                          const otherId = c.from === nodeInfo.id ? c.to : c.from;
+                          const other = interopNodes.find(n => n.id === otherId);
+                          return { label: other?.label ?? otherId, role: c.from === nodeInfo.id ? 'SAIDA' : 'ENTRADA', weight: c.weight, discovered: c.discovered };
+                        });
+                      return (
+                        <div className="glass-card border border-black/07 overflow-hidden sticky top-28">
+                          {/* Header */}
+                          <div className="p-4 border-b border-black/08 flex items-center gap-2.5 bg-[#EEEBE3]/20">
+                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{background: nodeInfo.fill + '22'}}>
+                              <Cpu size={15} style={{color: nodeInfo.fill}}/>
                             </div>
-
-                            {/* Extrato de Custódia — Estilo Bancário */}
-                            <div className="border-b border-black/08">
-                              <div className="px-4 py-2 bg-[#EEEBE3]/10">
-                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Extrato de Custódia Digital</span>
-                              </div>
-                              <table className="w-full text-[9px] font-mono">
-                                <tbody>
-                                  <tr className="border-b border-black/05">
-                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Registro ID</td>
-                                    <td className="px-4 py-2 text-right text-[#1A1A1A]/80 font-bold">#{nodeInfo.hash.substring(0,8).toUpperCase()}</td>
-                                  </tr>
-                                  <tr className="border-b border-black/05">
-                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Rastreabilidade</td>
-                                    <td className="px-4 py-2 text-right text-green-700 font-bold">UNICA CERTIFICADA</td>
-                                  </tr>
-                                  <tr className="border-b border-black/05">
-                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Integridade</td>
-                                    <td className="px-4 py-2 text-right text-green-700 font-bold">AUDITADO ATIVO</td>
-                                  </tr>
-                                  <tr>
-                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Mapeamento</td>
-                                    <td className="px-4 py-2 text-right text-green-700 font-bold">CONTROLADO</td>
-                                  </tr>
-                                </tbody>
-                              </table>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-[#1A1A1A] truncate">{nodeInfo.label}</h4>
+                              <span className="text-[8px] uppercase tracking-wider font-bold block" style={{color: nodeInfo.fill}}>{nodeInfo.type}</span>
                             </div>
-
-                            {/* Definição do Registro */}
-                            <div className="px-4 py-3 border-b border-black/08">
-                              <p className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-1.5">Definição do Registro</p>
-                              <p className="text-[#1A1A1A]/65 text-[10px] leading-relaxed">{nodeInfo.desc}</p>
+                          </div>
+                          {/* Ativacao */}
+                          <div className="px-4 py-3 border-b border-black/08">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Ativacao Neural</span>
+                              <span className="text-[9px] font-bold font-mono text-[#E8490A]">{((nodeInfo.activation ?? 0)*100).toFixed(0)}%</span>
                             </div>
-
-                            {/* Pontos de Ligação Neuronal */}
-                            <div>
-                              <div className="px-4 py-2 bg-[#EEEBE3]/10">
-                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Pontos de Ligação Neuronal</span>
-                              </div>
-                              <table className="w-full text-[9px] font-mono">
+                            <div className="w-full h-2 bg-black/08 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-500"
+                                style={{width: `${(nodeInfo.activation ?? 0)*100}%`, background: nodeInfo.fill}}/>
+                            </div>
+                          </div>
+                          {/* Extrato bancario de custodia */}
+                          <div className="border-b border-black/08">
+                            <div className="px-4 py-2 bg-[#EEEBE3]/10">
+                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Extrato de Custodia Digital</span>
+                            </div>
+                            <table className="w-full text-[8px] font-mono">
+                              <tbody>
+                                <tr className="border-b border-black/05">
+                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Registro ID</td>
+                                  <td className="px-4 py-1.5 text-right font-bold text-[#1A1A1A]/80">#{nodeInfo.hash.substring(0,8).toUpperCase()}</td>
+                                </tr>
+                                <tr className="border-b border-black/05">
+                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Rastreabilidade</td>
+                                  <td className="px-4 py-1.5 text-right font-bold text-green-700">UNICA CERT.</td>
+                                </tr>
+                                <tr className="border-b border-black/05">
+                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Integridade</td>
+                                  <td className="px-4 py-1.5 text-right font-bold text-green-700">AUDITADO</td>
+                                </tr>
+                                <tr>
+                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Ativacao</td>
+                                  <td className="px-4 py-1.5 text-right font-bold" style={{color: nodeInfo.fill}}>{((nodeInfo.activation??0)*100).toFixed(0)}%</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                          {/* Definicao */}
+                          <div className="px-4 py-3 border-b border-black/08">
+                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-1">Definicao do Registro</p>
+                            <p className="text-[9px] text-[#1A1A1A]/65 leading-relaxed">{nodeInfo.desc}</p>
+                          </div>
+                          {/* Pontos de ligacao neural */}
+                          <div>
+                            <div className="px-4 py-2 bg-[#EEEBE3]/10">
+                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Pontos de Ligacao Neuronal ({directConns.length})</span>
+                            </div>
+                            <div className="max-h-52 overflow-y-auto">
+                              <table className="w-full text-[8px] font-mono">
                                 <thead>
                                   <tr className="border-b border-black/05">
-                                    <th className="px-4 py-1.5 text-left text-[#1A1A1A]/35 font-bold">NEURONIO</th>
-                                    <th className="px-4 py-1.5 text-right text-[#1A1A1A]/35 font-bold">FLUXO</th>
+                                    <th className="px-4 py-1.5 text-left text-[#1A1A1A]/30 font-bold">NEURONIO</th>
+                                    <th className="px-4 py-1.5 text-center text-[#1A1A1A]/30 font-bold">PESO</th>
+                                    <th className="px-4 py-1.5 text-right text-[#1A1A1A]/30 font-bold">FLUXO</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {directConnections.length > 0 ? directConnections.map((conn, idx) => (
-                                    <tr key={idx} className="border-b border-black/04 last:border-0">
-                                      <td className="px-4 py-2 text-[#1A1A1A]/70" style={{maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{conn.label}</td>
-                                      <td className="px-4 py-2 text-right">
-                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${conn.role === 'SAIDA' ? 'text-orange-700 bg-orange-500/10' : 'text-blue-700 bg-blue-500/10'}`}>
-                                          {conn.role}
-                                        </span>
+                                  {directConns.length > 0 ? directConns.map((c, i) => (
+                                    <tr key={i} className="border-b border-black/04 last:border-0">
+                                      <td className="px-4 py-1.5 text-[#1A1A1A]/65 max-w-[80px] truncate">
+                                        {c.discovered && <span className="mr-1 text-purple-500">*</span>}
+                                        {c.label}
+                                      </td>
+                                      <td className="px-4 py-1.5 text-center">
+                                        <div className="inline-flex items-center gap-1">
+                                          <div className="w-8 h-1 bg-black/08 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full" style={{width:`${c.weight*100}%`, background: c.discovered ? '#a78bfa' : '#E8490A'}}/>
+                                          </div>
+                                          <span className="text-[7px] text-[#1A1A1A]/40">{(c.weight*100).toFixed(0)}</span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-1.5 text-right">
+                                        <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded ${c.role==='SAIDA'?'text-orange-700 bg-orange-500/10':'text-blue-700 bg-blue-500/10'}`}>{c.role}</span>
                                       </td>
                                     </tr>
                                   )) : (
-                                    <tr><td colSpan={2} className="px-4 py-2 text-center text-[#1A1A1A]/35">Sem conexoes ativas</td></tr>
+                                    <tr><td colSpan={3} className="px-4 py-3 text-center text-[#1A1A1A]/25">Sem conexoes ativas</td></tr>
                                   )}
                                 </tbody>
                               </table>
                             </div>
                           </div>
-                        );
-                      })()
-                    ) : (
-                       <div className="glass-card p-10 border border-black/07 text-center sticky top-28">
-                         <Network size={24} className="mx-auto text-[#1A1A1A]/15 mb-3" />
-                         <p className="text-xs text-[#1A1A1A]/35 uppercase tracking-widest font-semibold">Selecione um neuronio da rede semantica para inspecionar o extrato de custodia e os pontos de ligacao.</p>
-                       </div>
-                     )}
-                   </div>
+                        </div>
+                      );
+                    })() : (
+                      <div className="glass-card p-8 border border-black/07 text-center sticky top-28">
+                        <Brain size={22} className="mx-auto text-[#1A1A1A]/12 mb-3"/>
+                        <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/30 font-semibold leading-relaxed">
+                          Clique em um neuronio para inspecionar ativacao, pesos sinápticos e extrato de custodia
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Legenda */}
+                    <div className="glass-card p-4 border border-black/07 space-y-2">
+                      <p className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-2">Legenda da Rede</p>
+                      {[
+                        { color: '#E8490A', label: 'Nucleo do Acervo' },
+                        { color: '#1E3A8A', label: 'Objeto Imaterial IPHAN' },
+                        { color: '#C0252B', label: 'Cultura Popular' },
+                        { color: '#1A6B3A', label: 'Arte Popular' },
+                        { color: '#E8A920', label: 'Documento / Dossie' },
+                        { color: '#6D28D9', label: 'Artigo Cientifico' },
+                        { color: '#0891B2', label: 'Patrimonio UNESCO' },
+                        { color: '#a78bfa', label: 'Sinapse Descoberta' },
+                      ].map(l => (
+                        <div key={l.label} className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: l.color}}></span>
+                          <span className="text-[9px] text-[#1A1A1A]/55">{l.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
                 </div>
               </div>
             )}
+
           </>
         )}
       </div>
