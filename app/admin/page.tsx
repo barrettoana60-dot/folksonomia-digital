@@ -5,18 +5,18 @@ import {
   Users, Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieIcon, 
   CheckCircle2, Settings, ChevronRight, ShieldCheck, Network, Globe, 
-  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen
+  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen, ArrowRight
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import Logo from '@/components/Logo';
-const NodeGraph = dynamic(() => import('@/components/NodeGraph'), { ssr: false });
+import NodeGraph from '@/components/NodeGraph';
+
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
   { id: 'obras', label: 'Gestão de Obras' },
   { id: 'tags', label: 'Análise de Tags' },
   { id: 'relatorios', label: 'Relatório Semântico' },
-  { id: 'validacao', label: 'Interoperabilidade Cultural' },
+  { id: 'validacao', label: 'Sistema de Validação' },
   { id: 'ontologia', label: 'Ontologias' },
   { id: 'interoperabilidade', label: 'Conexões Globais' },
 ];
@@ -1500,23 +1500,23 @@ export default function AdminPage() {
             {activeTab === 'validacao' && (
               <div className="space-y-8 animate-fade-in">
                  <div className="flex justify-between items-center">
-                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Interoperabilidade Internacional de Acervos</h2>
+                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Sistema de Validação (Grafo Ativo)</h2>
                     <div className="flex gap-2">
-                       <span className="px-4 py-2 bg-white/550 border border-black/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Visualizar Culturas</span>
+                       <span className="px-4 py-2 bg-white/550 border border-black/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Explorar Rede</span>
                     </div>
                  </div>
                  
-                 {/* Redirecionar para o painel de curadoria internacional e blockchain cultural */}
+                 {/* Redirecionar para o painel de curadoria clássico onde o curador pode dar análise e validar ligações e demarcações */}
                   <div className="glass-card p-12 text-center border-orange-500/30 border space-y-6">
                     <CheckCircle size={48} className="mx-auto text-[#E85002]" />
                     <div className="space-y-2">
-                      <h3 className="text-xl font-normal serif-title">Painel de Intercâmbio Cultural Global</h3>
+                      <h3 className="text-xl font-normal serif-title">Painel de Validação e Curadoria Ativa</h3>
                       <p className="text-[#1A1A1A]/55 text-sm max-w-lg mx-auto">
-                        Acesse a trilha internacional onde cada demarcação e ligação é registrada em um ledger cultural, com DNA criptográfico e auditoria Delta/Alfa.
+                        Acesse a trilha de validação dedicada para aprovar/rejeitar demarcações, ajustar ligações e visualizar o DNA Semântico imutável.
                       </p>
                     </div>
                     <Link href="/admin/validacao" className="liquid-button !bg-[#E85002] inline-flex items-center gap-2">
-                       Acessar Intercâmbio Internacional <ArrowRight size={14} />
+                       Acessar Painel de Validação <ArrowRight size={14} />
                     </Link>
                   </div>
                  
@@ -1524,7 +1524,7 @@ export default function AdminPage() {
  
                  {/* Modal de Análise Neural do Nó Clicado */}
                  {graphNodeSelected && tagAnalysisResult && !isAnalyzingTag && (
-                   <div className="fixed inset-0 z-50 bg-white/550/80 flex items-center justify-center p-4" onClick={() => setGraphNodeSelected(null)}>
+                   <div className="fixed inset-0 z-50 bg-white/80 flex items-center justify-center p-4" onClick={() => setGraphNodeSelected(null)}>
                      <div className="glass-card p-8 w-full max-w-2xl relative animate-fade-in max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                        <button onClick={() => setGraphNodeSelected(null)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
@@ -1697,4 +1697,3 @@ export default function AdminPage() {
     </div>
   );
 }
- 
