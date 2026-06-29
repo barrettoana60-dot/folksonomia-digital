@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Users, Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieIcon, 
@@ -55,6 +55,140 @@ export default function AdminPage() {
   // ML Service Health
   const [mlHealth, setMlHealth] = useState<any>(null);
   const [mlChecking, setMlChecking] = useState(true);
+
+  // Estados e física da teia interativa (Obsidian Graph)
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [interopNodes, setInteropNodes] = useState([
+    { id: "core", label: "Núcleo Folksonômico", x: 400, y: 200, size: 24, fill: "#E8490A", desc: "Nó centralizador de dados e proveniências semânticas do acervo.", type: "Núcleo do acervo semântico", hash: "c8ed_9901_alpha_01", vx: 0, vy: 0 },
+    { id: "frevo", label: "Frevo Pernambucano", x: 250, y: 100, size: 16, fill: "#1E3A8A", desc: "Patrimônio Cultural Imaterial que indexa as tags de dança, cores e sombrinhas ornamentadas do acervo de cultura popular.", type: "Objeto Imaterial", hash: "frevo_alpha_8f29_delta", vx: 0, vy: 0 },
+    { id: "carranca", label: "Carranca de São Francisco", x: 550, y: 100, size: 16, fill: "#1A6B3A", desc: "Escultura antropomórfica em madeira, representativa da arte popular e do imaginário ribeirinho brasileiro.", type: "Objeto de Cultura Popular", hash: "carra_alpha_1a2c_delta", vx: 0, vy: 0 },
+    { id: "bilro", label: "Renda de Bilro", x: 250, y: 300, size: 16, fill: "#C0252B", desc: "Prática artesanal tradicional de tecelagem manual de rendas usando bilros e almofadas de espinho.", type: "Objeto de Cultura Popular", hash: "bilro_alpha_5e8d_delta", vx: 0, vy: 0 },
+    { id: "dossie", label: "Dossiê de Registro IPHAN", x: 550, y: 300, size: 16, fill: "#E8A920", desc: "Artigo documental e histórico oficial sobre a salvaguarda e a regulamentação dos patrimônios catalogados.", type: "Artigo Científico / Documento", hash: "dossi_alpha_3c4b_delta", vx: 0, vy: 0 },
+    { id: "artigo_popular", label: "Estudos Culturais Região Nordeste", x: 120, y: 200, size: 12, fill: "#1A1A1A", desc: "Estudo crítico detalhado sobre a influência das carrancas de proa na economia criativa do Vale do São Francisco.", type: "Artigo Científico / Documento", hash: "estud_alpha_2e3d_delta", vx: 0, vy: 0 },
+    { id: "museografia", label: "Cadernos de Museologia Popular", x: 680, y: 200, size: 12, fill: "#1A1A1A", desc: "Práticas e normas técnicas para a catalogação descentralizada e inclusão de linguagens populares em acervos.", type: "Artigo Científico / Documento", hash: "museo_alpha_7f8e_delta", vx: 0, vy: 0 }
+  ]);
+
+  const interopConnections = useMemo(() => [
+    { from: "core", to: "frevo" },
+    { from: "core", to: "carranca" },
+    { from: "core", to: "bilro" },
+    { from: "core", to: "dossie" },
+    { from: "frevo", to: "artigo_popular" },
+    { from: "carranca", to: "museografia" },
+    { from: "bilro", to: "artigo_popular" },
+    { from: "dossie", to: "museografia" }
+  ], []);
+
+  // Simulação física de forças (repulsão, atração e centralização)
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const updatePhysics = () => {
+      setInteropNodes(prevNodes => {
+        const newNodes = prevNodes.map(n => ({ ...n }));
+        const k_repulsion = 2500; // Força de repulsão entre nós
+        const k_attraction = 0.05; // Elasticidade das conexões
+        const desired_dist = 160; // Distância de mola ideal
+        const damping = 0.88; // Amortecimento da velocidade
+
+        // 1. Repulsão de Coulomb entre todos os nós para que não se sobreponham
+        for (let i = 0; i < newNodes.length; i++) {
+          for (let j = i + 1; j < newNodes.length; j++) {
+            const n1 = newNodes[i];
+            const n2 = newNodes[j];
+            const dx = n2.x - n1.x;
+            const dy = n2.y - n1.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (dist < 400) {
+              const force = k_repulsion / (dist * dist);
+              const fx = (dx / dist) * force;
+              const fy = (dy / dist) * force;
+              n1.vx -= fx;
+              n1.vy -= fy;
+              n2.vx += fx;
+              n2.vy += fy;
+            }
+          }
+        }
+
+        // 2. Força de atração da mola para nós que possuem conexão direta
+        interopConnections.forEach(conn => {
+          const n1 = newNodes.find(n => n.id === conn.from);
+          const n2 = newNodes.find(n => n.id === conn.to);
+          if (n1 && n2) {
+            const dx = n2.x - n1.x;
+            const dy = n2.y - n1.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const force = (dist - desired_dist) * k_attraction;
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            n1.vx += fx;
+            n1.vy += fy;
+            n2.vx -= fx;
+            n2.vy -= fy;
+          }
+        });
+
+        // 3. Força de atração central leve para manter os nós visíveis
+        newNodes.forEach(node => {
+          const dx = 400 - node.x;
+          const dy = 200 - node.y;
+          node.vx += dx * 0.005;
+          node.vy += dy * 0.005;
+        });
+
+        // 4. Aplicar velocidade e limites ao espaço
+        newNodes.forEach(node => {
+          if (node.id === draggedNodeId) {
+            node.vx = 0;
+            node.vy = 0;
+            return; // O nó sendo arrastado não recebe física
+          }
+          node.vx *= damping;
+          node.vy *= damping;
+          node.x += node.vx;
+          node.y += node.vy;
+
+          // Limites do viewBox 800x400
+          node.x = Math.max(40, Math.min(760, node.x));
+          node.y = Math.max(40, Math.min(360, node.y));
+        });
+
+        return newNodes;
+      });
+
+      animationFrameId = requestAnimationFrame(updatePhysics);
+    };
+
+    animationFrameId = requestAnimationFrame(updatePhysics);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [draggedNodeId, interopConnections]);
+
+  const handleGraphMouseDown = (nodeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setDraggedNodeId(nodeId);
+  };
+
+  const handleGraphMouseMove = (e: React.MouseEvent) => {
+    if (!draggedNodeId || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 800;
+    const y = ((e.clientY - rect.top) / rect.height) * 400;
+
+    const boundedX = Math.max(30, Math.min(770, x));
+    const boundedY = Math.max(30, Math.min(370, y));
+
+    setInteropNodes(prev => prev.map(node => 
+      node.id === draggedNodeId ? { ...node, x: boundedX, y: boundedY } : node
+    ));
+  };
+
+  const handleGraphMouseUp = () => {
+    setDraggedNodeId(null);
+  };
+
 
   const handleTagAnalysis = async (tagText: string) => {
     setSelectedTagForAnalysis(tagText);
@@ -1669,7 +1803,14 @@ export default function AdminPage() {
                       
                       {/* Área do Grafo SVG Interativo */}
                       <div className="relative w-full h-[400px] bg-[#EEEBE3]/30 border border-black/07 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
-                        <svg className="w-full h-full cursor-grab active:cursor-grabbing" viewBox="0 0 800 400">
+                        <svg 
+                          ref={svgRef}
+                          className="w-full h-full cursor-grab active:cursor-grabbing select-none" 
+                          viewBox="0 0 800 400"
+                          onMouseMove={handleGraphMouseMove}
+                          onMouseUp={handleGraphMouseUp}
+                          onMouseLeave={handleGraphMouseUp}
+                        >
                           {/* Defs para filtros e marcadores de setas */}
                           <defs>
                             <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -1677,31 +1818,31 @@ export default function AdminPage() {
                             </marker>
                           </defs>
 
-                          {/* Linhas de conexão (Arestas) */}
-                          <line x1="400" y1="200" x2="250" y2="100" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
-                          <line x1="400" y1="200" x2="550" y2="100" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
-                          <line x1="400" y1="200" x2="250" y2="300" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
-                          <line x1="400" y1="200" x2="550" y2="300" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
-                          <line x1="250" y1="100" x2="120" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
-                          <line x1="550" y1="100" x2="680" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
-                          <line x1="250" y1="300" x2="120" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
-                          <line x1="550" y1="300" x2="680" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
+                          {/* Linhas de conexão dinâmicas (Arestas) */}
+                          {interopConnections.map((conn, idx) => {
+                            const fromNode = interopNodes.find(n => n.id === conn.from);
+                            const toNode = interopNodes.find(n => n.id === conn.to);
+                            if (!fromNode || !toNode) return null;
+                            return (
+                              <line 
+                                key={idx}
+                                x1={fromNode.x} 
+                                y1={fromNode.y} 
+                                x2={toNode.x} 
+                                y2={toNode.y} 
+                                stroke="rgba(26,26,26,0.18)" 
+                                strokeWidth="1.5" 
+                                markerEnd="url(#arrow)" 
+                              />
+                            );
+                          })}
 
-                          {/* Nódulos Interativos */}
-                          {[
-                            { id: "core", label: "Núcleo Folksonômico", x: 400, y: 200, size: 24, fill: "#E8490A", desc: "Nó centralizador de dados e proveniências semânticas do acervo.", type: "Núcleo do Sistema", hash: "c8ed_9901_alpha_01" },
-                            
-                            { id: "frevo", label: "Frevo Pernambucano", x: 250, y: 100, size: 16, fill: "#1E3A8A", desc: "Patrimônio Cultural Imaterial que indexa as tags de dança, cores e sombrinhas ornamentadas do acervo de cultura popular.", type: "Objeto Imaterial", hash: "frevo_alpha_8f29_delta" },
-                            { id: "carranca", label: "Carranca de São Francisco", x: 550, y: 100, size: 16, fill: "#1A6B3A", desc: "Escultura antropomórfica em madeira, representativa da arte popular e do imaginário ribeirinho brasileiro.", type: "Objeto de Cultura Popular", hash: "carra_alpha_1a2c_delta" },
-                            { id: "bilro", label: "Renda de Bilro", x: 250, y: 300, size: 16, fill: "#C0252B", desc: "Prática artesanal tradicional de tecelagem manual de rendas usando bilros e almofadas de espinho.", type: "Objeto de Cultura Popular", hash: "bilro_alpha_5e8d_delta" },
-                            { id: "dossie", label: "Dossiê de Registro IPHAN", x: 550, y: 300, size: 16, fill: "#E8A920", desc: "Artigo documental e histórico oficial sobre a salvaguarda e a regulamentação dos patrimônios catalogados.", type: "Artigo Científico / Documento", hash: "dossi_alpha_3c4b_delta" },
-                            
-                            { id: "artigo_popular", label: "Estudos Culturais Região Nordeste", x: 120, y: 200, size: 12, fill: "#1A1A1A", desc: "Estudo crítico detalhado sobre a influência das carrancas de proa na economia criativa do Vale do São Francisco.", type: "Artigo Científico / Documento", hash: "estud_alpha_2e3d_delta" },
-                            { id: "museografia", label: "Cadernos de Museologia Popular", x: 680, y: 200, size: 12, fill: "#1A1A1A", desc: "Práticas e normas técnicas para a catalogação descentralizada e inclusão de linguagens populares em acervos.", type: "Artigo Científico / Documento", hash: "museo_alpha_7f8e_delta" }
-                          ].map((node) => (
+                          {/* Nódulos Interativos Dinâmicos */}
+                          {interopNodes.map((node) => (
                             <g 
                               key={node.id} 
-                              className="cursor-pointer group"
+                              className="cursor-grab active:cursor-grabbing group"
+                              onMouseDown={(e) => handleGraphMouseDown(node.id, e)}
                               onClick={() => setGraphNodeSelected(node.label === "Núcleo Folksonômico" ? null : node.label)}
                             >
                               <circle 
@@ -1709,7 +1850,7 @@ export default function AdminPage() {
                                 cy={node.y} 
                                 r={node.size} 
                                 fill={node.fill} 
-                                className="transition-all duration-300 group-hover:scale-125 group-hover:stroke-white group-hover:stroke-2" 
+                                className="transition-shadow duration-300 group-hover:stroke-white group-hover:stroke-2 shadow-lg" 
                               />
                               <text 
                                 x={node.x} 
@@ -1730,48 +1871,58 @@ export default function AdminPage() {
                   <div>
                     {graphNodeSelected ? (
                       (() => {
-                        const nodeInfo = [
-                          { label: "Frevo Pernambucano", desc: "Patrimônio Cultural Imaterial que indexa as tags de dança, cores e sombrinhas ornamentadas do acervo de cultura popular.", type: "Objeto Imaterial", hash: "frevo_alpha_8f29_delta" },
-                          { label: "Carranca de São Francisco", desc: "Escultura antropomórfica em madeira, representativa da arte popular e do imaginário ribeirinho brasileiro.", type: "Objeto de Cultura Popular", hash: "carra_alpha_1a2c_delta" },
-                          { label: "Renda de Bilro", desc: "Prática artesanal tradicional de tecelagem manual de rendas usando bilros e almofadas de espinho.", type: "Objeto de Cultura Popular", hash: "bilro_alpha_5e8d_delta" },
-                          { label: "Dossiê de Registro IPHAN", desc: "Artigo documental e histórico oficial sobre a salvaguarda e a regulamentação dos patrimônios catalogados.", type: "Artigo Científico / Documento", hash: "dossi_alpha_3c4b_delta" },
-                          { label: "Estudos Culturais Região Nordeste", desc: "Estudo crítico detalhado sobre a influência das carrancas de proa na economia criativa do Vale do São Francisco.", type: "Artigo Científico / Documento", hash: "estud_alpha_2e3d_delta" },
-                          { label: "Cadernos de Museologia Popular", desc: "Práticas e normas técnicas para a catalogação descentralizada e inclusão de linguagens populares em acervos.", type: "Artigo Científico / Documento", hash: "museo_alpha_7f8e_delta" }
-                        ].find(n => n.label === graphNodeSelected);
-
+                        const nodeInfo = interopNodes.find(n => n.label === graphNodeSelected);
                         if (!nodeInfo) return null;
 
                         return (
                           <div className="glass-card p-6 border border-black/07 space-y-6 sticky top-28 animate-fade-in text-left">
-                            <div className="flex items-center gap-2 pb-4 border-b border-black/10">
-                              <Cpu className="text-[#E8490A]" size={20} />
+                            <div className="flex items-center gap-2.5 pb-4 border-b border-black/10">
+                              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-[#E8490A]">
+                                <Cpu size={18} />
+                              </div>
                               <div>
-                                <h4 className="text-sm font-semibold serif-title">{nodeInfo.label}</h4>
-                                <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 block">{nodeInfo.type}</span>
+                                <h4 className="text-sm font-semibold serif-title text-[#1A1A1A]">{nodeInfo.label}</h4>
+                                <span className="text-[9px] uppercase tracking-wider font-bold text-orange-600 block">{nodeInfo.type}</span>
                               </div>
                             </div>
 
-                            <div className="space-y-4 text-xs">
+                            <div className="space-y-5 text-xs">
+                              <div className="p-3.5 bg-[#EEEBE3]/30 border border-black/07 rounded-xl space-y-1.5">
+                                <span className="font-semibold text-green-700 block uppercase tracking-wider text-[8px] flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span>
+                                  Rastreamento do Arquivo Ativo
+                                </span>
+                                <p className="text-[10px] text-[#1A1A1A]/70 font-mono">
+                                  Assinatura DNA: #{nodeInfo.hash.substring(0, 6).toUpperCase()}
+                                </p>
+                                <p className="text-[10px] text-[#1A1A1A]/70 font-mono">
+                                  Rastreabilidade: Única & Certificada
+                                </p>
+                              </div>
+
                               <div>
-                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Descrição Histórica</span>
+                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Descrição do Registro</span>
                                 <p className="text-[#1A1A1A]/70 text-[10px] leading-relaxed mt-1">
                                   {nodeInfo.desc}
                                 </p>
                               </div>
 
-                              <div>
-                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Chave Criptográfica do Registro</span>
-                                <code className="text-[10px] font-mono text-orange-600 break-all block p-2 bg-white/40 border border-black/07 rounded-lg mt-1">
-                                  {nodeInfo.hash}
-                                </code>
-                              </div>
-
-                              <div className="p-3.5 bg-white/40 border border-black/07 rounded-xl space-y-1 mt-1 font-mono text-[9px] text-[#1A1A1A]/70">
-                                <span className="font-bold text-green-700 block uppercase tracking-wider text-[8px] mb-1">
-                                  ✓ Rastreamento Imutável Ativo
-                                </span>
-                                <p>Sincronismo: Confirmado</p>
-                                <p>Criptografia Interna: Ativa</p>
+                              <div className="space-y-2">
+                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">DNA Semântico & Conexões</span>
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center justify-between text-[10px] bg-white/40 border border-black/05 p-2 rounded-lg">
+                                    <span className="font-semibold text-[#1A1A1A]/70">Rastreio Interno do Objeto</span>
+                                    <span className="text-green-700 font-mono text-[8px] bg-green-500/10 px-1.5 py-0.5 rounded">CONECTADO</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] bg-white/40 border border-black/05 p-2 rounded-lg">
+                                    <span className="font-semibold text-[#1A1A1A]/70">Integridade dos Metadados</span>
+                                    <span className="text-green-700 font-mono text-[8px] bg-green-500/10 px-1.5 py-0.5 rounded">100% SEGURO</span>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] bg-white/40 border border-black/05 p-2 rounded-lg">
+                                    <span className="font-semibold text-[#1A1A1A]/70">Mapeamento em Rede</span>
+                                    <span className="text-green-700 font-mono text-[8px] bg-green-500/10 px-1.5 py-0.5 rounded">CONTROLADO</span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1779,7 +1930,7 @@ export default function AdminPage() {
                       })()
                     ) : (
                       <div className="glass-card p-10 border border-black/07 text-center text-xs text-[#1A1A1A]/40 uppercase tracking-widest font-semibold sticky top-28">
-                        Selecione um nódulo do grafo de conexões para inspecionar seus hashes criptográficos e integridade.
+                        Selecione um nódulo da teia de conexões para inspecionar seus metadados e integridade.
                       </div>
                     )}
                   </div>
