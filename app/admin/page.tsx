@@ -16,9 +16,8 @@ const tabs = [
   { id: 'obras', label: 'Gestão de Obras' },
   { id: 'tags', label: 'Análise de Tags' },
   { id: 'relatorios', label: 'Relatório Semântico' },
-  { id: 'validacao', label: 'Sistema de Validação' },
+  { id: 'interoperabilidade', label: 'Interoperabilidade Cultural' },
   { id: 'ontologia', label: 'Ontologias' },
-  { id: 'interoperabilidade', label: 'Interoperabilidade DNA (Europeana)' },
 ];
 
 export default function AdminPage() {
@@ -1497,30 +1496,6 @@ export default function AdminPage() {
               </div>
             )}
 
-            {activeTab === 'validacao' && (
-              <div className="space-y-8 animate-fade-in">
-                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Sistema de Validação (Grafo Ativo)</h2>
-                    <div className="flex gap-2">
-                       <span className="px-4 py-2 bg-white/550 border border-black/10 rounded-xl text-[10px] uppercase font-semibold tracking-wider text-[#E85002] flex items-center gap-2"><Network size={14}/> Explorar Rede</span>
-                    </div>
-                 </div>
-                 
-                 {/* Redirecionar para o painel de curadoria clássico onde o curador pode dar análise e validar ligações e demarcações */}
-                  <div className="glass-card p-12 text-center border-orange-500/30 border space-y-6">
-                    <CheckCircle size={48} className="mx-auto text-[#E85002]" />
-                    <div className="space-y-2">
-                      <h3 className="text-xl font-normal serif-title">Painel de Validação e Curadoria Ativa</h3>
-                      <p className="text-[#1A1A1A]/55 text-sm max-w-lg mx-auto">
-                        Acesse a trilha de validação dedicada para aprovar/rejeitar demarcações, ajustar ligações e visualizar o DNA Semântico imutável.
-                      </p>
-                    </div>
-                    <Link href="/admin/validacao" className="liquid-button !bg-[#E85002] inline-flex items-center gap-2">
-                       Acessar Painel de Validação <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                 
-
  
                  {/* Modal de Análise Neural do Nó Clicado */}
                  {graphNodeSelected && tagAnalysisResult && !isAnalyzingTag && (
@@ -1662,123 +1637,153 @@ export default function AdminPage() {
 
             {activeTab === 'interoperabilidade' && (
               <div className="space-y-8 animate-fade-in text-[#1A1A1A]">
+                
                 {/* Cabeçalho Técnico */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-black/10 pb-6">
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
                       <Cpu size={24} className="text-[#E8490A]" />
-                      Interoperabilidade de DNA Cultural & Europeana
+                      Interoperabilidade Cultural
                     </h2>
                     <p className="text-xs text-[#1A1A1A]/55 mt-1 uppercase tracking-widest font-semibold">
-                      Camadas de Preservabilidade de Segmentos · Criptografia Alfanumérica
+                      Rede de Preservação e Rastreabilidade Criptografada Interna
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 text-green-800 text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-full">
-                    <Globe size={12} className="animate-spin" style={{ animationDuration: '6s' }} /> Consensus Network Online
+                  <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-[#E8490A] text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-full">
+                    <Fingerprint size={12} /> Rastreio Criptográfico Ativo
                   </div>
                 </div>
 
-                {/* Algoritmo de Preservabilidade e Camadas de Base */}
+                {/* Obsidian-Style Graph View e Detalhes */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   
-                  {/* Coluna 1 & 2: Monitor e Mapeamento */}
+                  {/* Coluna 1 & 2: Obsidian Node Graph Interactive Simulator */}
                   <div className="lg:col-span-2 space-y-6">
                     <div className="glass-card p-6 md:p-8 space-y-6">
-                      <h3 className="text-sm font-semibold uppercase tracking-wider text-[#E8490A] flex items-center gap-2">
-                        <Activity size={16} /> Preservabilidade entre Segmentos (Único Núcleo)
-                      </h3>
-                      <p className="text-xs text-[#1A1A1A]/60 leading-relaxed">
-                        Abaixo estão os segmentos e termos integrados de acervos nacionais e internacionais. Cada alteração propaga chaves criptográficas em cadeia, garantindo imutabilidade e rastreabilidade total desde uma única fonte originária.
-                      </p>
-
-                      <div className="space-y-4">
-                        {[
-                          { node: "Abstracionismo Geométrico", hash: "dna_alpha_8f29_beta_7741", source: "Europeana API / Getty", status: "Integridade Confirmada", integrity: "100%", files: 12 },
-                          { node: "Modernismo Brasileiro", hash: "dna_alpha_1a2c_beta_9982", source: "IBRAM Connector / Brasiliana", status: "Sincronizado & Imutável", integrity: "100%", files: 8 },
-                          { node: "Barroco Mineiro", hash: "dna_alpha_5e8d_beta_3345", source: "Tesauro CNFCP / Europeana", status: "Restaurado Manualmente", integrity: "100%", files: 19 }
-                        ].map((item, idx) => (
-                          <div key={idx} className="p-4 bg-white/40 border border-black/07 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="space-y-1.5 text-left">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm text-[#1A1A1A]">{item.node}</span>
-                                <span className="text-[9px] font-mono bg-blue-500/10 border border-blue-500/20 text-blue-800 px-1.5 py-0.5 rounded">
-                                  {item.source}
-                                </span>
-                              </div>
-                              <code className="text-[10px] font-mono text-orange-600 block">
-                                HASH RASTREABILIDADE: {item.hash}
-                              </code>
-                            </div>
-                            <div className="flex items-center gap-6 justify-between md:justify-end">
-                              <div className="text-right">
-                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 block">Camadas de Preservação</span>
-                                <span className="text-xs text-green-700 font-semibold flex items-center gap-1">
-                                  <ShieldCheck size={11} /> {item.status} ({item.integrity})
-                                </span>
-                              </div>
-                              <div className="px-3 py-1 bg-white/50 border border-black/07 rounded-lg text-center min-w-[50px]">
-                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 block">Arquivos</span>
-                                <span className="text-xs font-bold text-[#1A1A1A]/70">{item.files}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold uppercase tracking-wider text-[#E8490A] flex items-center gap-2">
+                          <Network size={16} /> Rede de Conexões Semânticas (Obsidian Graph View)
+                        </h3>
+                        <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/40 font-semibold">
+                          Clique em um nó para inspecionar
+                        </span>
                       </div>
-                    </div>
+                      
+                      {/* Área do Grafo SVG Interativo */}
+                      <div className="relative w-full h-[400px] bg-[#EEEBE3]/30 border border-black/07 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
+                        <svg className="w-full h-full cursor-grab active:cursor-grabbing" viewBox="0 0 800 400">
+                          {/* Defs para filtros e marcadores de setas */}
+                          <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(26,26,26,0.18)" />
+                            </marker>
+                          </defs>
 
-                    {/* Termos de Busca e Auditoria Alfanumérica */}
-                    <div className="glass-card p-6 md:p-8 space-y-4">
-                      <h3 className="text-sm font-semibold uppercase tracking-wider text-[#E8490A]">
-                        Chaves de Auditoria Blockchain
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-[10px]">
-                        <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1">
-                          <span className="text-orange-700 font-bold uppercase tracking-wider block">Consenso Delta</span>
-                          <span className="text-[#1A1A1A]/70">0x8A92B3C4D5E6F7A8B9C0</span>
-                        </div>
-                        <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1">
-                          <span className="text-blue-700 font-bold uppercase tracking-wider block">Consenso Alpha</span>
-                          <span className="text-[#1A1A1A]/70">0x1F2E3D4C5B6A7F8E9D0C</span>
-                        </div>
-                        <div className="p-3 bg-white/40 border border-black/07 rounded-xl space-y-1">
-                          <span className="text-green-700 font-bold uppercase tracking-wider block">Status da Rede</span>
-                          <span className="text-green-800 font-bold">100% Criptografado & Auditável</span>
-                        </div>
+                          {/* Linhas de conexão (Arestas) */}
+                          <line x1="400" y1="200" x2="250" y2="100" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                          <line x1="400" y1="200" x2="550" y2="100" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                          <line x1="400" y1="200" x2="250" y2="300" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                          <line x1="400" y1="200" x2="550" y2="300" stroke="rgba(26,26,26,0.18)" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                          <line x1="250" y1="100" x2="120" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
+                          <line x1="550" y1="100" x2="680" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
+                          <line x1="250" y1="300" x2="120" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
+                          <line x1="550" y1="300" x2="680" y2="200" stroke="rgba(26,26,26,0.12)" strokeWidth="1" />
+
+                          {/* Nódulos Interativos */}
+                          {[
+                            { id: "core", label: "Núcleo Folksonômico", x: 400, y: 200, size: 24, fill: "#E8490A", desc: "Nó centralizador de dados e proveniências semânticas do acervo.", type: "Núcleo do Sistema", hash: "c8ed_9901_alpha_01" },
+                            
+                            { id: "frevo", label: "Frevo Pernambucano", x: 250, y: 100, size: 16, fill: "#1E3A8A", desc: "Patrimônio Cultural Imaterial que indexa as tags de dança, cores e sombrinhas ornamentadas do acervo de cultura popular.", type: "Objeto Imaterial", hash: "frevo_alpha_8f29_delta" },
+                            { id: "carranca", label: "Carranca de São Francisco", x: 550, y: 100, size: 16, fill: "#1A6B3A", desc: "Escultura antropomórfica em madeira, representativa da arte popular e do imaginário ribeirinho brasileiro.", type: "Objeto de Cultura Popular", hash: "carra_alpha_1a2c_delta" },
+                            { id: "bilro", label: "Renda de Bilro", x: 250, y: 300, size: 16, fill: "#C0252B", desc: "Prática artesanal tradicional de tecelagem manual de rendas usando bilros e almofadas de espinho.", type: "Objeto de Cultura Popular", hash: "bilro_alpha_5e8d_delta" },
+                            { id: "dossie", label: "Dossiê de Registro IPHAN", x: 550, y: 300, size: 16, fill: "#E8A920", desc: "Artigo documental e histórico oficial sobre a salvaguarda e a regulamentação dos patrimônios catalogados.", type: "Artigo Científico / Documento", hash: "dossi_alpha_3c4b_delta" },
+                            
+                            { id: "artigo_popular", label: "Estudos Culturais Região Nordeste", x: 120, y: 200, size: 12, fill: "#1A1A1A", desc: "Estudo crítico detalhado sobre a influência das carrancas de proa na economia criativa do Vale do São Francisco.", type: "Artigo Científico / Documento", hash: "estud_alpha_2e3d_delta" },
+                            { id: "museografia", label: "Cadernos de Museologia Popular", x: 680, y: 200, size: 12, fill: "#1A1A1A", desc: "Práticas e normas técnicas para a catalogação descentralizada e inclusão de linguagens populares em acervos.", type: "Artigo Científico / Documento", hash: "museo_alpha_7f8e_delta" }
+                          ].map((node) => (
+                            <g 
+                              key={node.id} 
+                              className="cursor-pointer group"
+                              onClick={() => setGraphNodeSelected(node.label === "Núcleo Folksonômico" ? null : node.label)}
+                            >
+                              <circle 
+                                cx={node.x} 
+                                cy={node.y} 
+                                r={node.size} 
+                                fill={node.fill} 
+                                className="transition-all duration-300 group-hover:scale-125 group-hover:stroke-white group-hover:stroke-2" 
+                              />
+                              <text 
+                                x={node.x} 
+                                y={node.y + node.size + 14} 
+                                textAnchor="middle" 
+                                className="text-[10px] font-sans font-semibold fill-[#1A1A1A]/70 group-hover:fill-orange-600 transition-colors pointer-events-none"
+                              >
+                                {node.label}
+                              </text>
+                            </g>
+                          ))}
+                        </svg>
                       </div>
                     </div>
                   </div>
 
-                  {/* Coluna 3: Europeana & Detalhes da API */}
-                  <div className="space-y-6">
-                    <div className="glass-card p-6 border border-black/07 space-y-6">
-                      <div className="flex items-center gap-2 pb-4 border-b border-black/10">
-                        <Globe className="text-[#E8490A]" size={20} />
-                        <div>
-                          <h4 className="text-sm font-semibold serif-title">Gateway Europeana API</h4>
-                          <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 block">Integração Internacional</span>
-                        </div>
-                      </div>
+                  {/* Coluna 3: Painel de Informações Imutáveis do Nó */}
+                  <div>
+                    {graphNodeSelected ? (
+                      (() => {
+                        const nodeInfo = [
+                          { label: "Frevo Pernambucano", desc: "Patrimônio Cultural Imaterial que indexa as tags de dança, cores e sombrinhas ornamentadas do acervo de cultura popular.", type: "Objeto Imaterial", hash: "frevo_alpha_8f29_delta" },
+                          { label: "Carranca de São Francisco", desc: "Escultura antropomórfica em madeira, representativa da arte popular e do imaginário ribeirinho brasileiro.", type: "Objeto de Cultura Popular", hash: "carra_alpha_1a2c_delta" },
+                          { label: "Renda de Bilro", desc: "Prática artesanal tradicional de tecelagem manual de rendas usando bilros e almofadas de espinho.", type: "Objeto de Cultura Popular", hash: "bilro_alpha_5e8d_delta" },
+                          { label: "Dossiê de Registro IPHAN", desc: "Artigo documental e histórico oficial sobre a salvaguarda e a regulamentação dos patrimônios catalogados.", type: "Artigo Científico / Documento", hash: "dossi_alpha_3c4b_delta" },
+                          { label: "Estudos Culturais Região Nordeste", desc: "Estudo crítico detalhado sobre a influência das carrancas de proa na economia criativa do Vale do São Francisco.", type: "Artigo Científico / Documento", hash: "estud_alpha_2e3d_delta" },
+                          { label: "Cadernos de Museologia Popular", desc: "Práticas e normas técnicas para a catalogação descentralizada e inclusão de linguagens populares em acervos.", type: "Artigo Científico / Documento", hash: "museo_alpha_7f8e_delta" }
+                        ].find(n => n.label === graphNodeSelected);
 
-                      <div className="space-y-4 text-xs">
-                        <p className="text-[#1A1A1A]/65 leading-relaxed text-[11px]">
-                          Através deste gateway, os termos locais indexados em nosso sistema de folksonomia são confrontados com metadados estruturados do portal Europeana.
-                        </p>
-                        
-                        <div className="p-3.5 bg-white/40 border border-black/07 rounded-xl space-y-2 text-left">
-                          <span className="text-[9px] uppercase font-bold tracking-wider text-orange-700 block">Camadas de DNA Semântico</span>
-                          <p className="text-[#1A1A1A]/70 text-[10px] leading-relaxed">
-                            Quando uma tag é validada em nosso sistema, ela carrega consigo referências cruzadas das APIs internacionais. Isso impede a fragmentação da pesquisa e aumenta a qualidade semântica do restauro de dados.
-                          </p>
-                        </div>
+                        if (!nodeInfo) return null;
 
-                        <div className="p-3.5 bg-white/40 border border-black/07 rounded-xl space-y-2 text-left">
-                          <span className="text-[9px] uppercase font-bold tracking-wider text-blue-700 block">Segurança Alpha-Numérica</span>
-                          <p className="text-[#1A1A1A]/70 text-[10px] leading-relaxed">
-                            Qualquer conexão ou modificação de nódulos de preservação gera um novo registro SHA-256 no banco distribuído local, mantendo a autenticidade e auditoria perpétua do acervo.
-                          </p>
-                        </div>
+                        return (
+                          <div className="glass-card p-6 border border-black/07 space-y-6 sticky top-28 animate-fade-in text-left">
+                            <div className="flex items-center gap-2 pb-4 border-b border-black/10">
+                              <Cpu className="text-[#E8490A]" size={20} />
+                              <div>
+                                <h4 className="text-sm font-semibold serif-title">{nodeInfo.label}</h4>
+                                <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 block">{nodeInfo.type}</span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4 text-xs">
+                              <div>
+                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Descrição Histórica</span>
+                                <p className="text-[#1A1A1A]/70 text-[10px] leading-relaxed mt-1">
+                                  {nodeInfo.desc}
+                                </p>
+                              </div>
+
+                              <div>
+                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Chave Criptográfica do Registro</span>
+                                <code className="text-[10px] font-mono text-orange-600 break-all block p-2 bg-white/40 border border-black/07 rounded-lg mt-1">
+                                  {nodeInfo.hash}
+                                </code>
+                              </div>
+
+                              <div className="p-3.5 bg-white/40 border border-black/07 rounded-xl space-y-1 mt-1 font-mono text-[9px] text-[#1A1A1A]/70">
+                                <span className="font-bold text-green-700 block uppercase tracking-wider text-[8px] mb-1">
+                                  ✓ Rastreamento Imutável Ativo
+                                </span>
+                                <p>Sincronismo: Confirmado</p>
+                                <p>Criptografia Interna: Ativa</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="glass-card p-10 border border-black/07 text-center text-xs text-[#1A1A1A]/40 uppercase tracking-widest font-semibold sticky top-28">
+                        Selecione um nódulo do grafo de conexões para inspecionar seus hashes criptográficos e integridade.
                       </div>
-                    </div>
+                    )}
                   </div>
 
                 </div>
