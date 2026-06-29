@@ -1,14 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { Globe, RefreshCcw, CheckCircle2 } from 'lucide-react';
+import { useState, ReactNode } from 'react';
 
 // ── GlassCard inline ────────────────────────────────────────────────────────
 function GlassCard({
   children,
   className = '',
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
 }) {
   return (
@@ -66,7 +65,8 @@ export default function InteroperabilidadePage() {
             <GlassCard key={s.name} className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="p-3 rounded-full bg-white/50 border border-black/10">
-                  <Globe size={20} className="text-[#E8490A]" />
+                  {/* Ícone Globe em SVG */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#E8490A]"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#E8490A]">
                   <span className="w-2 h-2 rounded-full bg-[#E8490A] animate-pulse inline-block" />
@@ -93,7 +93,8 @@ export default function InteroperabilidadePage() {
         {/* Log de sincronização */}
         <GlassCard className="p-8">
           <h2 className="text-xl font-normal mb-6 flex items-center gap-3">
-            <RefreshCcw size={24} className="text-black/50" />
+            {/* Ícone RefreshCcw em SVG */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-black/50"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
             Log de Sincronização
           </h2>
 
@@ -105,7 +106,8 @@ export default function InteroperabilidadePage() {
               >
                 <div className="flex items-center gap-4">
                   <div className="p-2 rounded bg-white/30 shrink-0">
-                    <CheckCircle2 size={16} className="text-[#E8490A]" />
+                    {/* Ícone CheckCircle em SVG */}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#E8490A]"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   </div>
                   <div>
                     <p className="text-sm text-black/80 font-medium">{log.msg}</p>
