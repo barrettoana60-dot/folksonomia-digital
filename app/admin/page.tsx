@@ -1775,15 +1775,15 @@ export default function AdminPage() {
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
                       <Cpu size={24} className="text-[#E8490A]" />
-                      Interoperabilidade Cultural
+                      Infraestrutura Neural de Custódia
                     </h2>
                     <p className="text-xs text-[#1A1A1A]/55 mt-1 uppercase tracking-widest font-semibold">
                       Rede de Preservação e Rastreabilidade Criptografada Interna
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-[#E8490A] text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-full">
-                    <Fingerprint size={12} /> Rastreio Criptográfico Ativo
-                  </div>
+                  <div className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-[#E8490A] text-[10px] uppercase font-bold tracking-wider px-3.5 py-1.5 rounded-full font-mono">
+                     <span className="w-1.5 h-1.5 rounded-full bg-[#E8490A] animate-pulse"></span> Rastreio Interno Ativo
+                   </div>
                 </div>
 
                 {/* Obsidian-Style Graph View e Detalhes */}
@@ -1794,146 +1794,221 @@ export default function AdminPage() {
                     <div className="glass-card p-6 md:p-8 space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-semibold uppercase tracking-wider text-[#E8490A] flex items-center gap-2">
-                          <Network size={16} /> Rede de Conexões Semânticas (Obsidian Graph View)
-                        </h3>
-                        <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/40 font-semibold">
-                          Clique em um nó para inspecionar
-                        </span>
+                           <Network size={16} /> Rede Semântica
+                         </h3>
+                         <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/40 font-semibold">
+                           Clique em um neurônio para inspecionar
+                         </span>
                       </div>
                       
                       {/* Área do Grafo SVG Interativo */}
-                      <div className="relative w-full h-[400px] bg-[#EEEBE3]/30 border border-black/07 rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
-                        <svg 
-                          ref={svgRef}
-                          className="w-full h-full cursor-grab active:cursor-grabbing select-none" 
-                          viewBox="0 0 800 400"
-                          onMouseMove={handleGraphMouseMove}
-                          onMouseUp={handleGraphMouseUp}
-                          onMouseLeave={handleGraphMouseUp}
-                        >
-                          {/* Defs para filtros e marcadores de setas */}
-                          <defs>
-                            <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(26,26,26,0.18)" />
-                            </marker>
-                          </defs>
+                      <div className="relative w-full h-[430px] bg-[#12120E]/90 border border-black/20 rounded-2xl overflow-hidden shadow-2xl">
+                         <svg 
+                           ref={svgRef}
+                           className="w-full h-full cursor-grab active:cursor-grabbing select-none" 
+                           viewBox="0 0 800 430"
+                           onMouseMove={handleGraphMouseMove}
+                           onMouseUp={handleGraphMouseUp}
+                           onMouseLeave={handleGraphMouseUp}
+                         >
+                           {/* Estilos e animações sinápticas locais */}
+                           <style>{`
+                             @keyframes synapseFlow { to { stroke-dashoffset: -30; } }
+                             @keyframes neuronPulse {
+                               0%, 100% { r: 0; opacity: 0.15; }
+                               50% { r: 1; opacity: 0.45; }
+                             }
+                             .synapse-pulse { stroke-dasharray: 5, 12; animation: synapseFlow 1.8s linear infinite; }
+                           `}</style>
 
-                          {/* Linhas de conexão dinâmicas (Arestas) */}
-                          {interopConnections.map((conn, idx) => {
-                            const fromNode = interopNodes.find(n => n.id === conn.from);
-                            const toNode = interopNodes.find(n => n.id === conn.to);
-                            if (!fromNode || !toNode) return null;
-                            return (
-                              <line 
-                                key={idx}
-                                x1={fromNode.x} 
-                                y1={fromNode.y} 
-                                x2={toNode.x} 
-                                y2={toNode.y} 
-                                stroke="rgba(26,26,26,0.18)" 
-                                strokeWidth="1.5" 
-                                markerEnd="url(#arrow)" 
-                              />
-                            );
-                          })}
+                           {/* Defs para filtros de brilho */}
+                           <defs>
+                             <filter id="neuron-glow" x="-50%" y="-50%" width="200%" height="200%">
+                               <feGaussianBlur stdDeviation="7" result="blur" />
+                               <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                             </filter>
+                             <filter id="soft-glow" x="-40%" y="-40%" width="180%" height="180%">
+                               <feGaussianBlur stdDeviation="3" result="blur" />
+                               <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                             </filter>
+                             <marker id="arrow" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                               <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,0.2)" />
+                             </marker>
+                           </defs>
 
-                          {/* Nódulos Interativos Dinâmicos */}
-                          {interopNodes.map((node) => (
-                            <g 
-                              key={node.id} 
-                              className="cursor-grab active:cursor-grabbing group"
-                              onMouseDown={(e) => handleGraphMouseDown(node.id, e)}
-                              onClick={() => setGraphNodeSelected(node.label === "Núcleo Folksonômico" ? null : node.label)}
-                            >
-                              <circle 
-                                cx={node.x} 
-                                cy={node.y} 
-                                r={node.size} 
-                                fill={node.fill} 
-                                className="transition-shadow duration-300 group-hover:stroke-white group-hover:stroke-2 shadow-lg" 
-                              />
-                              <text 
-                                x={node.x} 
-                                y={node.y + node.size + 14} 
-                                textAnchor="middle" 
-                                className="text-[10px] font-sans font-semibold fill-[#1A1A1A]/70 group-hover:fill-orange-600 transition-colors pointer-events-none"
-                              >
-                                {node.label}
-                              </text>
-                            </g>
-                          ))}
-                        </svg>
-                      </div>
+                           {/* Grade de fundo de neurônios */}
+                           {[...Array(12)].map((_, i) => (
+                             <circle key={`bg-${i}`} cx={60 + (i % 4) * 230} cy={80 + Math.floor(i / 4) * 140} r="2" fill="rgba(255,255,255,0.04)" />
+                           ))}
+
+                           {/* Linhas de conexão dinâmicas (Sinapses) */}
+                           {interopConnections.map((conn, idx) => {
+                             const fromNode = interopNodes.find(n => n.id === conn.from);
+                             const toNode = interopNodes.find(n => n.id === conn.to);
+                             if (!fromNode || !toNode) return null;
+                             const isSelected = graphNodeSelected && (fromNode.label === graphNodeSelected || toNode.label === graphNodeSelected);
+                             return (
+                               <g key={idx}>
+                                 {/* Linha base da sinapse */}
+                                 <line x1={fromNode.x} y1={fromNode.y} x2={toNode.x} y2={toNode.y}
+                                   stroke={isSelected ? fromNode.fill : "rgba(255,255,255,0.06)"}
+                                   strokeWidth={isSelected ? "2" : "1.5"} />
+                                 {/* Pulso elétrico da sinapse */}
+                                 <line x1={fromNode.x} y1={fromNode.y} x2={toNode.x} y2={toNode.y}
+                                   stroke={fromNode.fill}
+                                   strokeWidth="1.2"
+                                   className="synapse-pulse"
+                                   markerEnd="url(#arrow)"
+                                   style={{ opacity: isSelected ? 0.9 : 0.35 }} />
+                               </g>
+                             );
+                           })}
+
+                           {/* Neurônios Dinâmicos */}
+                           {interopNodes.map((node) => {
+                             const isSelected = node.label === graphNodeSelected;
+                             return (
+                               <g key={node.id} className="cursor-grab active:cursor-grabbing group"
+                                 onMouseDown={(e) => handleGraphMouseDown(node.id, e)}
+                                 onClick={() => setGraphNodeSelected(node.label === "Núcleo Folksonômico" ? null : node.label)}
+                               >
+                                 {/* Halo externo pulsante */}
+                                 <circle cx={node.x} cy={node.y} r={node.size + 14}
+                                   fill={node.fill} opacity={isSelected ? 0.18 : 0.07}
+                                   className="pointer-events-none"
+                                   style={{ transition: 'opacity 0.3s, r 0.3s' }} />
+                                 {/* Halo médio */}
+                                 <circle cx={node.x} cy={node.y} r={node.size + 6}
+                                   fill={node.fill} opacity={isSelected ? 0.28 : 0.12}
+                                   className="pointer-events-none" />
+                                 {/* Núcleo do neurônio com glow */}
+                                 <circle cx={node.x} cy={node.y} r={node.size}
+                                   fill={node.fill}
+                                   filter={isSelected ? "url(#neuron-glow)" : "url(#soft-glow)"}
+                                   stroke={isSelected ? "white" : "transparent"}
+                                   strokeWidth={isSelected ? "2" : "0"}
+                                   style={{ transition: 'all 0.3s' }} />
+                                 {/* Label do nó */}
+                                 <text x={node.x} y={node.y + node.size + 16}
+                                   textAnchor="middle"
+                                   fill={isSelected ? "white" : "rgba(255,255,255,0.55)"}
+                                   fontSize="9"
+                                   fontWeight={isSelected ? "700" : "500"}
+                                   className="pointer-events-none"
+                                   style={{ transition: 'fill 0.3s, font-weight 0.3s' }}>
+                                   {node.label}
+                                 </text>
+                               </g>
+                             );
+                           })}
+                         </svg>
+                       </div>
                     </div>
                   </div>
 
-                  {/* Coluna 3: Painel de Informações Imutáveis do Nó */}
+                  {/* Coluna 3: Painel de Auditoria de Custódia Digital */}
                   <div>
                     {graphNodeSelected ? (
                       (() => {
                         const nodeInfo = interopNodes.find(n => n.label === graphNodeSelected);
                         if (!nodeInfo) return null;
 
+                        const directConnections = interopConnections
+                          .filter(conn => conn.from === nodeInfo.id || conn.to === nodeInfo.id)
+                          .map(conn => {
+                            const otherId = conn.from === nodeInfo.id ? conn.to : conn.from;
+                            const otherNode = interopNodes.find(n => n.id === otherId);
+                            return {
+                              id: otherId,
+                              label: otherNode ? otherNode.label : otherId,
+                              role: conn.from === nodeInfo.id ? 'SAIDA' : 'ENTRADA'
+                            };
+                          });
+
                         return (
-                          <div className="glass-card p-6 border border-black/07 space-y-6 sticky top-28 animate-fade-in text-left">
-                            <div className="flex items-center gap-2.5 pb-4 border-b border-black/10">
-                              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center text-[#E8490A]">
-                                <Cpu size={18} />
+                          <div className="glass-card border border-black/07 space-y-0 sticky top-28 animate-fade-in text-left overflow-hidden">
+                            {/* Header do Painel */}
+                            <div className="p-4 border-b border-black/08 flex items-center gap-2.5 bg-[#EEEBE3]/20">
+                              <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center text-[#E8490A] flex-shrink-0">
+                                <Cpu size={16} />
                               </div>
-                              <div>
-                                <h4 className="text-sm font-semibold serif-title text-[#1A1A1A]">{nodeInfo.label}</h4>
-                                <span className="text-[9px] uppercase tracking-wider font-bold text-orange-600 block">{nodeInfo.type}</span>
+                              <div className="min-w-0">
+                                <h4 className="text-xs font-semibold serif-title text-[#1A1A1A] truncate">{nodeInfo.label}</h4>
+                                <span className="text-[8px] uppercase tracking-wider font-bold text-orange-600 block">{nodeInfo.type}</span>
                               </div>
                             </div>
 
-                            <div className="space-y-5 text-xs">
-                              <div className="p-3.5 bg-[#EEEBE3]/30 border border-black/07 rounded-xl space-y-1.5">
-                                <span className="font-semibold text-green-700 block uppercase tracking-wider text-[8px] flex items-center gap-1.5">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse"></span>
-                                  Rastreamento do Arquivo Ativo
-                                </span>
-                                <p className="text-[10px] text-[#1A1A1A]/70 font-mono">
-                                  Assinatura DNA: #{nodeInfo.hash.substring(0, 6).toUpperCase()}
-                                </p>
-                                <p className="text-[10px] text-[#1A1A1A]/70 font-mono">
-                                  Rastreabilidade: Única & Certificada
-                                </p>
+                            {/* Extrato de Custódia — Estilo Bancário */}
+                            <div className="border-b border-black/08">
+                              <div className="px-4 py-2 bg-[#EEEBE3]/10">
+                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Extrato de Custódia Digital</span>
                               </div>
+                              <table className="w-full text-[9px] font-mono">
+                                <tbody>
+                                  <tr className="border-b border-black/05">
+                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Registro ID</td>
+                                    <td className="px-4 py-2 text-right text-[#1A1A1A]/80 font-bold">#{nodeInfo.hash.substring(0,8).toUpperCase()}</td>
+                                  </tr>
+                                  <tr className="border-b border-black/05">
+                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Rastreabilidade</td>
+                                    <td className="px-4 py-2 text-right text-green-700 font-bold">UNICA CERTIFICADA</td>
+                                  </tr>
+                                  <tr className="border-b border-black/05">
+                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Integridade</td>
+                                    <td className="px-4 py-2 text-right text-green-700 font-bold">AUDITADO ATIVO</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="px-4 py-2 text-[#1A1A1A]/45">Mapeamento</td>
+                                    <td className="px-4 py-2 text-right text-green-700 font-bold">CONTROLADO</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
 
-                              <div>
-                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Descrição do Registro</span>
-                                <p className="text-[#1A1A1A]/70 text-[10px] leading-relaxed mt-1">
-                                  {nodeInfo.desc}
-                                </p>
-                              </div>
+                            {/* Definição do Registro */}
+                            <div className="px-4 py-3 border-b border-black/08">
+                              <p className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-1.5">Definição do Registro</p>
+                              <p className="text-[#1A1A1A]/65 text-[10px] leading-relaxed">{nodeInfo.desc}</p>
+                            </div>
 
-                              <div className="space-y-2">
-                                <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">DNA Semântico & Conexões</span>
-                                <div className="space-y-1.5">
-                                  <div className="flex items-center justify-between text-[10px] bg-white/40 border border-black/05 p-2 rounded-lg">
-                                    <span className="font-semibold text-[#1A1A1A]/70">Rastreio Interno do Objeto</span>
-                                    <span className="text-green-700 font-mono text-[8px] bg-green-500/10 px-1.5 py-0.5 rounded">CONECTADO</span>
-                                  </div>
-                                  <div className="flex items-center justify-between text-[10px] bg-white/40 border border-black/05 p-2 rounded-lg">
-                                    <span className="font-semibold text-[#1A1A1A]/70">Integridade dos Metadados</span>
-                                    <span className="text-green-700 font-mono text-[8px] bg-green-500/10 px-1.5 py-0.5 rounded">100% SEGURO</span>
-                                  </div>
-                                  <div className="flex items-center justify-between text-[10px] bg-white/40 border border-black/05 p-2 rounded-lg">
-                                    <span className="font-semibold text-[#1A1A1A]/70">Mapeamento em Rede</span>
-                                    <span className="text-green-700 font-mono text-[8px] bg-green-500/10 px-1.5 py-0.5 rounded">CONTROLADO</span>
-                                  </div>
-                                </div>
+                            {/* Pontos de Ligação Neuronal */}
+                            <div>
+                              <div className="px-4 py-2 bg-[#EEEBE3]/10">
+                                <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Pontos de Ligação Neuronal</span>
                               </div>
+                              <table className="w-full text-[9px] font-mono">
+                                <thead>
+                                  <tr className="border-b border-black/05">
+                                    <th className="px-4 py-1.5 text-left text-[#1A1A1A]/35 font-bold">NEURONIO</th>
+                                    <th className="px-4 py-1.5 text-right text-[#1A1A1A]/35 font-bold">FLUXO</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {directConnections.length > 0 ? directConnections.map((conn, idx) => (
+                                    <tr key={idx} className="border-b border-black/04 last:border-0">
+                                      <td className="px-4 py-2 text-[#1A1A1A]/70" style={{maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>{conn.label}</td>
+                                      <td className="px-4 py-2 text-right">
+                                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${conn.role === 'SAIDA' ? 'text-orange-700 bg-orange-500/10' : 'text-blue-700 bg-blue-500/10'}`}>
+                                          {conn.role}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  )) : (
+                                    <tr><td colSpan={2} className="px-4 py-2 text-center text-[#1A1A1A]/35">Sem conexoes ativas</td></tr>
+                                  )}
+                                </tbody>
+                              </table>
                             </div>
                           </div>
                         );
                       })()
                     ) : (
-                      <div className="glass-card p-10 border border-black/07 text-center text-xs text-[#1A1A1A]/40 uppercase tracking-widest font-semibold sticky top-28">
-                        Selecione um nódulo da teia de conexões para inspecionar seus metadados e integridade.
-                      </div>
-                    )}
-                  </div>
+                       <div className="glass-card p-10 border border-black/07 text-center sticky top-28">
+                         <Network size={24} className="mx-auto text-[#1A1A1A]/15 mb-3" />
+                         <p className="text-xs text-[#1A1A1A]/35 uppercase tracking-widest font-semibold">Selecione um neuronio da rede semantica para inspecionar o extrato de custodia e os pontos de ligacao.</p>
+                       </div>
+                     )}
+                   </div>
 
                 </div>
               </div>
