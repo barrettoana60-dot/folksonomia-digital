@@ -17,7 +17,8 @@
 }
 
 /* ============================================================
-   BASE — fundo via SVG fixo
+   BASE — fundo decorativo via pseudo-elemento fixo
+   Funciona em iOS Safari, Android Chrome e todos os browsers
    ============================================================ */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -26,30 +27,36 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  width: 100%;
   color: #1A1A1A;
   background-color: #EEEBE3;
-  background-image: url('/bg.svg');
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-  background-position: center center;
   min-height: 100vh;
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Mobile: background-attachment:fixed quebra no iOS Safari e Android */
-@media (max-width: 768px) {
-  body {
-    background-attachment: scroll;
-    background-size: 100% auto;
-    background-position: top center;
-    min-height: 100dvh;
-  }
+/* Fundo decorativo SVG — position:fixed no pseudo-elemento funciona
+   em iOS e Android (ao contrário de background-attachment:fixed) */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/bg.svg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  pointer-events: none;
 }
 
 /* Sobrescrever QUALQUER classe Tailwind que force texto branco */
