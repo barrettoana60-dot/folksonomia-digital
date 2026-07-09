@@ -154,13 +154,6 @@ export default function Header() {
               >
                 Entrar
               </Link>
-              <Link
-                href="/questionario"
-                className="liquid-button !bg-[#0D3A85] !border-[#0D3A85]/20 !py-2.5 !px-6 !rounded-full !text-[11px] !font-bold hover:scale-105 active:scale-95 transition-transform shadow-[0_4px_12px_rgba(13,58,133,0.15)]"
-                style={{ color: '#fff' }}
-              >
-                Comece agora ↗
-              </Link>
             </div>
           )}
         </nav>
