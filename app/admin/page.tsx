@@ -129,13 +129,43 @@ export default function AdminPage() {
     setFiringNode(firedId);
     setTimeout(() => setFiringNode(null), 800);
 
-    // 2. Atualizar ativação dos nós (efeito de propagação)
-    setInteropNodes(nodes => nodes.map(n => {
-      if (n.id === firedId || n.id === 'core') {
-        return { ...n, activation: Math.min(1.0, n.activation + 0.20 + Math.random() * 0.1) };
-      }
-      return { ...n, activation: Math.max(0.0, n.activation - 0.05) };
-    }));
+    // 2. Atualizar ativação dos nós (Spreading Activation real sobre a topologia do grafo)
+    setInteropNodes(nodes => {
+      const actMap: Record<string, number> = {};
+      nodes.forEach(n => {
+        // Decaimento natural de todas as ativações
+        actMap[n.id] = Math.max(0.0, (n.activation ?? 0) - 0.08);
+      });
+
+      // Pulso inicial no nó disparador e no núcleo centralizador
+      actMap[firedId] = 1.0;
+      actMap['core'] = Math.min(1.0, (actMap['core'] ?? 0) + 0.3);
+
+      // Propagar ativação em 1º grau (vizinhos diretos)
+      interopConnections.forEach(c => {
+        if (c.from === firedId || c.to === firedId) {
+          const neighborId = c.from === firedId ? c.to : c.from;
+          const transmission = c.weight * 0.45;
+          actMap[neighborId] = Math.min(1.0, (actMap[neighborId] ?? 0) + transmission);
+
+          // Propagar ativação em 2º grau (vizinhos de 2º grau)
+          interopConnections.forEach(c2 => {
+            if ((c2.from === neighborId || c2.to === neighborId) && c2.from !== firedId && c2.to !== firedId) {
+              const neighbor2Id = c2.from === neighborId ? c2.to : c2.from;
+              if (neighbor2Id !== firedId && neighbor2Id !== 'core') {
+                const transmission2 = c2.weight * transmission * 0.25;
+                actMap[neighbor2Id] = Math.min(1.0, (actMap[neighbor2Id] ?? 0) + transmission2);
+              }
+            }
+          });
+        }
+      });
+
+      return nodes.map(n => ({
+        ...n,
+        activation: actMap[n.id] !== undefined ? Math.round(actMap[n.id] * 100) / 100 : 0
+      }));
+    });
 
     // 3. Atualizar métricas gerais via Refs síncronas para evitar batching lag do React
     const noise = (Math.random() - 0.5) * 0.03;
@@ -728,10 +758,10 @@ export default function AdminPage() {
         <meta charset="UTF-8" />
         <title>Relatório Semântico NUGEP — ${tag}</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=DM+Serif+Display&display=swap');
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
-            font-family: 'Inter', Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             background: #fff;
             color: #1a1a1a;
             padding: 0;
@@ -764,7 +794,7 @@ export default function AdminPage() {
             align-items: flex-start;
           }
           .institution { font-size: 11px; color: #888; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
-          .system-name { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #111; }
+          .system-name { font-family: 'DM Serif Display', serif; font-size: 24px; font-weight: normal; text-transform: uppercase; letter-spacing: normal; color: #111; }
           .report-type { font-size: 13px; color: #c44000; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
           .date-block { text-align: right; font-size: 10px; color: #999; }
           .nugep-badge {
@@ -788,7 +818,7 @@ export default function AdminPage() {
             border-radius: 0 6px 6px 0;
           }
           .tag-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; font-weight: 700; margin-bottom: 6px; }
-          .tag-value { font-size: 32px; font-weight: 900; color: #c44000; letter-spacing: 0.02em; }
+          .tag-value { font-family: 'DM Serif Display', serif; font-size: 36px; font-weight: normal; color: #c44000; letter-spacing: normal; }
           .tag-meta { display: flex; gap: 24px; margin-top: 12px; }
           .tag-stat { text-align: center; }
           .tag-stat-val { font-size: 20px; font-weight: 700; color: #111; }
@@ -1778,6 +1808,26 @@ export default function AdminPage() {
                             <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-normal">
                               {semanticResult.relatorioEstruturado.camadas.sintese}
                             </p>
+
+                            {/* Seção XAI (Rastreabilidade e Explicabilidade) */}
+                            {semanticResult.relatorioEstruturado.explicabilidade && semanticResult.relatorioEstruturado.explicabilidade.length > 0 && (
+                              <div className="mt-6 pt-6 border-t border-white/10">
+                                <h5 className="text-[10px] font-bold uppercase tracking-wider text-white/50 mb-3 flex items-center gap-1.5">
+                                  <Layers size={12} className="text-orange-400" /> Rastreabilidade e Explicabilidade (XAI)
+                                </h5>
+                                <div className="space-y-3">
+                                  {semanticResult.relatorioEstruturado.explicabilidade.map((item: any, idx: number) => (
+                                    <div key={idx} className="p-3 bg-white/5 border border-white/10 rounded-lg text-xs">
+                                      <div className="flex justify-between items-center mb-1 text-white/40">
+                                        <span className="font-mono text-[9px] uppercase tracking-wide">{item.caminho}</span>
+                                        <span className="text-orange-400 font-bold">{(item.similarity * 100).toFixed(0)}% similaridade</span>
+                                      </div>
+                                      <p className="text-white/80 leading-relaxed italic">"{item.texto}"</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div className="glass-card p-8 border-l-4 border-[#00FF00]/50 relative overflow-hidden">
@@ -1963,7 +2013,7 @@ export default function AdminPage() {
             {activeTab === 'interoperabilidade' && (
               <div className="space-y-6 animate-fade-in text-[#1A1A1A]">
 
-                {/* ── HEADER ───────────────────────────────────────────────── */}
+                {/* ── HEADER ── */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-black/10 pb-5">
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
@@ -1971,7 +2021,7 @@ export default function AdminPage() {
                       Interoperabilidade Cultural — Motor Neural
                     </h2>
                     <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold">
-                      Rede neural aprendendo e criando conexoes semanticas em tempo real
+                      Rede neural aprendendo e criando conexões semânticas em tempo real
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1980,7 +2030,7 @@ export default function AdminPage() {
                       {(['lento','normal','rapido'] as const).map(s => (
                         <button key={s} onClick={() => { setNnSpeed(s); }}
                           className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full transition-all ${nnSpeed === s ? 'bg-[#E8490A] text-white' : 'text-[#1A1A1A]/50 hover:text-[#1A1A1A]'}`}>
-                          {s === 'lento' ? 'Lento' : s === 'normal' ? 'Normal' : 'Rapido'}
+                          {s === 'lento' ? 'Lento' : s === 'normal' ? 'Normal' : 'Rápido'}
                         </button>
                       ))}
                     </div>
@@ -1992,7 +2042,7 @@ export default function AdminPage() {
                     </button>
                     <button onClick={resetTraining}
                       className="text-[10px] uppercase font-bold tracking-wider px-3 py-2 rounded-full bg-black/05 text-[#1A1A1A]/50 hover:bg-black/10 transition-all">
-                      Reset
+                      Reiniciar
                     </button>
                   </div>
                 </div>
@@ -2000,10 +2050,10 @@ export default function AdminPage() {
                 {/* ── METRICAS DO TREINO ────────────────────────────────────── */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: 'Epoca', value: nnEpoch.toString(), sub: 'iteracoes', color: '#E8490A' },
-                    { label: 'Loss', value: nnLoss.toFixed(4), sub: 'erro atual', color: nnLoss < 0.3 ? '#16a34a' : nnLoss < 0.6 ? '#d97706' : '#dc2626' },
-                    { label: 'Acuracia', value: (nnAccuracy * 100).toFixed(1) + '%', sub: 'performance', color: '#1E3A8A' },
-                    { label: 'Conexoes', value: interopConnections.length.toString(), sub: `${nnDiscovered.length} descobertas`, color: '#6D28D9' },
+                    { label: 'Época', value: nnEpoch.toString(), sub: 'iterações', color: '#E8490A' },
+                    { label: 'Erro Global', value: nnLoss.toFixed(4), sub: 'taxa de perda', color: nnLoss < 0.3 ? '#16a34a' : nnLoss < 0.6 ? '#d97706' : '#dc2626' },
+                    { label: 'Acurácia', value: (nnAccuracy * 100).toFixed(1) + '%', sub: 'precisão do grafo', color: '#1E3A8A' },
+                    { label: 'Conexões', value: interopConnections.length.toString(), sub: `${nnDiscovered.length} descobertas`, color: '#6D28D9' },
                   ].map(m => (
                     <div key={m.label} className="glass-card p-4 border border-black/07 flex flex-col gap-1">
                       <span className="text-[8px] uppercase font-bold tracking-widest text-[#1A1A1A]/40">{m.label}</span>
