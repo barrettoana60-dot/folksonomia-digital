@@ -32,21 +32,21 @@ export default function Header() {
   };
 
   const navLinkClass = (active: boolean) =>
-    `text-[11px] md:text-[12px] font-medium transition-all ${
+    `text-[11px] md:text-[12px] font-bold uppercase tracking-wider transition-all ${
       active
-        ? 'text-[#0D3A85] font-semibold border-b-2 border-[#0D3A85] pb-1'
+        ? 'text-[#0D3A85] border-b-2 border-[#0D3A85] pb-1'
         : 'text-[#1A1A1A]/65 hover:text-[#0D3A85]'
     }`;
 
-  // Seção de links comuns do CULTIVA
+  // Seções de navegação funcional para curadores e visitantes
   const renderNavLinks = () => (
-    <div className="hidden lg:flex items-center gap-7">
-      <Link href="/" className={navLinkClass(pathname === '/')}>Início</Link>
-      <a href="#sobre" className={navLinkClass(pathname === '/#sobre')}>Sobre</a>
-      <a href="#solucoes" className={navLinkClass(pathname === '/#solucoes')}>Soluções</a>
-      <a href="#impacto" className={navLinkClass(pathname === '/#impacto')}>Impacto</a>
-      <a href="#comunidade" className={navLinkClass(pathname === '/#comunidade')}>Comunidade</a>
-      <a href="#contato" className={navLinkClass(pathname === '/#contato')}>Contato</a>
+    <div className="flex items-center gap-8">
+      <Link href="/obras" className={navLinkClass(pathname === '/obras')}>
+        Obras
+      </Link>
+      <Link href="/acessibilidade" className={navLinkClass(pathname === '/acessibilidade')}>
+        Acessibilidade
+      </Link>
     </div>
   );
 
@@ -64,8 +64,8 @@ export default function Header() {
       >
         <div className="flex items-center gap-3 cursor-pointer">
           <Logo className="w-8 h-8 md:w-9 h-9" />
-          <span className="text-[#0D3A85] text-base md:text-lg font-black tracking-wider uppercase font-sans">
-            CULTIVA
+          <span className="text-[#0D3A85] text-sm md:text-base font-black tracking-wider uppercase font-sans">
+            Sistema de Folksonomia
           </span>
         </div>
         <div className="flex items-center gap-4">
@@ -86,18 +86,18 @@ export default function Header() {
         boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
       }}
     >
-      {/* Branding (Logo + CULTIVA) */}
+      {/* Branding (Logo + Nome do Sistema) */}
       <div
         onClick={() => router.push('/')}
         className="flex items-center gap-3 group cursor-pointer"
       >
         <Logo className="w-8 h-8 md:w-9 h-9 transition-transform group-hover:scale-105" />
-        <span className="text-[#0D3A85] text-base md:text-lg font-black tracking-wider uppercase font-sans">
-          CULTIVA
+        <span className="text-[#0D3A85] text-sm md:text-base font-black tracking-wider uppercase font-sans">
+          Sistema de Folksonomia
         </span>
       </div>
 
-      {/* Navegação Central */}
+      {/* Navegação Central: Obras e Acessibilidade */}
       {renderNavLinks()}
 
       {/* Botões da Direita */}
@@ -108,7 +108,7 @@ export default function Header() {
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 px-4 py-1.5 rounded-full liquid-button hover:scale-105 transition-transform"
             >
-              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white uppercase bg-[#0D3A85]">
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-[#0D3A85] uppercase">
                 A
               </div>
               <span className="text-[#1A1A1A]/70 hidden sm:inline text-[11px] font-bold">Painel Gestão</span>
@@ -125,7 +125,7 @@ export default function Header() {
                 }}
               >
                 <div className="px-3 py-2 border-b border-black/5 mb-1.5">
-                  <p className="text-xs font-bold text-[#0D3A85]">CULTIVA Curador</p>
+                  <p className="text-xs font-bold text-[#0D3A85]">Curador</p>
                   <p className="text-[9px] text-[#1A1A1A]/40 uppercase tracking-wider mt-0.5">Administrador</p>
                 </div>
                 {pathname !== '/admin' && (
