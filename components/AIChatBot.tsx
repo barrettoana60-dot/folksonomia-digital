@@ -86,7 +86,7 @@ export default function AIChatBot() {
                     {msg.mathData && (
                       <div className="mt-3 pt-3 border-t border-[#E85002]/20">
                         <div className="flex justify-between items-center mb-1">
-                          <span className="text-[10px] uppercase tracking-wider text-[#E85002] font-semibold">Similaridade Cosine</span>
+                          <span className="text-[10px] uppercase tracking-wider text-[#E85002] font-semibold">Similaridade de Cosseno</span>
                           <span className="text-xs font-semibold text-orange-400">{Math.round(msg.mathData.similarity * 100)}%</span>
                         </div>
                         <div className="w-full h-1 bg-black/50 rounded-full overflow-hidden">
