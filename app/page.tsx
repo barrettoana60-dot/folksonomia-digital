@@ -37,10 +37,10 @@ export default function LandingPage() {
 
           <div className="space-y-3">
             <h1 className="text-3xl md:text-[2.6rem] font-normal serif-title text-[#1A1A1A] tracking-tight leading-tight">
-              Sistema de Folksonomia
+              Folksonomia Digital
             </h1>
             <p className="text-[#1A1A1A]/40 text-[11px] uppercase tracking-[0.28em] font-semibold">
-              Documentação Semântica Institucional · NUGEP
+              NUGEP — Documentação Semântica
             </p>
           </div>
         </div>
@@ -63,11 +63,7 @@ export default function LandingPage() {
           <button
             id="btn-acessar-sistema"
             onClick={() => router.push('/questionario')}
-            className="liquid-button !px-14 md:!px-20 !py-4 md:!py-5 !rounded-full !text-[11px] !font-semibold !tracking-[0.15em] shadow-lg hover:shadow-xl transition-shadow"
-            style={{
-              background: 'rgba(255,255,255,0.70)',
-              borderColor: 'rgba(0,0,0,0.12)',
-            }}
+            className="liquid-button !px-14 md:!px-20 !py-4 md:!py-5 !rounded-full !text-[11px] !font-semibold !tracking-[0.15em] hover:scale-105 active:scale-95 transition-all"
           >
             Acessar Sistema
           </button>
