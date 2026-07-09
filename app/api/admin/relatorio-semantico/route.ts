@@ -580,64 +580,62 @@ async function generateAIAnalysis(
   const foiImparcial = certezaCalculada < 50;
   const precisaTreinamento = certezaCalculada < 95;
 
-  // === SEÇÃO 1: O que é este conceito? ===
-  let ancoraNormativa = `### 📖 O que é "${tag}"?\n\n`;
+  // === SEÇÃO 1: Definição e Contextualização do Conceito ===
+  let ancoraNormativa = `### Definição e Contextualização — "${tag}"\n\n`;
 
   if (temTesauro && termoTesauro) {
-    ancoraNormativa += `O **Tesauro de Folclore e Cultura Popular Brasileira (CNFCP/IPHAN)** — vocabulário oficial que normatiza os termos do patrimônio cultural imaterial do Brasil — possui um verbete para este conceito:\n\n`;
-    ancoraNormativa += `> *"${(termoTesauro.na || thesaurusContext).replace(/\n/g, ' ')}"*\n\n`;
+    ancoraNormativa += `O **Tesauro de Folclore e Cultura Popular Brasileira**, mantido pelo Centro Nacional de Folclore e Cultura Popular (CNFCP/IPHAN), registra este conceito com a seguinte definição normativa:\n\n`;
+    ancoraNormativa += `> "${(termoTesauro.na || thesaurusContext).replace(/\n/g, ' ')}"\n\n`;
 
     if (termoTesauro.te && termoTesauro.te.length > 0) {
-      const termosRelac = termoTesauro.te.slice(0, 5).map((t: string) => `**"${t}"**`).join(', ');
-      ancoraNormativa += `**Termos relacionados no vocabulário oficial:** ${termosRelac} — todos integram a mesma família semântica dentro da estrutura de patrimônio cultural brasileiro.\n\n`;
+      const termosRelac = termoTesauro.te.slice(0, 5).map((t: string) => `**${t}**`).join(', ');
+      ancoraNormativa += `Integra a mesma família semântica que os termos: ${termosRelac}, todos normatizados dentro do vocabulário oficial do patrimônio cultural imaterial brasileiro.\n\n`;
     }
 
     if (termoTesauro.ta && termoTesauro.ta.length > 0) {
-      ancoraNormativa += `**Como é usado institucionalmente:** ${termoTesauro.ta[0]}\n\n`;
+      ancoraNormativa += `**Aplicação institucional:** ${termoTesauro.ta[0]}\n\n`;
     }
 
-    ancoraNormativa += `**Fonte institucional:** [Tesauro CNFCP/IPHAN](https://www.cnfcp.gov.br/tesauro/) | Centro Nacional de Folclore e Cultura Popular / Instituto do Patrimônio Histórico e Artístico Nacional\n`;
+    ancoraNormativa += `Fonte: [Tesauro CNFCP/IPHAN](https://www.cnfcp.gov.br/tesauro/)\n`;
   } else {
-    ancoraNormativa += `O conceito **"${tag}"** não possui verbete registrado no Tesauro CNFCP/IPHAN até o momento. Isso não invalida sua existência — significa que ele é um **marcador emergente**, criado coletivamente pelos usuários e curadores da plataforma, e que ainda aguarda formalização institucional.\n\n`;
-    ancoraNormativa += `A pesquisa realizada abaixo baseou-se nos objetos físicos encontrados nos acervos digitais nacionais, identificando padrões que confirmam o uso deste marcador na tradição cultural brasileira.\n`;
+    ancoraNormativa += `O conceito **"${tag}"** não localizado no Tesauro CNFCP/IPHAN até esta data. Trata-se de um marcador de uso emergente, construído coletivamente pelos usuários e curadores da plataforma, ainda sem formalização no vocabulário oficial do patrimônio imaterial. A análise a seguir ancora-se nos objetos físicos encontrados nos acervos digitais nacionais.\n`;
   }
 
-  // === SEÇÃO 2: Referências acadêmicas consultadas ===
+  // === SEÇÃO 2: Literatura Científica e Referências Acadêmicas ===
   let evidenciaEmpirica = '';
 
   if (brasilianaTeoria.length > 0) {
-    evidenciaEmpirica = `---\n\n### 📚 Artigos e Referências Acadêmicas Consultadas\n\n`;
-    evidenciaEmpirica += `A pesquisa consultou **${brasilianaTeoria.length} publicação(ões) acadêmica(s)** relacionadas a **"${tag}"** nas bases literárias da Brasiliana Museus:\n\n`;
+    evidenciaEmpirica = `---\n\n### Literatura Científica Consultada\n\n`;
+    evidenciaEmpirica += `Foram identificadas **${brasilianaTeoria.length} publicação(ões)** com correspondência ao conceito pesquisado nas bases acadêmicas da Brasiliana Museus:\n\n`;
 
     brasilianaTeoria.slice(0, 5).forEach((t: any, idx: number) => {
-      const link = t.link ? `[Acessar artigo ↗](${t.link})` : '';
-      const descricao = t.descricao ? t.descricao.substring(0, 180).trim() + '...' : '';
-      evidenciaEmpirica += `**${idx + 1}. "${t.titulo}"**\n`;
-      if (descricao) evidenciaEmpirica += `*${descricao}*\n`;
+      const link = t.link ? `[Acessar publicação](${t.link})` : '';
+      const descricao = t.descricao ? t.descricao.substring(0, 200).trim() + '...' : '';
+      evidenciaEmpirica += `**${idx + 1}. ${t.titulo}**\n`;
+      if (descricao) evidenciaEmpirica += `${descricao}\n`;
       if (link) evidenciaEmpirica += `${link}\n`;
       evidenciaEmpirica += '\n';
     });
   } else {
-    evidenciaEmpirica = `---\n\n### 📚 Artigos e Referências Acadêmicas\n\n`;
-    evidenciaEmpirica += `Não foram encontradas publicações acadêmicas sobre **"${tag}"** nas bases literárias consultadas. A análise foi conduzida exclusivamente a partir dos objetos físicos encontrados nos acervos museológicos.\n`;
+    evidenciaEmpirica = `---\n\n### Literatura Científica\n\n`;
+    evidenciaEmpirica += `Não foram localizadas publicações acadêmicas sobre **"${tag}"** nas bases consultadas. A análise apoia-se nos registros materiais encontrados nos acervos museológicos nacionais.\n`;
   }
 
-  // === SEÇÃO 3: Objetos encontrados e POR QUÊ se relacionam com o conceito ===
+  // === SEÇÃO 3: Objetos do Acervo — Análise e Contextualização ===
   let extracao = '';
 
   if (topObras.length > 0) {
-    extracao = `---\n\n### 🏺 Objetos do Acervo Nacional — Por que se relacionam com "${tag}"\n\n`;
-    extracao += `A IA analisou os acervos digitais e encontrou **${topObras.length} objeto(s)** que materializam diretamente o conceito. Para cada um, explica-se o motivo cultural e histórico desta relação:\n\n`;
+    extracao = `---\n\n### Objetos do Acervo Nacional — Análise de Pertinência\n\n`;
+    extracao += `A análise cruzada dos acervos digitais identificou **${topObras.length} objeto(s)** com correspondência semântica ao conceito pesquisado. Para cada peça, apresenta-se a fundamentação cultural e histórica da relação:\n\n`;
 
     topObras.slice(0, 5).forEach((o: any, idx: number) => {
       const criador = (o.criador && o.criador !== 'Desconhecido') ? o.criador : null;
       const material = o.material ? o.material.toLowerCase() : null;
       const tecnica = o.tecnica ? o.tecnica.toLowerCase() : null;
       const museu = o.museu || o.fonte || 'Acervo Nacional';
-      const citeLink = o.link ? `[Ver objeto no acervo original ↗](${o.link})` : null;
+      const citeLink = o.link ? `[Acessar no acervo](${o.link})` : null;
       const tagL = tag.toLowerCase();
 
-      // Explicação contextual baseada no domínio cultural do tag
       let porqueRelaciona = '';
 
       const ehArtePop = tagL.includes('popular') || tagL.includes('folclor') || tagL.includes('artesanat') || tagL.includes('vitalino');
@@ -647,50 +645,48 @@ async function generateAIAnalysis(
       const ehMusica = tagL.includes('música') || tagL.includes('canto') || tagL.includes('ritmo') || tagL.includes('tambor') || tagL.includes('samba');
 
       if (ehArtePop) {
-        porqueRelaciona = `Este objeto é uma expressão da **${tag}** porque`;
-        if (criador) porqueRelaciona += ` foi criado por **${criador}**, artista autodidata que trabalha fora das instituições acadêmicas formais,`;
-        if (material) porqueRelaciona += ` utiliza **${material}** como matéria-prima local,`;
-        if (tecnica) porqueRelaciona += ` emprega a técnica de **${tecnica}** transmitida oralmente entre gerações,`;
-        porqueRelaciona += ` e seu registro nos museus federais confirma que as instituições reconhecem este objeto como representante legítimo desta tradição cultural comunitária.`;
-        if (material) porqueRelaciona += ` O uso de **${material}** é característico desta tradição — um material da terra, acessível e central na produção artesanal regional.`;
+        porqueRelaciona = `Esta peça se insere no campo de **${tag}**`;
+        if (criador) porqueRelaciona += ` por ter sido produzida por **${criador}**, artista que atua dentro das tradições comunitárias e autodidatas, fora do circuito acadêmico formal`;
+        if (material) porqueRelaciona += `, com uso de **${material}** como matéria-prima de origem local`;
+        if (tecnica) porqueRelaciona += ` e da técnica de **${tecnica}**, perpetuada por transmissão oral entre gerações`;
+        porqueRelaciona += `. A custódia desta peça por uma instituição federal atesta o reconhecimento do Estado brasileiro desta tradição como patrimônio cultural legítimo.`;
       } else if (ehBarroco) {
-        porqueRelaciona = `Este objeto integra a categoria **"${tag}"** porque`;
-        if (material) porqueRelaciona += ` é confeccionado em **${material}**,`;
-        if (tecnica) porqueRelaciona += ` pela técnica de **${tecnica}**,`;
-        porqueRelaciona += ` expressando os princípios estéticos e devocionais desta tradição no território brasileiro. A peça é testemunho direto da circulação do repertório sagrado nas práticas culturais do período colonial e imperial, permanecendo como documento histórico vivo nos acervos nacionais.`;
+        porqueRelaciona = `A peça integra a tradição de **${tag}** por seus atributos formais e devocionais`;
+        if (material) porqueRelaciona += ` — confeccionada em **${material}**`;
+        if (tecnica) porqueRelaciona += ` sob a técnica de **${tecnica}**`;
+        porqueRelaciona += `. Constitui testemunho material direto da circulação desta linguagem artística e religiosa no território brasileiro, desde o período colonial até sua institucionalização nos acervos nacionais.`;
       } else if (ehTextil) {
-        porqueRelaciona = `Este objeto materializa o conceito de **"${tag}"** por sua produção manual`;
+        porqueRelaciona = `Este objeto documenta a tradição de **${tag}** por sua fatura manual`;
         if (tecnica) porqueRelaciona += ` em **${tecnica}**`;
-        if (material) porqueRelaciona += `, utilizando **${material}**`;
-        porqueRelaciona += `. Esta forma de confecção representa uma tradição de trabalho coletivo — muitas vezes feminino — presente em diversas regiões do Brasil, transmitida como saber-fazer comunitário ao longo de séculos. Sua presença em museus federais confirma o reconhecimento institucional desta prática como patrimônio cultural.`;
+        if (material) porqueRelaciona += ` com uso de **${material}**`;
+        porqueRelaciona += `. Representa uma forma de produção coletiva — historicamente associada ao trabalho feminino — presente em comunidades de diversas regiões do Brasil, reconhecida como saber-fazer de valor patrimonial imaterial.`;
       } else if (ehCeramica) {
-        porqueRelaciona = `Este objeto representa **"${tag}"** por sua composição`;
-        if (material) porqueRelaciona += ` em **${material}**`;
-        if (criador) porqueRelaciona += `, confeccionado por **${criador}**`;
-        porqueRelaciona += `. A técnica cerâmica é uma das expressões mais antigas e persistentes da cultura material brasileira, especialmente nas tradições indígenas, nordestinas e quilombolas. Este objeto carrega a memória das mãos que o moldaram e do território de onde veio seu material.`;
+        porqueRelaciona = `Esta peça materializa o campo de **${tag}**`;
+        if (material) porqueRelaciona += ` por sua composição em **${material}**`;
+        if (criador) porqueRelaciona += `, produzida por **${criador}**`;
+        porqueRelaciona += `. A cerâmica figura entre as expressões mais antigas da cultura material brasileira, com raízes nas tradições indígenas, nordestinas e quilombolas, cada objeto carregando em sua forma os gestos e o território de sua origem.`;
       } else if (ehMusica) {
-        porqueRelaciona = `Este registro se relaciona com **"${tag}"** porque`;
-        if (criador) porqueRelaciona += ` foi criado por **${criador}**,`;
-        porqueRelaciona += ` integrando o universo sonoro e performático que define esta manifestação cultural. Sua catalogação nos acervos nacionais é evidência de que esta expressão foi reconhecida como parte integrante do patrimônio cultural imaterial brasileiro.`;
+        porqueRelaciona = `Este registro associa-se à **${tag}**`;
+        if (criador) porqueRelaciona += ` por ter sido produzido por **${criador}**`;
+        porqueRelaciona += `. Sua catalogação em acervo nacional evidencia que esta expressão performática foi formalmente reconhecida como parte integrante do patrimônio cultural imaterial do Brasil.`;
       } else {
-        // Resposta genérica mas ainda contextual e humana
-        porqueRelaciona = `Este objeto se relaciona com o conceito de **"${tag}"** por razões culturais e materiais:`;
-        if (criador) porqueRelaciona += `\n   * Criado por **${criador}**`;
-        if (material) porqueRelaciona += `\n   * Utiliza **${material}** como suporte físico — um material com significado dentro desta tradição`;
-        if (tecnica) porqueRelaciona += `\n   * Emprega a técnica de **${tecnica}**`;
-        porqueRelaciona += `\n   * Seu registro em **${museu}** confirma que esta instituição de custódia do Estado reconhece formalmente o objeto como parte desta categoria semântica no patrimônio cultural nacional.`;
+        porqueRelaciona = `A relação deste objeto com o conceito de **"${tag}"** está fundamentada em:`;
+        if (criador) porqueRelaciona += `\n   * Autoria de **${criador}**`;
+        if (material) porqueRelaciona += `\n   * Uso de **${material}** como suporte material — elemento característico desta tradição`;
+        if (tecnica) porqueRelaciona += `\n   * Técnica de **${tecnica}**`;
+        porqueRelaciona += `\n   * Catalogação em **${museu}**, instituição federal de custódia que reconhece formalmente este objeto como parte desta categoria patrimonial.`;
       }
 
-      extracao += `#### ${idx + 1}. "${o.titulo}"\n`;
-      extracao += `📍 *Custodiado em: **${museu}***\n\n`;
-      extracao += `**Por que se relaciona com "${tag}":** ${porqueRelaciona}\n\n`;
+      extracao += `#### ${idx + 1}. ${o.titulo}\n`;
+      extracao += `*Custódia: **${museu}***\n\n`;
+      extracao += `**Fundamentação da pertinência:** ${porqueRelaciona}\n\n`;
 
       const detalhes: string[] = [];
-      if (material && tecnica) detalhes.push(`**Material/Técnica:** ${material} · ${tecnica}`);
+      if (material && tecnica) detalhes.push(`**Material / Técnica:** ${material} · ${tecnica}`);
       else if (material) detalhes.push(`**Material:** ${material}`);
       else if (tecnica) detalhes.push(`**Técnica:** ${tecnica}`);
-      if (criador) detalhes.push(`**Criador/Artista:** ${criador}`);
-      if (citeLink) detalhes.push(`**Fonte:** ${citeLink}`);
+      if (criador) detalhes.push(`**Criador:** ${criador}`);
+      if (citeLink) detalhes.push(`**Acervo digital:** ${citeLink}`);
 
       if (detalhes.length > 0) {
         detalhes.forEach(d => { extracao += `* ${d}\n`; });
@@ -699,74 +695,74 @@ async function generateAIAnalysis(
     });
 
   } else {
-    extracao = `---\n\n### 🏺 Objetos do Acervo Nacional\n\n`;
-    extracao += `Nenhum objeto foi encontrado nos acervos digitais consultados (IBRAM/Tainacan e Brasiliana Museus) com correspondência direta ao conceito **"${tag}"** neste momento. \n\n`;
-    extracao += `Isso não significa que o conceito não existe — pode indicar que os acervos ainda não digitalizaram completamente estas peças, ou que os metadados das obras estão catalogados com termos diferentes. O sistema salvou este conceito para refinamento nas próximas buscas.\n`;
+    extracao = `---\n\n### Objetos do Acervo Nacional\n\n`;
+    extracao += `Não foram localizados objetos nos acervos digitais consultados (IBRAM/Tainacan e Brasiliana Museus) com correspondência direta ao conceito **"${tag}"** no momento desta pesquisa.\n\n`;
+    extracao += `Isso pode indicar lacunas na digitalização dos acervos ou uso de terminologia diferente nos metadados das instituições. O conceito foi registrado para refinamento progressivo nas próximas consultas.\n`;
   }
 
-  // === SEÇÃO 4: Conexões semânticas salvas na Interoperabilidade Cultural ===
-  let topologiaInterna = `---\n\n### 🧬 Conexões Salvas na Interoperabilidade Cultural\n\n`;
+  // === SEÇÃO 4: Rede Semântica e Interoperabilidade Cultural ===
+  let topologiaInterna = `---\n\n### Rede Semântica — Conexões Integradas ao Sistema\n\n`;
 
   const conexoesAtivadas: string[] = [];
 
   if (tagCorrelation.siblings.length > 0) {
     tagCorrelation.siblings.slice(0, 6).forEach((s: any) => {
-      const motivo = s.peso > 3 ? 'co-ocorrem frequentemente nos mesmos objetos dos acervos' : 'foram associadas pelos curadores da plataforma';
-      conexoesAtivadas.push(`**"${tag}"** ↔ **"${s.tag}"** — *${motivo}*`);
+      const motivo = s.peso > 3 ? 'presença simultânea frequente nos acervos consultados' : 'associação registrada por curadores da plataforma';
+      conexoesAtivadas.push(`**"${tag}"** — **"${s.tag}"** (${motivo})`);
     });
   }
 
   if (pgvectorMatches.length > 0) {
     pgvectorMatches.slice(0, 3).forEach((m: any) => {
       const termo = m.conteudo_original || m.termo;
-      if (termo) conexoesAtivadas.push(`**"${tag}"** ↔ **"${termo}"** — *identificado via memória semântica de longo prazo do sistema*`);
+      if (termo) conexoesAtivadas.push(`**"${tag}"** — **"${termo}"** (recuperado via memória semântica de longo prazo do sistema)`);
     });
   }
 
   if (topObras.length > 0) {
     const museusUnicos = [...new Set(topObras.map((o: any) => o.museu || o.fonte).filter(Boolean))];
     museusUnicos.slice(0, 3).forEach((m: any) => {
-      conexoesAtivadas.push(`**"${tag}"** ↔ **"${m}"** — *museu que custódia objetos desta categoria*`);
+      conexoesAtivadas.push(`**"${tag}"** — **"${m}"** (instituição de custódia com objetos desta categoria)`);
     });
   }
 
   if (conexoesAtivadas.length > 0) {
-    topologiaInterna += `Esta pesquisa gerou e **salvou automaticamente** as seguintes conexões no grafo de Interoperabilidade Cultural. Elas já estão visíveis na aba correspondente:\n\n`;
+    topologiaInterna += `As conexões abaixo foram identificadas durante esta pesquisa e **registradas automaticamente no grafo de Interoperabilidade Cultural**. Estão acessíveis na aba correspondente do painel:\n\n`;
     conexoesAtivadas.forEach(c => { topologiaInterna += `* ${c}\n`; });
-    topologiaInterna += `\n> 🔁 **Treinamento registrado:** Cada pesquisa realizada aqui alimenta o sistema de aprendizado contínuo. As conexões acima foram adicionadas ao DNA Semântico da Interoperabilidade Cultural e estarão disponíveis para enriquecer futuras pesquisas sobre conceitos relacionados.\n`;
+    topologiaInterna += `\n**Sobre o aprendizado contínuo:** cada pesquisa realizada neste módulo alimenta progressivamente a cadeia de DNA Semântico do sistema. As conexões acima passam a integrar o grafo e serão utilizadas para enriquecer análises futuras sobre conceitos relacionados, sem necessidade de intervenção manual.\n`;
   } else {
-    topologiaInterna += `Esta é a primeira pesquisa sobre **"${tag}"** no sistema. Nenhuma conexão prévia foi encontrada.\n\n`;
-    topologiaInterna += `> 🔁 **Treinamento iniciado:** O conceito foi registrado no sistema de aprendizado contínuo. As próximas pesquisas e correlações feitas com este termo construirão progressivamente sua rede de conexões no DNA Semântico.\n`;
+    topologiaInterna += `Esta é a primeira pesquisa registrada sobre **"${tag}"** no sistema. Nenhuma conexão prévia foi localizada.\n\n`;
+    topologiaInterna += `**Início do ciclo de aprendizado:** o conceito foi incorporado ao sistema de memória semântica. As próximas pesquisas e correlações construirão progressivamente sua rede de conexões no DNA Semântico da Interoperabilidade Cultural.\n`;
   }
 
-  // === SEÇÃO 5: Conclusão e status das bases consultadas ===
-  let sinteseDeducao = `---\n\n### ✅ Conclusão\n\n`;
+  // === SEÇÃO 5: Conclusão e Fontes ===
+  let sinteseDeducao = `---\n\n### Conclusão da Análise\n\n`;
 
   if (!foiImparcial) {
-    sinteseDeducao += `O conceito **"${tag}"** está **documentado e confirmado** no acervo cultural digital brasileiro. `;
-    if (temTesauro) sinteseDeducao += `Possui definição formal no **Tesauro CNFCP/IPHAN**, o vocabulário oficial do patrimônio cultural nacional. `;
-    if (topObras.length > 0) sinteseDeducao += `Foram identificados **${topObras.length} objeto(s) físico(s)** que materializam diretamente este conceito nos museus federais, com justificativas culturais detalhadas acima. `;
-    if (brasilianaTeoria.length > 0) sinteseDeducao += `**${brasilianaTeoria.length} publicação(ões) acadêmica(s)** foram consultadas como referência. `;
-    sinteseDeducao += `\n\n**Esta pesquisa foi salva no sistema.** As conexões descobertas estão integradas na cadeia de DNA Semântico e visíveis na aba Interoperabilidade Cultural.`;
+    sinteseDeducao += `O conceito **"${tag}"** está documentado e verificado no acervo cultural digital brasileiro. `;
+    if (temTesauro) sinteseDeducao += `Conta com definição normativa formal no **Tesauro CNFCP/IPHAN**. `;
+    if (topObras.length > 0) sinteseDeducao += `Foram identificados **${topObras.length} objeto(s)** nos acervos federais que materializam este conceito, com fundamentação cultural detalhada acima. `;
+    if (brasilianaTeoria.length > 0) sinteseDeducao += `**${brasilianaTeoria.length} publicação(ões) acadêmica(s)** foram consultadas como referência bibliográfica. `;
+    sinteseDeducao += `\n\nOs dados desta pesquisa foram persistidos no sistema de aprendizado contínuo e as conexões descobertas estão integradas ao DNA Semântico, visíveis na aba Interoperabilidade Cultural.`;
   } else {
     const fatores: string[] = [];
-    if (!temTesauro) fatores.push('verbete não encontrado no Tesauro CNFCP/IPHAN');
-    if (!temTeoria) fatores.push('sem publicações acadêmicas nas bases consultadas');
-    if (totalEvidencias === 0) fatores.push('nenhum objeto encontrado nos acervos digitais');
+    if (!temTesauro) fatores.push('ausência de verbete no Tesauro CNFCP/IPHAN');
+    if (!temTeoria) fatores.push('ausência de publicações acadêmicas nas bases consultadas');
+    if (totalEvidencias === 0) fatores.push('ausência de objetos nos acervos digitais');
 
-    sinteseDeducao += `O sistema não encontrou evidências suficientes nos acervos consultados para confirmar plenamente o conceito **"${tag}"** neste momento.\n\n`;
-    if (fatores.length > 0) sinteseDeducao += `**Lacunas identificadas:** ${fatores.join(' · ')}.\n\n`;
-    sinteseDeducao += `O conceito foi registrado na fila de aprendizado. As próximas catalogações e pesquisas sobre este tema irão progressivamente construir sua base de evidências no sistema.`;
+    sinteseDeducao += `As bases de dados consultadas não reuniram evidências suficientes para uma análise conclusiva sobre **"${tag}"** neste momento.\n\n`;
+    if (fatores.length > 0) sinteseDeducao += `**Lacunas identificadas:** ${fatores.join('; ')}.\n\n`;
+    sinteseDeducao += `O conceito foi inserido na fila de aprendizado do sistema. Novas catalogações e pesquisas sobre este tema contribuirão progressivamente para a construção de seu perfil semântico.`;
   }
 
-  sinteseDeducao += `\n\n---\n\n### 🗄️ Bases de Dados Consultadas nesta Pesquisa\n\n`;
-  sinteseDeducao += `| Base | Registros encontrados | Acesso |\n`;
-  sinteseDeducao += `|------|-----------------------|--------|\n`;
-  sinteseDeducao += `| IBRAM / Tainacan (Museus Federais) | ${ibram.length} objeto(s) | [tainacan.org ↗](https://tainacan.org) |\n`;
+  sinteseDeducao += `\n\n---\n\n### Fontes e Bases de Dados Consultadas\n\n`;
+  sinteseDeducao += `| Base de Dados | Registros | Acesso |\n`;
+  sinteseDeducao += `|---|---|---|\n`;
+  sinteseDeducao += `| IBRAM / Tainacan — Museus Federais | ${ibram.length} | [tainacan.org](https://tainacan.org) |\n`;
   sinteseDeducao += `| Brasiliana Museus | ${brasiliana.length} item(ns) | [brasiliana.museus.gov.br ↗](https://brasiliana.museus.gov.br) |\n`;
   sinteseDeducao += `| Tesauro CNFCP/IPHAN | ${temTesauro ? 'Verbete encontrado' : 'Sem verbete'} | [cnfcp.gov.br ↗](https://www.cnfcp.gov.br/tesauro/) |\n`;
   sinteseDeducao += `| Literatura Acadêmica (Brasiliana Teoria) | ${brasilianaTeoria.length} artigo(s) | [Brasiliana Digital ↗](https://brasiliana.museus.gov.br) |\n`;
-  sinteseDeducao += `| Memória Semântica (pgvector) | ${pgvectorMatches.length} correspondência(s) | Sistema interno NUGEP |\n`;
+  sinteseDeducao += `| Memória Semântica NUGEP (pgvector) | ${pgvectorMatches.length} correspondência(s) | Sistema interno NUGEP |\n`;
 
   const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, topologiaInterna, sinteseDeducao].join('\n\n---\n\n');
 
