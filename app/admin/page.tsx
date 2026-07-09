@@ -104,21 +104,24 @@ export default function AdminPage() {
   const nnLossRef = useRef(1.0);
   const nnAccuracyRef = useRef(0.0);
   const discoveredKeysRef = useRef(new Set<string>());
+  // REF SEMPRE ATUALIZADO — elimina stale closure dentro de runTrainingEpoch
+  const interopConnectionsRef = useRef<typeof interopConnections>([]);
 
   // Corpus de conexões latentes que a rede pode DESCOBRIR com treinamento
+  // Thresholds baixos para que as primeiras conexões sejam descobertas rapidamente
   const latentConnections = useRef([
-    { from: "frevo",          to: "coco",           label: "Co-ocorrência: cultura nordestina afro",         threshold: 0.35 },
-    { from: "capoeira",       to: "frevo",          label: "Intersecção: expressão corporal afrobrasil.",    threshold: 0.42 },
-    { from: "bilro",          to: "tapeçaria",      label: "Afinidade: artesanato têxtil manual",            threshold: 0.38 },
-    { from: "carranca",       to: "capoeira",       label: "Vetor: resistência cultural africana",           threshold: 0.45 },
-    { from: "museografia",    to: "dossie",         label: "Dependência documental: normas IPHAN",           threshold: 0.30 },
-    { from: "tapeçaria",      to: "artigo_popular", label: "Referência cruzada: economia criativa",          threshold: 0.40 },
-    { from: "coco",           to: "capoeira",       label: "Padrão: manifestações afrodescendentes",         threshold: 0.48 },
-    { from: "core",           to: "coco",           label: "Expansão do núcleo: novo patrimônio indexado",   threshold: 0.20 },
-    { from: "core",           to: "capoeira",       label: "Expansão do núcleo: patrimônio UNESCO",          threshold: 0.22 },
-    { from: "core",           to: "tapeçaria",      label: "Expansão do núcleo: artesanato regional",        threshold: 0.25 },
-    { from: "artigo_popular", to: "coco",           label: "Citação acadêmica: manifestações populares",     threshold: 0.50 },
-    { from: "frevo",          to: "tapeçaria",      label: "Representação visual: cultura pernambucana",     threshold: 0.55 },
+    { from: "frevo",          to: "coco",           label: "Co-ocorrência: cultura nordestina afro",         threshold: 0.12 },
+    { from: "capoeira",       to: "frevo",          label: "Intersecção: expressão corporal afrobrasil.",    threshold: 0.18 },
+    { from: "bilro",          to: "tapeçaria",      label: "Afinidade: artesanato têxtil manual",            threshold: 0.15 },
+    { from: "carranca",       to: "capoeira",       label: "Vetor: resistência cultural africana",           threshold: 0.22 },
+    { from: "museografia",    to: "dossie",         label: "Dependência documental: normas IPHAN",           threshold: 0.10 },
+    { from: "tapeçaria",      to: "artigo_popular", label: "Referência cruzada: economia criativa",          threshold: 0.20 },
+    { from: "coco",           to: "capoeira",       label: "Padrão: manifestações afrodescendentes",         threshold: 0.28 },
+    { from: "core",           to: "coco",           label: "Expansão do núcleo: novo patrimônio indexado",   threshold: 0.08 },
+    { from: "core",           to: "capoeira",       label: "Expansão do núcleo: patrimônio UNESCO",          threshold: 0.10 },
+    { from: "core",           to: "tapeçaria",      label: "Expansão do núcleo: artesanato regional",        threshold: 0.13 },
+    { from: "artigo_popular", to: "coco",           label: "Citação acadêmica: manifestações populares",     threshold: 0.25 },
+    { from: "frevo",          to: "tapeçaria",      label: "Representação visual: cultura pernambucana",     threshold: 0.32 },
   ]);
 
   // ─── MOTOR DE APRENDIZADO DA REDE NEURAL ─────────────────────────────────────
@@ -129,7 +132,8 @@ export default function AdminPage() {
     setFiringNode(firedId);
     setTimeout(() => setFiringNode(null), 800);
 
-    // 2. Atualizar ativação dos nós (Spreading Activation real sobre a topologia do grafo)
+    // 2. Spreading Activation real usando interopConnectionsRef (sem stale closure)
+    const currentConnsForSpread = interopConnectionsRef.current;
     setInteropNodes(nodes => {
       const actMap: Record<string, number> = {};
       nodes.forEach(n => {
@@ -141,15 +145,15 @@ export default function AdminPage() {
       actMap[firedId] = 1.0;
       actMap['core'] = Math.min(1.0, (actMap['core'] ?? 0) + 0.3);
 
-      // Propagar ativação em 1º grau (vizinhos diretos)
-      interopConnections.forEach(c => {
+      // Propagar ativação em 1º grau — usando ref sempre atualizado
+      currentConnsForSpread.forEach(c => {
         if (c.from === firedId || c.to === firedId) {
           const neighborId = c.from === firedId ? c.to : c.from;
           const transmission = c.weight * 0.45;
           actMap[neighborId] = Math.min(1.0, (actMap[neighborId] ?? 0) + transmission);
 
           // Propagar ativação em 2º grau (vizinhos de 2º grau)
-          interopConnections.forEach(c2 => {
+          currentConnsForSpread.forEach(c2 => {
             if ((c2.from === neighborId || c2.to === neighborId) && c2.from !== firedId && c2.to !== firedId) {
               const neighbor2Id = c2.from === neighborId ? c2.to : c2.from;
               if (neighbor2Id !== firedId && neighbor2Id !== 'core') {
@@ -168,8 +172,8 @@ export default function AdminPage() {
     });
 
     // 3. Atualizar métricas gerais via Refs síncronas para evitar batching lag do React
-    const noise = (Math.random() - 0.5) * 0.03;
-    const decay = 0.022;
+    const noise = (Math.random() - 0.5) * 0.02;
+    const decay = 0.05; // decay acelerado: a rede aprende e descobre conexões mais rápido
     nnLossRef.current = Math.max(0.03, nnLossRef.current - decay + noise);
     const nextLoss = nnLossRef.current;
     setNnLoss(nextLoss);
@@ -299,6 +303,12 @@ export default function AdminPage() {
 
   // Restart quando muda velocidade
   useEffect(() => { if (nnIsTraining) startTraining(); }, [nnSpeed]);
+
+  // CRUCIAL: Manter interopConnectionsRef sempre sincronizado com o state
+  // Isso elimina o stale closure no runTrainingEpoch (que tem dependencia [])
+  useEffect(() => {
+    interopConnectionsRef.current = interopConnections;
+  }, [interopConnections]);
 
   // Cleanup no unmount
   useEffect(() => () => { if (trainingRef.current) clearInterval(trainingRef.current); }, []);
