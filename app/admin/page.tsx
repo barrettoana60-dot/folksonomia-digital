@@ -20,6 +20,86 @@ const tabs = [
   { id: 'ontologia', label: 'Ontologias' },
 ];
 
+const parseInlineMarkdown = (text: string) => {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const boldRegex = /\*\*([^*]+)\*\*/g;
+
+  let tempText = text;
+  let placeholders: { [key: string]: React.ReactNode } = {};
+  let placeholderCounter = 0;
+
+  // 1. Substituir links por placeholders
+  tempText = tempText.replace(linkRegex, (m, label, url) => {
+    const ph = `___LINK_PLACEHOLDER_${placeholderCounter}___`;
+    placeholders[ph] = (
+      <a 
+        key={ph}
+        href={url} 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        className="text-[#E8490A] hover:underline font-bold inline-flex items-center gap-0.5 hover:opacity-80 transition-opacity"
+      >
+        {label} ↗
+      </a>
+    );
+    placeholderCounter++;
+    return ph;
+  });
+
+  // 2. Substituir negritos por placeholders
+  tempText = tempText.replace(boldRegex, (m, boldText) => {
+    const ph = `___BOLD_PLACEHOLDER_${placeholderCounter}___`;
+    placeholders[ph] = (
+      <strong key={ph} className="font-bold text-[#1A1A1A] font-sans">
+        {boldText}
+      </strong>
+    );
+    placeholderCounter++;
+    return ph;
+  });
+
+  const finalRegex = /(___LINK_PLACEHOLDER_\d+___|___BOLD_PLACEHOLDER_\d+___)/g;
+  const splitParts = tempText.split(finalRegex);
+
+  return splitParts.map((part, i) => {
+    if (placeholders[part]) {
+      return placeholders[part];
+    }
+    return part;
+  });
+};
+
+const renderMarkdown = (text: string) => {
+  if (!text) return null;
+  
+  const lines = text.split('\n');
+  return lines.map((line, idx) => {
+    let trimmed = line.trim();
+    
+    if (trimmed.startsWith('###')) {
+      return <h4 key={idx} className="text-sm font-bold uppercase tracking-wider text-[#E8490A] mt-6 mb-2 border-b border-[#E8490A]/10 pb-1">{trimmed.replace(/^###\s+/, '')}</h4>;
+    }
+    if (trimmed.startsWith('##')) {
+      return <h3 key={idx} className="text-base font-bold serif-title text-[#E8490A] mt-8 mb-3">{trimmed.replace(/^##\s+/, '')}</h3>;
+    }
+    if (trimmed.startsWith('>')) {
+      return (
+        <blockquote key={idx} className="border-l-4 border-[#E8490A]/50 pl-4 py-1.5 my-3 bg-[#E8490A]/5 italic text-[#1A1A1A]/70 text-xs rounded-r">
+          {parseInlineMarkdown(trimmed.replace(/^>\s*/, ''))}
+        </blockquote>
+      );
+    }
+    if (line === '') {
+      return <div key={idx} className="h-2" />;
+    }
+    return (
+      <p key={idx} className="text-[#1A1A1A]/85 text-[13px] leading-relaxed my-2">
+        {parseInlineMarkdown(line)}
+      </p>
+    );
+  });
+};
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('visao');
   const [showAddForm, setShowAddForm] = useState(false);
@@ -1922,13 +2002,13 @@ export default function AdminPage() {
                             )}
                           </div>
                         ) : (
-                          <div className="glass-card p-8 border-l-4 border-[#00FF00]/50 relative overflow-hidden">
-                            <h4 className="text-xs font-bold uppercase tracking-widest text-[#00FF00] mb-3 flex items-center gap-2">
+                          <div className="glass-card p-8 border-l-4 border-[#E8490A]/50 relative overflow-hidden">
+                            <h4 className="text-xs font-bold uppercase tracking-widest text-[#E8490A] mb-3 flex items-center gap-2">
                               <Brain size={16} /> Parecer Semântico Institucional
                             </h4>
-                            <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap font-normal">
-                              {semanticResult.relatorioEstruturado.deducao}
-                            </p>
+                            <div className="text-[#1A1A1A] space-y-3 font-normal">
+                              {renderMarkdown(semanticResult.relatorioEstruturado.deducao)}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1937,8 +2017,8 @@ export default function AdminPage() {
                         <h4 className="text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10">
                           <FileText size={16} className="text-[#E85002]" /> Análise Escrita
                         </h4>
-                        <div className="prose prose-invert prose-sm max-w-none text-[#1A1A1A]/80 leading-relaxed whitespace-pre-line relative z-10">
-                          {semanticResult.analiseEscrita}
+                        <div className="text-[#1A1A1A] space-y-3 leading-relaxed relative z-10">
+                          {renderMarkdown(semanticResult.analiseEscrita)}
                         </div>
                       </div>
                     )}
