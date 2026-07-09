@@ -101,6 +101,93 @@ export async function processHumanFeedback(
     })
     .eq('id', inferenceId);
 
+  // 5. Aprendizado Hebbiano (Hebbian learning) de Co-ocorrência
+  if (action === 'approve') {
+    try {
+      const { data: currentNucleo } = await supabase
+        .from('nucleos')
+        .select('id, obra_id, conteudo_normalizado, tipo')
+        .eq('id', inferenceId)
+        .single();
+
+      if (currentNucleo && currentNucleo.obra_id) {
+        const { data: siblingNucleos } = await supabase
+          .from('nucleos')
+          .select('id, conteudo_normalizado, tipo')
+          .eq('obra_id', currentNucleo.obra_id)
+          .eq('status_validacao', 'validado')
+          .neq('id', currentNucleo.id);
+
+        if (siblingNucleos && siblingNucleos.length > 0) {
+          for (const sib of siblingNucleos) {
+            // Verificar se a relação já existe bidirecionalmente
+            const { data: existingRel } = await supabase
+              .from('relacoes')
+              .select('id, peso')
+              .or(`and(origem_id.eq.${currentNucleo.id},destino_id.eq.${sib.id}),and(origem_id.eq.${sib.id},destino_id.eq.${currentNucleo.id})`)
+              .limit(1);
+
+            let newWeight = 0.5;
+            if (existingRel && existingRel.length > 0) {
+              newWeight = Math.min(1.0, Number(existingRel[0].peso || 0.5) + 0.1);
+              await supabase
+                .from('relacoes')
+                .update({
+                  peso: newWeight,
+                  metodo: 'hebbian_learning',
+                  status: 'validada',
+                  criado_em: new Date().toISOString()
+                })
+                .eq('id', existingRel[0].id);
+            } else {
+              await supabase
+                .from('relacoes')
+                .insert({
+                  origem_id: currentNucleo.id,
+                  destino_id: sib.id,
+                  origem_tipo: currentNucleo.tipo,
+                  destino_tipo: sib.tipo,
+                  tipo_relacao: 'co_occurrence',
+                  peso: newWeight,
+                  metodo: 'hebbian_learning',
+                  status: 'validada',
+                  fonte: 'curador_validation'
+                });
+            }
+
+            // Gravar log de Hebbian learning em tag_learning_history
+            await supabase.from('tag_learning_history').insert([
+              {
+                tag_normalizada: currentNucleo.conteudo_normalizado,
+                event_type: 'hebbian_reinforcement',
+                event_details: {
+                  action: 'reinforce',
+                  target_tag: sib.conteudo_normalizado,
+                  obra_id: currentNucleo.obra_id,
+                  new_weight: newWeight,
+                  timestamp: new Date().toISOString()
+                }
+              },
+              {
+                tag_normalizada: sib.conteudo_normalizado,
+                event_type: 'hebbian_reinforcement',
+                event_details: {
+                  action: 'reinforce',
+                  target_tag: currentNucleo.conteudo_normalizado,
+                  obra_id: currentNucleo.obra_id,
+                  new_weight: newWeight,
+                  timestamp: new Date().toISOString()
+                }
+              }
+            ]);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[HebbianLearning] Erro no aprendizado sináptico:', err);
+    }
+  }
+
   return { 
     success: true,
     action,
