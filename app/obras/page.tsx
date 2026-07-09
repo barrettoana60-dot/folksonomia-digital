@@ -36,8 +36,8 @@ export default async function ObrasPage() {
           </div>
         </div>
 
-        {/* Grid de obras */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-10">
+        {/* Grid de obras — mais compacto */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
           {obras.length === 0 ? (
             <ObraCard
               obra={{
