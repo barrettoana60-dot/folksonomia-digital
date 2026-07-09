@@ -1,33 +1,27 @@
-import React from 'react';
+import React from "react";
 
-/**
- * Nova logo institucional — formas geométricas coloridas
- * representando comunidade/pessoas (conforme imagem de referência)
- */
-const Logo = ({ className = "w-10 h-10" }: { className?: string }) => {
+interface LogoProps {
+  className?: string;
+}
+
+export default function Logo({ className = "w-12 h-12" }: LogoProps) {
   return (
-    <div className={`relative flex items-center justify-center ${className}`}>
-      <svg viewBox="0 0 100 85" className="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Quadrado azul arredondado — esquerda (principal) */}
-        <rect x="2" y="2" width="40" height="40" rx="10" ry="10" fill="#1E3A8A" />
-
-        {/* Píula verde — centro superior */}
-        <rect x="48" y="2" width="18" height="44" rx="9" ry="9" fill="#1A6B3A" />
-
-        {/* Círculo amarelo — direita superior */}
-        <circle cx="83" cy="18" r="15" fill="#E8A920" />
-
-        {/* Laranja arredondado — baixo esquerda */}
-        <rect x="2" y="46" width="40" height="30" rx="10" ry="10" fill="#E8490A" />
-
-        {/* Vermelho blob — baixo direita */}
-        <path
-          d="M50 52 Q50 46 60 46 L84 46 Q94 46 94 56 L94 72 Q94 82 80 82 Q62 82 54 76 Q50 72 50 66 Z"
-          fill="#C0252B"
-        />
-      </svg>
-    </div>
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 100 100" 
+      className={className}
+    >
+      <path d="M 50 50 L 50 2 A 48 48 0 0 1 95.6 35.1 Z" fill="#c0392b" />
+      <path d="M 50 50 L 95.6 35.1 A 48 48 0 0 1 78.2 88.8 Z" fill="#27ae60" />
+      <path d="M 50 50 L 78.2 88.8 A 48 48 0 0 1 21.8 88.8 Z" fill="#f39c12" />
+      <path d="M 50 50 L 21.8 88.8 A 48 48 0 0 1 4.4 35.1 Z" fill="#2980b9" />
+      <path d="M 50 50 L 4.4 35.1 A 48 48 0 0 1 50 2 Z" fill="#d35400" />
+      
+      <circle cx="32" cy="32" r="4" fill="black" opacity="0.8" />
+      <circle cx="68" cy="32" r="4" fill="black" opacity="0.8" />
+      <circle cx="78" cy="65" r="4" fill="black" opacity="0.8" />
+      <circle cx="50" cy="78" r="4" fill="black" opacity="0.8" />
+      <circle cx="22" cy="65" r="4" fill="black" opacity="0.8" />
+    </svg>
   );
-};
-
-export default Logo;
+}
