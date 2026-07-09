@@ -43,8 +43,6 @@ body {
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Fundo decorativo SVG — position:fixed no pseudo-elemento funciona
-   em iOS e Android (ao contrário de background-attachment:fixed) */
 body::before {
   content: '';
   position: fixed;
@@ -58,6 +56,12 @@ body::before {
   background-repeat: no-repeat;
   z-index: -1;
   pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  body::before {
+    background-size: 100% 100%;
+  }
 }
 
 /* Sobrescrever QUALQUER classe Tailwind que force texto branco */
