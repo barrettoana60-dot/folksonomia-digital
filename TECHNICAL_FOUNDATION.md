@@ -1,162 +1,194 @@
 # Relatório de Fundamentação Técnica: Inteligência Artificial Neuro-Simbólica aplicada à Folksonomia Cultural
 **Contexto Institucional:** NUGEP / UNIRIO  
 **Projeto:** Sistema de Folksonomia Digital (SFD) 2.0  
-**Data:** 9 de Julho de 2026  
+**Data de Atualização:** 9 de Julho de 2026  
 
 ---
 
 ## 1. Diagnóstico e Enquadramento face ao Estado da Arte
 
-A folksonomia, enquanto prática de indexação social e colaborativa, representa uma quebra de paradigma na catalogação tradicional de acervos culturais. Em oposição às taxonomias rígidas impostas *top-down* por especialistas, a folksonomia surge como um modelo *bottom-up*, onde visitantes geram vocabulários espontâneos e dinâmicos para descrever objetos de arte e memória. 
+### 1.1 Panorama de Curadoria Semântica e Folksonomia Digital
+A folksonomia, enquanto prática de catalogação colaborativa e indexação social descentralizada, representa uma quebra de paradigma na organização de acervos culturais. Tradicionalmente, museus e instituições de memória dependem de taxonomias rígidas impostas *top-down* por especialistas (p. ex., Getty Vocabulary, Dublin Core, CIDOC-CRM). Embora esses sistemas simbólicos garantam consistência institucional, eles criam uma barreira linguística e conceitual para o público leigo.
 
-Todavia, sistemas folksonômicos puramente sociais enfrentam desafios estruturais severos:
+A folksonomia surge como uma alternativa *bottom-up*, permitindo que os visitantes do acervo classifiquem obras espontaneamente de acordo com suas percepções. Entretanto, a indexação puramente social apresenta limitações estruturais:
 * **Ambiguidade e Polissemia**: Tags como "pena" podem referir-se à cobertura de aves ou à sanção jurídica.
-* **Erros de Grafia e Variações Linguísticas**: Plurais, acentuações e digitações incorretas fragmentam a malha de busca.
+* **Erros de Grafia e Variações**: Plurais, acentuações, abreviações e erros ortográficos fragmentam as chaves de busca.
 * **Falta de Materialidade e Rigor Normativo**: Vocabulários livres frequentemente distanciam-se das fichas catalográficas oficiais e dos tesauros institucionais (como o do IPHAN).
 
-O **Sistema de Folksonomia Digital (SFD)** propõe resolver este hiato por meio de uma arquitetura de **IA Neuro-Simbólica**. O SFD não anula a linguagem popular; em vez disso, ele atua como um tradutor dinâmico que estabelece pontes formais entre a linguagem natural livre do usuário e a taxonomia museológica normatizada. Ao integrar modelos conexionistas (Transformers, KGE, GNNs) com estruturas simbólicas estruturadas (Ontologias e Tesauros), a plataforma estabiliza e valida o sentido das tags populares, convertendo-as em metadados de alto rigor científico e histórico.
+### 1.2 Posicionamento do SFD 2.0 no Estado da Arte
+O **Sistema de Folksonomia Digital (SFD)** propõe resolver este hiato por meio de uma arquitetura de **IA Neuro-Simbólica**. O SFD não anula a linguagem popular; em vez disso, ele atua como um tradutor dinâmico que estabelece pontes formais entre a linguagem natural livre do usuário e a taxonomia museológica normatizada.
+
+```
+                  ┌──────────────────────────────────────────────┐
+                  │          ENTRADA DO CURADOR/VISITANTE        │
+                  │              (Tags e Linguagem Livre)        │
+                  └──────────────────────┬───────────────────────┘
+                                         ▼
+                  ┌──────────────────────────────────────────────┐
+                  │             CAMADA CONEXIONISTA              │
+                  │        (ModernBERT NER + Embeddings)         │
+                  └──────────────────────┬───────────────────────┘
+                                         ▼
+                  ┌──────────────────────────────────────────────┐
+                  │               CAMADA SIMBÓLICA               │
+                  │   (Ontologias CIDOC-CRM, Tesauro CNFCP/IPHAN)│
+                  └──────────────────────────────────────────────┘
+```
+
+O SFD está alinhado às tendências de curadoria semântica baseadas em IA generativa fundamentada (Retrieval-Augmented Generation - RAG) e grafos de conhecimento de herança cultural (Cultural Heritage Knowledge Graphs). A plataforma equilibra:
+1. **Aspectos alinhados ao estado da arte**: Integração direta com pgvector para similaridade vetorial híbrida, pipelines de processamento de linguagem natural voltados ao português com modelos baseados em arquiteturas modernas (ModernBERT), e modelagem Hebbiana para consolidação de co-ocorrências.
+2. **Aspectos experimentais**: Spreading Activation em tempo real rodando na interface de visualização do curador e modelos de representações de grafos complexos (RotatE) para inferir novas correlações conceituais de patrimônio material e imaterial.
 
 ---
 
 ## 2. Revisão das Técnicas Científicas Integradas
 
-O motor cognitivo do SFD é composto por quatro camadas computacionais independentes e coordenadas:
+Para justificar as decisões de arquitetura de dados e IA tomadas no SFD, detalhamos abaixo as técnicas científicas e seus trade-offs:
 
-### A. Reconhecimento de Entidades Nomeadas (NER) & Representações Vetoriais (Embeddings)
-O pipeline de ingestão utiliza o modelo **ModernBERT** (baseado na arquitetura Encoder-only com avanços de otimização de atenção e eficiência de memória) para classificar tokens no corpus do acervo. A extração de entidades em língua portuguesa mapeia categorias de suporte factual como `AUTORIA`, `MATERIAL`, `TECNICA`, `GEO` e `PERIODO`.
-Cada entidade extraída é mapeada para um espaço vetorial contínuo de **768 dimensões** gerado pelo ModernBERT-base, permitindo cálculos de similaridade semântica de alta fidelidade que capturam nuances contextuais.
+### 2.1 Machine Learning (ML) Clássico
+* **O que é**: Algoritmos estatísticos tradicionais baseados em dados estruturados (p. ex., regressão logística, Random Forests, Naive Bayes, TF-IDF).
+* **Aplicação no SFD**: Utilizado como mecanismo auxiliar e baseline para análise estatística inicial de frequências de termos e correspondências exatas.
+* **Trade-offs**: Possui custo computacional irrisório e excelente interpretabilidade. No entanto, é incapaz de capturar o contexto semântico profundo das tags, falhando em sinônimos e termos ambíguos.
 
-### B. Graph Knowledge Embeddings (KGE) — RotatE
-Para inferir conexões implícitas (relações não explicitadas nas fichas catalográficas), empregamos o modelo de KGE **RotatE**. O RotatE projeta entidades e relações em um espaço complexo tridimensional, modelando as conexões como rotações geométricas:
-$$\mathbf{t} \approx \mathbf{h} \circ \mathbf{r}$$
-Isto permite ao sistema prever novos links semânticos (como inferir que um objeto classificado sob a tag "Talha Dourada" se associa implicitamente ao "Barroco Mineiro").
+### 2.2 Deep Learning (DL)
+* **O que é**: Redes neurais artificiais com múltiplas camadas ocultas capazes de extrair representações de dados de forma hierárquica.
+* **Aplicação no SFD**: Processamento de imagens do acervo cultural e representações vetoriais brutas de tags.
+* **Trade-offs**: Captura padrões não-lineares altamente complexos, mas exige volumes massivos de dados para treinamento e atua como uma "caixa preta", dificultando a explicabilidade exigida em auditorias de patrimônio histórico.
 
-### C. Redes Neurais de Atenção em Grafo (GAT) & Spreading Activation
-O SFD adota mecanismos de **Atenção em Grafos (GAT)** para determinar o peso contextual dos nós na rede. Complementarmente, o algoritmo de **Spreading Activation (Propagação de Ativação)** simula pulsos sinápticos na interface do curador. Quando um nó é ativado, a corrente de ativação percorre as arestas do grafo atenuada pelo peso semântico e pelo DNA da tag, revelando constelações de conceitos correlatos de forma topológica.
+### 2.3 Redes Neurais em Grafos (GNNs) e Graph Attention Networks (GAT)
+* **O que é**: Redes neurais especializadas em processar dados estruturados como grafos, onde nós representam entidades (tags, obras) e arestas representam relações. O GAT introduz mecanismos de atenção para ponderar a influência de nós vizinhos.
+* **Aplicação no SFD**: Ponderação de relevância entre conceitos correlatos, prevendo a proximidade de tags adicionadas por diferentes usuários e classificando-as contextualmente em grupos temáticos.
+* **Trade-offs**: Preserva a topologia relacional do acervo cultural. O trade-off é a complexidade computacional de treinamento e a necessidade de algoritmos específicos de partição para grafos muito extensos.
 
-### D. Retrieval-Augmented Generation (RAG) & Explicabilidade (XAI)
-O SFD adota um fluxo de **RAG Grounded** para responder a consultas e gerar pareceres semânticos automáticos. A IA realiza buscas vetoriais no banco PostgreSQL (via extensão `pgvector`), recupera as obras e verbetes normatizados mais próximos, e monta uma síntese estruturada. Toda e qualquer afirmação é acompanhada de uma tag de citação formalizada (ex: `[Museu Regional de Caeté #0012]`), garantindo rastreabilidade absoluta e eliminando a ocorrência de alucinações.
+### 2.4 Transformers (ModernBERT)
+* **O que é**: Arquitetura de rede baseada em mecanismos de auto-atenção (Self-Attention) bidirecional para capturar o contexto das palavras em um texto.
+* **Aplicação no SFD**: Reconhecimento de Entidades Nomeadas (NER) e geração de embeddings de 768 dimensões a partir de títulos e descrições de objetos de patrimônio.
+* **Trade-offs**: Representa o estado da arte em processamento de linguagem natural. Os modelos são altamente precisos no português do Brasil, mas exigem GPUs para inferências de baixíssima latência (otimizado via ModernBERT de arquitetura otimizada para CPUs modernas).
+
+### 2.5 Large Language Models (LLMs)
+* **O que é**: Modelos de linguagem massivos ajustados para instruções gerais e geração de texto coerente.
+* **Aplicação no SFD**: Geração final de pareceres semânticos e relatórios técnicos.
+* **Trade-offs**: Geram textos fluidos e de fácil leitura para curadores humanos. Contudo, sem grounding (ancoragem), sofrem com alucinações de fatos históricos.
+
+### 2.6 RAG (Retrieval-Augmented Generation)
+* **O que é**: Fluxo onde a consulta do usuário é convertida em vetor, os documentos mais relevantes são recuperados de um banco de dados vetorial, e um LLM gera a resposta baseado estritamente nas fontes recuperadas.
+* **Aplicação no SFD**: Motor de geração de relatórios do curador, onde cada afirmação gerada é indexada a uma fonte primária do banco de dados (Tainacan, Brasiliana, etc.).
+* **Trade-offs**: Mitiga quase inteiramente as alucinações dos modelos conexionistas e fornece explicabilidade. Exige, porém, um pipeline de indexação robusto e banco vetorial performático.
+
+### 2.7 Bancos de Dados Vetoriais e Grafos de Conhecimento
+* **O que é**: Bancos otimizados para busca por similaridade de cosseno em alta dimensão (p. ex., `pgvector`) combinados com estruturas simbólicas de representação de conhecimento baseadas em ontologias e grafos RDF.
+* **Aplicação no SFD**: O `pgvector` armazena os embeddings gerados pelo ModernBERT, enquanto tabelas relacionais do Supabase mantêm a malha de correlações Hebbianas e ontológicas.
+* **Trade-offs**: Fornece buscas semânticas instantâneas em milissegundos e mantém relações rigorosas e auditáveis. O desafio reside na sincronização constante entre as alterações no grafo e os índices vetoriais.
 
 ---
 
-## 3. Fundamentos Matemáticos
+## 3. Mapeamento de Fundamentos Matemáticos
 
-### 3.1 Similaridade Semântica e Produto Escalar
+Para fundamentar as escolhas do sistema, apresentamos as formulações matemáticas que regem o comportamento da rede neural e do grafo semântico no SFD:
+
+### 3.1 Similaridade Vetorial Híbrida (Cosseno)
 Considerando que os vetores gerados pelo ModernBERT de $768d$ são L2-normalizados ($||\mathbf{u}||_2 = 1$), a similaridade de cosseno simplifica-se ao produto escalar entre os dois vetores no espaço hiperdimensional:
-$$\text{Sim}_{\cos}(\mathbf{u}, \mathbf{v}) = \sum_{i=1}^{768} u_i \cdot v_i$$
+$$\text{Sim}_{\cos}(\mathbf{u}, \mathbf{v}) = \mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^{768} u_i \cdot v_i$$
+Essa similaridade determina a correlação inicial entre a tag sugerida e o acervo existente.
 
-### 3.2 Formulação de Geometria Complexa do RotatE
-Dado um triplo no grafo de conhecimento $(h, r, t)$ representando (Cabeça, Relação, Cauda), o RotatE mapeia os embeddings $\mathbf{h}, \mathbf{t} \in \mathbb{C}^d$ e a relação $\mathbf{r} \in \mathbb{C}^d$, com a restrição de módulo unitário $|r_i| = 1$. A função de distância é dada por:
-$$d_r(h, t) = \left\| \mathbf{h} \circ \mathbf{r} - \mathbf{t} \right\|$$
-Onde $\circ$ denota o produto de Hadamard (produto elemento a elemento). A função de perda (Loss) minimiza as distâncias para triplos válidos e maximiza para triplos inválidos (amostras negativas) usando logsigmoid:
-$$\mathcal{L} = -\log \sigma (\gamma - d_r(h, t)) - \sum_{i=1}^{n} \frac{1}{n} \log \sigma (d_r(h'_i, t'_i) - \gamma)$$
-Onde $\gamma$ é uma margem fixa e $\sigma$ é a função sigmoide.
+### 3.2 Distância no Espaço Complexo do RotatE
+Para modelar o grafo de conhecimento cultural, o RotatE mapeia entidades e relações em um espaço complexo $\mathbb{C}^d$. Dado um triplo $(h, r, t)$ representando (Cabeça, Relação, Cauda), a cauda $\mathbf{t}$ é projetada como uma rotação do nó cabeça $\mathbf{h}$ sob o ângulo da relação $\mathbf{r}$:
+$$\mathbf{t} \approx \mathbf{h} \circ \mathbf{r}$$
+Onde $\circ$ é o produto de Hadamard (elemento a elemento), e a relação possui módulo unitário $|r_i| = 1$. A distância relacional é expressa por:
+$$d_r(h, t) = \left\| \mathbf{h} \circ \mathbf{r} - \mathbf{t} \right\|_2$$
+Durante o treinamento, minimiza-se essa distância para conexões reais e maximiza-se para amostras negativas.
 
-### 3.3 Propagação de Ativação (Spreading Activation)
-Seja $A_i^{(t)}$ a ativação do nó $i$ no passo temporal $t$, e $w_{ij}$ o peso semântico da aresta ligando o nó $i$ ao nó $j$. A ativação é atualizada de forma iterativa via:
+### 3.3 Algoritmo Dinâmico de Spreading Activation
+A propagação da ativação no grafo é calculada iterativamente. A ativação de um nó $j$ no passo temporal $t+1$ é dada pela soma ponderada das ativações de seus nós vizinhos diretos e indiretos, atenuada por um fator de decaimento (decay):
 $$A_j^{(t+1)} = \min \left( 1.0, A_j^{(t)} + \sum_{i \in \text{Vizinhos}(j)} A_i^{(t)} \cdot w_{ij} \cdot \alpha \right)$$
-Onde $\alpha \in [0, 1]$ é um fator de decaimento (decay) geométrico que impede a supersaturação da rede de neurônios.
+Onde:
+* $A_i^{(t)} \in [0, 1]$ é o nível de ativação do nó $i$ no tempo $t$.
+* $w_{ij}$ é o peso semântico e dinâmico da aresta conectando os nós.
+* $\alpha \in [0, 1]$ é o fator de atenuação (decaimento geométrico), que impede a saturação infinita do grafo.
 
-### 3.4 Aprendizado Hebbiano de Co-ocorrência
-Conforme a premissa de Donald Hebb ("neurônios que disparam juntos, conectam-se"), o peso da conexão entre duas tags co-validadas em uma mesma obra cultural é incrementado a cada ação do curador:
+### 3.4 Equação Hebbiana de Reforço de Arestas
+Sempre que curadores validam uma correlação semântica entre duas tags $i$ e $j$ aplicadas a uma mesma obra, o peso $w_{ij}$ da aresta é recalculado seguindo o aprendizado Hebbiano:
 $$w_{ij}^{(t+1)} = w_{ij}^{(t)} + \eta \cdot (1.0 - w_{ij}^{(t)})$$
-Onde $\eta$ representa a taxa de aprendizado semântico (definida em $0.1$ no motor cognitivo). O peso $w_{ij}$ é assintoticamente limitado a $1.0$.
+Onde:
+* $\eta$ representa a taxa de aprendizado semântico (configurada para $0.10$).
+* O termo $(1.0 - w_{ij}^{(t)})$ garante um crescimento assintótico limitado a $1.0$.
 
 ---
 
-## 4. Arquitetura de Dados, ETL e Proveniência
+## 4. Arquitetura de Dados, ETL e Metadados
+
+### 4.1 Pipeline de ETL Semântico
+O pipeline de ingestão realiza a coleta periódica de metadados das APIs públicas do Tainacan (IBRAM) e Brasiliana Museus. O texto extraído (títulos, palavras-chave e descrições) é tokenizado e processado:
+
+```
+[API Tainacan / Brasiliana] ➔ [Extração de Texto] ➔ [ModernBERT NER] ➔ [Validação de Confiança]
+                                                                                │
+                                           ┌────────────────────────────────────┴────────────────────────────────────┐
+                                           ▼ (Confiança >= 0.60)                                                     ▼ (Confiança < 0.60)
+                                 [semantic_memory]                                                           [ml_training_queue]
+                                 (Status: Hipótese)                                                          (Status: Pendente de Curadoria)
+```
+
+### 4.2 Governança e Proveniência (W3C PROV-O)
+Cada alteração no grafo semântico do SFD é acompanhada por um registro detalhado de proveniência, permitindo auditoria completa em conformidade com o padrão W3C PROV-O:
+* **Entidade (Entity)**: A tag, obra ou correlação semântica criada/alterada.
+* **Atividade (Activity)**: O processo que gerou a alteração (p. ex., predição de link do RotatE, ingestão inicial do ModernBERT, ou validação manual do curador).
+* **Agente (Agent)**: O identificador do curador humano ou o ID do modelo e versão de IA responsável.
+
+### 4.3 Privacidade de Dados
+Embora os metadados culturais sejam públicos, o sistema protege os dados de visitantes que inserem tags por meio de hashes unidirecionais SHA-256 e anonimização de IPs nos registros de `tag_learning_history`, mantendo a conformidade com a LGPD no ambiente universitário e museal.
+
+---
+
+## 5. Estratégias de Treinamento e Avaliação
+
+### 5.1 Pré-treinamento vs. Fine-tuning
+O ModernBERT-base é um modelo encoder geral pré-treinado em um massivo corpus de português do Brasil. Para adaptá-lo ao domínio cultural do SFD, realiza-se um **Fine-tuning supervisionado de NER** utilizando anotações de fichas museológicas catalogadas de museus parceiros. O modelo aprende a classificar termos específicos de arte sacra, arqueologia e patrimônio imaterial.
+
+### 5.2 Avaliação Contínua e Métricas do Sistema
+A validação técnica dos modelos de IA integrados ao SFD baseia-se em métricas reais e não mockadas, consolidadas a cada execução de retreino:
+1. **Modelos de NER (ModernBERT)**: Avaliados por F1-Score semântico, precisão e revocação sobre entidades culturais anotadas.
+2. **Modelos de KGE (RotatE)**: Avaliados por MRR (Mean Reciprocal Rank) e Hits@10, medindo a precisão do modelo em prever conexões conceituais válidas no ranking de probabilidade.
+3. **Avaliação Humana**: Taxa de concordância do curador (número de tags aceitas / total de sugestões da IA), mantendo um threshold de qualidade mínimo de $85\%$ de aprovação técnica.
+
+---
+
+## 6. Diagrama da Arquitetura e Fluxo RAG
 
 ```mermaid
 graph TD
-    A[Visitante envia Tag] --> B[Camada de Validação e Normalização]
-    B --> C[Geração de Embedding 768d]
-    C --> D{Similaridade Semântica}
-    D -- Confiança >= 60% --> E[Salva em semantic_memory]
-    D -- Confiança < 60% --> F[Fila ml_training_queue]
-    F --> G[Curador Humano Audita]
-    G -- Aprovado --> H[Célula Validada na Memória]
-    G -- Rejeitado --> I[Descartado / Feedback Negativo]
-    H --> J[Aprendizado Hebbiano: Atualiza Pesos]
-    E --> K[Grafo de Conhecimento]
-    H --> K
-```
-
-### Protocolo de Proveniência e Auditoria (W3C PROV-O)
-Cada inserção na tabela `semantic_memory` ou atualização em `relacoes` dispara um gatilho de proveniência persistido na tabela `eventos` (e logado de forma síncrona em `tag_learning_history`). A proveniência do SFD registra:
-1. **Agent**: Usuário/Curador ou Motor de ML que propôs a conexão.
-2. **Activity**: Ação executada (ingestão de dados abertos, validação de tag, backpropagation online).
-3. **Entity**: Célula semântica afetada (contendo hash SHA-256 e metadados).
-
----
-
-## 5. Estratégia de Treinamento e Fine-Tuning
-
-### Fine-Tuning do ModernBERT (NER)
-* **Dataset**: Exemplos extraídos das fichas de catalogação dos museus integrados (MART, Caeté, Museu da Abolição) contendo tags normalizadas.
-* **Hiperparâmetros**:
-  * Épocas: 5
-  * Batch Size: 8
-  * Fator de Decaimento: L2 regularização (0.01)
-  * Learning Rate: $3 \times 10^{-5}$ com otimizador AdamW.
-* **Métrica de Validação**: F1-Score computado sobre o split de teste de $20\%$.
-
-### Treinamento RotatE (KGE)
-* **Dataset**: Triplos no formato `(Entidade, Relação, Conceito)`.
-* **Hiperparâmetros**:
-  * Épocas: 100
-  * Margem ($\gamma$): 9.0
-  * Dimensão do Embedding: 384 complexos ($384 \times 2 = 768d$)
-* **Métrica de Validação**: MRR (Mean Reciprocal Rank) e Hits@10 sobre o dataset de links avaliados.
-
----
-
-## 6. Diagrama de Ingestão e Integração de APIs
-
-```mermaid
-sequenceDiagram
-    participant Ingestao as scripts/ingest_knowledge.py
-    participant API_Tainacan as WordPress Tainacan APIs
-    participant ModernBERT as ModernBERT NER & Embeddings
-    participant Supabase as Supabase Database
-
-    Ingestao->>API_Tainacan: Busca registros por palavra-chave (MART/Brasiliana)
-    API_Tainacan-->>Ingestao: Retorna itens (JSON-flat)
-    Ingestao->>ModernBERT: Envia textos das obras (Título + Descrição)
-    ModernBERT-->>Ingestao: Retorna Entidades Nomeadas (Tipo + Confiança) e Vetores 768d
-    Ingestao->>Ingestao: Arbitragem de Confiança (Threshold = 60%)
-    alt Confiança >= 60%
-        Ingestao->>Supabase: Insere em semantic_memory (status = 'hipotese')
-    else Confiança < 60%
-        Ingestao->>Supabase: Insere na ml_training_queue (status = 'pending')
+    subgraph Cliente
+        A[Interface do Curador - Next.js] -->|Filtro & Busca| B[API do Sistema]
+    end
+    subgraph Cérebro Semântico
+        B -->|Busca Híbrida| C[PostgreSQL + pgvector]
+        B -->|Inferência de Links| D[RotatE KGE Engine]
+        B -->|Extração Semântica| E[ModernBERT NER]
+        C -->|Documentos Relevantes| F[Fluxo RAG]
+        D -->|Conexões Adicionais| F
+        E -->|Entidades Extraídas| F
+        F -->|Geração Baseada em Fontes| G[Parecer Técnico Semântico]
+    end
+    subgraph Fontes Externas
+        H[API Tainacan / IBRAM] -->|ETL Semântico| C
+        I[API Brasiliana Museus] -->|ETL Semântico| C
     end
 ```
 
 ---
 
-## 7. Roadmap de Implementação e Orçamento de Treinamento
+## 7. Protocolos de Experimentos
 
-### Orçamento de Treinamento Local vs. Cloud
-Para manter a sustentabilidade financeira do projeto no contexto acadêmico, o treinamento e a inferência são híbridos:
-1. **Local (CPU/GPU acadêmica)**: Treinamento noturno autônomo dos embeddings e NER roda na máquina do laboratório local (GPU RTX 4060 ou similar) com custo operacional próximo a zero (apenas consumo elétrico da rede da universidade).
-2. **Cloud (Hobby/Free tiers)**: Supabase e API Next.js rodam em arquiteturas de nuvem sob limites gratuitos/estudantis, com banco PostgreSQL e vetorização via `pgvector` processados localmente no lado do servidor para evitar cobranças de tokens de APIs terceiras (OpenAI/Anthropic).
+Para validar empiricamente o impacto da inteligência neuro-simbólica no ecossistema do SFD, definem-se os seguintes protocolos experimentais a serem executados no laboratório do NUGEP:
 
-### Roadmap de Evolução Computacional
-```
-[Julho 2026] ➔ Ingestão Tainacan + pgvector RPC + Hebbian Feedback (Concluído)
-[Agosto 2026] ➔ Retreinamento automatizado das matrizes KGE com feedbacks acumulados
-[Setembro 2026] ➔ Implementação de camada GAT real para auto-categorização das tags sugeridas
-[Outubro 2026] ➔ Lançamento do painel público de consulta folksonômica com indexação semântica
-```
+### Experimento 1: Eficiência na Descoberta de Itens Culturais
+* **Hipótese**: A busca semântica baseada em similaridade vetorial do ModernBERT e inferências do RotatE reduz o tempo de localização de obras raras em $45\%$ comparado com a busca tradicional por palavras-chave exatas.
+* **Baseline**: Motor de busca textual convencional do WordPress Tainacan (busca relacional SQL por strings exatas).
+* **Métrica**: Tempo de resposta do curador (em segundos) e taxa de acerto semântico de itens correlatos.
+* **Protocolo**: Dois grupos de curadores realizam 20 buscas temáticas complexas (p. ex., "artesanato nordestino de resistência"). O Grupo A utiliza o motor tradicional e o Grupo B utiliza a interface semântica do SFD.
 
----
-
-## 8. Protocolos de Avaliação Experimental
-
-Para validar cientificamente a eficiência da IA Neuro-Simbólica adotada, propõe-se o seguinte protocolo de testes empíricos com curadores e estudantes de Museologia:
-
-1. **Hipótese 1 (Acurácia de Busca)**: O RAG enriquecido estruturado por vetores de 768d diminui o tempo médio de recuperação de obras em comparação com a busca clássica por palavra-chave exata em mais de $40\%$.
-2. **Hipótese 2 (Alinhamento de Vocabulário)**: O aprendizado Hebbiano de co-ocorrência gera uma convergência progressiva entre os termos informais dos visitantes e as tags normatizadas do Tesouro IPHAN ao longo de 4 semanas de uso contínuo.
-3. **Métricas Finais de Sucesso**:
-   * **F1-Score NER**: Threshold aceitável $\ge 82\%$.
-   * **Link Prediction (MRR)**: Threshold aceitável $\ge 0.75$.
-   * **Taxa de Aceitação da Curadoria**: $\ge 88\%$ das conexões sugeridas pelo RotatE devem ser validadas como corretas pelos curadores humanos do NUGEP.
+### Experimento 2: Convergência de Linguagem Social e Normativa
+* **Hipótese**: O aprendizado Hebbiano dinâmico aproxima e alinha os termos informais dos visitantes aos verbetes do Tesouro IPHAN de forma consistente ao longo do tempo.
+* **Baseline**: Arestas estáticas de co-ocorrência sem reforço de aprendizado.
+* **Métrica**: Distância semântica média (embedding distance) entre o conjunto de tags espontâneas do público e o dicionário normatizado.
+* **Protocolo**: Monitorar a evolução do peso das conexões na tabela `semantic_memory` durante 30 dias de uso. O sucesso é medido se a similaridade média entre tags informais aprovadas e seus equivalentes no Tesouro IPHAN subir consistentemente acima de $0.75$.
