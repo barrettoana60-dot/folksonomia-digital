@@ -1559,17 +1559,17 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* BARRA DE BUSCA SEMÂNTICA — escondida no print */}
-                <div className="glass-card p-6 flex gap-4 items-center print:hidden">
-                  <Search size={20} className="text-[#1A1A1A]/35" />
+                {/* BARRA DE BUSCA SEMÂNTICA — estilo liquid glass */}
+                <div className="glass-card p-6 flex gap-4 items-center print:hidden !bg-white/62 backdrop-blur-xl border border-white/50 shadow-xl">
+                  <Search size={20} className="text-[#1A1A1A]/45" />
                   <input
                     value={searchTag}
                     onChange={e => setSearchTag(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleSemanticSearch()}
                     placeholder="Buscar tag para análise semântica profunda (ex: espada, liturgia, barroco, cubismo...)"
-                    className="flex-1 bg-transparent border-none outline-none text-sm placeholder:text-[#1A1A1A]/35"
+                    className="liquid-input flex-1 !p-3.5 text-sm"
                   />
-                  <button onClick={handleSemanticSearch} disabled={isAnalyzing} className="liquid-button !bg-[#E85002] !px-8">
+                  <button onClick={handleSemanticSearch} disabled={isAnalyzing} className="liquid-button !bg-[#E8490A] !text-white !px-8 hover:!bg-[#c73d08] shadow-[0_4px_12px_rgba(232,73,10,0.15)]">
                     {isAnalyzing ? 'Analisando...' : 'Analisar'}
                   </button>
                 </div>
@@ -2045,22 +2045,22 @@ export default function AdminPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Velocidade */}
-                    <div className="flex items-center gap-1 bg-black/05 rounded-full p-1">
+                    <div className="flex items-center gap-1 bg-white/25 backdrop-blur-md rounded-full p-1 border border-white/35 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)]">
                       {(['lento','normal','rapido'] as const).map(s => (
                         <button key={s} onClick={() => { setNnSpeed(s); }}
-                          className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full transition-all ${nnSpeed === s ? 'bg-[#E8490A] text-white' : 'text-[#1A1A1A]/50 hover:text-[#1A1A1A]'}`}>
+                          className={`text-[9px] uppercase font-black px-3.5 py-1.5 rounded-full transition-all ${nnSpeed === s ? 'bg-[#E8490A] text-white shadow-md' : 'text-[#1A1A1A]/65 hover:text-[#1A1A1A] hover:bg-white/30'}`}>
                           {s === 'lento' ? 'Lento' : s === 'normal' ? 'Normal' : 'Rápido'}
                         </button>
                       ))}
                     </div>
                     {/* Controles */}
                     <button onClick={nnIsTraining ? stopTraining : startTraining}
-                      className={`flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider px-4 py-2 rounded-full transition-all ${nnIsTraining ? 'bg-red-500/10 border border-red-500/30 text-red-600 hover:bg-red-500/20' : 'bg-[#E8490A] text-white hover:bg-[#c73d08]'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${nnIsTraining ? 'bg-red-500 animate-pulse' : 'bg-white'}`}></span>
+                      className={`liquid-button flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider px-5 py-2.5 rounded-full transition-all ${nnIsTraining ? '!bg-red-500/20 !border-red-500/40 !text-red-700 hover:!bg-red-500/30' : '!bg-[#E8490A] !text-white hover:!bg-[#c73d08]'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${nnIsTraining ? 'bg-red-600 animate-pulse' : 'bg-white'}`}></span>
                       {nnIsTraining ? 'Parar Treino' : 'Iniciar Treino'}
                     </button>
                     <button onClick={resetTraining}
-                      className="text-[10px] uppercase font-bold tracking-wider px-3 py-2 rounded-full bg-black/05 text-[#1A1A1A]/50 hover:bg-black/10 transition-all">
+                      className="liquid-button !bg-white/45 !text-[#1A1A1A]/70 hover:!bg-white/70 text-[10px] uppercase font-bold tracking-wider px-4 py-2.5 rounded-full transition-all">
                       Reiniciar
                     </button>
                   </div>
