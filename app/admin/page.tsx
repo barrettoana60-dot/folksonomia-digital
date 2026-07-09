@@ -521,6 +521,15 @@ export default function AdminPage() {
     if (activeTab === 'obras') fetchObras();
   }, [activeTab]);
 
+  // Inicialização automática do treinamento neural na aba de Interoperabilidade
+  useEffect(() => {
+    if (activeTab === 'interoperabilidade') {
+      startTraining();
+    } else {
+      stopTraining();
+    }
+  }, [activeTab, startTraining, stopTraining]);
+
   // Auto-refresh a cada 30 segundos
   useEffect(() => {
     const interval = setInterval(fetchDashboard, 30000);
@@ -1023,10 +1032,10 @@ export default function AdminPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap px-5 md:px-7 py-2.5 rounded-xl text-[10px] md:text-xs font-semibold uppercase tracking-wider transition-all ${
+              className={`whitespace-nowrap px-5 md:px-7 py-2.5 rounded-xl text-[10px] md:text-xs font-semibold uppercase tracking-wider transition-all liquid-button ${
                 activeTab === tab.id 
-                  ? 'bg-white/10 text-white border border-black/18 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
-                  : 'text-[#1A1A1A]/45 border-transparent hover:text-white hover:bg-white/50'
+                  ? '!bg-[#E8490A] !text-white border border-[#E8490A]/30 shadow-[0_4px_16px_rgba(232,73,10,0.25)]' 
+                  : '!bg-white/40 !text-[#1A1A1A]/70 hover:!bg-white/75'
               }`}
             >
               {tab.label}
@@ -1742,7 +1751,7 @@ export default function AdminPage() {
                                 <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-semibold uppercase rounded">{conn.sourceA}</span>
                                 <span className="text-[#1A1A1A]/25">↔</span>
                                 <span className="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-semibold uppercase rounded">{conn.sourceB}</span>
-                                <span className="text-[10px] text-[#1A1A1A]/38 ml-auto font-medium">{Math.round(conn.confidence * 100)}% confidence</span>
+                                <span className="text-[10px] text-[#1A1A1A]/38 ml-auto font-medium">{Math.round(conn.confidence * 100)}% de confiança</span>
                               </div>
                               <p className="text-[11px] text-[#1A1A1A]/70 leading-relaxed">{conn.description}</p>
                             </div>
@@ -2057,22 +2066,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* ── METRICAS DO TREINO ────────────────────────────────────── */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Época', value: nnEpoch.toString(), sub: 'iterações', color: '#E8490A' },
-                    { label: 'Erro Global', value: nnLoss.toFixed(4), sub: 'taxa de perda', color: nnLoss < 0.3 ? '#16a34a' : nnLoss < 0.6 ? '#d97706' : '#dc2626' },
-                    { label: 'Acurácia', value: (nnAccuracy * 100).toFixed(1) + '%', sub: 'precisão do grafo', color: '#1E3A8A' },
-                    { label: 'Conexões', value: interopConnections.length.toString(), sub: `${nnDiscovered.length} descobertas`, color: '#6D28D9' },
-                  ].map(m => (
-                    <div key={m.label} className="glass-card p-4 border border-black/07 flex flex-col gap-1">
-                      <span className="text-[8px] uppercase font-bold tracking-widest text-[#1A1A1A]/40">{m.label}</span>
-                      <span className="text-xl font-bold font-mono" style={{color: m.color}}>{m.value}</span>
-                      <span className="text-[8px] text-[#1A1A1A]/40 uppercase tracking-wider">{m.sub}</span>
-                    </div>
-                  ))}
-                </div>
-
                 {/* ── GRAFO NEURAL + PAINEL LATERAL ────────────────────────── */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -2216,39 +2209,8 @@ export default function AdminPage() {
                         <div className="absolute top-3 left-3 flex items-center gap-1.5">
                           <span className={`w-1.5 h-1.5 rounded-full ${nnIsTraining ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></span>
                           <span className="text-[8px] uppercase font-bold tracking-widest text-white/50 font-mono">
-                            {nnIsTraining ? `Treinando — Epoca ${nnEpoch}` : 'Pausado'}
+                            {nnIsTraining ? `Processando Rede — Época ${nnEpoch}` : 'Pausado'}
                           </span>
-                        </div>
-                        <div className="absolute top-3 right-3 font-mono text-[8px] text-white/30">
-                          Loss: {nnLoss.toFixed(4)} | Acc: {(nnAccuracy*100).toFixed(1)}%
-                        </div>
-                      </div>
-
-                      {/* CURVA DE PERDA (Loss History) */}
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-[8px] uppercase font-bold tracking-widest text-[#1A1A1A]/40">Curva de Convergencia (Loss)</span>
-                          <span className="text-[8px] font-mono text-[#1A1A1A]/40">{lossHistory.length} amostras</span>
-                        </div>
-                        <div className="w-full h-16 bg-black/04 border border-black/07 rounded-xl overflow-hidden relative">
-                          <svg className="w-full h-full" viewBox={`0 0 ${Math.max(lossHistory.length, 2)} 100`} preserveAspectRatio="none">
-                            <defs>
-                              <linearGradient id="lossGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#E8490A" stopOpacity="0.4"/>
-                                <stop offset="100%" stopColor="#E8490A" stopOpacity="0.02"/>
-                              </linearGradient>
-                            </defs>
-                            {/* Area sob a curva */}
-                            <path
-                              d={`M 0 ${(1-lossHistory[0])*100} ${lossHistory.map((v,i) => `L ${i} ${(1-v)*100}`).join(' ')} L ${lossHistory.length-1} 100 L 0 100 Z`}
-                              fill="url(#lossGrad)"/>
-                            {/* Linha da curva */}
-                            <polyline
-                              points={lossHistory.map((v,i) => `${i},${(1-v)*100}`).join(' ')}
-                              fill="none" stroke="#E8490A" strokeWidth="0.8"/>
-                          </svg>
-                          <div className="absolute bottom-1 left-2 text-[7px] font-mono text-[#1A1A1A]/30">1.0</div>
-                          <div className="absolute top-1 left-2 text-[7px] font-mono text-[#1A1A1A]/30">0.0</div>
                         </div>
                       </div>
                     </div>
@@ -2265,7 +2227,7 @@ export default function AdminPage() {
                         <div className="text-center py-8">
                           <Brain size={20} className="mx-auto text-[#1A1A1A]/15 mb-2"/>
                           <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/30 font-semibold">
-                            Inicie o treino para a rede descobrir conexoes latentes
+                            Processando em segundo plano — inferindo novas conexões conceituais...
                           </p>
                         </div>
                       ) : (
@@ -2315,10 +2277,10 @@ export default function AdminPage() {
                               <span className="text-[8px] uppercase tracking-wider font-bold block" style={{color: nodeInfo.fill}}>{nodeInfo.type}</span>
                             </div>
                           </div>
-                          {/* Ativacao */}
+                          {/* Ativação */}
                           <div className="px-4 py-3 border-b border-black/08">
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Ativacao Neural</span>
+                              <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Ativação Neural</span>
                               <span className="text-[9px] font-bold font-mono text-[#E8490A]">{((nodeInfo.activation ?? 0)*100).toFixed(0)}%</span>
                             </div>
                             <div className="w-full h-2 bg-black/08 rounded-full overflow-hidden">
@@ -2326,10 +2288,10 @@ export default function AdminPage() {
                                 style={{width: `${(nodeInfo.activation ?? 0)*100}%`, background: nodeInfo.fill}}/>
                             </div>
                           </div>
-                          {/* Extrato bancario de custodia */}
+                          {/* Extrato bancário de custódia */}
                           <div className="border-b border-black/08">
                             <div className="px-4 py-2 bg-[#EEEBE3]/10">
-                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Extrato de Custodia Digital</span>
+                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Extrato de Custódia Digital</span>
                             </div>
                             <table className="w-full text-[8px] font-mono">
                               <tbody>
@@ -2339,28 +2301,28 @@ export default function AdminPage() {
                                 </tr>
                                 <tr className="border-b border-black/05">
                                   <td className="px-4 py-1.5 text-[#1A1A1A]/45">Rastreabilidade</td>
-                                  <td className="px-4 py-1.5 text-right font-bold text-green-700">UNICA CERT.</td>
+                                  <td className="px-4 py-1.5 text-right font-bold text-green-700">CERT. ÚNICA</td>
                                 </tr>
                                 <tr className="border-b border-black/05">
                                   <td className="px-4 py-1.5 text-[#1A1A1A]/45">Integridade</td>
                                   <td className="px-4 py-1.5 text-right font-bold text-green-700">AUDITADO</td>
                                 </tr>
                                 <tr>
-                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Ativacao</td>
+                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Ativação</td>
                                   <td className="px-4 py-1.5 text-right font-bold" style={{color: nodeInfo.fill}}>{((nodeInfo.activation??0)*100).toFixed(0)}%</td>
                                 </tr>
                               </tbody>
                             </table>
                           </div>
-                          {/* Definicao */}
+                          {/* Definição */}
                           <div className="px-4 py-3 border-b border-black/08">
-                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-1">Definicao do Registro</p>
+                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-1">Definição do Registro</p>
                             <p className="text-[9px] text-[#1A1A1A]/65 leading-relaxed">{nodeInfo.desc}</p>
                           </div>
-                          {/* Pontos de ligacao neural */}
+                          {/* Pontos de ligação neural */}
                           <div>
                             <div className="px-4 py-2 bg-[#EEEBE3]/10">
-                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Pontos de Ligacao Neuronal ({directConns.length})</span>
+                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Pontos de Ligação Neuronal ({directConns.length})</span>
                             </div>
                             <div className="max-h-52 overflow-y-auto">
                               <table className="w-full text-[8px] font-mono">
