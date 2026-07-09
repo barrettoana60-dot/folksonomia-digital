@@ -119,14 +119,14 @@ export default function ObraCard({ obra }: ObraCardProps) {
 
         {/* Info */}
         <div className="p-3 md:p-4 space-y-1">
-          <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.15em]"
+          <p className="text-[10px] md:text-[10px] font-semibold uppercase tracking-[0.12em]"
             style={{ color: '#E8490A' }}>
             {obra.artista}
           </p>
-          <h3 className="text-sm font-normal serif-title text-[#1A1A1A] leading-tight">
+          <h3 className="text-[13px] md:text-sm font-normal serif-title text-[#1A1A1A] leading-tight">
             {obra.titulo}
           </h3>
-          <p className="text-[9px] text-[#1A1A1A]/40 tracking-wider">
+          <p className="text-[10px] text-[#1A1A1A]/50 tracking-wider">
             {obra.ano}
           </p>
 
