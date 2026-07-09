@@ -88,7 +88,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
         style={{ borderRadius: '1.25rem' }}
       >
         {/* Imagem */}
-        <div className="relative aspect-[3/4] md:aspect-[4/5] overflow-hidden"
+        <div className="relative aspect-square overflow-hidden"
           style={{ background: 'rgba(26,26,26,0.06)' }}>
           <img
             src={obra.imagem_url || 'https://via.placeholder.com/400x500?text=Sem+Imagem'}
@@ -118,22 +118,22 @@ export default function ObraCard({ obra }: ObraCardProps) {
         </div>
 
         {/* Info */}
-        <div className="p-5 md:p-6 space-y-1.5">
-          <p className="text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.15em]"
+        <div className="p-3 md:p-4 space-y-1">
+          <p className="text-[9px] md:text-[10px] font-semibold uppercase tracking-[0.15em]"
             style={{ color: '#E8490A' }}>
             {obra.artista}
           </p>
-          <h3 className="text-base md:text-lg font-normal serif-title text-[#1A1A1A]">
+          <h3 className="text-sm font-normal serif-title text-[#1A1A1A] leading-tight">
             {obra.titulo}
           </h3>
-          <p className="text-[10px] md:text-[11px] text-[#1A1A1A]/40 tracking-wider">
+          <p className="text-[9px] text-[#1A1A1A]/40 tracking-wider">
             {obra.ano}
           </p>
 
-          <div className="pt-4">
+          <div className="pt-2">
             <button
               onClick={() => setIsTagging(!isTagging)}
-              className="liquid-button w-full !rounded-full !text-[11px] !py-3 !font-semibold"
+              className="liquid-button w-full !rounded-full !text-[9px] !py-2 !font-semibold"
             >
               {isTagging ? 'CANCELAR' : 'ADICIONAR TAG'}
             </button>
