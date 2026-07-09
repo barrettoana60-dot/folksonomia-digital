@@ -263,21 +263,26 @@ export default async function ModelosPage() {
                 <tr>
                   <th className="px-4 py-3 text-left">Versão</th>
                   <th className="px-4 py-3 text-left">Modelo</th>
-                  <th className="px-4 py-3 text-left">F1</th>
+                  <th className="px-4 py-3 text-left">F1 / MRR</th>
                   <th className="px-4 py-3 text-left">Exemplos</th>
                   <th className="px-4 py-3 text-left">Data</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {data.versions.map((v: any) => (
-                  <tr key={v.id} className="hover:bg-white/5">
-                    <td className="px-4 py-3 text-blue-300 font-mono">{v.versao || v.version || '—'}</td>
-                    <td className="px-4 py-3 text-white/70">{v.modelo || v.model_name || '—'}</td>
-                    <td className="px-4 py-3 text-orange-400 font-bold">{v.f1_score ? `${(v.f1_score * 100).toFixed(1)}%` : '—'}</td>
-                    <td className="px-4 py-3 text-white/50">{v.num_exemplos || v.num_examples || '—'}</td>
-                    <td className="px-4 py-3 text-white/30">{v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}</td>
-                  </tr>
-                ))}
+                {data.versions.map((v: any) => {
+                  const f1 = v.metricas?.f1 ?? v.f1_score;
+                  const mrr = v.metricas?.mrr;
+                  const scoreLabel = mrr !== undefined ? `MRR: ${(mrr * 100).toFixed(1)}%` : (f1 !== undefined ? `F1: ${(f1 * 100).toFixed(1)}%` : '—');
+                  return (
+                    <tr key={v.id} className="hover:bg-white/5">
+                      <td className="px-4 py-3 text-blue-300 font-mono">{v.versao || v.version || '—'}</td>
+                      <td className="px-4 py-3 text-white/70">{v.nome || v.modelo || v.model_name || '—'}</td>
+                      <td className="px-4 py-3 text-orange-400 font-bold">{scoreLabel}</td>
+                      <td className="px-4 py-3 text-white/50">{v.dataset_tamanho || v.num_exemplos || v.num_examples || '—'}</td>
+                      <td className="px-4 py-3 text-white/30">{v.created_at ? new Date(v.created_at).toLocaleDateString('pt-BR') : '—'}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -310,7 +315,7 @@ export default async function ModelosPage() {
                         r.status === 'completed' ? 'bg-orange-500/20 text-orange-400' : 'bg-amber-500/20 text-amber-400'
                       }`}>{r.status || '—'}</span>
                     </td>
-                    <td className="px-4 py-3 text-white/70">{r.modelo || r.model_name || '—'}</td>
+                    <td className="px-4 py-3 text-white/70">{r.nome_modelo || r.modelo || r.model_name || '—'}</td>
                     <td className="px-4 py-3 text-white/50 text-xs font-mono">{r.metricas ? JSON.stringify(r.metricas).slice(0, 60) : '—'}</td>
                     <td className="px-4 py-3 text-white/30">{r.created_at ? new Date(r.created_at).toLocaleDateString('pt-BR') : '—'}</td>
                   </tr>
