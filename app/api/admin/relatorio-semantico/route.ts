@@ -572,7 +572,11 @@ async function generateAIAnalysis(
   function getCitationLabel(obra: any) {
     const id = obra.id || 'N/A';
     const cleanId = id.length > 8 ? id.substring(0, 8) : id;
-    const museu = obra.museu ||  // ------ CAMADA 1: Fundamentação Normativa e Teórica ------
+    const museu = obra.museu || obra.fonte || 'Brasiliana Museus';
+    return `[${museu} #${cleanId}]`;
+  }
+
+  // ------ CAMADA 1: Fundamentação Normativa e Teórica ------
   let ancoraNormativa = '';
   if (temTesauro) {
     ancoraNormativa = `### 🏛️ Âncora Normativa e Conceitual (Tesauro CNFCP/IPHAN)\n\n` +
