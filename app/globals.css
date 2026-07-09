@@ -42,6 +42,16 @@ body {
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Mobile: background-attachment:fixed quebra no iOS Safari e Android */
+@media (max-width: 768px) {
+  body {
+    background-attachment: scroll;
+    background-size: 100% auto;
+    background-position: top center;
+    min-height: 100dvh;
+  }
+}
+
 /* Sobrescrever QUALQUER classe Tailwind que force texto branco */
 .text-white   { color: #1A1A1A !important; }
 .text-white\/90 { color: rgba(26,26,26,0.90) !important; }
@@ -248,9 +258,13 @@ body, .font-sans, [class*="font-sans"] {
    ============================================================ */
 
 /* Previne overflow horizontal em toda a app */
-html, body {
+html {
   overflow-x: hidden;
   max-width: 100vw;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 /* Touch targets maiores no mobile */
