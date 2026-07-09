@@ -453,7 +453,75 @@ export default function AdminPage() {
         body: JSON.stringify({ tag: searchTag })
       });
       const json = await res.json();
-      if (json.success) setSemanticResult(json.data);
+      if (json.success) {
+        setSemanticResult(json.data);
+        
+        // --- APRENDIZADO CONTÍNUO: Pesquisa RAG alimenta a cadeia de DNA Semântico ---
+        const tag = json.data.tag || searchTag;
+        const tagKey = tag.toLowerCase();
+        
+        // 1. Injetar nó no grafo de Interoperabilidade se não existir
+        setInteropNodes(currentNodes => {
+          const exists = currentNodes.some(n => n.id.toLowerCase() === tagKey);
+          if (!exists) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 180 + Math.random() * 50;
+            const x = 400 + Math.cos(angle) * radius;
+            const y = 215 + Math.sin(angle) * radius;
+            
+            const newNode = {
+              id: tagKey,
+              label: tag,
+              x,
+              y,
+              size: 14,
+              fill: "#6D28D9", // Cor roxa para nós aprendidos via RAG contínuo
+              desc: `Nó inferido e integrado via busca RAG contínua sobre acervos digitais.`,
+              type: "Conceito Aprendido (RAG)",
+              hash: `rag_dna_${Math.random().toString(16).slice(2, 6)}_delta`,
+              vx: 0,
+              vy: 0,
+              activation: 1.0 // Pulsa na criação
+            };
+            return [...currentNodes, newNode];
+          }
+          return currentNodes.map(n => n.id.toLowerCase() === tagKey ? { ...n, activation: 1.0 } : n);
+        });
+
+        // 2. Conectar a tag ao núcleo central
+        setInteropConnections(currentConns => {
+          const exists = currentConns.some(c => 
+            (c.from === 'core' && c.to === tagKey) || 
+            (c.from === tagKey && c.to === 'core')
+          );
+          if (!exists) {
+            return [...currentConns, {
+              from: "core",
+              to: tagKey,
+              weight: 0.82 + Math.random() * 0.12,
+              discovered: true
+            }];
+          }
+          return currentConns;
+        });
+
+        // 3. Adicionar aos itens descobertos no feed lateral
+        const key = `core-${tagKey}`;
+        if (!discoveredKeysRef.current.has(key)) {
+          discoveredKeysRef.current.add(key);
+          setNnDiscovered(prevDisc => [
+            {
+              id: `disc-rag-${Date.now()}`,
+              from: "core",
+              to: tagKey,
+              label: `RAG: "${tag}" integrado à malha de DNA Semântico`,
+              epoch: nnEpochRef.current,
+              confidence: 96
+            },
+            ...prevDisc
+          ].slice(0, 12));
+        }
+      }
     } catch (err) {
       console.error('Erro na análise semântica:', err);
     } finally {
@@ -1017,11 +1085,11 @@ export default function AdminPage() {
         <div className="flex items-center gap-6 pb-6 border-b border-black/07 print:border-black/10 print:pb-10 print:mb-10">
           <Logo className="w-12 h-12 md:w-16 md:h-16" />
           <div>
-            <h1 className="text-xl md:text-2xl font-semibold tracking-normal print:text-black">
-              Sistema de Folksonomia Digital
+            <h1 className="text-xl md:text-2xl font-normal serif-title tracking-normal print:text-black">
+              Folksonomia Digital
             </h1>
-            <p className="text-[9px] md:text-[11px] uppercase font-medium tracking-[0.2em] text-[#1A1A1A]/38 print:text-black/50">
-              Gestão Semântica Institucional — NUGEP
+            <p className="text-[9px] md:text-[11px] uppercase font-semibold tracking-[0.2em] text-[#1A1A1A]/38 print:text-black/50">
+              NUGEP — Documentação Semântica
             </p>
           </div>
         </div>
@@ -1516,10 +1584,10 @@ export default function AdminPage() {
                     <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
-                    <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/50 flex items-center gap-2 flex-1 md:flex-none justify-center hover:!bg-white/20 transition-all text-white disabled:opacity-40 disabled:cursor-not-allowed">
+                    <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/45 backdrop-blur-md border border-white/50 shadow-md flex items-center gap-2 flex-1 md:flex-none justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed !text-[#1A1A1A]">
                       <FileText size={16} /> Exportar PDF
                     </button>
-                    <button onClick={handleExportCSV} className="liquid-button !bg-[#E85002] flex items-center gap-2 flex-1 md:flex-none justify-center">
+                    <button onClick={handleExportCSV} className="liquid-button !bg-[#E8490A] !text-white flex items-center gap-2 flex-1 md:flex-none justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_4px_12px_rgba(232,73,10,0.15)]">
                       <Download size={16} /> CSV
                     </button>
                   </div>
@@ -1551,8 +1619,8 @@ export default function AdminPage() {
                 {/* Cabeçalho institucional — só aparece no PDF */}
                 <div className="print-header hidden mb-8">
                   <div style={{borderBottom: '2px solid #c44000', paddingBottom: '16px', marginBottom: '24px'}}>
-                    <h1 style={{fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.1em', textTransform: 'uppercase'}}>Sistema de Folksonomia Digital 2.0</h1>
-                    <p style={{fontSize: '11px', color: '#666', marginTop: '4px'}}>Relatório Semântico — Gerado em {new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>
+                    <h1 style={{fontSize: '24px', fontWeight: 'bold', letterSpacing: '0.1em', textTransform: 'uppercase'}}>Folksonomia Digital</h1>
+                    <p style={{fontSize: '11px', color: '#666', marginTop: '4px'}}>NUGEP — Documentação Semântica — Relatório Gerado em {new Date().toLocaleDateString('pt-BR', {day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</p>
                     {semanticResult && !semanticResult.tagNaoExiste && (
                       <p style={{fontSize: '18px', fontWeight: 'bold', marginTop: '12px', color: '#c44000'}}>Tag analisada: &quot;{semanticResult.tag}&quot;</p>
                     )}
@@ -1686,28 +1754,33 @@ export default function AdminPage() {
                               {data.items?.map((item: any, i: number) => {
                                 const corr = data.correlations?.[i];
                                 return (
-                                  <div key={i} className="p-3 bg-white/50 rounded-lg border border-black/07 space-y-2">
+                                  <div key={i} className="p-4 !bg-white/70 backdrop-blur-md border border-white/45 rounded-xl shadow-sm space-y-3">
                                     <p className="text-sm font-semibold leading-tight">{item.titulo}</p>
-                                    {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002] font-medium">{item.criador}</p>}
-                                    {item.museu && <p className="text-[10px] text-[#1A1A1A]/55">{item.museu} {item.localizacao ? `— ${item.localizacao}` : ''}</p>}
-                                    {item.material && <p className="text-[10px] text-[#1A1A1A]/48">Material: {item.material}</p>}
-                                    {item.tecnica && <p className="text-[10px] text-[#1A1A1A]/48">Técnica: {item.tecnica}</p>}
-                                    {item.data && <p className="text-[10px] text-[#1A1A1A]/48">{item.data}{item.pais ? ` • ${item.pais}` : ''}</p>}
+                                    {item.criador && item.criador !== 'Desconhecido' && <p className="text-[10px] text-[#E85002] font-semibold">{item.criador}</p>}
+                                    {item.museu && <p className="text-[10px] text-[#1A1A1A]/60 font-medium">{item.museu} {item.localizacao ? `— ${item.localizacao}` : ''}</p>}
+                                    {item.material && <p className="text-[10px] text-[#1A1A1A]/50">Material: {item.material}</p>}
+                                    {item.tecnica && <p className="text-[10px] text-[#1A1A1A]/50">Técnica: {item.tecnica}</p>}
+                                    {item.data && <p className="text-[10px] text-[#1A1A1A]/50">{item.data}{item.pais ? ` • ${item.pais}` : ''}</p>}
                                     {/* Razões da correlação */}
                                     {corr?.reasons?.length > 0 && (
-                                      <div className="pt-2 border-t border-black/07 space-y-1">
+                                      <div className="pt-2.5 border-t border-black/07 space-y-1.5">
                                         {corr.reasons.slice(0, 3).map((r: any, ri: number) => (
-                                          <p key={ri} className="text-[10px] text-orange-400/85">✓ {r.description}</p>
+                                          <p key={ri} className="text-[10px] text-orange-500 font-medium">✓ {r.description}</p>
                                         ))}
                                         <div className="flex items-center gap-2 mt-1">
-                                          <div className="h-1 flex-1 bg-white/50 rounded-full overflow-hidden">
+                                          <div className="h-1 flex-1 bg-black/10 rounded-full overflow-hidden">
                                             <div className="h-full bg-[#E85002]" style={{ width: `${(corr.score || 0) * 100}%` }} />
                                           </div>
-                                          <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round((corr.score || 0) * 100)}%</span>
+                                          <span className="text-[10px] text-[#1A1A1A]/45 font-mono font-bold">{Math.round((corr.score || 0) * 100)}%</span>
                                         </div>
                                       </div>
                                     )}
-                                    {item.link && <a href={item.link} target="_blank" rel="noopener" className="text-[10px] text-[#E85002] underline block">Ver na fonte →</a>}
+                                    {item.link && (
+                                      <a href={item.link} target="_blank" rel="noopener noreferrer" 
+                                        className="liquid-button !w-full !py-1.5 !px-2.5 !rounded-lg !text-[9px] !font-bold flex items-center justify-center gap-1 shadow-sm hover:scale-105 active:scale-95 transition-all">
+                                        <Globe size={10} className="text-black/60" /> Acessar Base de Dados
+                                      </a>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -2045,24 +2118,15 @@ export default function AdminPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Velocidade */}
+                    <span className="text-[8px] uppercase tracking-wider text-[#1A1A1A]/45 font-bold mr-1">Velocidade de Processamento:</span>
                     <div className="flex items-center gap-1 bg-white/25 backdrop-blur-md rounded-full p-1 border border-white/35 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)]">
                       {(['lento','normal','rapido'] as const).map(s => (
                         <button key={s} onClick={() => { setNnSpeed(s); }}
-                          className={`text-[9px] uppercase font-black px-3.5 py-1.5 rounded-full transition-all ${nnSpeed === s ? 'bg-[#E8490A] text-white shadow-md' : 'text-[#1A1A1A]/65 hover:text-[#1A1A1A] hover:bg-white/30'}`}>
+                          className={`text-[9px] uppercase font-black px-3.5 py-1.5 rounded-full transition-all ${nnSpeed === s ? 'bg-[#E8490A] text-white shadow-md scale-105' : 'text-[#1A1A1A]/65 hover:text-[#1A1A1A] hover:bg-white/30'}`}>
                           {s === 'lento' ? 'Lento' : s === 'normal' ? 'Normal' : 'Rápido'}
                         </button>
                       ))}
                     </div>
-                    {/* Controles */}
-                    <button onClick={nnIsTraining ? stopTraining : startTraining}
-                      className={`liquid-button flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider px-5 py-2.5 rounded-full transition-all ${nnIsTraining ? '!bg-red-500/20 !border-red-500/40 !text-red-700 hover:!bg-red-500/30' : '!bg-[#E8490A] !text-white hover:!bg-[#c73d08]'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${nnIsTraining ? 'bg-red-600 animate-pulse' : 'bg-white'}`}></span>
-                      {nnIsTraining ? 'Parar Treino' : 'Iniciar Treino'}
-                    </button>
-                    <button onClick={resetTraining}
-                      className="liquid-button !bg-white/45 !text-[#1A1A1A]/70 hover:!bg-white/70 text-[10px] uppercase font-bold tracking-wider px-4 py-2.5 rounded-full transition-all">
-                      Reiniciar
-                    </button>
                   </div>
                 </div>
 
