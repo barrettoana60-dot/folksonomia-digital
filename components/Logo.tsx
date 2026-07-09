@@ -10,18 +10,40 @@ export default function Logo({ className = "w-12 h-12" }: LogoProps) {
       xmlns="http://www.w3.org/2000/svg" 
       viewBox="0 0 100 100" 
       className={className}
+      fill="none"
     >
-      <path d="M 50 50 L 50 2 A 48 48 0 0 1 95.6 35.1 Z" fill="#c0392b" />
-      <path d="M 50 50 L 95.6 35.1 A 48 48 0 0 1 78.2 88.8 Z" fill="#27ae60" />
-      <path d="M 50 50 L 78.2 88.8 A 48 48 0 0 1 21.8 88.8 Z" fill="#f39c12" />
-      <path d="M 50 50 L 21.8 88.8 A 48 48 0 0 1 4.4 35.1 Z" fill="#2980b9" />
-      <path d="M 50 50 L 4.4 35.1 A 48 48 0 0 1 50 2 Z" fill="#d35400" />
-      
-      <circle cx="32" cy="32" r="4" fill="black" opacity="0.8" />
-      <circle cx="68" cy="32" r="4" fill="black" opacity="0.8" />
-      <circle cx="78" cy="65" r="4" fill="black" opacity="0.8" />
-      <circle cx="50" cy="78" r="4" fill="black" opacity="0.8" />
-      <circle cx="22" cy="65" r="4" fill="black" opacity="0.8" />
+      {/* Círculo Laranja (Topo Esquerdo) */}
+      <circle cx="22" cy="22" r="18" fill="#E8490A" />
+
+      {/* Pílula Verde (Baixo Esquerdo) */}
+      <rect x="4" y="40" width="36" height="56" rx="18" fill="#0A7C4B" />
+
+      {/* Forma Azul Escura (Topo Direito com cantos arredondados customizados) */}
+      <path 
+        d="M 40 4 
+           H 80 
+           C 91 4, 96 9, 96 20 
+           V 64 
+           C 96 64, 96 64, 96 64 
+           H 56 
+           C 47 64, 40 57, 40 48 
+           Z" 
+        fill="#0D3A85" 
+      />
+
+      {/* Forma Amarela (Centro Baixo) */}
+      <path 
+        d="M 40 68 
+           H 58 
+           C 66 68, 70 72, 70 80 
+           V 96 
+           H 40 
+           Z" 
+        fill="#F2A922" 
+      />
+
+      {/* Círculo Vermelho (Baixo Direito) */}
+      <circle cx="82" cy="82" r="17" fill="#C62228" />
     </svg>
   );
 }
