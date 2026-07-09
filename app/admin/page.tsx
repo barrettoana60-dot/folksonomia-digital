@@ -1158,11 +1158,19 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen pt-20 pb-20 px-3 md:px-8 print:pt-0">
-      <div className="max-w-[1400px] mx-auto space-y-6 md:space-y-12">
+    <div className="min-h-screen pt-28 md:pt-32 pb-20 px-3 md:px-8 print:pt-0">
+      <div className="max-w-[1400px] mx-auto space-y-6 md:space-y-10">
 
-        {/* Tab Navigation — mobile scroll horizontal */}
-        <nav className="flex items-center gap-1.5 md:gap-2 overflow-x-auto pb-3 no-scrollbar border-b border-black/07 print:hidden -mx-3 px-3 md:mx-0 md:px-0">
+        {/* Tab Navigation — sticky com glass background para legibilidade */}
+        <div
+          className="sticky top-[72px] z-30 -mx-3 px-3 md:mx-0 md:px-0 pb-1 pt-2"
+          style={{
+            background: 'rgba(238,235,227,0.88)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          }}
+        >
+          <nav className="flex items-center gap-1.5 md:gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-black/10 print:hidden">
           {tabs.map(tab => (
             <button
               key={tab.id}
@@ -1176,7 +1184,8 @@ export default function AdminPage() {
               {tab.label}
             </button>
           ))}
-        </nav>
+          </nav>
+        </div>
 
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
