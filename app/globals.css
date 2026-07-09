@@ -26,6 +26,7 @@
 }
 
 html {
+  background-color: #EEEBE3;
   scroll-behavior: smooth;
   overflow-x: hidden;
   width: 100%;
@@ -37,7 +38,7 @@ body {
   overflow-x: hidden;
   width: 100%;
   color: #1A1A1A;
-  background-color: #EEEBE3;
+  background-color: transparent;
   min-height: 100vh;
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
 }
