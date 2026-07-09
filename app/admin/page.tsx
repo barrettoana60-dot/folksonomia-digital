@@ -1158,29 +1158,16 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4 md:px-8 print:pt-0">
-      <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-12">
-        
-        {/* LOGO INSTITUCIONAL */}
-        <div className="flex items-center gap-6 pb-6 border-b border-black/07 print:border-black/10 print:pb-10 print:mb-10">
-          <Logo className="w-12 h-12 md:w-16 md:h-16" />
-          <div>
-            <h1 className="text-xl md:text-2xl font-normal serif-title tracking-normal print:text-black">
-              Folksonomia Digital
-            </h1>
-            <p className="text-[9px] md:text-[11px] uppercase font-semibold tracking-[0.2em] text-[#1A1A1A]/38 print:text-black/50">
-              NUGEP — Documentação Semântica
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen pt-20 pb-20 px-3 md:px-8 print:pt-0">
+      <div className="max-w-[1400px] mx-auto space-y-6 md:space-y-12">
 
-        {/* Tab Navigation */}
-        <nav className="flex items-center gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-black/07 print:hidden">
+        {/* Tab Navigation — mobile scroll horizontal */}
+        <nav className="flex items-center gap-1.5 md:gap-2 overflow-x-auto pb-3 no-scrollbar border-b border-black/07 print:hidden -mx-3 px-3 md:mx-0 md:px-0">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap px-5 md:px-7 py-2.5 rounded-xl text-[10px] md:text-xs font-semibold uppercase tracking-wider transition-all liquid-button ${
+              className={`whitespace-nowrap flex-shrink-0 px-4 md:px-7 py-2 md:py-2.5 rounded-xl text-[9px] md:text-xs font-semibold uppercase tracking-wider transition-all liquid-button ${
                 activeTab === tab.id 
                   ? '!bg-[#E8490A] !text-white border border-[#E8490A]/30 shadow-[0_4px_16px_rgba(232,73,10,0.25)]' 
                   : '!bg-white/40 !text-[#1A1A1A]/70 hover:!bg-white/75'
