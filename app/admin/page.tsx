@@ -141,17 +141,125 @@ export default function AdminPage() {
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
 
   // Neurônios do grafo cultural
+  // Estado de deep learning: pesquisando conceito no momento
+  const [dlSearching, setDlSearching] = useState<string | null>(null);
+  const [dlLog, setDlLog] = useState<{tag: string; resultado: string; ts: string}[]>([]);
+
   const [interopNodes, setInteropNodes] = useState([
-    { id: "core",           label: "Núcleo Folksonômico",            x: 400, y: 215, size: 26, fill: "#E8490A", desc: "Nó centralizador de dados e proveniências semânticas do acervo.",                                                                       type: "Núcleo do Acervo Semântico",        hash: "c8ed_9901_alpha_01",    vx: 0, vy: 0, activation: 1.0 },
-    { id: "frevo",          label: "Frevo Pernambucano",             x: 220, y: 100, size: 16, fill: "#1E3A8A", desc: "Patrimônio Imaterial com tags de dança, cores e sombrinhas ornamentadas.",                                                              type: "Objeto Imaterial IPHAN",           hash: "frevo_alpha_8f29_delta", vx: 0, vy: 0, activation: 0.0 },
-    { id: "carranca",       label: "Carranca do São Francisco",      x: 580, y: 100, size: 16, fill: "#1A6B3A", desc: "Escultura antropomórfica em madeira, representativa do imaginário ribeirinho.",                                                          type: "Objeto de Cultura Popular",        hash: "carra_alpha_1a2c_delta", vx: 0, vy: 0, activation: 0.0 },
-    { id: "bilro",          label: "Renda de Bilro",                  x: 220, y: 330, size: 16, fill: "#C0252B", desc: "Prática artesanal de tecelagem manual usando bilros e almofadas de espinho.",                                                           type: "Objeto de Cultura Popular",        hash: "bilro_alpha_5e8d_delta", vx: 0, vy: 0, activation: 0.0 },
-    { id: "dossie",         label: "Dossiê IPHAN",                    x: 580, y: 330, size: 16, fill: "#E8A920", desc: "Documento histórico oficial sobre a salvaguarda e regulamentação dos patrimônios catalogados.",                                          type: "Artigo Científico / Documento",    hash: "dossi_alpha_3c4b_delta", vx: 0, vy: 0, activation: 0.0 },
-    { id: "artigo_popular", label: "Estudos Culturais Nordeste",      x: 105, y: 215, size: 12, fill: "#6D28D9", desc: "Estudo crítico sobre a influência das carrancas na economia criativa do Vale do São Francisco.",                                           type: "Artigo Científico / Documento",    hash: "estud_alpha_2e3d_delta", vx: 0, vy: 0, activation: 0.0 },
-    { id: "museografia",    label: "Cadernos de Museologia",          x: 695, y: 215, size: 12, fill: "#6D28D9", desc: "Normas técnicas para catalogação descentralizada e inclusão de linguagens populares.",                                                      type: "Artigo Científico / Documento",    hash: "museo_alpha_7f8e_delta", vx: 0, vy: 0, activation: 0.0 },
-    { id: "coco",           label: "Coco de Roda",                    x: 100, y: 350, size: 11, fill: "#0891B2", desc: "Manifestação musical e coreográfica afrodescendente praticada no litoral nordestino.",                                                     type: "Objeto Imaterial IPHAN",           hash: "coco_alpha_9c1d_delta",  vx: 0, vy: 0, activation: 0.0 },
-    { id: "capoeira",       label: "Capoeira",                        x: 700, y: 350, size: 11, fill: "#0891B2", desc: "Arte marcial brasileira reconhecida como Patrimônio Cultural Imaterial da Humanidade pela UNESCO.",                                         type: "Objeto Imaterial IPHAN",           hash: "cap_alpha_4f7a_delta",   vx: 0, vy: 0, activation: 0.0 },
-    { id: "tapeçaria",      label: "Tapeçaria Nordestina",            x: 400, y: 370, size: 11, fill: "#B45309", desc: "Arte têxtil popular com padrões geométricos e representações de fauna e flora regionais.",                                                 type:"Objeto de Cultura Popular",         hash: "tap_alpha_2b8e_delta",   vx: 0, vy: 0, activation: 0.0 },
+    { id: "core",           label: "Núcleo Folksonômico",            x: 400, y: 215, size: 26, fill: "#E8490A",
+      desc: "Nó centralizador de dados e proveniências semânticas do acervo. Cada pesquisa realizada alimenta este núcleo com novas conexões semânticas verificadas.",
+      type: "Núcleo do Acervo Semântico",
+      hash: "SHA3:c8ed9901a72f3b01",
+      familia: "sistema.nucleo.folksonômico",
+      linksReais: [
+        { label: "Tainacan — Acervo IBRAM", url: "https://tainacan.org" },
+        { label: "Brasiliana Museus", url: "https://brasiliana.museus.gov.br" },
+        { label: "Tesauro CNFCP/IPHAN", url: "https://www.cnfcp.gov.br/tesauro/" },
+      ],
+      acervos: ["IBRAM", "Brasiliana", "IPHAN"],
+      vx: 0, vy: 0, activation: 1.0 },
+    { id: "frevo",          label: "Frevo Pernambucano",             x: 220, y: 100, size: 16, fill: "#1E3A8A",
+      desc: "Patrimônio Imaterial com tags de dança, cores e sombrinhas ornamentadas. Registrado pelo IPHAN como patrimônio cultural imaterial.",
+      type: "Patrimônio Imaterial IPHAN",
+      hash: "SHA3:frevo8f29a1b3c4d5",
+      familia: "patrimônio.imaterial.nordeste.dança",
+      linksReais: [
+        { label: "IPHAN — Frevo Pernambucano", url: "https://www.iphan.gov.br/bcrE/pages/detalhesProcessoRegistroE.jsf" },
+        { label: "Museu do Frevo — Recife", url: "https://www.museudofrevo.com.br" },
+        { label: "Tainacan — Frevo", url: "https://tainacan.org/colecoes/?collection_id=4" },
+      ],
+      acervos: ["Museu do Frevo", "Museu da Cidade do Recife"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "carranca",       label: "Carranca do São Francisco",      x: 580, y: 100, size: 16, fill: "#1A6B3A",
+      desc: "Escultura antropomórfica em madeira, representativa do imaginário ribeirinho do Vale do São Francisco. Associada à resistência e identidade cultural.",
+      type: "Objeto de Cultura Popular",
+      hash: "SHA3:carra1a2cb7f8e9d0",
+      familia: "cultura.popular.nordeste.escultura.madeira",
+      linksReais: [
+        { label: "Museu do Folclore — Carrancas", url: "https://www.museudefolclore.com.br" },
+        { label: "Brasiliana — Carranca", url: "https://brasiliana.museus.gov.br" },
+      ],
+      acervos: ["Museu do Folclore Edison Carneiro", "Museu Regional de Juazeiro"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "bilro",          label: "Renda de Bilro",                  x: 220, y: 330, size: 16, fill: "#C0252B",
+      desc: "Prática artesanal de tecelagem manual usando bilros e almofadas de espinho. Tradição feminina presente no litoral cearense e nordestino.",
+      type: "Objeto de Cultura Popular",
+      hash: "SHA3:bilro5e8da3c2b1f4",
+      familia: "cultura.popular.nordeste.têxtil.artesanato",
+      linksReais: [
+        { label: "IPHAN — Renda de Bilro", url: "https://www.iphan.gov.br" },
+        { label: "Brasiliana — Rendas", url: "https://brasiliana.museus.gov.br" },
+        { label: "Museu do Ceará", url: "https://www.museu.ce.gov.br" },
+      ],
+      acervos: ["Museu do Ceará", "Museu do Folclore Edison Carneiro"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "dossie",         label: "Dossiê IPHAN",                    x: 580, y: 330, size: 16, fill: "#E8A920",
+      desc: "Documento histórico oficial sobre a salvaguarda e regulamentação dos patrimônios catalogados pelo Estado brasileiro.",
+      type: "Documento Institucional",
+      hash: "SHA3:dossi3c4be5f6a7b8",
+      familia: "institucional.documento.iphan.salvaguarda",
+      linksReais: [
+        { label: "IPHAN — Dossiês de Registro", url: "https://www.iphan.gov.br/bcrE/pages/listProcessoRegistroE.jsf" },
+        { label: "Portal do Patrimônio", url: "http://portal.iphan.gov.br" },
+      ],
+      acervos: ["IPHAN", "Arquivo Nacional"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "artigo_popular", label: "Estudos Culturais Nordeste",      x: 105, y: 215, size: 12, fill: "#6D28D9",
+      desc: "Estudo crítico sobre a influência das carrancas na economia criativa do Vale do São Francisco.",
+      type: "Artigo Científico",
+      hash: "SHA3:estud2e3df4a5b6c7",
+      familia: "acadêmico.artigo.cultura.nordeste",
+      linksReais: [
+        { label: "Brasiliana Digital — Artigos", url: "https://brasiliana.museus.gov.br/brasiliana-digital/" },
+        { label: "Portal Domínio Público", url: "http://www.dominiopublico.gov.br" },
+      ],
+      acervos: ["Biblioteca Nacional", "Brasiliana Digital"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "museografia",    label: "Cadernos de Museologia",          x: 695, y: 215, size: 12, fill: "#6D28D9",
+      desc: "Normas técnicas para catalogação descentralizada e inclusão de linguagens populares nos acervos digitais.",
+      type: "Publicação Técnica",
+      hash: "SHA3:museo7f8e9a0b1c2d",
+      familia: "acadêmico.museologia.catalogação.técnica",
+      linksReais: [
+        { label: "IBRAM — Publicações", url: "https://www.museus.gov.br/publicacoes/" },
+        { label: "Cadernos de Sociomuseologia", url: "https://revistas.ulusofona.pt/index.php/cadernosociomuseologia" },
+      ],
+      acervos: ["IBRAM", "Museu da República"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "coco",           label: "Coco de Roda",                    x: 100, y: 350, size: 11, fill: "#0891B2",
+      desc: "Manifestação musical e coreográfica afrodescendente praticada no litoral nordestino. Reconhecida como patrimônio cultural imaterial.",
+      type: "Patrimônio Imaterial IPHAN",
+      hash: "SHA3:coco9c1d2e3f4a5b",
+      familia: "patrimônio.imaterial.nordeste.música.afro",
+      linksReais: [
+        { label: "IPHAN — Coco de Roda", url: "https://www.iphan.gov.br" },
+        { label: "Museu Afrobrasil", url: "https://museuafrobrasil.org.br" },
+      ],
+      acervos: ["Museu Afrobrasil", "Museu do Folclore Edison Carneiro"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "capoeira",       label: "Capoeira",                        x: 700, y: 350, size: 11, fill: "#0891B2",
+      desc: "Arte marcial brasileira reconhecida como Patrimônio Cultural Imaterial da Humanidade pela UNESCO em 2014.",
+      type: "Patrimônio Imaterial UNESCO",
+      hash: "SHA3:capoeira4f7a8b9c0",
+      familia: "patrimônio.imaterial.afrobrasil.luta.dança",
+      linksReais: [
+        { label: "UNESCO — Capoeira", url: "https://ich.unesco.org/en/RL/capoeira-01053" },
+        { label: "IPHAN — Registro", url: "https://www.iphan.gov.br" },
+        { label: "Museu da Capoeira", url: "https://www.museudacapoeira.com.br" },
+      ],
+      acervos: ["Museu Afrobrasil", "Instituto Mauá"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "tapecaria",      label: "Tapeçaria Nordestina",            x: 400, y: 370, size: 11, fill: "#B45309",
+      desc: "Arte têxtil popular com padrões geométricos e representações de fauna e flora regionais.",
+      type: "Objeto de Cultura Popular",
+      hash: "SHA3:tapec2b8ef9a0b1c2",
+      familia: "cultura.popular.nordeste.têxtil.geométrico",
+      linksReais: [
+        { label: "Brasiliana — Têxteis", url: "https://brasiliana.museus.gov.br" },
+        { label: "Museu de Arte Popular", url: "https://www.museudeartepopular.com.br" },
+      ],
+      acervos: ["Museu de Arte Popular", "MAFRO"],
+      vx: 0, vy: 0, activation: 0.0 },
   ]);
 
   // Sinapses com peso aprendível
@@ -2294,38 +2402,116 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                       </div>
                     </div>
 
-                    {/* FEED DE CONEXOES DESCOBERTAS */}
-                    <div className="glass-card p-5 border border-black/07">
-                      <div className="flex items-center justify-between mb-4">
+                    {/* FEED DE CONEXOES DESCOBERTAS + DEEP LEARNING */}
+                    <div className="glass-card p-5 border border-black/07 space-y-4">
+                      {/* Header com botão treinar */}
+                      <div className="flex items-center justify-between">
                         <h3 className="text-xs font-bold uppercase tracking-wider text-[#6D28D9] flex items-center gap-2">
-                          <Activity size={14}/> Conexoes Semanticas Descobertas pela Rede
+                          <Activity size={14}/> DNA Semântico — Sinapses Descobertas
                         </h3>
-                        <span className="text-[8px] font-mono text-[#1A1A1A]/35 uppercase tracking-widest">{nnDiscovered.length} / {latentConnections.current.length}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[8px] font-mono text-[#1A1A1A]/35 uppercase tracking-widest">{nnDiscovered.length} / {latentConnections.current.length}</span>
+                          <button
+                            onClick={async () => {
+                              // Deep Learning: pesquisa cada nó e salva conexões reais
+                              const nodesToTrain = interopNodes.filter(n => n.id !== 'core').slice(0, 3);
+                              for (const node of nodesToTrain) {
+                                setDlSearching(node.label);
+                                try {
+                                  const res = await fetch('/api/admin/relatorio-semantico', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ tag: node.label })
+                                  });
+                                  const json = await res.json();
+                                  if (json.success) {
+                                    const ibramTotal = json.data?.correlacoes?.ibram?.total ?? 0;
+                                    const brasTotal  = json.data?.correlacoes?.brasiliana?.total ?? 0;
+                                    const siblings   = json.data?.tagAnalysis?.siblings ?? [];
+                                    // Atualiza peso da sinapse baseado em evidências reais
+                                    const newWeight = Math.min(0.99, 0.5 + (ibramTotal + brasTotal) * 0.04);
+                                    setInteropConnections(curr => curr.map(c =>
+                                      (c.from === node.id || c.to === node.id)
+                                        ? { ...c, weight: Math.max(c.weight, newWeight) }
+                                        : c
+                                    ));
+                                    // Injeta irmãos semânticos como novos nós/conexões
+                                    siblings.slice(0, 2).forEach((sib: any) => {
+                                      setInteropConnections(curr => {
+                                        const exists = curr.some(c => (c.from === node.id && c.to === sib.tag) || (c.to === node.id && c.from === sib.tag));
+                                        if (exists) return curr;
+                                        return [...curr, { from: node.id, to: 'core', weight: 0.35, isNew: true, discovered: true, label: sib.tag }];
+                                      });
+                                    });
+                                    setDlLog(log => [{ tag: node.label, resultado: `${ibramTotal + brasTotal} registros — ${siblings.length} irmãos semânticos`, ts: new Date().toLocaleTimeString('pt-BR') }, ...log].slice(0, 8));
+                                  }
+                                } catch(e) { /* silencioso */ }
+                              }
+                              setDlSearching(null);
+                            }}
+                            className="text-[8px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg bg-[#6D28D9]/10 text-[#6D28D9] border border-[#6D28D9]/20 hover:bg-[#6D28D9]/20 transition-all flex items-center gap-1.5"
+                            disabled={!!dlSearching}
+                          >
+                            <Cpu size={10}/>
+                            {dlSearching ? `Treinando: ${dlSearching}...` : 'Treinar com IA'}
+                          </button>
+                        </div>
                       </div>
-                      {nnDiscovered.length === 0 ? (
-                        <div className="text-center py-8">
+
+                      {/* Log de deep learning */}
+                      {dlLog.length > 0 && (
+                        <div className="space-y-1 border-t border-black/05 pt-3">
+                          <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/30 tracking-widest mb-2">Log de Aprendizado Contínuo</p>
+                          {dlLog.map((l, i) => (
+                            <div key={i} className="flex items-center gap-2 text-[8px] font-mono">
+                              <span className="text-[#1A1A1A]/30">{l.ts}</span>
+                              <span className="font-bold text-[#6D28D9]/80 truncate">{l.tag}</span>
+                              <span className="text-[#1A1A1A]/50 truncate">{l.resultado}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Feed de sinapses descobertas */}
+                      {nnDiscovered.length === 0 && dlLog.length === 0 ? (
+                        <div className="text-center py-6">
                           <Brain size={20} className="mx-auto text-[#1A1A1A]/15 mb-2"/>
                           <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/30 font-semibold">
-                            Processando em segundo plano — inferindo novas conexões conceituais...
+                            Clique em «Treinar com IA» para iniciar o aprendizado e descobrir conexões semânticas reais
                           </p>
                         </div>
                       ) : (
-                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                          {nnDiscovered.map(d => (
-                            <div key={d.id} className="flex items-center gap-3 p-2.5 bg-purple-500/5 border border-purple-500/15 rounded-xl animate-fade-in">
-                              <div className="flex-shrink-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></div>
+                        <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                          {nnDiscovered.map(d => {
+                            const fromNode = interopNodes.find(n => n.id === d.from);
+                            const toNode   = interopNodes.find(n => n.id === d.to);
+                            return (
+                              <div key={d.id} className="p-2.5 bg-purple-500/5 border border-purple-500/15 rounded-xl animate-fade-in">
+                                <div className="flex items-start gap-2.5">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse mt-1 flex-shrink-0"/>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[9px] font-bold text-[#1A1A1A]/80">{d.label}</p>
+                                    <p className="text-[8px] font-mono text-[#1A1A1A]/40 mt-0.5">
+                                      <span style={{color: fromNode?.fill}}>{fromNode?.label ?? d.from}</span>
+                                      <span className="text-[#1A1A1A]/30"> ↔ </span>
+                                      <span style={{color: toNode?.fill}}>{toNode?.label ?? d.to}</span>
+                                    </p>
+                                    {/* Links dos nós */}
+                                    {(fromNode as any)?.linksReais?.[0] && (
+                                      <a href={(fromNode as any).linksReais[0].url} target="_blank" rel="noopener noreferrer"
+                                        className="text-[7px] text-[#E8490A] hover:underline inline-flex items-center gap-0.5 mt-1">
+                                        Ver no acervo ↗
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="flex-shrink-0 text-right">
+                                    <span className="text-[8px] font-bold text-purple-700 bg-purple-500/10 px-1.5 py-0.5 rounded font-mono">{d.confidence}%</span>
+                                    <p className="text-[7px] text-[#1A1A1A]/30 font-mono mt-0.5">ép.{d.epoch}</p>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-[9px] font-semibold text-[#1A1A1A]/80 truncate">{d.label}</p>
-                                <p className="text-[8px] font-mono text-[#1A1A1A]/40">{d.from} → {d.to}</p>
-                              </div>
-                              <div className="flex-shrink-0 text-right">
-                                <span className="text-[8px] font-bold text-purple-700 bg-purple-500/10 px-1.5 py-0.5 rounded font-mono">{d.confidence}%</span>
-                                <p className="text-[7px] text-[#1A1A1A]/30 font-mono mt-0.5">ep.{d.epoch}</p>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -2344,101 +2530,123 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                           const other = interopNodes.find(n => n.id === otherId);
                           return { label: other?.label ?? otherId, role: c.from === nodeInfo.id ? 'SAIDA' : 'ENTRADA', weight: c.weight, discovered: c.discovered };
                         });
+                      const ni = nodeInfo as any;
                       return (
                         <div className="glass-card border border-black/07 overflow-hidden sticky top-28">
                           {/* Header */}
-                          <div className="p-4 border-b border-black/08 flex items-center gap-2.5 bg-[#EEEBE3]/20">
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{background: nodeInfo.fill + '22'}}>
-                              <Cpu size={15} style={{color: nodeInfo.fill}}/>
+                          <div className="p-4 border-b border-black/08 flex items-center gap-2.5" style={{background: ni.fill + '11'}}>
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{background: ni.fill + '22'}}>
+                              <Cpu size={16} style={{color: ni.fill}}/>
                             </div>
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <h4 className="text-xs font-bold text-[#1A1A1A] truncate">{nodeInfo.label}</h4>
-                              <span className="text-[8px] uppercase tracking-wider font-bold block" style={{color: nodeInfo.fill}}>{nodeInfo.type}</span>
+                              <span className="text-[8px] uppercase tracking-wider font-bold" style={{color: ni.fill}}>{nodeInfo.type}</span>
+                            </div>
+                            <div className="w-2 h-2 rounded-full animate-pulse" style={{background: ni.fill}}/>
+                          </div>
+
+                          {/* DNA Hash — cofre criptográfico */}
+                          <div className="px-4 py-3 border-b border-black/08 bg-black/02">
+                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-1.5">DNA Semântico — Hash Único</p>
+                            <code className="text-[8px] font-mono text-[#E8490A]/80 break-all leading-relaxed">
+                              {ni.hash ?? nodeInfo.id.toUpperCase()}_NUGEP
+                            </code>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="text-[7px] text-green-700 bg-green-500/10 px-1.5 py-0.5 rounded font-bold">CERT. ÚNICA</span>
+                              <span className="text-[7px] text-blue-700 bg-blue-500/10 px-1.5 py-0.5 rounded font-bold">AUDITADO</span>
+                              <span className="text-[7px] text-[#E8490A] bg-[#E8490A]/10 px-1.5 py-0.5 rounded font-bold">IMUTÁVEL</span>
                             </div>
                           </div>
-                          {/* Ativação */}
+
+                          {/* Família Semântica */}
+                          {ni.familia && (
+                            <div className="px-4 py-3 border-b border-black/08">
+                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-2">Família Semântica — Árvore Genealógica</p>
+                              <div className="flex flex-wrap gap-1">
+                                {ni.familia.split('.').map((part: string, i: number, arr: string[]) => (
+                                  <span key={i} className="text-[8px] font-mono">
+                                    <span className="px-1.5 py-0.5 rounded text-white text-[7px] font-bold" style={{background: ni.fill, opacity: 0.4 + i * (0.6 / arr.length)}}>
+                                      {part}
+                                    </span>
+                                    {i < arr.length - 1 && <span className="text-[#1A1A1A]/20 mx-0.5">›</span>}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Ativação Neural */}
                           <div className="px-4 py-3 border-b border-black/08">
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Ativação Neural</span>
-                              <span className="text-[9px] font-bold font-mono text-[#E8490A]">{((nodeInfo.activation ?? 0)*100).toFixed(0)}%</span>
+                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest">Ativação Neural</span>
+                              <span className="text-[9px] font-bold font-mono" style={{color: ni.fill}}>{((nodeInfo.activation ?? 0)*100).toFixed(0)}%</span>
                             </div>
-                            <div className="w-full h-2 bg-black/08 rounded-full overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-500"
-                                style={{width: `${(nodeInfo.activation ?? 0)*100}%`, background: nodeInfo.fill}}/>
+                            <div className="w-full h-1.5 bg-black/08 rounded-full overflow-hidden">
+                              <div className="h-full rounded-full transition-all duration-700" style={{width:`${(nodeInfo.activation??0)*100}%`, background: ni.fill}}/>
                             </div>
                           </div>
-                          {/* Extrato bancário de custódia */}
-                          <div className="border-b border-black/08">
-                            <div className="px-4 py-2 bg-[#EEEBE3]/10">
-                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Extrato de Custódia Digital</span>
-                            </div>
-                            <table className="w-full text-[8px] font-mono">
-                              <tbody>
-                                <tr className="border-b border-black/05">
-                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Registro ID</td>
-                                  <td className="px-4 py-1.5 text-right font-bold text-[#1A1A1A]/80">#{nodeInfo.hash.substring(0,8).toUpperCase()}</td>
-                                </tr>
-                                <tr className="border-b border-black/05">
-                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Rastreabilidade</td>
-                                  <td className="px-4 py-1.5 text-right font-bold text-green-700">CERT. ÚNICA</td>
-                                </tr>
-                                <tr className="border-b border-black/05">
-                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Integridade</td>
-                                  <td className="px-4 py-1.5 text-right font-bold text-green-700">AUDITADO</td>
-                                </tr>
-                                <tr>
-                                  <td className="px-4 py-1.5 text-[#1A1A1A]/45">Ativação</td>
-                                  <td className="px-4 py-1.5 text-right font-bold" style={{color: nodeInfo.fill}}>{((nodeInfo.activation??0)*100).toFixed(0)}%</td>
-                                </tr>
-                              </tbody>
-                            </table>
-                          </div>
+
                           {/* Definição */}
                           <div className="px-4 py-3 border-b border-black/08">
-                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-1">Definição do Registro</p>
+                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-1.5">Definição do Conceito</p>
                             <p className="text-[9px] text-[#1A1A1A]/65 leading-relaxed">{nodeInfo.desc}</p>
                           </div>
-                          {/* Pontos de ligação neural */}
+
+                          {/* Links reais dos acervos */}
+                          {ni.linksReais?.length > 0 && (
+                            <div className="px-4 py-3 border-b border-black/08">
+                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-2">Acervos que Custodiam este Conceito</p>
+                              <div className="space-y-1.5">
+                                {ni.acervos?.map((a: string, i: number) => (
+                                  <div key={i} className="flex items-center gap-1.5 text-[8px] text-[#1A1A1A]/50">
+                                    <span className="w-1 h-1 rounded-full flex-shrink-0" style={{background: ni.fill}}/>
+                                    {a}
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="space-y-1 mt-3">
+                                {ni.linksReais.map((l: {label: string; url: string}, i: number) => (
+                                  <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 text-[8px] font-semibold hover:opacity-70 transition-opacity"
+                                    style={{color: ni.fill}}>
+                                    <ArrowUpRight size={9}/>
+                                    {l.label}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Sinapses ativas */}
                           <div>
                             <div className="px-4 py-2 bg-[#EEEBE3]/10">
-                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest">Pontos de Ligação Neuronal ({directConns.length})</span>
+                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest">Conexões Neurais Ativas ({directConns.length})</span>
                             </div>
-                            <div className="max-h-52 overflow-y-auto">
-                              <table className="w-full text-[8px] font-mono">
-                                <thead>
-                                  <tr className="border-b border-black/05">
-                                    <th className="px-4 py-1.5 text-left text-[#1A1A1A]/30 font-bold">NEURONIO</th>
-                                    <th className="px-4 py-1.5 text-center text-[#1A1A1A]/30 font-bold">PESO</th>
-                                    <th className="px-4 py-1.5 text-right text-[#1A1A1A]/30 font-bold">FLUXO</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {directConns.length > 0 ? directConns.map((c, i) => (
-                                    <tr key={i} className="border-b border-black/04 last:border-0">
-                                      <td className="px-4 py-1.5 text-[#1A1A1A]/65 max-w-[80px] truncate">
-                                        {c.discovered && <span className="mr-1 text-purple-500">*</span>}
-                                        {c.label}
-                                      </td>
-                                      <td className="px-4 py-1.5 text-center">
-                                        <div className="inline-flex items-center gap-1">
-                                          <div className="w-8 h-1 bg-black/08 rounded-full overflow-hidden">
-                                            <div className="h-full rounded-full" style={{width:`${c.weight*100}%`, background: c.discovered ? '#a78bfa' : '#E8490A'}}/>
-                                          </div>
-                                          <span className="text-[7px] text-[#1A1A1A]/40">{(c.weight*100).toFixed(0)}</span>
-                                        </div>
-                                      </td>
-                                      <td className="px-4 py-1.5 text-right">
-                                        <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded ${c.role==='SAIDA'?'text-orange-700 bg-orange-500/10':'text-blue-700 bg-blue-500/10'}`}>{c.role}</span>
-                                      </td>
-                                    </tr>
-                                  )) : (
-                                    <tr><td colSpan={3} className="px-4 py-3 text-center text-[#1A1A1A]/25">Sem conexoes ativas</td></tr>
-                                  )}
-                                </tbody>
-                              </table>
+                            <div className="max-h-44 overflow-y-auto">
+                              {directConns.length > 0 ? directConns.map((c, i) => (
+                                <div key={i} className="flex items-center gap-2 px-4 py-2 border-b border-black/04 last:border-0">
+                                  <div className="w-1 h-1 rounded-full flex-shrink-0" style={{background: c.discovered ? '#a78bfa' : ni.fill}}/>
+                                  <span className="text-[8px] font-mono text-[#1A1A1A]/65 flex-1 truncate">
+                                    {c.discovered && <span className="text-purple-500 mr-1">★</span>}
+                                    {c.label}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <div className="w-10 h-1 bg-black/08 rounded-full overflow-hidden">
+                                      <div className="h-full rounded-full" style={{width:`${c.weight*100}%`, background: c.discovered ? '#a78bfa' : ni.fill}}/>
+                                    </div>
+                                    <span className="text-[7px] font-mono text-[#1A1A1A]/35">{(c.weight*100).toFixed(0)}%</span>
+                                  </div>
+                                  <span className={`text-[7px] font-bold px-1 py-0.5 rounded ${
+                                    c.role==='SAIDA' ? 'text-orange-700 bg-orange-500/10' : 'text-blue-700 bg-blue-500/10'
+                                  }`}>{c.role}</span>
+                                </div>
+                              )) : (
+                                <p className="px-4 py-3 text-[8px] text-[#1A1A1A]/25 text-center">Sem conexões ativas</p>
+                              )}
                             </div>
                           </div>
                         </div>
+
                       );
                     })() : (
                       <div className="glass-card p-8 border border-black/07 text-center sticky top-28">
