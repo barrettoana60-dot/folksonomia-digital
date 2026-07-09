@@ -900,262 +900,201 @@ export default function AdminPage() {
   const handleExportPDF = () => {
     if (!semanticResult) return;
 
-    const tag = semanticResult.tag || '';
-    const certeza = semanticResult.motores?.transformer?.certeza ?? '—';
-    const aguardando = semanticResult.motores?.transformer?.aguardandoTreino;
-    const tesauro = semanticResult.tesauro?.contexto || '';
-    const termosExpandidos: string[] = semanticResult.tesauro?.termosExpandidos || [];
-    const estruturado = semanticResult.relatorioEstruturado;
-    const analiseEscrita = semanticResult.analiseEscrita || '';
-    const deducaoCognitiva = estruturado ? estruturado.deducao : analiseEscrita;
-    const matrizCruzadaTexto = estruturado ? estruturado.factual : `As obras listadas nos acervos nacionais demonstraram proximidade através dos motores de busca semânticos (PPLM). Foram computadas conexões transversais entre os ${ibramTotal} registros do IBRAM e os ${brasilianaTotal} registros da Brasiliana Museus.`;
+    const tag          = semanticResult.tag || '';
+    const certeza      = semanticResult.motores?.transformer?.certeza ?? 0;
+    const aguardando   = semanticResult.motores?.transformer?.aguardandoTreino;
+    const tesauro      = semanticResult.tesauro?.contexto || '';
+    const termosExp    = (semanticResult.tesauro?.termosExpandidos || []) as string[];
+    const ibramTotal   = semanticResult.correlacoes?.ibram?.total ?? 0;
+    const brasTotal    = semanticResult.correlacoes?.brasiliana?.total ?? 0;
+    const internasTotal= semanticResult.correlacoes?.internas?.total ?? 0;
+    const auxiliarTotal= semanticResult.correlacoes?.auxiliares?.total ?? 0;
+    const internas     = (semanticResult.correlacoes?.internas?.items || []) as any[];
+    const analise      = semanticResult.analiseEscrita || '';
+    const estruturado  = semanticResult.relatorioEstruturado;
+    const camadas      = estruturado?.camadas || {};
 
-    const dataGeracao = new Date().toLocaleDateString('pt-BR', {
+    const dataGeracao  = new Date().toLocaleDateString('pt-BR', {
       day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-    const ibramTotal = semanticResult.correlacoes?.ibram?.total ?? 0;
-    const brasilianaTotal = semanticResult.correlacoes?.brasiliana?.total ?? 0;
-    const internasTotal = semanticResult.correlacoes?.internas?.total ?? 0;
-    const internas: any[] = semanticResult.correlacoes?.internas?.items || [];
 
-    const doc = `
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-      <head>
-        <meta charset="UTF-8" />
-        <title>Relatório Semântico NUGEP — ${tag}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=DM+Serif+Display&display=swap');
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            font-family: 'Inter', sans-serif;
-            background: #fff;
-            color: #1a1a1a;
-            padding: 0;
-          }
-          /* MARCA D'ÁGUA — aparece em todas as páginas */
-          @page { margin: 2cm 2.2cm; }
-          .watermark-pdf {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-35deg);
-            font-size: 65px;
-            font-weight: 900;
-            color: rgba(200, 60, 0, 0.1);
-            white-space: nowrap;
-            pointer-events: none;
-            z-index: -1;
-            letter-spacing: 0.05em;
-          }
-          .page { position: relative; z-index: 1; }
-          /* CABEÇALHO */
-          .header {
-            border-bottom: 3px solid #c44000;
-            padding-bottom: 20px;
-            margin-bottom: 32px;
-          }
-          .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-          }
-          .institution { font-size: 11px; color: #888; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 4px; }
-          .system-name { font-family: 'DM Serif Display', serif; font-size: 24px; font-weight: normal; text-transform: uppercase; letter-spacing: normal; color: #111; }
-          .report-type { font-size: 13px; color: #c44000; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
-          .date-block { text-align: right; font-size: 10px; color: #999; }
-          .nugep-badge {
-            display: inline-block;
-            background: #c44000;
-            color: #fff;
-            font-size: 9px;
-            font-weight: 900;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            padding: 3px 10px;
-            border-radius: 4px;
-            margin-top: 6px;
-          }
-          /* BLOCO DA TAG */
-          .tag-block {
-            background: #fff5f0;
-            border-left: 4px solid #c44000;
-            padding: 20px 24px;
-            margin-bottom: 28px;
-            border-radius: 0 6px 6px 0;
-          }
-          .tag-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.2em; color: #999; font-weight: 700; margin-bottom: 6px; }
-          .tag-value { font-family: 'DM Serif Display', serif; font-size: 36px; font-weight: normal; color: #c44000; letter-spacing: normal; }
-          .tag-meta { display: flex; gap: 24px; margin-top: 12px; }
-          .tag-stat { text-align: center; }
-          .tag-stat-val { font-size: 20px; font-weight: 700; color: #111; }
-          .tag-stat-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 0.15em; color: #999; }
-          /* CERTEZA */
-          .certeza-block {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 16px 20px;
-            background: ${aguardando ? '#fffbea' : '#f0fdf4'};
-            border: 1px solid ${aguardando ? '#fde68a' : '#86efac'};
-            border-radius: 8px;
-            margin-bottom: 28px;
-          }
-          .certeza-num { font-size: 44px; font-weight: 900; color: ${aguardando ? '#d97706' : '#16a34a'}; }
-          .certeza-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: ${aguardando ? '#92400e' : '#166534'}; }
-          .certeza-desc { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.5; }
-          /* SEÇÕES */
-          .section { margin-bottom: 28px; page-break-inside: avoid; }
-          .section-title {
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.25em;
-            color: #c44000;
-            border-bottom: 1px solid #f0ddd8;
-            padding-bottom: 8px;
-            margin-bottom: 14px;
-          }
-          .section-body {
-            font-size: 12px;
-            line-height: 1.85;
-            color: #333;
-            white-space: pre-wrap;
-          }
-          .tesauro-box {
-            background: #fffbeb;
-            border: 1px solid #fde68a;
-            border-radius: 6px;
-            padding: 16px 20px;
-          }
-          .termos-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-          .termo-badge {
-            background: #fef3c7;
-            color: #92400e;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 3px 10px;
-            border-radius: 20px;
-            border: 1px solid #fde68a;
-          }
-          .tags-internas { display: flex; flex-wrap: wrap; gap: 8px; }
-          .tag-interna {
-            background: #fff5f0;
-            color: #c44000;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 4px 12px;
-            border-radius: 20px;
-            border: 1px solid #fecaca;
-          }
-          /* RODAPÉ */
-          .footer {
-            border-top: 1px solid #e5e7eb;
-            margin-top: 40px;
-            padding-top: 14px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: #aaa;
-            letter-spacing: 0.08em;
-          }
-          @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="watermark-pdf">USO EXCLUSIVO DO NUGEP</div>
-        <div class="page">
-          <div class="header">
-            <div class="header-top">
-              <div>
-                <p class="system-name">Folksonomia Digital 2.0</p>
-                <p class="report-type">Relatório Semântico — Análise de Tag</p>
-              </div>
-              <div class="date-block">
-                <p>Gerado em</p>
-                <p style="font-weight:700; color:#111; font-size:11px;">${dataGeracao}</p>
-                <span class="nugep-badge">⬣ Uso Exclusivo do NUGEP</span>
-              </div>
-            </div>
-          </div>
+    // ─── converte markdown simples para HTML ──────────────────────
+    const md2html = (md: string): string => {
+      if (!md) return '';
+      return md
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^### (.+)$/gm, '<h3 class="sec-title">$1</h3>')
+        .replace(/^## (.+)$/gm, '<h2 class="sec-title2">$1</h2>')
+        .replace(/^#### (.+)$/gm, '<h4 class="sec-subtitle">$1</h4>')
+        .replace(/^---$/gm, '<hr class="divider"/>')
+        .replace(/^> (.+)$/gm, '<blockquote class="bq">$1</blockquote>')
+        .replace(/^\* (.+)$/gm, '<li>$1</li>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#c44000">$1</a>')
+        .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+        .split('\n').map(l => {
+          if (/^<(h[2-4]|hr|ul|blockquote|li)/.test(l.trim())) return l;
+          if (l.trim() === '') return '<br/>';
+          return `<p class="body-p">${l}</p>`;
+        }).join('\n');
+    };
 
-          <div class="tag-block">
-            <p class="tag-label">Tag Analisada</p>
-            <p class="tag-value">${tag}</p>
-            <div class="tag-meta">
-              <div class="tag-stat"><p class="tag-stat-val">${ibramTotal}</p><p class="tag-stat-lbl">Registros IBRAM</p></div>
-              <div class="tag-stat"><p class="tag-stat-val">${brasilianaTotal}</p><p class="tag-stat-lbl">Itens Brasiliana</p></div>
-              <div class="tag-stat"><p class="tag-stat-val">${internasTotal}</p><p class="tag-stat-lbl">Tags Correlatas</p></div>
-            </div>
-          </div>
+    // ─── gráfico de barras inline SVG ─────────────────────────────
+    const barMax = Math.max(ibramTotal, brasTotal, internasTotal, auxiliarTotal, 1);
+    const barW = 180;
+    const bars = [
+      { label: 'IBRAM/Tainacan', val: ibramTotal, color: '#c44000' },
+      { label: 'Brasiliana Museus', val: brasTotal, color: '#1E3A8A' },
+      { label: 'Tags Internas', val: internasTotal, color: '#1A6B3A' },
+      { label: 'Fontes Auxiliares', val: auxiliarTotal, color: '#E8A920' },
+    ];
+    const svgBars = bars.map((b, i) => {
+      const w = Math.round((b.val / barMax) * barW);
+      const y = i * 32 + 8;
+      return `<g>
+        <rect x="0" y="${y}" width="${w || 2}" height="20" fill="${b.color}" rx="3"/>
+        <text x="${(w || 2) + 6}" y="${y + 14}" font-size="10" fill="#333">${b.val} — ${b.label}</text>
+      </g>`;
+    }).join('');
+    const svgChart = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="${bars.length * 32 + 16}" style="margin:8px 0 16px">
+      ${svgBars}
+    </svg>`;
 
-          <div class="certeza-block">
-            <div class="certeza-num">${certeza}%</div>
-            <div>
-              <p class="certeza-label">${aguardando ? 'Sistema aprendendo' : 'Certeza Matemática Atingida'}</p>
-              <p class="certeza-desc">${aguardando
-                ? 'O sistema não atingiu a margem de 95% de certeza. Fará uma busca mais profunda nas bases de dados e devolverá a resposta definitiva quando alcançar o threshold necessário.'
-                : 'O raciocínio lógico-vetorial atingiu o threshold de 95%, confirmando a correlação semântica desta tag com o acervo institucional.'
-              }</p>
-            </div>
-          </div>
+    // ─── barra de certeza ─────────────────────────────────────────
+    const certW = Math.round(certeza * 2.8);
+    const certColor = certeza >= 95 ? '#16a34a' : certeza >= 60 ? '#d97706' : '#dc2626';
+    const certChart = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="28">
+      <rect x="0" y="4" width="280" height="16" fill="#f1f5f9" rx="8"/>
+      <rect x="0" y="4" width="${certW}" height="16" fill="${certColor}" rx="8"/>
+      <text x="288" y="16" font-size="11" fill="${certColor}" font-weight="700">${certeza}%</text>
+    </svg>`;
 
-          ${tesauro ? `
-          <div class="section">
-            <p class="section-title">Tesauro CNFCP / IPHAN — Definição Normativa</p>
-            <div class="tesauro-box">
-              <p class="section-body">${tesauro.replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;')}</p>
-              ${termosExpandidos.length > 0 ? `
-              <div class="termos-list">
-                ${termosExpandidos.map((t: string) => `<span class="termo-badge">${t}</span>`).join('')}
-              </div>` : ''}
-            </div>
-          </div>` : ''}
+    // ─── monta o HTML completo ─────────────────────────────────────
+    const fullReport = analise || (estruturado?.camadas
+      ? Object.values(estruturado.camadas).join('\n\n')
+      : estruturado?.deducao || '');
 
-          <div class="section">
-            <p class="section-title">Conexões Cruzadas e Malha Vetorial</p>
-            <div class="tesauro-box" style="background: #f8fafc; border-color: #cbd5e1;">
-              <p class="section-body">${matrizCruzadaTexto.replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;')}</p>
-            </div>
-          </div>
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Relatório Semântico NUGEP — ${tag}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=DM+Serif+Display&display=swap');
+  @page { margin: 2cm 2.5cm; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:#fff; color:#1a1a1a; font-size:12px; line-height:1.8; }
+  .watermark { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-35deg); font-size:64px; font-weight:900; color:rgba(200,60,0,0.07); white-space:nowrap; pointer-events:none; z-index:-1; }
+  .header { border-bottom:3px solid #c44000; padding-bottom:18px; margin-bottom:28px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .sysname { font-family:'DM Serif Display',serif; font-size:22px; color:#111; }
+  .rtype { font-size:11px; color:#c44000; font-weight:700; text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }
+  .badge { background:#c44000; color:#fff; font-size:8px; font-weight:900; letter-spacing:.2em; text-transform:uppercase; padding:2px 8px; border-radius:3px; }
+  .datebox { text-align:right; font-size:9px; color:#999; }
+  .tag-block { background:#fff5f0; border-left:4px solid #c44000; padding:18px 22px; margin-bottom:22px; border-radius:0 6px 6px 0; }
+  .tag-label { font-size:9px; text-transform:uppercase; letter-spacing:.2em; color:#999; font-weight:700; margin-bottom:4px; }
+  .tag-value { font-family:'DM Serif Display',serif; font-size:34px; color:#c44000; }
+  .certeza-row { display:flex; align-items:center; gap:16px; padding:14px 18px; background:${aguardando?'#fffbea':'#f0fdf4'}; border:1px solid ${aguardando?'#fde68a':'#86efac'}; border-radius:8px; margin-bottom:22px; }
+  .certeza-num { font-size:40px; font-weight:900; color:${certColor}; }
+  .certeza-info { }
+  .certeza-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:${aguardando?'#92400e':'#166534'}; }
+  .certeza-desc { font-size:10px; color:#666; margin-top:3px; }
+  .stats-row { display:flex; gap:20px; margin-bottom:22px; }
+  .stat-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; flex:1; text-align:center; }
+  .stat-val { font-size:22px; font-weight:700; color:#111; }
+  .stat-lbl { font-size:8px; text-transform:uppercase; letter-spacing:.15em; color:#999; }
+  .sec-title { font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.25em; color:#c44000; border-bottom:1px solid #fde8e0; padding-bottom:6px; margin:22px 0 10px; }
+  .sec-title2 { font-family:'DM Serif Display',serif; font-size:16px; color:#111; margin:20px 0 8px; }
+  .sec-subtitle { font-size:11px; font-weight:700; color:#333; margin:14px 0 4px; }
+  .body-p { font-size:11.5px; color:#333; margin:4px 0; line-height:1.75; }
+  .bq { border-left:3px solid #c44000; padding:8px 14px; background:#fff5f0; font-style:italic; color:#555; margin:10px 0; border-radius:0 4px 4px 0; font-size:11px; }
+  li { font-size:11px; color:#333; margin:2px 0 2px 20px; }
+  ul { margin:6px 0; }
+  .divider { border:none; border-top:1px solid #e5e7eb; margin:16px 0; }
+  .termos { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+  .termo { background:#fef3c7; color:#92400e; font-size:9px; font-weight:700; padding:2px 8px; border-radius:12px; border:1px solid #fde68a; }
+  table { width:100%; border-collapse:collapse; font-size:10px; margin:10px 0; }
+  th { background:#f8fafc; color:#555; font-size:8px; text-transform:uppercase; letter-spacing:.12em; padding:6px 10px; border:1px solid #e5e7eb; text-align:left; }
+  td { padding:6px 10px; border:1px solid #e5e7eb; color:#333; }
+  .footer { border-top:1px solid #e5e7eb; margin-top:36px; padding-top:12px; display:flex; justify-content:space-between; font-size:9px; color:#aaa; }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style>
+</head>
+<body>
+<div class="watermark">USO EXCLUSIVO DO NUGEP</div>
+<div class="header">
+  <div>
+    <p class="sysname">Folksonomia Digital 2.0</p>
+    <p class="rtype">Relatório Semântico — Análise por Deep Learning</p>
+  </div>
+  <div class="datebox">
+    <p>Gerado em</p>
+    <p style="font-weight:700;color:#111;font-size:11px">${dataGeracao}</p>
+    <span class="badge">⬣ NUGEP</span>
+  </div>
+</div>
 
-          ${internas.length > 0 ? `
-          <div class="section">
-            <p class="section-title">Matriz Inter-Tags (Ecossistema Interno)</p>
-            <div class="tags-internas">
-              ${internas.slice(0, 20).map((t: any) => `<span class="tag-interna">${t.tag_original} → ${t.grupo_tematico || 'Outros'}</span>`).join('')}
-            </div>
-          </div>` : ''}
+<div class="tag-block">
+  <p class="tag-label">Conceito Analisado</p>
+  <p class="tag-value">${tag}</p>
+</div>
 
-          <div class="section">
-            <p class="section-title">Dedução Cognitiva da Inteligência Artificial</p>
-            <div class="tesauro-box" style="background: #fff; border-color: #e2e8f0; border-left: 4px solid #0f172a;">
-              <p class="section-body" style="font-size: 11px; font-weight: 600;">${deducaoCognitiva.replace(new RegExp('<', 'g'), '&lt;').replace(new RegExp('>', 'g'), '&gt;')}</p>
-              ${estruturado ? `<p class="section-body" style="font-size: 9px; margin-top: 12px; color: #64748b;">[OPERAÇÃO VETORIAL DA IA: ${estruturado.vetorial}]</p>` : ''}
-            </div>
-          </div>
+<div class="certeza-row">
+  <div class="certeza-num">${certeza}%</div>
+  <div class="certeza-info">
+    <p class="certeza-lbl">${aguardando ? 'Em aprendizado contínuo' : 'Certeza semântica atingida'}</p>
+    <p class="certeza-desc">${aguardando
+      ? 'Limiar de 95% não atingido. O sistema ampliará as buscas progressivamente.'
+      : 'O raciocínio vetorial confirma correlação semântica robusta com o acervo institucional.'}
+    </p>
+    ${certChart}
+  </div>
+</div>
 
-          <div class="footer">
-            <span>Sistema de Folksonomia Digital 2.0</span>
-            <span>Documento de uso exclusivo do NUGEP</span>
-            <span>${dataGeracao}</span>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+<div class="stats-row">
+  <div class="stat-box"><p class="stat-val">${ibramTotal}</p><p class="stat-lbl">IBRAM / Tainacan</p></div>
+  <div class="stat-box"><p class="stat-val">${brasTotal}</p><p class="stat-lbl">Brasiliana Museus</p></div>
+  <div class="stat-box"><p class="stat-val">${internasTotal}</p><p class="stat-lbl">Tags correlatas</p></div>
+  <div class="stat-box"><p class="stat-val">${auxiliarTotal}</p><p class="stat-lbl">Fontes auxiliares</p></div>
+</div>
 
-    const win = window.open('', '_blank', 'width=900,height=700');
-    if (!win) return;
-    win.document.write(doc);
-    win.document.close();
-    win.focus();
-    setTimeout(() => {
-      win.print();
-    }, 500);
+<p class="sec-title">📊 Distribuição por Base de Dados</p>
+${svgChart}
+
+${tesauro ? `<p class="sec-title">📖 Tesauro CNFCP / IPHAN — Definição Normativa</p>
+<div class="bq">${tesauro.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+${termosExp.length > 0 ? `<div class="termos">${termosExp.map((t: string) => `<span class="termo">${t}</span>`).join('')}</div>` : ''}` : ''}
+
+<p class="sec-title">📋 Análise Completa do Sistema de IA</p>
+${md2html(fullReport)}
+
+${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema</p>
+<div class="termos">${internas.slice(0,30).map((t: any) => `<span class="termo">${t.tag_original}</span>`).join('')}</div>` : ''}
+
+<div class="footer">
+  <span>Sistema de Folksonomia Digital 2.0 — NUGEP</span>
+  <span>Confidencial — Uso interno</span>
+  <span>${dataGeracao}</span>
+</div>
+</body></html>`;
+
+    // Download via Blob — sem popup blocker
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `relatorio-semantico-${tag.replace(/\s+/g, '-')}-${Date.now()}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Abre para impressão como PDF
+    const pdfWin = window.open(blobUrl, '_blank');
+    if (pdfWin) {
+      pdfWin.addEventListener('load', () => setTimeout(() => pdfWin.print(), 800));
+    }
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
   };
+
 
   return (
     <div className="min-h-screen pt-28 md:pt-32 pb-20 px-3 md:px-8 print:pt-0">
