@@ -243,4 +243,59 @@ body, .font-sans, [class*="font-sans"] {
   .liquid-button, .print-hidden, nav, header { display: none !important; }
 }
 
-/* Trigger de compilação pós-rate limit: Vercel Deploy Act */
+/* ============================================================
+   RESPONSIVIDADE MOBILE
+   ============================================================ */
+
+/* Previne overflow horizontal em toda a app */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Touch targets maiores no mobile */
+@media (max-width: 768px) {
+  .liquid-button {
+    min-height: 42px;
+    padding: 0.6rem 1rem;
+  }
+
+  .glass-card {
+    border-radius: 1.25rem;
+  }
+
+  /* Cards do admin empilham em coluna no mobile */
+  .admin-grid-mobile {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Texto mais legível no mobile */
+  body {
+    font-size: 15px;
+  }
+
+  /* Tabelas rolam horizontalmente */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* SVG do grafo neural é scrollável */
+  svg.interop-graph {
+    touch-action: pan-x pan-y;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-grid-mobile {
+    grid-template-columns: 1fr !important;
+  }
+
+  .glass-card {
+    border-radius: 1rem;
+    padding: 1rem !important;
+  }
+}
+
+/* Trigger de compilacao pos-rate limit: Mobile Deploy */
