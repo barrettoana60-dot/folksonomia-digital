@@ -75,11 +75,15 @@ body {
 }
 
 /* ============================================================
-   TIPOGRAFIA
+   TIPOGRAFIA — EXATAMENTE DUAS FAMÍLIAS SEM TIMES NEW ROMAN
    ============================================================ */
-.serif-title {
-  font-family: var(--font-serif), 'Georgia', serif;
+.serif-title, .font-serif, [class*="font-serif"] {
+  font-family: var(--font-serif), Georgia, serif !important;
   font-weight: 400;
+}
+
+body, .font-sans, [class*="font-sans"] {
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif !important;
 }
 
 .label-sm {
@@ -91,23 +95,23 @@ body {
 }
 
 /* ============================================================
-   GLASS CARD
+   LIQUID GLASS CARD / ELEMENTOS
    ============================================================ */
-.glass-card {
-  background: rgba(255, 255, 255, 0.58);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(0, 0, 0, 0.09);
+.glass-card, .liquid-glass {
+  background: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(25px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
   border-radius: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
 }
 
 /* ============================================================
-   LIQUID GLASS BUTTON — claro
+   LIQUID GLASS BUTTON — premium
    ============================================================ */
 .liquid-button {
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(0, 0, 0, 0.11);
+  background: rgba(255, 255, 255, 0.68) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
   color: #1A1A1A !important;
   padding: 0.55rem 1.4rem;
   border-radius: 0.85rem;
@@ -115,21 +119,21 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.85);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.85) !important;
 }
 
 .liquid-button:hover {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: rgba(0, 0, 0, 0.16);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.95) !important;
   transform: translateY(-1px);
 }
 
@@ -141,25 +145,26 @@ body {
    LIQUID INPUT
    ============================================================ */
 .liquid-input {
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(0, 0, 0, 0.10);
-  color: #1A1A1A;
+  background: rgba(255, 255, 255, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  color: #1A1A1A !important;
   padding: 0.9rem 1.4rem;
   border-radius: 1rem;
   font-size: 0.9rem;
   outline: none;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   transition: all 0.25s;
   width: 100%;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.02) !important;
 }
 
-.liquid-input::placeholder { color: rgba(26,26,26,0.38); }
+.liquid-input::placeholder { color: rgba(26,26,26,0.38) !important; }
 
 .liquid-input:focus {
-  background: rgba(255,255,255,0.90);
-  border-color: rgba(232,73,10,0.45);
-  box-shadow: 0 0 0 3px rgba(232,73,10,0.10);
+  background: rgba(255,255,255,0.92) !important;
+  border-color: rgba(232,73,10,0.6) !important;
+  box-shadow: 0 0 0 3px rgba(232,73,10,0.15) !important;
 }
 
 /* ============================================================
