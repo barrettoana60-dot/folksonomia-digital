@@ -36,7 +36,7 @@ O **Sistema de Folksonomia Digital (SFD)** propõe resolver este hiato por meio 
 ```
 
 O SFD está alinhado às tendências de curadoria semântica baseadas em IA generativa fundamentada (Retrieval-Augmented Generation - RAG) e grafos de conhecimento de herança cultural (Cultural Heritage Knowledge Graphs). A plataforma equilibra:
-1. **Aspectos alinhados ao estado da arte**: Integração direta com pgvector para similaridade vetorial híbrida, pipelines de processamento de linguagem natural voltados ao português com modelos baseados em arquiteturas modernas (ModernBERT), e modelagem Hebbiana para consolidação de co-ocorrências.
+1. **Aspectos alinhados ao estado da arte**: Integração direta com pgvector para similaridade vetorial híbrida, pipelines de processamento de linguagem natural voltados ao português com modelos baseados em arquiteturas modernas (ModernBERT), e modelagem Hebbiano-conexionista para consolidação de co-ocorrências.
 2. **Aspectos experimentais**: Spreading Activation em tempo real rodando na interface de visualização do curador e modelos de representações de grafos complexos (RotatE) para inferir novas correlações conceituais de patrimônio material e imaterial.
 
 ---
@@ -50,10 +50,10 @@ Para justificar as decisões de arquitetura de dados e IA tomadas no SFD, detalh
 * **Aplicação no SFD**: Utilizado como mecanismo auxiliar e baseline para análise estatística inicial de frequências de termos e correspondências exatas.
 * **Trade-offs**: Possui custo computacional irrisório e excelente interpretabilidade. No entanto, é incapaz de capturar o contexto semântico profundo das tags, falhando em sinônimos e termos ambíguos.
 
-### 2.2 Deep Learning (DL)
-* **O que é**: Redes neurais artificiais com múltiplas camadas ocultas capazes de extrair representações de dados de forma hierárquica.
-* **Aplicação no SFD**: Processamento de imagens do acervo cultural e representações vetoriais brutas de tags.
-* **Trade-offs**: Captura padrões não-lineares altamente complexos, mas exige volumes massivos de dados para treinamento e atua como uma "caixa preta", dificultando a explicabilidade exigida em auditorias de patrimônio histórico.
+### 2.2 Deep Learning (DL) e Representações Latentes
+* **O que é**: Modelos de redes neurais artificiais profundas com arquiteturas multicamadas (p. ex., Multi-Layer Perceptrons, Convolucionais e Recorrentes) projetados para aprender representações hierárquicas diretamente dos dados. Através da retropropagação (backpropagation) baseada no gradiente descendente, a rede otimiza seus pesos sinápticos para mapear dados de entrada em espaços latentes de alta dimensão.
+* **Aplicação no SFD**: Modelagem das representações semânticas e vetorização de tags e metadados no espaço hiperdimensional de $768$ dimensões. A camada conexionista do SFD utiliza redes MLP profundas para projetar a probabilidade de similaridade entre a taxonomia tradicional e as sugestões sociais, permitindo extrair proximidades conceituais que vão além de correspondências puramente lexicais.
+* **Trade-offs**: Alta capacidade de aproximação de funções matemáticas extremamente complexas e não lineares, viabilizando a classificação contextual precisa das expressões de visitantes. Como ponto negativo, exige infraestrutura de hardware robusta para processamento vetorial (GPUs) e atua como uma "caixa preta" computacional, demandando camadas dedicadas de XAI para explicar suas inferências aos curadores.
 
 ### 2.3 Redes Neurais em Grafos (GNNs) e Graph Attention Networks (GAT)
 * **O que é**: Redes neurais especializadas em processar dados estruturados como grafos, onde nós representam entidades (tags, obras) e arestas representam relações. O GAT introduz mecanismos de atenção para ponderar a influência de nós vizinhos.
@@ -75,7 +75,12 @@ Para justificar as decisões de arquitetura de dados e IA tomadas no SFD, detalh
 * **Aplicação no SFD**: Motor de geração de relatórios do curador, onde cada afirmação gerada é indexada a uma fonte primária do banco de dados (Tainacan, Brasiliana, etc.).
 * **Trade-offs**: Mitiga quase inteiramente as alucinações dos modelos conexionistas e fornece explicabilidade. Exige, porém, um pipeline de indexação robusto e banco vetorial performático.
 
-### 2.7 Bancos de Dados Vetoriais e Grafos de Conhecimento
+### 2.7 Aprendizado Contínuo (Continuous AI) e Replay Buffers
+* **O que é**: Paradigma de aprendizado em que os modelos neurais continuam a aprender a partir de fluxos contínuos de novos dados (p. ex., validações de tags por curadores humanos e novas interações com o sistema) sem esquecer o conhecimento previamente adquirido. Este processo lida ativamente com o problema do **Esquecimento Catastrófico** (Catastrophic Forgetting), onde os pesos sinápticos consolidados são sobrescritos de forma destrutiva por novos gradientes.
+* **Aplicação no SFD**: O sistema emprega um pipeline de aprendizado contínuo onde os feedbacks e correlações aprovados na fila `ml_training_queue` são agrupados de forma persistente. Adota-se um **Memory Replay Buffer** (amortecedor de replay de memória) que armazena amostras históricas representativas do acervo original. A cada lote (batch) de novos termos integrados pelo curador, o buffer de replay reinjeta dados históricos chave na etapa de retropropagação, mantendo as predições anteriores de NER (ModernBERT) e KGE (RotatE) calibradas e impedindo que o motor semântico se desvie do vocabulário institucional consolidado.
+* **Trade-offs**: Permite a adaptação em tempo real da plataforma à linguagem emergente dos usuários sem a necessidade de reprocessar e retreinar todo o acervo do zero (o que seria proibitivo em termos de custo de computação). Exige, contudo, a manutenção de bancos de dados otimizados para guardar as memórias históricas e algoritmos sofisticados de seleção de amostras para o buffer.
+
+### 2.8 Bancos de Dados Vetoriais e Grafos de Conhecimento
 * **O que é**: Bancos otimizados para busca por similaridade de cosseno em alta dimensão (p. ex., `pgvector`) combinados com estruturas simbólicas de representação de conhecimento baseadas em ontologias e grafos RDF.
 * **Aplicação no SFD**: O `pgvector` armazena os embeddings gerados pelo ModernBERT, enquanto tabelas relacionais do Supabase mantêm a malha de correlações Hebbianas e ontológicas.
 * **Trade-offs**: Fornece buscas semânticas instantâneas em milissegundos e mantém relações rigorosas e auditáveis. O desafio reside na sincronização constante entre as alterações no grafo e os índices vetoriais.
