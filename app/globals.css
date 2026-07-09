@@ -242,3 +242,5 @@ body, .font-sans, [class*="font-sans"] {
   body { background: white !important; background-image: none !important; }
   .liquid-button, .print-hidden, nav, header { display: none !important; }
 }
+
+/* Trigger de compilação pós-rate limit: Vercel Deploy Act */
