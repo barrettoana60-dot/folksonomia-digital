@@ -249,7 +249,7 @@ export default function AdminPage() {
       ],
       acervos: ["Museu Afrobrasil", "Instituto Mauá"],
       vx: 0, vy: 0, activation: 0.0 },
-    { id: "tapecaria",      label: "Tapeçaria Nordestina",            x: 400, y: 370, size: 11, fill: "#B45309",
+    { id: "tapeçaria",      label: "Tapeçaria Nordestina",            x: 400, y: 370, size: 11, fill: "#B45309",
       desc: "Arte têxtil popular com padrões geométricos e representações de fauna e flora regionais.",
       type: "Objeto de Cultura Popular",
       hash: "SHA3:tapec2b8ef9a0b1c2",
@@ -796,6 +796,66 @@ export default function AdminPage() {
     const interval = setInterval(fetchDashboard, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Efeito para evoluir o Grafo Neural com base nas tags reais de visitantes cadastradas no banco de dados
+  useEffect(() => {
+    if (dashboardData?.recentTags?.length > 0) {
+      setInteropNodes(currentNodes => {
+        const updated = [...currentNodes];
+        // Adicionar as 5 tags mais recentes como novos pontos ativos no cérebro do sistema
+        dashboardData.recentTags.slice(0, 5).forEach((t: any) => {
+          const id = t.tag.toLowerCase().replace(/\s+/g, '_');
+          if (!updated.some(n => n.id === id)) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 160 + Math.random() * 50;
+            const x = Math.min(740, Math.max(60, 400 + Math.cos(angle) * distance));
+            const y = Math.min(370, Math.max(60, 215 + Math.sin(angle) * distance));
+            
+            updated.push({
+              id,
+              label: t.tag,
+              x,
+              y,
+              size: 11,
+              fill: '#7C3AED', // Violeta intenso para tags evolutivas do banco
+              desc: `Ponto semântico evoluído a partir das interações reais dos visitantes. Catalogado no acervo sob a categoria "${t.grupo || 'Outros'}".`,
+              type: `Tag do Visitante (${t.grupo || 'Outros'})`,
+              hash: `SHA3:visitor_${t.id.substring(0,8)}`,
+              familia: `visitante.tag.${(t.grupo || 'outros').toLowerCase().replace(/\s+/g, '_')}`,
+              linksReais: [
+                { label: `Ver no acervo original`, url: `#` }
+              ],
+              acervos: ["Folksonomia Local (Supabase)"],
+              vx: 0,
+              vy: 0,
+              activation: 0.2
+            } as any);
+          }
+        });
+        return updated;
+      });
+
+      // Conectar as novas tags ao Core
+      setInteropConnections(currentConns => {
+        const updatedConns = [...currentConns];
+        dashboardData.recentTags.slice(0, 5).forEach((t: any) => {
+          const id = t.tag.toLowerCase().replace(/\s+/g, '_');
+          const exists = updatedConns.some(c => (c.from === 'core' && c.to === id) || (c.to === 'core' && c.from === id));
+          if (!exists) {
+            updatedConns.push({
+              from: 'core',
+              to: id,
+              weight: 0.45 + Math.random() * 0.15,
+              isNew: true,
+              discovered: true
+            });
+          }
+        });
+        return updatedConns;
+      });
+    }
+  }, [dashboardData]);
+
 
   // Verificar saúde do ML Service
   useEffect(() => {
@@ -2440,12 +2500,54 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                                         ? { ...c, weight: Math.max(c.weight, newWeight) }
                                         : c
                                     ));
-                                    // Injeta irmãos semânticos como novos nós/conexões
+                                    // Injeta irmãos semânticos como novos nós e conexões
                                     siblings.slice(0, 2).forEach((sib: any) => {
-                                      setInteropConnections(curr => {
-                                        const exists = curr.some(c => (c.from === node.id && c.to === sib.tag) || (c.to === node.id && c.from === sib.tag));
-                                        if (exists) return curr;
-                                        return [...curr, { from: node.id, to: 'core', weight: 0.35, isNew: true, discovered: true, label: sib.tag }];
+                                      const newId = sib.tag.toLowerCase().replace(/\s+/g, '_');
+                                      
+                                      // 1. Criar e injetar o nó na rede
+                                      setInteropNodes(prevNodes => {
+                                        const exists = prevNodes.some(n => n.id === newId);
+                                        if (exists) return prevNodes;
+                                        
+                                        // Calcular posição orbital em volta do nó pai
+                                        const angle = Math.random() * Math.PI * 2;
+                                        const distance = 120 + Math.random() * 50;
+                                        const x = Math.min(740, Math.max(60, node.x + Math.cos(angle) * distance));
+                                        const y = Math.min(370, Math.max(60, node.y + Math.sin(angle) * distance));
+                                        
+                                        return [...prevNodes, {
+                                          id: newId,
+                                          label: sib.tag,
+                                          x: x,
+                                          y: y,
+                                          size: 12,
+                                          fill: "#a78bfa", // Cor violeta elegante para sinapses evolutivas
+                                          desc: `Conceito descoberto e correlacionado por Deep Learning a partir do termo "${node.label}". Relação semântica: ${sib.grupo || 'Familia de Arte Popular'}.`,
+                                          type: "Conceito Semântico Descoberto",
+                                          hash: "SHA3:dl_" + newId.substring(0, 8) + "_" + Math.floor(Math.random()*9000),
+                                          familia: `${node.familia || 'cultura'}.descoberta.${newId}`,
+                                          linksReais: [
+                                            { label: `Pesquisa ${sib.tag} no Tesauro`, url: `https://www.cnfcp.gov.br/tesauro/` }
+                                          ],
+                                          acervos: ["Aprendizado de Máquina (ML)"],
+                                          vx: 0, vy: 0, activation: 0.8
+                                        }];
+                                      });
+
+                                      // 2. Conectar o novo nó ao nó pai
+                                      setInteropConnections(currConns => {
+                                        const exists = currConns.some(c => 
+                                          (c.from === node.id && c.to === newId) || 
+                                          (c.to === node.id && c.from === newId)
+                                        );
+                                        if (exists) return currConns;
+                                        return [...currConns, {
+                                          from: node.id,
+                                          to: newId,
+                                          weight: 0.65,
+                                          isNew: true,
+                                          discovered: true
+                                        }];
                                       });
                                     });
                                     setDlLog(log => [{ tag: node.label, resultado: `${ibramTotal + brasTotal} registros — ${siblings.length} irmãos semânticos`, ts: new Date().toLocaleTimeString('pt-BR') }, ...log].slice(0, 8));
