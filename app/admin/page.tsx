@@ -10,6 +10,7 @@ import {
 import dynamic from 'next/dynamic';
 import Logo from '@/components/Logo';
 import NodeGraph from '@/components/NodeGraph';
+import { findTerm } from '@/lib/ml/thesaurus';
 
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
@@ -299,6 +300,11 @@ export default function AdminPage() {
   const discoveredKeysRef = useRef(new Set<string>());
   // REF SEMPRE ATUALIZADO — elimina stale closure dentro de runTrainingEpoch
   const interopConnectionsRef = useRef<typeof interopConnections>([]);
+  const interopNodesRef = useRef<typeof interopNodes>([]);
+  
+  useEffect(() => {
+    interopNodesRef.current = interopNodes;
+  }, [interopNodes]);
 
   // Corpus de conexões latentes que a rede pode DESCOBRIR com treinamento
   // Thresholds baixos para que as primeiras conexões sejam descobertas rapidamente
@@ -319,9 +325,11 @@ export default function AdminPage() {
 
   // ─── MOTOR DE APRENDIZADO DA REDE NEURAL ─────────────────────────────────────
   const runTrainingEpoch = useCallback(() => {
-    // 1. Escolher nó de disparo para propagação (forward pass)
-    const nodeIds = ["frevo","carranca","bilro","dossie","artigo_popular","museografia","coco","capoeira","tapeçaria"];
-    const firedId = nodeIds[Math.floor(Math.random() * nodeIds.length)];
+    // 1. Escolher nó de disparo dinamicamente a partir dos nós ativos (evita stale closure)
+    const activeNodes = interopNodesRef.current.filter(n => n.id !== 'core');
+    if (activeNodes.length === 0) return;
+    const firedNodeObj = activeNodes[Math.floor(Math.random() * activeNodes.length)];
+    const firedId = firedNodeObj.id;
     setFiringNode(firedId);
     setTimeout(() => setFiringNode(null), 800);
 
@@ -366,7 +374,7 @@ export default function AdminPage() {
 
     // 3. Atualizar métricas gerais via Refs síncronas para evitar batching lag do React
     const noise = (Math.random() - 0.5) * 0.02;
-    const decay = 0.05; // decay acelerado: a rede aprende e descobre conexões mais rápido
+    const decay = 0.05; // decay acelerado
     nnLossRef.current = Math.max(0.03, nnLossRef.current - decay + noise);
     const nextLoss = nnLossRef.current;
     setNnLoss(nextLoss);
@@ -425,7 +433,6 @@ export default function AdminPage() {
       if (c.discovered) {
         // Se a conexão atinge o threshold atual, aumenta o peso
         const key = `${c.from}-${c.to}`;
-        const keyAlt = `${c.to}-${c.from}`;
         const matchLatent = latentConnections.current.find(l => 
           (l.from === c.from && l.to === c.to) || 
           (l.from === c.to && l.to === c.from)
@@ -449,7 +456,7 @@ export default function AdminPage() {
     // 5. Expansão contínua: periodicamente criar novos pontos baseados na co-ocorrência
     if (nextEpoch % 3 === 0) {
       const parentId = firedId;
-      const parentNode = interopNodes.find(n => n.id === parentId);
+      const parentNode = interopNodesRef.current.find(n => n.id === parentId);
       if (parentNode) {
         const candidates: Record<string, string[]> = {
           frevo: ['Passo', 'Sombrinha', 'Carnaval', 'Orquestra', 'Recife', 'Patrimônio'],
@@ -463,9 +470,22 @@ export default function AdminPage() {
           tapeçaria: ['Tear', 'Tapeceiro', 'Lã', 'Linha', 'Bordado', 'Tapeçaria Nordestina']
         };
         
-        const list = candidates[parentId];
-        if (list) {
-          const concepts = list.filter(c => !interopNodes.some(n => n.label === c));
+        let list = candidates[parentId];
+        
+        // RAG Dinâmico: Se não há candidatos estáticos, busca relações e termos filhos no Tesauro CNFCP/IPHAN
+        if (!list) {
+          const cnfcpTerm = findTerm(parentNode.label);
+          if (cnfcpTerm) {
+            list = [
+              ...(cnfcpTerm.te || []),
+              ...(cnfcpTerm.ta || []),
+              ...(cnfcpTerm.up || [])
+            ];
+          }
+        }
+
+        if (list && list.length > 0) {
+          const concepts = list.filter(c => !interopNodesRef.current.some(n => n.label === c));
           if (concepts.length > 0) {
             const conceito = concepts[Math.floor(Math.random() * concepts.length)];
             const newId = conceito.toLowerCase().replace(/\s+/g, '_').replace(/[^\w\s]/g, '');
@@ -487,17 +507,17 @@ export default function AdminPage() {
                 y: y,
                 size: 10,
                 fill: "#a78bfa", // Lilás
-                desc: `Conceito gerado por inferência de Deep Learning no espaço latente. Relação com "${parentNode.label}".`,
+                desc: `Conceito descoberto via RAG contínuo no Tesauro de Cultura Popular. Relação com "${parentNode.label}".`,
                 type: "Conceito Semântico Evoluído",
                 hash: "SHA3:auto_" + newId.substring(0, 6),
                 familia: `${parentNode.familia || 'cultura'}.auto.${newId}`,
-                linksReais: [{ label: `Pesquisar "${conceito}"`, url: `https://www.cnfcp.gov.br/tesauro/` }],
-                acervos: ["Deep Learning Contínuo"],
+                linksReais: [{ label: `Pesquisar "${conceito}" no Tesauro`, url: `https://www.cnfcp.gov.br/tesauro/` }],
+                acervos: ["Deep Learning / RAG Contínuo"],
                 vx: 0, vy: 0, activation: 0.6
               } as any];
             });
             
-            // Conectar o novo nó
+            // Conectar o novo nó ao nó pai
             setInteropConnections(currConns => {
               const exists = currConns.some(c => 
                 (c.from === parentId && c.to === newId) || 
@@ -519,9 +539,10 @@ export default function AdminPage() {
 
     // 6. Emitir pulsos elétricos de sinal
     setActiveSignals(prevSignals => {
-      const relevant = ["core", "frevo", "carranca", "bilro", "dossie", "artigo_popular", "museografia"];
+      const activeIds = interopNodesRef.current.map(n => n.id);
+      if (activeIds.length < 2) return prevSignals;
       const from = firedId;
-      const to = relevant[Math.floor(Math.random() * relevant.length)];
+      const to = activeIds.filter(id => id !== from)[Math.floor(Math.random() * (activeIds.length - 1))];
       const sig = { id: `sig-${nextEpoch}`, from, to, progress: 0 };
       return [...prevSignals.slice(-3), sig];
     });
