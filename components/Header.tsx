@@ -20,9 +20,9 @@ const FONT_LABEL: Record<FontFamilyKey, string> = {
 };
 
 const FONT_STACK: Record<FontFamilyKey, string> = {
-  sans:  `var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif`,
-  serif: `Georgia, 'Times New Roman', serif`,
-  mono:  `'Courier New', Courier, monospace`,
+  sans:  `'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`,
+  serif: `'DM Serif Display', Georgia, Cambria, serif`,
+  mono:  `'Fira Code', 'Courier New', Courier, monospace`,
 };
 
 const THEME_LABEL: Record<ThemeKey, string> = {
