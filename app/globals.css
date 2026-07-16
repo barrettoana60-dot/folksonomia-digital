@@ -14,7 +14,54 @@
   --text:       #1A1A1A;
   --glass-bg:   rgba(255, 255, 255, 0.58);
   --glass-brd:  rgba(0, 0, 0, 0.09);
+
+  /* Variáveis de tema — alteradas dinamicamente pelo painel de acessibilidade */
+  --bg-page:    #EEEBE3;
+  --text-page:  #1A1A1A;
+  --card-bg:    rgba(255,255,255,0.55);
+  --border:     rgba(0,0,0,0.09);
 }
+
+/* Alto Contraste — preto/amarelo WCAG AAA */
+[data-theme="contraste"] {
+  --bg-page:    #000000;
+  --text-page:  #FFD600;
+  --card-bg:    #111111;
+  --border:     #FFD600;
+  color-scheme: dark;
+}
+[data-theme="contraste"] body {
+  background-color: #000 !important;
+  color: #FFD600 !important;
+}
+[data-theme="contraste"] body::before { opacity: 0.04; }
+
+/* Escuro */
+[data-theme="escuro"] {
+  --bg-page:    #181818;
+  --text-page:  #ECECEC;
+  --card-bg:    #242424;
+  --border:     #3A3A3A;
+  color-scheme: dark;
+}
+[data-theme="escuro"] body {
+  background-color: #181818 !important;
+  color: #ECECEC !important;
+}
+[data-theme="escuro"] body::before { opacity: 0.06; }
+
+/* Branco / Claro */
+[data-theme="claro"] {
+  --bg-page:    #FFFFFF;
+  --text-page:  #111111;
+  --card-bg:    #F8F8F8;
+  --border:     #DDDDDD;
+}
+[data-theme="claro"] body {
+  background-color: #FFFFFF !important;
+  color: #111111 !important;
+}
+[data-theme="claro"] body::before { opacity: 0.08; }
 
 /* ============================================================
    BASE — fundo decorativo via pseudo-elemento fixo
