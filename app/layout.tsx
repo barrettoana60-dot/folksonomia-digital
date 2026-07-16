@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
-import VLibrasWidget from "@/components/VLibrasWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -61,7 +60,41 @@ export default function RootLayout({
         <div className="relative z-10 pt-4">
           {children}
         </div>
-        <VLibrasWidget />
+
+        {/* Estrutura HTML oficial do VLibras */}
+        <div dangerouslySetInnerHTML={{ __html: `
+          <div vw class="enabled">
+            <div vw-access-button class="active"></div>
+            <div vw-plugin-wrapper>
+              <div class="vw-plugin-top-wrapper"></div>
+            </div>
+          </div>
+        ` }} />
+
+        {/* Script do VLibras e inicializador com fallbacks robustos */}
+        <script src="https://vlibras.gov.br/app/vlibras-plugin.js" defer></script>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            function initVLibras() {
+              if (window.VLibras && !window.VLibras.initialized) {
+                try {
+                  new window.VLibras.Widget('https://vlibras.gov.br/app');
+                  window.VLibras.initialized = true;
+                } catch (e) {
+                  console.error('Erro ao instanciar VLibras:', e);
+                }
+              }
+            }
+            if (document.readyState === 'complete') {
+              initVLibras();
+            } else {
+              window.addEventListener('load', initVLibras);
+            }
+            // Fallback caso o evento load já tenha passado ou demore
+            setTimeout(initVLibras, 2000);
+            setTimeout(initVLibras, 4000);
+          })();
+        ` }} />
       </body>
     </html>
   );
