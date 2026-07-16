@@ -45,38 +45,41 @@ export default function VLibrasWidget() {
     };
   }, [mounted]);
 
-  if (!mounted) return null;
-
   return (
     <>
-      <div
-        dangerouslySetInnerHTML={{
-          __html: `
-            <div vw class="enabled">
-              <div vw-access-button class="active"></div>
-              <div vw-plugin-wrapper>
-                <div class="vw-plugin-top-wrapper"></div>
-              </div>
-            </div>
-          `
-        }}
-      />
-      <Script
-        id="vlibras-script"
-        src="https://vlibras.gov.br/app/vlibras-plugin.js"
-        strategy="afterInteractive"
-        onLoad={() => {
-          if (window.VLibras && !window.VLibras.initialized) {
-            try {
-              new window.VLibras.Widget('https://vlibras.gov.br/app');
-              window.VLibras.initialized = true;
-              console.log('[VLibras] Inicializado com sucesso via Script onLoad');
-            } catch (e) {
-              console.error('[VLibras] Falha no onLoad:', e);
+      {/* 
+        A estrutura HTML oficial precisa estar presente no DOM estaticamente 
+        desde o primeiro instante (SSR) para que o script do governo a encontre.
+        Não usamos wrapper div para garantir que seja filho direto do body.
+      */}
+      {/* @ts-ignore */}
+      <div vw="true" className="enabled">
+        {/* @ts-ignore */}
+        <div vw-access-button="true" className="active"></div>
+        {/* @ts-ignore */}
+        <div vw-plugin-wrapper="true">
+          <div className="vw-plugin-top-wrapper"></div>
+        </div>
+      </div>
+
+      {mounted && (
+        <Script
+          id="vlibras-script"
+          src="https://vlibras.gov.br/app/vlibras-plugin.js"
+          strategy="afterInteractive"
+          onLoad={() => {
+            if (window.VLibras && !window.VLibras.initialized) {
+              try {
+                new window.VLibras.Widget('https://vlibras.gov.br/app');
+                window.VLibras.initialized = true;
+                console.log('[VLibras] Inicializado com sucesso via Script onLoad');
+              } catch (e) {
+                console.error('[VLibras] Falha no onLoad:', e);
+              }
             }
-          }
-        }}
-      />
+          }}
+        />
+      )}
     </>
   );
 }
