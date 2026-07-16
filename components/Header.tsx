@@ -199,13 +199,35 @@ export default function Header() {
   };
 
   const toggleLibras = () => {
-    // O VLibras controla seu próprio estado interno.
-    // Clicamos diretamente no botão flutuante oficial para abrir/fechar o intérprete.
-    const btn = document.querySelector('[vw-access-button]') as HTMLElement | null;
-    if (btn) {
-      btn.click();
-      setLibrasActive(prev => !prev);
+    // Tenta clicar no botão flutuante do VLibras (múltiplos seletores conhecidos)
+    const selectors = [
+      '[vw-access-button]',
+      '.vw-access-button',
+      '#vlibras-access-button',
+      'div[vw] .active',
+    ];
+    for (const sel of selectors) {
+      const btn = document.querySelector(sel) as HTMLElement | null;
+      if (btn) {
+        btn.click();
+        setLibrasActive(prev => !prev);
+        return;
+      }
     }
+    // Se nenhum botão foi encontrado, o widget pode não ter carregado ainda
+    // Tenta forçar a inicialização
+    const w = window as any;
+    if (w.VLibras && w.VLibras.Widget) {
+      try {
+        new w.VLibras.Widget('https://vlibras.gov.br/app');
+        // Tenta clicar novamente após 1s
+        setTimeout(() => {
+          const btn = document.querySelector('[vw-access-button]') as HTMLElement | null;
+          if (btn) btn.click();
+        }, 1000);
+      } catch (e) { /* já inicializado */ }
+    }
+    setLibrasActive(prev => !prev);
   };
 
 
