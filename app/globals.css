@@ -168,13 +168,8 @@ body {
 .text-6xl  { font-size: calc(3.75rem * var(--text-scale-factor)) !important; }
 .text-7xl  { font-size: calc(4.5rem * var(--text-scale-factor)) !important; }
 
-/* Regras de visibilidade do VLibras Widget */
-div[vw] {
-  display: none !important;
-}
-div[vw].vlibras-active {
-  display: block !important;
-}
+/* VLibras Widget — deixar visível para o plugin inicializar corretamente */
+/* O widget aparece como botão flutuante no canto da tela */
 
 .serif-title, .font-serif, [class*="font-serif"] {
   font-family: var(--font-serif), Georgia, serif !important;
