@@ -146,6 +146,36 @@ body::before {
 /* ============================================================
    TIPOGRAFIA — EXATAMENTE DUAS FAMÍLIAS SEM TIMES NEW ROMAN
    ============================================================ */
+/* Fatores de escala para textos de acessibilidade */
+:root {
+  --text-scale-factor: 1;
+}
+
+body {
+  font-size: calc(1rem * var(--text-scale-factor));
+}
+
+/* Redefinições das classes de fonte do Tailwind para aplicar o fator de escala de texto */
+.text-xs   { font-size: calc(0.75rem * var(--text-scale-factor)) !important; }
+.text-sm   { font-size: calc(0.875rem * var(--text-scale-factor)) !important; }
+.text-base { font-size: calc(1rem * var(--text-scale-factor)) !important; }
+.text-lg   { font-size: calc(1.125rem * var(--text-scale-factor)) !important; }
+.text-xl   { font-size: calc(1.25rem * var(--text-scale-factor)) !important; }
+.text-2xl  { font-size: calc(1.5rem * var(--text-scale-factor)) !important; }
+.text-3xl  { font-size: calc(1.875rem * var(--text-scale-factor)) !important; }
+.text-4xl  { font-size: calc(2.25rem * var(--text-scale-factor)) !important; }
+.text-5xl  { font-size: calc(3rem * var(--text-scale-factor)) !important; }
+.text-6xl  { font-size: calc(3.75rem * var(--text-scale-factor)) !important; }
+.text-7xl  { font-size: calc(4.5rem * var(--text-scale-factor)) !important; }
+
+/* Regras de visibilidade do VLibras Widget */
+div[vw] {
+  display: none !important;
+}
+div[vw].vlibras-active {
+  display: block !important;
+}
+
 .serif-title, .font-serif, [class*="font-serif"] {
   font-family: var(--font-serif), Georgia, serif !important;
   font-weight: 400;
@@ -156,7 +186,7 @@ body, .font-sans, [class*="font-sans"] {
 }
 
 .label-sm {
-  font-size: 0.68rem;
+  font-size: calc(0.68rem * var(--text-scale-factor)) !important;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
