@@ -727,32 +727,32 @@ async function generateAIAnalysis(
   }
 
   if (conexoesAtivadas.length > 0) {
-    topologiaInterna += `As conexões abaixo foram identificadas durante esta pesquisa e **registradas automaticamente no grafo de Interoperabilidade Cultural**. Estão acessíveis na aba correspondente do painel:\n\n`;
+    topologiaInterna += `A análise topológica da rede mapeou relações semânticas entre os termos correlacionados, conforme demonstrado a seguir:\n\n`;
     conexoesAtivadas.forEach(c => { topologiaInterna += `* ${c}\n`; });
-    topologiaInterna += `\n**Sobre o aprendizado contínuo:** cada pesquisa realizada neste módulo alimenta progressivamente a cadeia de DNA Semântico do sistema. As conexões acima passam a integrar o grafo e serão utilizadas para enriquecer análises futuras sobre conceitos relacionados, sem necessidade de intervenção manual.\n`;
+    topologiaInterna += `\nEssas sinapses conceituais indicam proximidade taxonômica e afinidade cultural entre as expressões folksonômicas e o inventário formal catalogado.\n`;
   } else {
-    topologiaInterna += `Esta é a primeira pesquisa registrada sobre **"${tag}"** no sistema. Nenhuma conexão prévia foi localizada.\n\n`;
-    topologiaInterna += `**Início do ciclo de aprendizado:** o conceito foi incorporado ao sistema de memória semântica. As próximas pesquisas e correlações construirão progressivamente sua rede de conexões no DNA Semântico da Interoperabilidade Cultural.\n`;
+    topologiaInterna += `A pesquisa preliminar não registrou conexões prévias para a tag **"${tag}"** no mapeamento semântico do ecossistema.\n\n`;
+    topologiaInterna += `O conceito permanece sob monitoramento taxonômico para identificação de correlações com novas catalogações.\n`;
   }
 
   // === SEÇÃO 5: Conclusão e Fontes ===
   let sinteseDeducao = `---\n\n### Conclusão da Análise\n\n`;
 
   if (!foiImparcial) {
-    sinteseDeducao += `O conceito **"${tag}"** está documentado e verificado no acervo cultural digital brasileiro. `;
-    if (temTesauro) sinteseDeducao += `Conta com definição normativa formal no **Tesauro CNFCP/IPHAN**. `;
-    if (topObras.length > 0) sinteseDeducao += `Foram identificados **${topObras.length} objeto(s)** nos acervos federais que materializam este conceito, com fundamentação cultural detalhada acima. `;
-    if (brasilianaTeoria.length > 0) sinteseDeducao += `**${brasilianaTeoria.length} publicação(ões) acadêmica(s)** foram consultadas como referência bibliográfica. `;
-    sinteseDeducao += `\n\nOs dados desta pesquisa foram persistidos no sistema de aprendizado contínuo e as conexões descobertas estão integradas ao DNA Semântico, visíveis na aba Interoperabilidade Cultural.`;
+    sinteseDeducao += `Em suma, o conceito **"${tag}"** possui representação semântica validada no acervo museológico nacional. `;
+    if (temTesauro) sinteseDeducao += `Sua legitimação é corroborada pela estrutura normativa do **Tesauro CNFCP/IPHAN**, demarcando o termo na terminologia de folclore e cultura popular brasileira. `;
+    if (topObras.length > 0) sinteseDeducao += `A presença de **${topObras.length} objeto(s)** catalogados nas bases institucionais consolida a evidência física de sua manifestação. `;
+    if (brasilianaTeoria.length > 0) sinteseDeducao += `Ademais, as publicações de cunho teórico servem de aporte epistemológico para a sustentação conceitual do verbete. `;
+    sinteseDeducao += `\n\nA correlação entre a terminologia popular e os inventários oficiais ratifica a legitimidade terminológica do conceito no ecossistema de patrimônio imaterial.`;
   } else {
     const fatores: string[] = [];
-    if (!temTesauro) fatores.push('ausência de verbete no Tesauro CNFCP/IPHAN');
-    if (!temTeoria) fatores.push('ausência de publicações acadêmicas nas bases consultadas');
-    if (totalEvidencias === 0) fatores.push('ausência de objetos nos acervos digitais');
+    if (!temTesauro) fatores.push('inexistência de verbete normativo no Tesauro CNFCP/IPHAN');
+    if (!temTeoria) fatores.push('ausência de literatura acadêmica indexada');
+    if (totalEvidencias === 0) fatores.push('inexistência de objetos físicos correspondentes nos acervos federais');
 
-    sinteseDeducao += `As bases de dados consultadas não reuniram evidências suficientes para uma análise conclusiva sobre **"${tag}"** neste momento.\n\n`;
-    if (fatores.length > 0) sinteseDeducao += `**Lacunas identificadas:** ${fatores.join('; ')}.\n\n`;
-    sinteseDeducao += `O conceito foi inserido na fila de aprendizado do sistema. Novas catalogações e pesquisas sobre este tema contribuirão progressivamente para a construção de seu perfil semântico.`;
+    sinteseDeducao += `Os dados disponíveis mostram-se insuficientes para atestar a consolidação semântica e a validação normativa do conceito **"${tag}"** nas bases oficiais de preservação cultural brasileira.\n\n`;
+    if (fatores.length > 0) sinteseDeducao += `**Fatores limitantes:** ${fatores.join('; ')}.\n\n`;
+    sinteseDeducao += `Recomenda-se a realização de pesquisas complementares e futuras averiguações de catalogação empírica para fundamentar a inserção terminológica da tag.`;
   }
 
   sinteseDeducao += `\n\n---\n\n### Fontes e Bases de Dados Consultadas\n\n`;
