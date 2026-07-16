@@ -1,53 +1,82 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Script from 'next/script';
 
 declare global {
   interface Window {
     VLibras?: {
       Widget: new (options: string | Record<string, unknown>) => void;
+      initialized?: boolean;
     };
   }
 }
 
 export default function VLibrasWidget() {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    // Evita duplicar: checa pelo elemento raiz, não pelo script
-    if (document.querySelector('[vw]')) return;
-
-    // Cria a estrutura DOM exigida pelo plugin usando setAttribute
-    // (innerHTML pode perder atributos booleanos customizados em alguns parsers)
-    const root = document.createElement('div');
-    root.setAttribute('vw', '');
-    root.className = 'enabled';
-
-    const accessBtn = document.createElement('div');
-    accessBtn.setAttribute('vw-access-button', '');
-    accessBtn.className = 'active';
-
-    const pluginWrapper = document.createElement('div');
-    pluginWrapper.setAttribute('vw-plugin-wrapper', '');
-
-    const topWrapper = document.createElement('div');
-    topWrapper.className = 'vw-plugin-top-wrapper';
-
-    pluginWrapper.appendChild(topWrapper);
-    root.appendChild(accessBtn);
-    root.appendChild(pluginWrapper);
-    document.body.appendChild(root);
-
-    // Carrega o script oficial do Governo Federal
-    const script = document.createElement('script');
-    script.id = 'vlibras-script';
-    script.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
-    script.onload = () => {
-      if (window.VLibras) {
-        new window.VLibras.Widget('https://vlibras.gov.br/app');
-      }
-    };
-    document.body.appendChild(script);
+    setMounted(true);
   }, []);
 
-  return null;
+  useEffect(() => {
+    if (!mounted) return;
+
+    const init = () => {
+      if (window.VLibras && !window.VLibras.initialized) {
+        try {
+          new window.VLibras.Widget('https://vlibras.gov.br/app');
+          window.VLibras.initialized = true;
+          console.log('[VLibras] Inicializado com sucesso via useEffect fallback');
+        } catch (e) {
+          console.error('[VLibras] Falha no init:', e);
+        }
+      }
+    };
+
+    // Tenta inicializar em múltiplos intervalos caso o script já esteja cacheado
+    init();
+    const t1 = setTimeout(init, 1000);
+    const t2 = setTimeout(init, 3000);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [mounted]);
+
+  if (!mounted) return null;
+
+  return (
+    <>
+      <div
+        dangerouslySetInnerHTML={{
+          __html: `
+            <div vw class="enabled">
+              <div vw-access-button class="active"></div>
+              <div vw-plugin-wrapper>
+                <div class="vw-plugin-top-wrapper"></div>
+              </div>
+            </div>
+          `
+        }}
+      />
+      <Script
+        id="vlibras-script"
+        src="https://vlibras.gov.br/app/vlibras-plugin.js"
+        strategy="afterInteractive"
+        onLoad={() => {
+          if (window.VLibras && !window.VLibras.initialized) {
+            try {
+              new window.VLibras.Widget('https://vlibras.gov.br/app');
+              window.VLibras.initialized = true;
+              console.log('[VLibras] Inicializado com sucesso via Script onLoad');
+            } catch (e) {
+              console.error('[VLibras] Falha no onLoad:', e);
+            }
+          }
+        }}
+      />
+    </>
+  );
 }
