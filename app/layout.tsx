@@ -1,3 +1,4 @@
+// trigger redeploy force
 import type { Metadata, Viewport } from "next";
 import { Inter, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
