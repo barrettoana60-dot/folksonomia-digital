@@ -117,8 +117,8 @@ export default function Header() {
 
     applyTheme(savedTheme);
     document.documentElement.style.setProperty('--text-scale-factor', String(savedFontSize / 16));
+    document.documentElement.style.setProperty('--font-current', FONT_STACK[savedFont]);
     document.documentElement.style.lineHeight = String(savedLineHeight);
-    document.body.style.fontFamily = FONT_STACK[savedFont];
     // @ts-ignore
     document.body.style.zoom = `${savedZoom}%`;
 
@@ -163,8 +163,10 @@ export default function Header() {
 
   const changeFontFamily = (ff: FontFamilyKey) => {
     setFontFamily(ff);
-    document.body.style.fontFamily = FONT_STACK[ff];
-    localStorage.setItem('fontFamily', ff);
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--font-current', FONT_STACK[ff]);
+      localStorage.setItem('fontFamily', ff);
+    }
   };
 
   const changeFontSize = (size: number) => {
@@ -425,17 +427,6 @@ export default function Header() {
         <p className="text-[9px] text-[#1A1A1A]/35 text-center leading-tight">
           Plugin oficial — Secretaria de Governo Digital
         </p>
-      </div>
-
-      {/* ---- Parar Audio ---- */}
-      <div className="pt-1">
-        <button
-          onClick={stopAudio}
-          className="w-full py-1.5 px-3 rounded-lg bg-red-500/8 hover:bg-red-500/15 text-red-600 text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
-        >
-          <VolumeX size={12} />
-          Parar Narração de Voz
-        </button>
       </div>
     </div>
   );
