@@ -69,52 +69,7 @@ function applyTheme(theme: ThemeKey) {
   document.documentElement.style.backgroundColor = THEME_SWATCH[theme];
 }
 
-/* ------------------------------------------------------------------ */
-/*  VLibras — injeção oficial do Governo Federal                       */
-/* ------------------------------------------------------------------ */
-function injectVLibras() {
-  if (document.querySelector('[vw]')) return; // já injetado
 
-  // estrutura DOM exigida pelo plugin
-  const vw = document.createElement('div');
-  vw.setAttribute('vw', '');
-  vw.className = 'enabled';
-
-  const btn = document.createElement('div');
-  btn.setAttribute('vw-access-button', '');
-  btn.className = 'active';
-
-  const wrapper = document.createElement('div');
-  wrapper.setAttribute('vw-plugin-wrapper', '');
-
-  const top = document.createElement('div');
-  top.className = 'vw-plugin-top-wrapper';
-  wrapper.appendChild(top);
-
-  vw.appendChild(btn);
-  vw.appendChild(wrapper);
-  document.body.appendChild(vw);
-
-  // CSS oficial
-  const link = document.createElement('link');
-  link.rel  = 'stylesheet';
-  link.href = 'https://vlibras.gov.br/app/vlibras-plugin.css';
-  document.head.appendChild(link);
-
-  // Script oficial
-  const script = document.createElement('script');
-  script.src = 'https://vlibras.gov.br/app/vlibras-plugin.js';
-  script.onload = () => {
-    // @ts-ignore
-    new window.VLibras.Widget('https://vlibras.gov.br/app');
-  };
-  document.body.appendChild(script);
-}
-
-function toggleVLibrasVisibility(visible: boolean) {
-  const vw = document.querySelector('[vw]') as HTMLElement | null;
-  if (vw) vw.style.display = visible ? 'block' : 'none';
-}
 
 /* ------------------------------------------------------------------ */
 /*  Componente Header                                                   */
@@ -153,19 +108,28 @@ export default function Header() {
     const savedFontSize   = parseInt(localStorage.getItem('fontSize')   || '16');
     const savedLineHeight = parseFloat(localStorage.getItem('lineHeight') || '1.5');
     const savedZoom       = parseInt(localStorage.getItem('zoomLevel')  || '100');
+    const savedLibras      = localStorage.getItem('librasActive') === 'true';
 
     setActiveTheme(savedTheme);
     setFontFamily(savedFont);
     setFontSize(savedFontSize);
     setLineHeight(savedLineHeight);
     setZoomLevel(savedZoom);
+    setLibrasActive(savedLibras);
 
     applyTheme(savedTheme);
-    document.documentElement.style.fontSize  = savedFontSize + 'px';
+    document.documentElement.style.setProperty('--text-scale-factor', String(savedFontSize / 16));
     document.documentElement.style.lineHeight = String(savedLineHeight);
     document.body.style.fontFamily = FONT_STACK[savedFont];
     // @ts-ignore
     document.body.style.zoom = `${savedZoom}%`;
+
+    if (savedLibras) {
+      setTimeout(() => {
+        const vw = document.querySelector('[vw]');
+        if (vw) vw.classList.add('vlibras-active');
+      }, 1500);
+    }
 
     return () => window.removeEventListener('storage', checkToken);
   }, []);
@@ -214,8 +178,10 @@ export default function Header() {
   const changeFontSize = (size: number) => {
     const s = Math.min(28, Math.max(12, size));
     setFontSize(s);
-    document.documentElement.style.fontSize = s + 'px';
-    localStorage.setItem('fontSize', s.toString());
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--text-scale-factor', String(s / 16));
+      localStorage.setItem('fontSize', s.toString());
+    }
   };
 
   const changeLineHeight = (lh: number) => {
@@ -240,11 +206,22 @@ export default function Header() {
   const toggleLibras = () => {
     const next = !librasActive;
     setLibrasActive(next);
-    if (next) {
-      injectVLibras();
-      toggleVLibrasVisibility(true);
-    } else {
-      toggleVLibrasVisibility(false);
+    localStorage.setItem('librasActive', String(next));
+    if (typeof document !== 'undefined') {
+      const vw = document.querySelector('[vw]');
+      if (vw) {
+        if (next) {
+          vw.classList.add('vlibras-active');
+          const btn = document.querySelector('[vw-access-button]') as HTMLElement | null;
+          if (btn) {
+            setTimeout(() => btn.click(), 100);
+          }
+        } else {
+          vw.classList.remove('vlibras-active');
+          const closeBtn = document.querySelector('.vw-plugin-wrapper .vw-plugin-top-wrapper .vw-close-button') as HTMLElement | null;
+          if (closeBtn) closeBtn.click();
+        }
+      }
     }
   };
 
