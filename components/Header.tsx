@@ -108,14 +108,12 @@ export default function Header() {
     const savedFontSize   = parseInt(localStorage.getItem('fontSize')   || '16');
     const savedLineHeight = parseFloat(localStorage.getItem('lineHeight') || '1.5');
     const savedZoom       = parseInt(localStorage.getItem('zoomLevel')  || '100');
-    const savedLibras      = localStorage.getItem('librasActive') === 'true';
 
     setActiveTheme(savedTheme);
     setFontFamily(savedFont);
     setFontSize(savedFontSize);
     setLineHeight(savedLineHeight);
     setZoomLevel(savedZoom);
-    setLibrasActive(savedLibras);
 
     applyTheme(savedTheme);
     document.documentElement.style.setProperty('--text-scale-factor', String(savedFontSize / 16));
@@ -124,15 +122,9 @@ export default function Header() {
     // @ts-ignore
     document.body.style.zoom = `${savedZoom}%`;
 
-    if (savedLibras) {
-      setTimeout(() => {
-        const vw = document.querySelector('[vw]');
-        if (vw) vw.classList.add('vlibras-active');
-      }, 1500);
-    }
-
     return () => window.removeEventListener('storage', checkToken);
   }, []);
+
 
   /* ---- fechar ao navegar ---- */
   useEffect(() => {
@@ -204,26 +196,15 @@ export default function Header() {
   };
 
   const toggleLibras = () => {
-    const next = !librasActive;
-    setLibrasActive(next);
-    localStorage.setItem('librasActive', String(next));
-    if (typeof document !== 'undefined') {
-      const vw = document.querySelector('[vw]');
-      if (vw) {
-        if (next) {
-          vw.classList.add('vlibras-active');
-          const btn = document.querySelector('[vw-access-button]') as HTMLElement | null;
-          if (btn) {
-            setTimeout(() => btn.click(), 100);
-          }
-        } else {
-          vw.classList.remove('vlibras-active');
-          const closeBtn = document.querySelector('.vw-plugin-wrapper .vw-plugin-top-wrapper .vw-close-button') as HTMLElement | null;
-          if (closeBtn) closeBtn.click();
-        }
-      }
+    // O VLibras controla seu próprio estado interno.
+    // Clicamos diretamente no botão flutuante oficial para abrir/fechar o intérprete.
+    const btn = document.querySelector('[vw-access-button]') as HTMLElement | null;
+    if (btn) {
+      btn.click();
+      setLibrasActive(prev => !prev);
     }
   };
+
 
   const resetAll = () => {
     changeTheme('creme');
