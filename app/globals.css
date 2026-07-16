@@ -20,6 +20,10 @@
   --text-page:  #1A1A1A;
   --card-bg:    rgba(255,255,255,0.55);
   --border:     rgba(0,0,0,0.09);
+
+  /* Fontes padrão seguras — previne Times New Roman fallback */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'DM Serif Display', Georgia, Cambria, serif;
 }
 
 /* Alto Contraste — preto/amarelo WCAG AAA */
