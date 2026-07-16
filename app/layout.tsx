@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, DM_Serif_Display } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import Header from "@/components/Header";
+import VLibrasWidget from "@/components/VLibrasWidget";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -61,60 +61,7 @@ export default function RootLayout({
         <div className="relative z-10 pt-4">
           {children}
         </div>
-
-        {/* ================================================================
-            VLibras — Widget Oficial do Governo Federal
-            A estrutura HTML PRECISA existir no DOM antes do script carregar.
-            O next/script garante execução mesmo em navegação client-side.
-            ================================================================ */}
-        <div
-          dangerouslySetInnerHTML={{ __html: `
-            <div vw class="enabled">
-              <div vw-access-button class="active"></div>
-              <div vw-plugin-wrapper>
-                <div class="vw-plugin-top-wrapper"></div>
-              </div>
-            </div>
-          ` }}
-        />
-
-        {/* Carrega o script oficial do VLibras via next/script */}
-        <Script
-          id="vlibras-plugin"
-          src="https://vlibras.gov.br/app/vlibras-plugin.js"
-          strategy="afterInteractive"
-        />
-
-        {/* Inicializa o Widget após o script carregar */}
-        <Script
-          id="vlibras-init"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: `
-            (function() {
-              var attempts = 0;
-              function tryInit() {
-                attempts++;
-                if (window.VLibras && window.VLibras.Widget) {
-                  try {
-                    new window.VLibras.Widget('https://vlibras.gov.br/app');
-                    console.log('[VLibras] Widget inicializado com sucesso');
-                  } catch (e) {
-                    console.error('[VLibras] Erro:', e);
-                  }
-                } else if (attempts < 20) {
-                  setTimeout(tryInit, 500);
-                }
-              }
-              if (document.readyState === 'complete') {
-                setTimeout(tryInit, 300);
-              } else {
-                window.addEventListener('load', function() {
-                  setTimeout(tryInit, 300);
-                });
-              }
-            })();
-          `}}
-        />
+        <VLibrasWidget />
       </body>
     </html>
   );
