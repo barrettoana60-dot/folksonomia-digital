@@ -8,6 +8,9 @@ import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
 import { expandQuery, enrichWithThesaurus, findTerm } from '@/lib/ml/thesaurus';
 import { mlClient } from '@/lib/ml/ml-client';
 import { hybridSemanticSimilarity } from '@/lib/ml/similarity';
+import { MapasCulturaisConnector } from '@/lib/connectors/mapas-culturais';
+import { DadosCulturaConnector } from '@/lib/connectors/dados-cultura';
+import { BrazilianCultureArchitect } from '@/lib/ml/cultural-architect';
 
 export const dynamic = 'force-dynamic';
 
@@ -170,8 +173,46 @@ async function searchAuxiliares(query: string): Promise<any[]> {
 
 
 // ============================================================
-// Carregar correlações já aprendidas anteriormente
+// Mapas da Cultura — Conector Governamental de Agentes/Eventos
+// ============================================================
+async function searchMapasCulturais(query: string): Promise<any[]> {
+  try {
+    const connector = new MapasCulturaisConnector();
+    const results = await connector.searchExternalSource(query);
+    return results.map((r: any) => ({
+      titulo: r.title,
+      descricao: r.description || '',
+      link: r.url || '',
+      provedor: r.provider || 'Mapas da Cultura',
+      fonte: 'Mapas da Cultura'
+    }));
+  } catch {
+    return [];
+  }
+}
 
+// ============================================================
+// Dados da Cultura — Conector de Fomento e Projetos SALIC
+// ============================================================
+async function searchDadosCultura(query: string): Promise<any[]> {
+  try {
+    const connector = new DadosCulturaConnector();
+    const results = await connector.searchExternalSource(query);
+    return results.map((r: any) => ({
+      titulo: r.title,
+      descricao: r.description || '',
+      link: r.url || '',
+      provedor: r.provider || 'Dados da Cultura',
+      fonte: 'Dados da Cultura'
+    }));
+  } catch {
+    return [];
+  }
+}
+
+
+// ============================================================
+// Carregar correlações já aprendidas anteriormente
 // ============================================================
 async function loadPreviousCorrelations(tagNormalized: string) {
   try {
@@ -278,7 +319,9 @@ async function generateAIAnalysis(
   brasiliana: any[],
   auxiliares: any[],
   thesaurusContext: string,
-  brasilianaTeoria: any[]
+  brasilianaTeoria: any[],
+  mapasCulturais: any[] = [],
+  dadosCultura: any[] = []
 ) {
   // Lógica Matemática de Cosseno
   function cosineSimilarity(a: number[], b: number[]): number {
@@ -700,6 +743,32 @@ async function generateAIAnalysis(
     extracao += `Isso pode indicar lacunas na digitalização dos acervos ou uso de terminologia diferente nos metadados das instituições. O conceito foi registrado para refinamento progressivo nas próximas consultas.\n`;
   }
 
+  // === SEÇÃO 3.5: Projetos Culturais, Espaços e Fomento Ativos ===
+  let fomentoCultura = '';
+  if (mapasCulturais.length > 0 || dadosCultura.length > 0) {
+    fomentoCultura = `---\n\n### Projetos Culturais, Espaços e Fomento Ativos (Mapas da Cultura & SALIC)\n\n`;
+    fomentoCultura += `Foram localizados registros de ações de salvaguarda, agentes e projetos de fomento ativos associados ao conceito de **"${tag}"** nas bases federais abertas:\n\n`;
+    
+    if (mapasCulturais.length > 0) {
+      fomentoCultura += `#### Agentes e Espaços Culturais (Mapas da Cultura):\n`;
+      mapasCulturais.slice(0, 3).forEach((item: any) => {
+        fomentoCultura += `* **${item.titulo}**: ${item.descricao} (Acesso: [Visualizar no Mapa](${item.link}))\n`;
+      });
+      fomentoCultura += '\n';
+    }
+    
+    if (dadosCultura.length > 0) {
+      fomentoCultura += `#### Projetos de Incentivo Federal (SALIC / Lei Rouanet):\n`;
+      dadosCultura.slice(0, 3).forEach((item: any) => {
+        fomentoCultura += `* **${item.titulo}**: ${item.descricao} (Acesso: [Visualizar no Salic](${item.link}))\n`;
+      });
+      fomentoCultura += '\n';
+    }
+  } else {
+    fomentoCultura = `---\n\n### Projetos Culturais, Espaços e Fomento Ativos\n\n`;
+    fomentoCultura += `Nenhum projeto de incentivo ativo ou agente cultural específico para **"${tag}"** foi localizado nas bases federais do SALIC e Mapas Culturais.\n`;
+  }
+
   // === SEÇÃO 4: Rede Semântica e Interoperabilidade Cultural ===
   let topologiaInterna = `---\n\n### Rede Semântica — Conexões Integradas ao Sistema\n\n`;
 
@@ -760,11 +829,13 @@ async function generateAIAnalysis(
   sinteseDeducao += `|---|---|---|\n`;
   sinteseDeducao += `| IBRAM / Tainacan — Museus Federais | ${ibram.length} | [tainacan.org](https://tainacan.org) |\n`;
   sinteseDeducao += `| Brasiliana Museus | ${brasiliana.length} item(ns) | [brasiliana.museus.gov.br ↗](https://brasiliana.museus.gov.br) |\n`;
+  sinteseDeducao += `| Mapas da Cultura | ${mapasCulturais.length} agente(s)/evento(s) | [mapas.cultura.gov.br ↗](https://mapas.cultura.gov.br) |\n`;
+  sinteseDeducao += `| SALIC / Lei Rouanet (Dados da Cultura) | ${dadosCultura.length} projeto(s) | [dados.cultura.gov.br ↗](https://dados.cultura.gov.br) |\n`;
   sinteseDeducao += `| Tesauro CNFCP/IPHAN | ${temTesauro ? 'Verbete encontrado' : 'Sem verbete'} | [cnfcp.gov.br ↗](https://www.cnfcp.gov.br/tesauro/) |\n`;
   sinteseDeducao += `| Literatura Acadêmica (Brasiliana Teoria) | ${brasilianaTeoria.length} artigo(s) | [Brasiliana Digital ↗](https://brasiliana.museus.gov.br) |\n`;
   sinteseDeducao += `| Memória Semântica NUGEP (pgvector) | ${pgvectorMatches.length} correspondência(s) | Sistema interno NUGEP |\n`;
 
-  const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, topologiaInterna, sinteseDeducao].join('\n\n---\n\n');
+  const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, fomentoCultura, topologiaInterna, sinteseDeducao].join('\n\n---\n\n');
 
   const resumoFactual = `IBRAM/Tainacan: ${ibram.length} reg. | Brasiliana: ${brasiliana.length} reg. | Tags NUGEP: ${dbTags.length} | Correlações: ${previousCorrelations.length} | pgvector: ${pgvectorMatches.length} matches | ${modelVer}`;
   const resumoContexto = temTesauro
@@ -905,21 +976,27 @@ export async function POST(req: NextRequest) {
     // ================================================================
     dispatchEvent({ tipo: 'CONSULTA', origem: 'relatorio-semantico', payload: { query, tags_encontradas: dbTags.length } });
 
-    const [ibram, brasiliana, auxiliares, brasilianaTeoria] = await Promise.all([
+    const [ibram, brasiliana, auxiliares, brasilianaTeoria, mapasCulturais, dadosCultura] = await Promise.all([
       searchIBRAM(query, thesaurusExpansion.expanded),
       searchBrasiliana(query, thesaurusExpansion.expanded),
       searchAuxiliares(query),
-      searchBrasilianaTeoria(query)
+      searchBrasilianaTeoria(query),
+      searchMapasCulturais(query),
+      searchDadosCultura(query)
     ]);
+
+    const todasAuxiliares = [...auxiliares, ...mapasCulturais, ...dadosCultura];
 
     // Disparar eventos de ingestão
     if (ibram.length > 0) dispatchEvent({ tipo: 'INGESTAO', origem: 'ibram', payload: { source: 'ibram-tainacan', query, items: ibram, museus: [...new Set(ibram.map((i: any) => i.museu))] } });
     if (brasiliana.length > 0) dispatchEvent({ tipo: 'INGESTAO', origem: 'brasiliana', payload: { source: 'brasiliana-tainacan', query, items: brasiliana } });
+    if (mapasCulturais.length > 0) dispatchEvent({ tipo: 'INGESTAO', origem: 'mapas-culturais', payload: { source: 'mapas-culturais-api', query, items: mapasCulturais } });
+    if (dadosCultura.length > 0) dispatchEvent({ tipo: 'INGESTAO', origem: 'dados-cultura', payload: { source: 'dados-cultura-api', query, items: dadosCultura } });
 
     // ================================================================
     // PASSO 5: Construir grafo de correlações com EXPLICAÇÕES
     // ================================================================
-    const correlationGraph = buildCorrelationGraph(query, [], ibram, brasiliana, auxiliares);
+    const correlationGraph = buildCorrelationGraph(query, [], ibram, brasiliana, todasAuxiliares);
 
     // ================================================================
     // PASSO 6: Carregar conhecimento prévio (sistema aprende)
@@ -936,7 +1013,20 @@ export async function POST(req: NextRequest) {
     // PASSO 8: Gerar análise escrita com IA baseada em EVIDÊNCIAS
     // Pipeline Transformer com Tesauro CNFCP e Teoria da Brasiliana
     // ================================================================
-    const brainTextObj = await generateAIAnalysis(query, correlationGraph, tagCorrelation, previousCorrelations, dbTags, ibram, brasiliana, auxiliares, thesaurusContext, brasilianaTeoria);
+    const brainTextObj = await generateAIAnalysis(
+      query,
+      correlationGraph,
+      tagCorrelation,
+      previousCorrelations,
+      dbTags,
+      ibram,
+      brasiliana,
+      todasAuxiliares,
+      thesaurusContext,
+      brasilianaTeoria,
+      mapasCulturais,
+      dadosCultura
+    );
 
     const analise = brainTextObj?.texto || 
       `A tag "${query}" existe no sistema com ${dbTags.length} registro(s). ` +
@@ -989,6 +1079,16 @@ export async function POST(req: NextRequest) {
             total: auxiliares.length,
             items: auxiliares,
             correlations: correlationGraph.correlations.filter((c: any) => c.source === 'DBpedia' || c.source === 'OpenAlex')
+          },
+          mapasCulturais: {
+            total: mapasCulturais.length,
+            items: mapasCulturais,
+            correlations: correlationGraph.correlations.filter((c: any) => c.source === 'Mapas Culturais')
+          },
+          dadosCultura: {
+            total: dadosCultura.length,
+            items: dadosCultura,
+            correlations: correlationGraph.correlations.filter((c: any) => c.source === 'Dados da Cultura')
           },
           internas: { total: dbTags.length, items: dbTags }
         },
