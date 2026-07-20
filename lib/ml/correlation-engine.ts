@@ -11,6 +11,7 @@
  */
 
 import { normalizeForComparison } from './tag-correlator';
+import { BrazilianCultureArchitect } from './cultural-architect';
 
 // ============================================================
 // Tipos
@@ -251,12 +252,31 @@ export function correlateExternalRecord(
     }
   }
 
+  // 5. Aplicar fator de coesão cultural do arquiteto matemático
+  const cohesionFactor = BrazilianCultureArchitect.calculateCohesion(tagText, record.titulo);
+  if (cohesionFactor < 0.5) {
+    reasons.push({
+      type: 'theme',
+      match: 'divergent_axes',
+      weight: -1.5, // Impacto negativo forte na média ponderada
+      description: `Eixos de cultura popular incompatíveis (cruzamento semântico de baixa coesão)`
+    });
+  }
+
   // Calcular score composto
+  const positiveReasons = reasons.filter(r => r.weight > 0);
   const totalWeight = reasons.reduce((sum, r) => sum + r.weight, 0);
-  const maxPossibleWeight = reasons.length * 1.0;
-  const score = maxPossibleWeight > 0 
+  const maxPossibleWeight = positiveReasons.length * 1.0;
+  
+  let score = maxPossibleWeight > 0 
     ? Math.min(Math.round((totalWeight / Math.max(maxPossibleWeight, 1)) * 100) / 100, 1.0)
     : 0;
+
+  // Penalidade direta
+  if (cohesionFactor < 0.5) {
+    score = score * cohesionFactor;
+    if (score > 0.15) score = 0.15; // Teto rígido para termos incoerentes
+  }
 
   // Gerar resumo
   const matchedFields = reasons.map(r => r.type);
@@ -269,7 +289,7 @@ export function correlateExternalRecord(
     externalId: record.link || record.external_id || `${record.fonte}-${Date.now()}`,
     title: record.titulo,
     source: record.fonte,
-    score: Math.max(score, reasons.length > 0 ? 0.3 : 0),
+    score: Math.max(score, 0),
     reasons,
     matchedFields: uniqueFields,
     layer: reasons.some(r => r.weight >= 0.8) ? 'factual' : 'inferred',
