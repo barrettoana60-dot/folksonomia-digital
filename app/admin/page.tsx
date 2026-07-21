@@ -146,9 +146,21 @@ export default function AdminPage() {
   const [dlSearching, setDlSearching] = useState<string | null>(null);
   const [dlLog, setDlLog] = useState<{tag: string; resultado: string; ts: string}[]>([]);
 
+  // ─── EIXOS SEMÂNTICOS ─────────────────────────────────────────────────────────
+  // Cada nó tem um 'eixo' que define sua família cultural.
+  // Conexões só são coesas quando compartilham o mesmo eixo ou matriz civilizatória.
+  // EIXO_FESTA  = festas/rituais populares (azul royal #1E3A8A)
+  // EIXO_MUSICA = expressão musical/dança (cyan #0891B2)
+  // EIXO_SABERES = saberes/ofícios/artesanato (verde #1A6B3A)
+  // EIXO_CRENCAS = crenças/religiosidade popular (roxo #6D28D9)
+  // EIXO_PATRIMONIO = documentos/dossiês/institucional (âmbar #E8A920)
+  // EIXO_AFRO   = matriz civilizatória africana — atravessa vários eixos (vermelho-laranja #C0252B)
+
   const [interopNodes, setInteropNodes] = useState([
-    { id: "core",           label: "Núcleo Folksonômico",            x: 400, y: 215, size: 26, fill: "#E8490A",
-      desc: "Nó centralizador de dados e proveniências semânticas do acervo. Cada pesquisa realizada alimenta este núcleo com novas conexões semânticas verificadas.",
+    // ═══ NÓ CENTRAL ═══
+    { id: "core", label: "Núcleo Folksonômico", x: 400, y: 215, size: 26, fill: "#E8490A",
+      eixo: "NUCLEO",
+      desc: "Centralizador semântico do acervo. Indexa manifestações populares de todas as regiões do Brasil.",
       type: "Núcleo do Acervo Semântico",
       hash: "SHA3:c8ed9901a72f3b01",
       familia: "sistema.nucleo.folksonômico",
@@ -156,123 +168,269 @@ export default function AdminPage() {
         { label: "Tainacan — Acervo IBRAM", url: "https://tainacan.org" },
         { label: "Brasiliana Museus", url: "https://brasiliana.museus.gov.br" },
         { label: "Tesauro CNFCP/IPHAN", url: "https://www.cnfcp.gov.br/tesauro/" },
+        { label: "Mapas da Cultura", url: "https://mapas.cultura.gov.br" },
       ],
-      acervos: ["IBRAM", "Brasiliana", "IPHAN"],
+      acervos: ["IBRAM", "Brasiliana", "IPHAN", "Mapas da Cultura", "SALIC"],
       vx: 0, vy: 0, activation: 1.0 },
-    { id: "frevo",          label: "Frevo Pernambucano",             x: 220, y: 100, size: 16, fill: "#1E3A8A",
-      desc: "Patrimônio Imaterial com tags de dança, cores e sombrinhas ornamentadas. Registrado pelo IPHAN como patrimônio cultural imaterial.",
-      type: "Patrimônio Imaterial IPHAN",
-      hash: "SHA3:frevo8f29a1b3c4d5",
-      familia: "patrimônio.imaterial.nordeste.dança",
+
+    // ═══ EIXO FESTA — Celebrações e Rituais Populares ═══
+    { id: "bumba_boi", label: "Bumba-meu-boi", x: 170, y: 95, size: 16, fill: "#1E3A8A",
+      eixo: "FESTA",
+      desc: "Festa popular do ciclo junino — Patrimônio Cultural Imaterial do Brasil. Principal manifestação do Norte e Nordeste, com variações em MA, PA e AM.",
+      type: "Patrimônio Imaterial IPHAN — Festa Popular",
+      hash: "SHA3:bumba1e2f3a4b5c6d",
+      familia: "festa.popular.ciclo_junino.nordeste.norte",
+      regiao: "Norte/Nordeste",
       linksReais: [
-        { label: "IPHAN — Frevo Pernambucano", url: "https://www.iphan.gov.br/bcrE/pages/detalhesProcessoRegistroE.jsf" },
+        { label: "IPHAN — Bumba-meu-boi do Maranhão", url: "https://www.iphan.gov.br" },
+        { label: "Museu do Folclore Edison Carneiro", url: "https://cnfcp.gov.br" },
+      ],
+      acervos: ["Museu do Folclore Edison Carneiro", "IBRAM-MA"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "festa_junina", label: "Festa Junina", x: 280, y: 80, size: 15, fill: "#1E3A8A",
+      eixo: "FESTA",
+      desc: "Celebração popular do ciclo junino com quadrilha, forró e simbolismos rurais. Presente em todo o Brasil com maior expressão no Nordeste.",
+      type: "Manifestação Cultural Popular — Festa",
+      hash: "SHA3:festa2f3a4b5c6d7e",
+      familia: "festa.popular.ciclo_junino.nacional",
+      regiao: "Nacional",
+      linksReais: [
+        { label: "CNFCP — Ciclo Junino", url: "https://cnfcp.gov.br" },
+        { label: "Mapas da Cultura", url: "https://mapas.cultura.gov.br" },
+      ],
+      acervos: ["CNFCP", "Museu do Folclore"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "folia_reis", label: "Folia de Reis", x: 400, y: 60, size: 13, fill: "#1E3A8A",
+      eixo: "FESTA",
+      desc: "Ritual de visitação e devoção popular ao presépio, com foliões, bandeira e músicos. Manifestação do ciclo natalino ibérico-brasileiro.",
+      type: "Manifestação Cultural Popular — Ritual",
+      hash: "SHA3:folia3a4b5c6d7e8f",
+      familia: "festa.ritual.ciclo_natalino.luso.nacional",
+      regiao: "CO/SE/MG",
+      linksReais: [
+        { label: "IPHAN — Folia de Reis", url: "https://www.iphan.gov.br" },
+        { label: "Museu do Folclore", url: "https://cnfcp.gov.br" },
+      ],
+      acervos: ["Museu do Folclore Edison Carneiro"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "carnaval", label: "Carnaval Popular", x: 520, y: 75, size: 14, fill: "#1E3A8A",
+      eixo: "FESTA",
+      desc: "Manifestação festiva plural: blocos, maracatu, afoxé, frevo, samba-enredo. Síntese das três matrizes civilizatórias do Brasil.",
+      type: "Manifestação Cultural Popular — Festa",
+      hash: "SHA3:carna4b5c6d7e8f9a",
+      familia: "festa.popular.carnaval.nacional",
+      regiao: "Nacional",
+      linksReais: [
+        { label: "Mapas da Cultura — Blocos", url: "https://mapas.cultura.gov.br" },
+        { label: "Museu do Carnaval", url: "https://brasiliana.museus.gov.br" },
+      ],
+      acervos: ["Museu do Carnaval", "IBRAM"],
+      vx: 0, vy: 0, activation: 0.0 },
+
+    // ═══ EIXO MUSICA — Expressão Musical e Dança ═══
+    { id: "frevo", label: "Frevo Pernambucano", x: 630, y: 100, size: 15, fill: "#0891B2",
+      eixo: "MUSICA",
+      desc: "Música e dança acrobática de Pernambuco — Patrimônio Cultural Imaterial da Humanidade (UNESCO 2012). Gênero exclusivamente urbano e carnavalesco.",
+      type: "Patrimônio Imaterial UNESCO — Música/Dança",
+      hash: "SHA3:frevo8f29a1b3c4d5",
+      familia: "musica.danca.carnaval.nordeste.pernambuco",
+      regiao: "Nordeste",
+      linksReais: [
+        { label: "UNESCO — Frevo", url: "https://ich.unesco.org" },
         { label: "Museu do Frevo — Recife", url: "https://www.museudofrevo.com.br" },
-        { label: "Tainacan — Frevo", url: "https://tainacan.org/colecoes/?collection_id=4" },
       ],
       acervos: ["Museu do Frevo", "Museu da Cidade do Recife"],
       vx: 0, vy: 0, activation: 0.0 },
-    { id: "carranca",       label: "Carranca do São Francisco",      x: 580, y: 100, size: 16, fill: "#1A6B3A",
-      desc: "Escultura antropomórfica em madeira, representativa do imaginário ribeirinho do Vale do São Francisco. Associada à resistência e identidade cultural.",
-      type: "Objeto de Cultura Popular",
-      hash: "SHA3:carra1a2cb7f8e9d0",
-      familia: "cultura.popular.nordeste.escultura.madeira",
+    { id: "capoeira", label: "Capoeira", x: 700, y: 200, size: 14, fill: "#0891B2",
+      eixo: "MUSICA",
+      desc: "Arte marcial-dança-música afro-brasileira. Patrimônio UNESCO. O berimbau, o canto e o jogo formam uma unidade semântica inseparável.",
+      type: "Patrimônio Imaterial UNESCO — Luta/Dança",
+      hash: "SHA3:capoeira4f7a8b9c0",
+      familia: "musica.danca.luta.afro.nacional",
+      regiao: "Nacional (origem BA)",
       linksReais: [
-        { label: "Museu do Folclore — Carrancas", url: "https://www.museudefolclore.com.br" },
-        { label: "Brasiliana — Carranca", url: "https://brasiliana.museus.gov.br" },
+        { label: "UNESCO — Capoeira", url: "https://ich.unesco.org/en/RL/capoeira-01053" },
+        { label: "IPHAN", url: "https://www.iphan.gov.br" },
+      ],
+      acervos: ["Museu Afrobrasil", "Instituto Mauá"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "coco", label: "Coco de Roda", x: 700, y: 310, size: 12, fill: "#0891B2",
+      eixo: "MUSICA",
+      desc: "Ritmo e dança afrodescendente do litoral nordestino. Batida percussiva, ciranda e canto coletivo.",
+      type: "Patrimônio Imaterial — Música/Dança Afro",
+      hash: "SHA3:coco9c1d2e3f4a5b",
+      familia: "musica.danca.afro.nordeste.litoral",
+      regiao: "Nordeste",
+      linksReais: [
+        { label: "CNFCP — Coco de Roda", url: "https://cnfcp.gov.br" },
+        { label: "Museu Afrobrasil", url: "https://museuafrobrasil.org.br" },
+      ],
+      acervos: ["Museu Afrobrasil", "Museu do Folclore Edison Carneiro"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "jongo", label: "Jongo", x: 620, y: 350, size: 12, fill: "#0891B2",
+      eixo: "MUSICA",
+      desc: "Manifestação musical e religiosa afro-brasileira do Vale do Paraíba (SP/RJ). Ritmo de tambor, canto e dança circular — patrimônio imaterial IPHAN.",
+      type: "Patrimônio Imaterial IPHAN — Música Afro",
+      hash: "SHA3:jongo5d6e7f8a9b0c",
+      familia: "musica.danca.afro.sudeste.vale_paraiba",
+      regiao: "Sudeste",
+      linksReais: [
+        { label: "IPHAN — Jongo no Sudeste", url: "https://www.iphan.gov.br" },
+        { label: "Brasiliana Museus", url: "https://brasiliana.museus.gov.br" },
+      ],
+      acervos: ["Museu Afrobrasil", "IBRAM-SP"],
+      vx: 0, vy: 0, activation: 0.0 },
+
+    // ═══ EIXO SABERES — Ofícios e Artesanato ═══
+    { id: "carranca", label: "Carranca do São Francisco", x: 100, y: 200, size: 15, fill: "#1A6B3A",
+      eixo: "SABERES",
+      desc: "Escultura em madeira do Vale do São Francisco — saber-fazer ribeirinho. Protetora das embarcações, com iconografia que sintetiza o imaginário popular nordestino.",
+      type: "Objeto de Cultura Popular — Ofício/Escultura",
+      hash: "SHA3:carra1a2cb7f8e9d0",
+      familia: "saberes.oficio.escultura.madeira.nordeste.sao_francisco",
+      regiao: "Nordeste (Vale do São Francisco)",
+      linksReais: [
+        { label: "Museu do Folclore — Carrancas", url: "https://cnfcp.gov.br" },
+        { label: "Brasiliana Museus", url: "https://brasiliana.museus.gov.br" },
       ],
       acervos: ["Museu do Folclore Edison Carneiro", "Museu Regional de Juazeiro"],
       vx: 0, vy: 0, activation: 0.0 },
-    { id: "bilro",          label: "Renda de Bilro",                  x: 220, y: 330, size: 16, fill: "#C0252B",
-      desc: "Prática artesanal de tecelagem manual usando bilros e almofadas de espinho. Tradição feminina presente no litoral cearense e nordestino.",
-      type: "Objeto de Cultura Popular",
+    { id: "bilro", label: "Renda de Bilro", x: 100, y: 310, size: 14, fill: "#1A6B3A",
+      eixo: "SABERES",
+      desc: "Ofício têxtil de rendas com bilros, almofada e agulhas. Saber-fazer feminino registrado no Ceará e em toda a costa nordestina.",
+      type: "Patrimônio Imaterial — Saber-fazer/Têxtil",
       hash: "SHA3:bilro5e8da3c2b1f4",
-      familia: "cultura.popular.nordeste.têxtil.artesanato",
+      familia: "saberes.oficio.textil.renda.nordeste",
+      regiao: "Nordeste",
       linksReais: [
-        { label: "IPHAN — Renda de Bilro", url: "https://www.iphan.gov.br" },
-        { label: "Brasiliana — Rendas", url: "https://brasiliana.museus.gov.br" },
+        { label: "CNFCP — Rendas", url: "https://cnfcp.gov.br" },
         { label: "Museu do Ceará", url: "https://www.museu.ce.gov.br" },
       ],
       acervos: ["Museu do Ceará", "Museu do Folclore Edison Carneiro"],
       vx: 0, vy: 0, activation: 0.0 },
-    { id: "dossie",         label: "Dossiê IPHAN",                    x: 580, y: 330, size: 16, fill: "#E8A920",
-      desc: "Documento histórico oficial sobre a salvaguarda e regulamentação dos patrimônios catalogados pelo Estado brasileiro.",
-      type: "Documento Institucional",
+    { id: "tapeçaria", label: "Tapeçaria Nordestina", x: 170, y: 360, size: 12, fill: "#1A6B3A",
+      eixo: "SABERES",
+      desc: "Tecelagem manual com padrões geométricos e figurativos do agreste. Ofício transmitido por gerações em oficinas familiares.",
+      type: "Objeto de Cultura Popular — Artesanato Têxtil",
+      hash: "SHA3:tapec2b8ef9a0b1c2",
+      familia: "saberes.oficio.textil.tecelagem.nordeste",
+      regiao: "Nordeste",
+      linksReais: [
+        { label: "Brasiliana — Têxteis", url: "https://brasiliana.museus.gov.br" },
+        { label: "CNFCP — Artesanato", url: "https://cnfcp.gov.br" },
+      ],
+      acervos: ["Museu de Arte Popular", "CNFCP"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "fandango", label: "Fandango Caiçara", x: 280, y: 370, size: 12, fill: "#1A6B3A",
+      eixo: "SABERES",
+      desc: "Expressão cultural do litoral paranaense e paulista que integra dança, música, construção de viola e sapateado. Saber-fazer instrumental único.",
+      type: "Patrimônio Imaterial IPHAN — Saber-fazer",
+      hash: "SHA3:fanda6e7f8a9b0c1d",
+      familia: "saberes.oficio.musica.danca.sul.litoral_parana",
+      regiao: "Sul",
+      linksReais: [
+        { label: "IPHAN — Fandango Caiçara", url: "https://www.iphan.gov.br" },
+        { label: "CNFCP", url: "https://cnfcp.gov.br" },
+      ],
+      acervos: ["Museu Paranaense", "CNFCP"],
+      vx: 0, vy: 0, activation: 0.0 },
+
+    // ═══ EIXO CRENÇAS — Religiosidade e Ritual ═══
+    { id: "candomble", label: "Candomblé", x: 540, y: 350, size: 13, fill: "#6D28D9",
+      eixo: "CRENCAS",
+      desc: "Religião de matriz africana com origem em ritos Iorubá, Fon e Banto. Orixás, danças, cantos e oferendas constituem patrimônio imaterial e identidade afro-brasileira.",
+      type: "Patrimônio Imaterial — Religiosidade Afro",
+      hash: "SHA3:cando7f8a9b0c1d2e",
+      familia: "crencas.religiao.afro.nacional",
+      regiao: "Nacional (BA/SP/RJ)",
+      linksReais: [
+        { label: "IPHAN — Matrizes Africanas", url: "https://www.iphan.gov.br" },
+        { label: "Museu Afrobrasil", url: "https://museuafrobrasil.org.br" },
+      ],
+      acervos: ["Museu Afrobrasil", "CNFCP"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "ore", label: "Toré Indígena", x: 440, y: 370, size: 12, fill: "#6D28D9",
+      eixo: "CRENCAS",
+      desc: "Ritual indígena de encantaria e contato com ancestrais, praticado por povos do Nordeste como Fulni-ô, Pankararu e Xocó. Música, dança e medicina tradicional.",
+      type: "Patrimônio Imaterial — Ritual Indígena",
+      hash: "SHA3:tore8a9b0c1d2e3f",
+      familia: "crencas.ritual.indigena.nordeste",
+      regiao: "Nordeste",
+      linksReais: [
+        { label: "CNFCP — Indígenas", url: "https://cnfcp.gov.br" },
+        { label: "Museu do Índio", url: "https://www.museudoindio.gov.br" },
+      ],
+      acervos: ["Museu do Índio", "IBRAM"],
+      vx: 0, vy: 0, activation: 0.0 },
+
+    // ═══ EIXO PATRIMÔNIO — Documentos e Institucional ═══
+    { id: "dossie", label: "Dossiê IPHAN", x: 100, y: 95, size: 14, fill: "#E8A920",
+      eixo: "PATRIMONIO",
+      desc: "Documento técnico de registro e salvaguarda do patrimônio cultural imaterial brasileiro. Base legal e epistemológica das catalogações.",
+      type: "Documento Institucional — IPHAN",
       hash: "SHA3:dossi3c4be5f6a7b8",
-      familia: "institucional.documento.iphan.salvaguarda",
+      familia: "patrimonio.documento.iphan.salvaguarda",
+      regiao: "Nacional",
       linksReais: [
         { label: "IPHAN — Dossiês de Registro", url: "https://www.iphan.gov.br/bcrE/pages/listProcessoRegistroE.jsf" },
         { label: "Portal do Patrimônio", url: "http://portal.iphan.gov.br" },
       ],
       acervos: ["IPHAN", "Arquivo Nacional"],
       vx: 0, vy: 0, activation: 0.0 },
-    { id: "artigo_popular", label: "Estudos Culturais Nordeste",      x: 105, y: 215, size: 12, fill: "#6D28D9",
-      desc: "Estudo crítico sobre a influência das carrancas na economia criativa do Vale do São Francisco.",
-      type: "Artigo Científico",
-      hash: "SHA3:estud2e3df4a5b6c7",
-      familia: "acadêmico.artigo.cultura.nordeste",
+    { id: "museografia", label: "Museologia e Acervos", x: 200, y: 140, size: 12, fill: "#E8A920",
+      eixo: "PATRIMONIO",
+      desc: "Normas técnicas de catalogação e documentação museológica. Garante a preservação e acessibilidade do patrimônio popular brasileiro nos acervos digitais.",
+      type: "Publicação Técnica — Museologia",
+      hash: "SHA3:museo7f8e9a0b1c2d",
+      familia: "patrimonio.museologia.catalogo.ibram",
+      regiao: "Nacional",
       linksReais: [
-        { label: "Brasiliana Digital — Artigos", url: "https://brasiliana.museus.gov.br/brasiliana-digital/" },
+        { label: "IBRAM — Publicações", url: "https://www.museus.gov.br/publicacoes/" },
+        { label: "Tainacan", url: "https://tainacan.org" },
+      ],
+      acervos: ["IBRAM", "Museu da República"],
+      vx: 0, vy: 0, activation: 0.0 },
+    { id: "artigo_popular", label: "Estudos de Cultura Popular", x: 300, y: 160, size: 12, fill: "#E8A920",
+      eixo: "PATRIMONIO",
+      desc: "Publicações acadêmicas e científicas sobre manifestações da cultura popular brasileira. Literatura de referência indexada nas bibliotecas digitais abertas.",
+      type: "Artigo Científico — Cultura Popular",
+      hash: "SHA3:estud2e3df4a5b6c7",
+      familia: "patrimonio.academico.artigo.cultura_popular",
+      regiao: "Nacional",
+      linksReais: [
+        { label: "Brasiliana Digital", url: "https://brasiliana.museus.gov.br" },
         { label: "Portal Domínio Público", url: "http://www.dominiopublico.gov.br" },
       ],
       acervos: ["Biblioteca Nacional", "Brasiliana Digital"],
       vx: 0, vy: 0, activation: 0.0 },
-    { id: "museografia",    label: "Cadernos de Museologia",          x: 695, y: 215, size: 12, fill: "#6D28D9",
-      desc: "Normas técnicas para catalogação descentralizada e inclusão de linguagens populares nos acervos digitais.",
-      type: "Publicação Técnica",
-      hash: "SHA3:museo7f8e9a0b1c2d",
-      familia: "acadêmico.museologia.catalogação.técnica",
-      linksReais: [
-        { label: "IBRAM — Publicações", url: "https://www.museus.gov.br/publicacoes/" },
-        { label: "Cadernos de Sociomuseologia", url: "https://revistas.ulusofona.pt/index.php/cadernosociomuseologia" },
-      ],
-      acervos: ["IBRAM", "Museu da República"],
-      vx: 0, vy: 0, activation: 0.0 },
-    { id: "coco",           label: "Coco de Roda",                    x: 100, y: 350, size: 11, fill: "#0891B2",
-      desc: "Manifestação musical e coreográfica afrodescendente praticada no litoral nordestino. Reconhecida como patrimônio cultural imaterial.",
-      type: "Patrimônio Imaterial IPHAN",
-      hash: "SHA3:coco9c1d2e3f4a5b",
-      familia: "patrimônio.imaterial.nordeste.música.afro",
-      linksReais: [
-        { label: "IPHAN — Coco de Roda", url: "https://www.iphan.gov.br" },
-        { label: "Museu Afrobrasil", url: "https://museuafrobrasil.org.br" },
-      ],
-      acervos: ["Museu Afrobrasil", "Museu do Folclore Edison Carneiro"],
-      vx: 0, vy: 0, activation: 0.0 },
-    { id: "capoeira",       label: "Capoeira",                        x: 700, y: 350, size: 11, fill: "#0891B2",
-      desc: "Arte marcial brasileira reconhecida como Patrimônio Cultural Imaterial da Humanidade pela UNESCO em 2014.",
-      type: "Patrimônio Imaterial UNESCO",
-      hash: "SHA3:capoeira4f7a8b9c0",
-      familia: "patrimônio.imaterial.afrobrasil.luta.dança",
-      linksReais: [
-        { label: "UNESCO — Capoeira", url: "https://ich.unesco.org/en/RL/capoeira-01053" },
-        { label: "IPHAN — Registro", url: "https://www.iphan.gov.br" },
-        { label: "Museu da Capoeira", url: "https://www.museudacapoeira.com.br" },
-      ],
-      acervos: ["Museu Afrobrasil", "Instituto Mauá"],
-      vx: 0, vy: 0, activation: 0.0 },
-    { id: "tapeçaria",      label: "Tapeçaria Nordestina",            x: 400, y: 370, size: 11, fill: "#B45309",
-      desc: "Arte têxtil popular com padrões geométricos e representações de fauna e flora regionais.",
-      type: "Objeto de Cultura Popular",
-      hash: "SHA3:tapec2b8ef9a0b1c2",
-      familia: "cultura.popular.nordeste.têxtil.geométrico",
-      linksReais: [
-        { label: "Brasiliana — Têxteis", url: "https://brasiliana.museus.gov.br" },
-        { label: "Museu de Arte Popular", url: "https://www.museudeartepopular.com.br" },
-      ],
-      acervos: ["Museu de Arte Popular", "MAFRO"],
-      vx: 0, vy: 0, activation: 0.0 },
   ]);
 
-  // Sinapses com peso aprendível
+  // ─── SINAPSES INICIAIS — Conexões coesas por eixo semântico ─────────────────
+  // Regra: só conectar nós do mesmo eixo OU com eixo PATRIMÔNIO (documentação)
+  // Nunca conectar diretamente SABERES↔MÚSICA ou FESTA↔CRENÇAS sem eixo em comum
   const [interopConnections, setInteropConnections] = useState([
-    { from: "core",           to: "frevo",          weight: 0.95, isNew: false, discovered: false },
-    { from: "core",           to: "carranca",       weight: 0.90, isNew: false, discovered: false },
-    { from: "core",           to: "bilro",          weight: 0.85, isNew: false, discovered: false },
-    { from: "core",           to: "dossie",         weight: 0.88, isNew: false, discovered: false },
-    { from: "frevo",          to: "artigo_popular", weight: 0.60, isNew: false, discovered: false },
-    { from: "carranca",       to: "museografia",    weight: 0.55, isNew: false, discovered: false },
-    { from: "bilro",          to: "artigo_popular", weight: 0.50, isNew: false, discovered: false },
-    { from: "dossie",         to: "museografia",    weight: 0.65, isNew: false, discovered: false },
+    // Core → representantes de cada eixo (conexão estrutural)
+    { from: "core", to: "bumba_boi",     weight: 0.92, isNew: false, discovered: false, eixoRel: "FESTA" },
+    { from: "core", to: "capoeira",      weight: 0.90, isNew: false, discovered: false, eixoRel: "MUSICA" },
+    { from: "core", to: "carranca",      weight: 0.88, isNew: false, discovered: false, eixoRel: "SABERES" },
+    { from: "core", to: "dossie",        weight: 0.95, isNew: false, discovered: false, eixoRel: "PATRIMONIO" },
+    { from: "core", to: "candomble",     weight: 0.85, isNew: false, discovered: false, eixoRel: "CRENCAS" },
+    // EIXO FESTA — conexões internas (mesmo eixo = alta coesão)
+    { from: "bumba_boi",   to: "festa_junina", weight: 0.80, isNew: false, discovered: false, eixoRel: "FESTA" },
+    { from: "festa_junina",to: "folia_reis",   weight: 0.72, isNew: false, discovered: false, eixoRel: "FESTA" },
+    { from: "carnaval",    to: "frevo",        weight: 0.85, isNew: false, discovered: false, eixoRel: "FESTA+MUSICA" },
+    // EIXO MUSICA — conexões internas
+    { from: "capoeira",    to: "coco",         weight: 0.75, isNew: false, discovered: false, eixoRel: "MUSICA" },
+    { from: "coco",        to: "jongo",        weight: 0.70, isNew: false, discovered: false, eixoRel: "MUSICA" },
+    // EIXO SABERES — conexões internas
+    { from: "carranca",    to: "bilro",        weight: 0.65, isNew: false, discovered: false, eixoRel: "SABERES" },
+    { from: "bilro",       to: "tapeçaria",    weight: 0.78, isNew: false, discovered: false, eixoRel: "SABERES" },
+    { from: "tapeçaria",   to: "fandango",     weight: 0.60, isNew: false, discovered: false, eixoRel: "SABERES" },
+    // EIXO PATRIMÔNIO — documenta todos os eixos
+    { from: "dossie",      to: "museografia",  weight: 0.82, isNew: false, discovered: false, eixoRel: "PATRIMONIO" },
+    { from: "museografia", to: "artigo_popular",weight: 0.70, isNew: false, discovered: false, eixoRel: "PATRIMONIO" },
+    // EIXO CRENÇAS — conexões internas
+    { from: "candomble",   to: "ore",          weight: 0.68, isNew: false, discovered: false, eixoRel: "CRENCAS" },
   ]);
 
   // ─── ESTADO DO MOTOR DE APRENDIZADO ──────────────────────────────────────────
@@ -306,21 +464,36 @@ export default function AdminPage() {
     interopNodesRef.current = interopNodes;
   }, [interopNodes]);
 
-  // Corpus de conexões latentes que a rede pode DESCOBRIR com treinamento
-  // Thresholds baixos para que as primeiras conexões sejam descobertas rapidamente
+  // ─── CONEXÕES LATENTES COESAS — Descobertas via Aprendizado Hebbiano ──────────
+  // Cada conexão latente deve ter eixoA === eixoB OU ser mediada por PATRIMÔNIO.
+  // PROIBIDO: conectar eixos não relacionados (ex: SABERES ↔ MUSICA sem mediação)
   const latentConnections = useRef([
-    { from: "frevo",          to: "coco",           label: "Co-ocorrência: cultura nordestina afro",         threshold: 0.12 },
-    { from: "capoeira",       to: "frevo",          label: "Intersecção: expressão corporal afrobrasil.",    threshold: 0.18 },
-    { from: "bilro",          to: "tapeçaria",      label: "Afinidade: artesanato têxtil manual",            threshold: 0.15 },
-    { from: "carranca",       to: "capoeira",       label: "Vetor: resistência cultural africana",           threshold: 0.22 },
-    { from: "museografia",    to: "dossie",         label: "Dependência documental: normas IPHAN",           threshold: 0.10 },
-    { from: "tapeçaria",      to: "artigo_popular", label: "Referência cruzada: economia criativa",          threshold: 0.20 },
-    { from: "coco",           to: "capoeira",       label: "Padrão: manifestações afrodescendentes",         threshold: 0.28 },
-    { from: "core",           to: "coco",           label: "Expansão do núcleo: novo patrimônio indexado",   threshold: 0.08 },
-    { from: "core",           to: "capoeira",       label: "Expansão do núcleo: patrimônio UNESCO",          threshold: 0.10 },
-    { from: "core",           to: "tapeçaria",      label: "Expansão do núcleo: artesanato regional",        threshold: 0.13 },
-    { from: "artigo_popular", to: "coco",           label: "Citação acadêmica: manifestações populares",     threshold: 0.25 },
-    { from: "frevo",          to: "tapeçaria",      label: "Representação visual: cultura pernambucana",     threshold: 0.32 },
+    // MUSICA ↔ MUSICA: Capoeira e Jongo — ambos afro-brasileiros
+    { from: "capoeira",      to: "jongo",         label: "Eixo Música/Afro: roda, tambor e ancestralidade africana",      threshold: 0.12, eixo: "MUSICA" },
+    // MUSICA ↔ MUSICA: Frevo e Capoeira — expressão corporal, ritmo e performance pública
+    { from: "frevo",         to: "capoeira",      label: "Eixo Música/Dança: performance de rua e expressão corporal",     threshold: 0.18, eixo: "MUSICA" },
+    // SABERES ↔ SABERES: Bilro e Tapeçaria — mesmo eixo têxtil
+    { from: "bilro",         to: "tapeçaria",     label: "Eixo Saberes/Têxtil: técnicas manuais de fio e tear",            threshold: 0.14, eixo: "SABERES" },
+    // SABERES ↔ SABERES: Tapeçaria e Fandango — ofício transmitido em família, Sul/Nordeste
+    { from: "tapeçaria",     to: "fandango",      label: "Eixo Saberes: transmissão geracional de ofícios populares",      threshold: 0.22, eixo: "SABERES" },
+    // FESTA ↔ FESTA: Bumba-boi e Carnaval — festa popular coletiva
+    { from: "bumba_boi",     to: "carnaval",      label: "Eixo Festa: celebrações coletivas com máscara e fantasia",       threshold: 0.15, eixo: "FESTA" },
+    // FESTA ↔ MUSICA: Carnaval e Frevo — Carnaval pernambucano gera o Frevo
+    { from: "carnaval",      to: "coco",          label: "Festa×Música: danças de rua e expressão corporal coletiva",      threshold: 0.20, eixo: "FESTA+MUSICA" },
+    // CRENÇAS ↔ MUSICA: Candomblé e Capoeira — mesma matriz africana
+    { from: "candomble",     to: "jongo",         label: "Crença×Música: ancestralidade africana — ritmo e espiritualidade", threshold: 0.25, eixo: "CRENCAS+MUSICA" },
+    // CRENÇAS ↔ CRENÇAS: Candomblé e Toré — religiosidades populares indígena/africana
+    { from: "candomble",     to: "ore",           label: "Eixo Crenças: rituais de encantaria e ancestralidade",           threshold: 0.18, eixo: "CRENCAS" },
+    // PATRIMÔNIO documenta todos os eixos
+    { from: "artigo_popular",to: "bumba_boi",     label: "Patrimônio×Festa: pesquisa acadêmica sobre ciclo junino",        threshold: 0.16, eixo: "PATRIMONIO" },
+    { from: "artigo_popular",to: "capoeira",      label: "Patrimônio×Música: literatura sobre patrimônio UNESCO",          threshold: 0.19, eixo: "PATRIMONIO" },
+    { from: "museografia",   to: "carranca",      label: "Patrimônio×Saberes: catalogação do acervo de escultura popular",  threshold: 0.14, eixo: "PATRIMONIO" },
+    { from: "dossie",        to: "fandango",      label: "Patrimônio: dossiê de registro do Fandango Caiçara (IPHAN)",     threshold: 0.10, eixo: "PATRIMONIO" },
+    // Expansões do núcleo para novos eixos
+    { from: "core",          to: "jongo",         label: "Núcleo → Música Afro: Jongo do Vale do Paraíba",                threshold: 0.08, eixo: "NUCLEO" },
+    { from: "core",          to: "fandango",      label: "Núcleo → Saberes: Fandango Caiçara (Região Sul)",               threshold: 0.10, eixo: "NUCLEO" },
+    { from: "core",          to: "carnaval",      label: "Núcleo → Festa: Carnaval Popular Brasileiro",                    threshold: 0.09, eixo: "NUCLEO" },
+    { from: "core",          to: "ore",           label: "Núcleo → Crenças: Toré Indígena do Nordeste",                   threshold: 0.11, eixo: "NUCLEO" },
   ]);
 
   // ─── MOTOR DE APRENDIZADO DA REDE NEURAL ─────────────────────────────────────
@@ -458,16 +631,30 @@ export default function AdminPage() {
       const parentId = firedId;
       const parentNode = interopNodesRef.current.find(n => n.id === parentId);
       if (parentNode) {
+        // Candidatos organizados por EIXO — só conceitos do mesmo eixo semântico
         const candidates: Record<string, string[]> = {
-          frevo: ['Passo', 'Sombrinha', 'Carnaval', 'Orquestra', 'Recife', 'Patrimônio'],
-          carranca: ['Vetor', 'São Francisco', 'Ribeirinho', 'Madeira', 'Escultura', 'Mito'],
-          bilro: ['Renda', 'Rendeira', 'Almofada', 'Artesanato', 'Fio', 'Ceará'],
-          dossie: ['IPHAN', 'Salvaguarda', 'Registro', 'Patrimônio', 'Normativa', 'Inventário'],
-          artigo_popular: ['Acadêmico', 'Antropologia', 'Sociologia', 'Folclore', 'Tradição'],
-          museografia: ['Museologia', 'Catalogação', 'Acervo', 'Exposição', 'Curadoria'],
-          coco: ['Dança', 'Ritmo', 'Tambor', 'Praia', 'Tradição', 'Afro'],
-          capoeira: ['Luta', 'Berimbau', 'Roda', 'Patrimônio', 'UNESCO', 'Mestre'],
-          tapeçaria: ['Tear', 'Tapeceiro', 'Lã', 'Linha', 'Bordado', 'Tapeçaria Nordestina']
+          // EIXO FESTA
+          bumba_boi:    ['Matraca', 'Chapéu de Couro', 'Amo', 'Vaqueiro', 'Boi Garantido', 'Boi Caprichoso', 'Quadrilha'],
+          festa_junina: ['Quadrilha', 'Arraiá', 'Sanfona', 'Forró', 'Bandeirinha', 'São João', 'Fogueira'],
+          folia_reis:   ['Bandeira', 'Palhaço de Folia', 'Festeiro', 'Rei Mago', 'Viola Caipira', 'Caixeiro'],
+          carnaval:     ['Bloco', 'Maracatu', 'Afoxé', 'Samba-Enredo', 'Escola de Samba', 'Estandarte', 'Abre-alas'],
+          // EIXO MUSICA
+          frevo:        ['Passista', 'Sombrinha', 'Passo', 'Orquestra de Frevo', 'Banda de Música', 'Recife'],
+          capoeira:     ['Berimbau', 'Roda de Capoeira', 'Ginga', 'Mestre', 'Angola', 'Regional', 'Atabaque'],
+          coco:         ['Tambor', 'Roda', 'Ganzá', 'Coco de Zambê', 'Cantador', 'Coco Solto'],
+          jongo:        ['Tambu', 'Candongueiro', 'Ponto de Jongo', 'Jongueiro', 'Umbigada', 'Quilombo'],
+          // EIXO SABERES
+          carranca:     ['São Francisco', 'Madeira', 'Entalhador', 'Ribeirinho', 'Imaginária Popular', 'Ex-voto'],
+          bilro:        ['Renda', 'Rendeira', 'Almofada de Espinho', 'Fio', 'Ponto de Bilro', 'Ilha'],
+          tapeçaria:    ['Tear', 'Lã', 'Linha', 'Urca', 'Rebordado', 'Ponto Cruz', 'Bordado Popular'],
+          fandango:     ['Viola Machete', 'Rabeca', 'Sapateado', 'Caiçara', 'Tabuinha', 'Litoral Sul'],
+          // EIXO CRENÇAS
+          candomble:    ['Orixá', 'Ilê Axé', 'Terreiro', 'Ebó', 'Padê', 'Ogã', 'Candomblé Ketu'],
+          ore:          ['Praiá', 'Fulni-ô', 'Pankararu', 'Pajé', 'Encantado', 'Aldeia', 'Medicina Tradicional'],
+          // EIXO PATRIMÔNIO
+          dossie:       ['IPHAN', 'Salvaguarda', 'Registro', 'Inventário Nacional', 'Bens Imateriais', 'PNPI'],
+          museografia:  ['Tainacan', 'Catalogação', 'Acervo Digital', 'Curadoria', 'IBRAM', 'Exposição'],
+          artigo_popular: ['Folclorista', 'Câmara Cascudo', 'Mário de Andrade', 'Patrimônio Imaterial', 'Pesquisa de Campo'],
         };
         
         let list = candidates[parentId];
@@ -574,15 +761,23 @@ export default function AdminPage() {
     setLossHistory([1.0]);
     setNnDiscovered([]);
     setInteropConnections([
-      { from: "core", to: "frevo",          weight: 0.95, isNew: false, discovered: false },
-      { from: "core", to: "carranca",       weight: 0.90, isNew: false, discovered: false },
-      { from: "core", to: "bilro",          weight: 0.85, isNew: false, discovered: false },
-      { from: "core", to: "dossie",         weight: 0.88, isNew: false, discovered: false },
-      { from: "frevo", to: "artigo_popular", weight: 0.60, isNew: false, discovered: false },
-      { from: "carranca", to: "museografia", weight: 0.55, isNew: false, discovered: false },
-      { from: "bilro", to: "artigo_popular", weight: 0.50, isNew: false, discovered: false },
-      { from: "dossie", to: "museografia",   weight: 0.65, isNew: false, discovered: false },
-    ]);
+      { from: "core", to: "bumba_boi",      weight: 0.92, isNew: false, discovered: false },
+      { from: "core", to: "capoeira",       weight: 0.90, isNew: false, discovered: false },
+      { from: "core", to: "carranca",       weight: 0.88, isNew: false, discovered: false },
+      { from: "core", to: "dossie",         weight: 0.95, isNew: false, discovered: false },
+      { from: "core", to: "candomble",      weight: 0.85, isNew: false, discovered: false },
+      { from: "bumba_boi",    to: "festa_junina", weight: 0.80, isNew: false, discovered: false },
+      { from: "festa_junina", to: "folia_reis",   weight: 0.72, isNew: false, discovered: false },
+      { from: "carnaval",     to: "frevo",        weight: 0.85, isNew: false, discovered: false },
+      { from: "capoeira",     to: "coco",         weight: 0.75, isNew: false, discovered: false },
+      { from: "coco",         to: "jongo",        weight: 0.70, isNew: false, discovered: false },
+      { from: "carranca",     to: "bilro",        weight: 0.65, isNew: false, discovered: false },
+      { from: "bilro",        to: "tapeçaria",    weight: 0.78, isNew: false, discovered: false },
+      { from: "tapeçaria",    to: "fandango",     weight: 0.60, isNew: false, discovered: false },
+      { from: "dossie",       to: "museografia",  weight: 0.82, isNew: false, discovered: false },
+      { from: "museografia",  to: "artigo_popular", weight: 0.70, isNew: false, discovered: false },
+      { from: "candomble",    to: "ore",          weight: 0.68, isNew: false, discovered: false },
+    ] as any);
     setInteropNodes(ns => ns.map(n => ({ ...n, activation: n.id === 'core' ? 1.0 : 0.0 })));
   }, [stopTraining]);
 
@@ -2470,33 +2665,46 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                             <circle key={`bg${i}`} cx={(i%8)*115+30} cy={Math.floor(i/8)*72+30} r="1.2" fill="rgba(255,255,255,0.03)"/>
                           ))}
 
-                          {/* SINAPSES com espessura proporcional ao peso */}
-                          {interopConnections.map((conn, idx) => {
-                            const fn = interopNodes.find(n => n.id === conn.from);
-                            const tn = interopNodes.find(n => n.id === conn.to);
+                          {/* SINAPSES com espessura proporcional ao peso e cor por eixo semântico */}
+                          {interopConnections.map((conn: any, idx: number) => {
+                            const fn = interopNodes.find((n: any) => n.id === conn.from);
+                            const tn = interopNodes.find((n: any) => n.id === conn.to);
                             if (!fn || !tn) return null;
                             const isSel = graphNodeSelected && (fn.label === graphNodeSelected || tn.label === graphNodeSelected);
                             const w = conn.weight;
                             const isDisc = conn.discovered;
+                            // Cor por eixo semântico da conexão
+                            const eixoColors: Record<string, string> = {
+                              'FESTA':          '#1E3A8A',
+                              'FESTA+MUSICA':   '#0E6B8A',
+                              'MUSICA':         '#0891B2',
+                              'SABERES':        '#1A6B3A',
+                              'CRENCAS':        '#6D28D9',
+                              'CRENCAS+MUSICA': '#5B21B6',
+                              'PATRIMONIO':     '#E8A920',
+                              'NUCLEO':         '#E8490A',
+                            };
+                            const eixoRel = (conn as any).eixoRel || (fn as any).eixo || 'NUCLEO';
+                            const eixoColor = eixoColors[eixoRel] || '#E8490A';
                             return (
                               <g key={`conn-${idx}`}>
                                 {/* Linha base */}
                                 <line x1={fn.x} y1={fn.y} x2={tn.x} y2={tn.y}
-                                  stroke={isDisc ? 'rgba(139,92,246,0.25)' : 'rgba(255,255,255,0.05)'}
+                                  stroke={isDisc ? `${eixoColor}40` : `${eixoColor}18`}
                                   strokeWidth={isDisc ? 1.5 : w * 2 + 0.5}/>
                                 {/* Pulso sináptico */}
                                 <line x1={fn.x} y1={fn.y} x2={tn.x} y2={tn.y}
-                                  stroke={isDisc ? '#a78bfa' : fn.fill}
+                                  stroke={isDisc ? eixoColor : eixoColor}
                                   strokeWidth={isDisc ? 1.2 : w * 2.5}
                                   className={isDisc ? 'synapse-new' : 'synapse-pulse'}
                                   markerEnd={isDisc ? 'url(#arrow-new)' : 'url(#arrow-nn)'}
-                                  style={{opacity: isSel ? 1 : isDisc ? 0.6 : w * 0.7 + 0.15}}/>
+                                  style={{opacity: isSel ? 1 : isDisc ? 0.7 : w * 0.7 + 0.15}}/>
                                 {/* Label de peso nas arestas selecionadas */}
                                 {isSel && (
                                   <text x={(fn.x+tn.x)/2} y={(fn.y+tn.y)/2 - 5} textAnchor="middle"
-                                    fill="rgba(255,255,255,0.7)" fontSize="7" fontFamily="monospace"
+                                    fill={eixoColor} fontSize="7" fontFamily="monospace"
                                     className="pointer-events-none">
-                                    w={w.toFixed(2)}
+                                    {eixoRel} w={w.toFixed(2)}
                                   </text>
                                 )}
                               </g>
@@ -2555,6 +2763,21 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                           <span className="text-[8px] uppercase font-bold tracking-widest text-white/50 font-mono">
                             {nnIsTraining ? `Processando Rede — Época ${nnEpoch}` : 'Pausado'}
                           </span>
+                        </div>
+                        {/* Legenda de Eixos */}
+                        <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
+                          {[
+                            { label: 'Festa', color: '#1E3A8A' },
+                            { label: 'Música/Dança', color: '#0891B2' },
+                            { label: 'Saberes/Ofícios', color: '#1A6B3A' },
+                            { label: 'Crenças', color: '#6D28D9' },
+                            { label: 'Patrimônio/Docs', color: '#E8A920' },
+                          ].map(e => (
+                            <span key={e.label} className="flex items-center gap-1 text-[7px] font-bold uppercase tracking-wider" style={{color: e.color}}>
+                              <span className="w-2 h-2 rounded-full inline-block" style={{background: e.color, boxShadow: `0 0 5px ${e.color}`}}></span>
+                              {e.label}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
