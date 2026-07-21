@@ -305,7 +305,7 @@ export default function AdminPage() {
       regiao: "Nordeste",
       linksReais: [
         { label: "CNFCP — Rendas", url: "https://cnfcp.gov.br" },
-        { label: "Museu do Ceará", url: "https://www.museu.ce.gov.br" },
+        { label: "Museu do Ceará", url: "https://www.museus.ce.gov.br" },
       ],
       acervos: ["Museu do Ceará", "Museu do Folclore Edison Carneiro"],
       vx: 0, vy: 0, activation: 0.0 },
