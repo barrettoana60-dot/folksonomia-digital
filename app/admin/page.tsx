@@ -154,21 +154,22 @@ export default function AdminPage() {
   // EIXO_SABERES = saberes/ofícios/artesanato (verde #1A6B3A)
   // EIXO_CRENCAS = crenças/religiosidade popular (roxo #6D28D9)
   // EIXO_PATRIMONIO = documentos/dossiês/institucional (âmbar #E8A920)
-  // EIXO_AFRO   = matriz civilizatória africana — atravessa vários eixos (vermelho-laranja #C0252B)
 
   const [interopNodes, setInteropNodes] = useState([
     // ═══ NÓ CENTRAL ═══
     { id: "core", label: "Núcleo Folksonômico", x: 400, y: 215, size: 26, fill: "#E8490A",
       eixo: "NUCLEO",
-      desc: "Centralizador semântico do acervo. Indexa manifestações populares de todas as regiões do Brasil.",
+      desc: "Centralizador semântico do acervo. Indexa manifestações populares de todas as regiões do Brasil — de manifestações materiais a saberes imateriais.",
       type: "Núcleo do Acervo Semântico",
       hash: "SHA3:c8ed9901a72f3b01",
       familia: "sistema.nucleo.folksonômico",
+      regiao: "Nacional",
       linksReais: [
-        { label: "Tainacan — Acervo IBRAM", url: "https://tainacan.org" },
-        { label: "Brasiliana Museus", url: "https://brasiliana.museus.gov.br" },
-        { label: "Tesauro CNFCP/IPHAN", url: "https://www.cnfcp.gov.br/tesauro/" },
-        { label: "Mapas da Cultura", url: "https://mapas.cultura.gov.br" },
+        { label: "IBRAM — Museus Federais",     url: "https://www.gov.br/museus/pt-br" },
+        { label: "Brasiliana Museus",            url: "https://brasiliana.museus.gov.br" },
+        { label: "Tesauro CNFCP/IPHAN",          url: "https://www.cnfcp.gov.br/interna.php?ID_Secao=69" },
+        { label: "Mapas da Cultura",             url: "https://mapas.cultura.gov.br" },
+        { label: "Dados Abertos da Cultura",     url: "https://dados.cultura.gov.br" },
       ],
       acervos: ["IBRAM", "Brasiliana", "IPHAN", "Mapas da Cultura", "SALIC"],
       vx: 0, vy: 0, activation: 1.0 },
@@ -2993,93 +2994,28 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                       const ni = nodeInfo as any;
                       return (
                         <div className="glass-card border border-black/07 overflow-hidden sticky top-28">
-                          {/* Header */}
-                          <div className="p-4 border-b border-black/08 flex items-center gap-2.5" style={{background: ni.fill + '11'}}>
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{background: ni.fill + '22'}}>
+                          {/* Header com eixo semântico */}
+                          <div className="p-4 border-b border-black/08 flex items-center gap-2.5" style={{background: ni.fill + '18'}}>
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{background: ni.fill + '30'}}>
                               <Cpu size={16} style={{color: ni.fill}}/>
                             </div>
                             <div className="min-w-0 flex-1">
                               <h4 className="text-xs font-bold text-[#1A1A1A] truncate">{nodeInfo.label}</h4>
-                              <span className="text-[8px] uppercase tracking-wider font-bold" style={{color: ni.fill}}>{nodeInfo.type}</span>
-                            </div>
-                            <div className="w-2 h-2 rounded-full animate-pulse" style={{background: ni.fill}}/>
-                          </div>
-
-                          {/* DNA Hash & Rastreabilidade Alfanumérica */}
-                          <div className="px-4 py-3 border-b border-black/08 bg-black/02 space-y-2.5">
-                            <div>
-                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-1">DNA Semântico — Hash Único</p>
-                              <code className="text-[8.5px] font-mono text-[#E8490A]/90 break-all leading-relaxed font-bold">
-                                {ni.hash ?? nodeInfo.id.toUpperCase()}_NUGEP
-                              </code>
-                            </div>
-                            <div>
-                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-1">Rastreio Alfanumérico de Custódia</p>
-                              <code className="text-[8.5px] font-mono text-blue-800 break-all leading-relaxed font-bold">
-                                TRK-AES256-{nodeInfo.id.toUpperCase()}-{(ni.hash ? ni.hash.substring(5,13) : "F8D2").toUpperCase()}-{ni.hash ? ni.hash.substring(13).toUpperCase() : "A1B3-4C9D"}
-                              </code>
-                            </div>
-                            
-                            {/* Verificação Criptográfica de Cofre */}
-                            <div className="border-t border-black/05 pt-2">
-                              {verifyingDnaNode === nodeInfo.id ? (
-                                <div className="space-y-1">
-                                  <div className="flex items-center justify-between text-[7px] font-mono text-[#E8490A]/85 animate-pulse font-bold">
-                                    <span>[ESCANEANDO CHAVE ALFANUMÉRICA...]</span>
-                                    <span>Aguarde</span>
-                                  </div>
-                                  <div className="w-full h-1 bg-black/08 rounded-full overflow-hidden">
-                                    <div className="h-full bg-[#E8490A] animate-[synapseFlow_1.6s_linear_infinite]" style={{width: '70%', background: 'linear-gradient(90deg, #E8490A, #a78bfa)'}}/>
-                                  </div>
-                                </div>
-                              ) : verifiedDnaNodes[nodeInfo.id] ? (
-                                <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/25 space-y-1 animate-fade-in">
-                                  <div className="flex items-center justify-between text-[7px] font-bold text-green-800">
-                                    <span>✓ INTEGRIDADE CONFIRMADA</span>
-                                    <span>BLOCO #{verifiedDnaNodes[nodeInfo.id].blockchainBlock}</span>
-                                  </div>
-                                  <p className="text-[6.5px] font-mono text-green-700 leading-normal">
-                                    Assinatura verificada com chave assimétrica RSA-4096. Assinatura: {verifiedDnaNodes[nodeInfo.id].signature.substring(0, 22)}...
-                                  </p>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    setVerifyingDnaNode(nodeInfo.id);
-                                    setTimeout(() => {
-                                      const randBlock = Math.floor(Math.random() * 90000) + 120000;
-                                      const randSig = "0x" + Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join("");
-                                      setVerifiedDnaNodes(prev => ({
-                                        ...prev,
-                                        [nodeInfo.id]: {
-                                          status: "VERIFICADO",
-                                          ts: new Date().toLocaleTimeString('pt-BR'),
-                                          signature: randSig,
-                                          blockchainBlock: randBlock
-                                        }
-                                      }));
-                                      setVerifyingDnaNode(null);
-                                    }, 1200);
-                                  }}
-                                  className="w-full text-center py-1.5 rounded-lg bg-[#E8490A]/10 hover:bg-[#E8490A]/20 text-[#E8490A] border border-[#E8490A]/25 text-[8px] font-bold uppercase tracking-wider transition-all"
-                                >
-                                  Verificar Assinatura e Rastreabilidade
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-[7px] text-green-700 bg-green-500/10 px-1.5 py-0.5 rounded font-bold">CERT. ÚNICA</span>
-                              <span className="text-[7px] text-blue-700 bg-blue-500/10 px-1.5 py-0.5 rounded font-bold">AUDITADO</span>
-                              <span className="text-[7px] text-[#E8490A] bg-[#E8490A]/10 px-1.5 py-0.5 rounded font-bold">IMUTÁVEL</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[7px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded" style={{color: ni.fill, background: ni.fill + '15'}}>
+                                  Eixo: {(ni as any).eixo || 'N/A'}
+                                </span>
+                                {(ni as any).regiao && (
+                                  <span className="text-[7px] text-[#1A1A1A]/45 font-semibold">{(ni as any).regiao}</span>
+                                )}
+                              </div>
                             </div>
                           </div>
-
 
                           {/* Família Semântica */}
                           {ni.familia && (
-                            <div className="px-4 py-3 border-b border-black/08">
-                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-2">Família Semântica — Árvore Genealógica</p>
+                            <div className="px-4 py-2.5 border-b border-black/08">
+                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-1.5">Família Semântica — Árvore Genealógica</p>
                               <div className="flex flex-wrap gap-1">
                                 {ni.familia.split('.').map((part: string, i: number, arr: string[]) => (
                                   <span key={i} className="text-[8px] font-mono">
@@ -3093,7 +3029,44 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                             </div>
                           )}
 
-                          {/* Ativação Neural */}
+                          {/* Definição Cultural */}
+                          <div className="px-4 py-3 border-b border-black/08">
+                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-1.5">Sobre esta Manifestação</p>
+                            <p className="text-[9px] text-[#1A1A1A]/70 leading-relaxed">{nodeInfo.desc}</p>
+                          </div>
+
+                          {/* Tipo e Acervos que custodiam */}
+                          <div className="px-4 py-3 border-b border-black/08">
+                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-2">Acervos e Instituições</p>
+                            <p className="text-[8px] font-semibold mb-1.5" style={{color: ni.fill}}>{nodeInfo.type}</p>
+                            <div className="space-y-1">
+                              {ni.acervos?.map((a: string, i: number) => (
+                                <div key={i} className="flex items-center gap-1.5 text-[8px] text-[#1A1A1A]/55">
+                                  <span className="w-1 h-1 rounded-full flex-shrink-0" style={{background: ni.fill}}/>
+                                  {a}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Links Verificados das APIs Federais */}
+                          {ni.linksReais?.length > 0 && (
+                            <div className="px-4 py-3 border-b border-black/08">
+                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-2">Fontes Verificadas — APIs Federais Abertas</p>
+                              <div className="space-y-2">
+                                {ni.linksReais.map((l: {label: string; url: string}, i: number) => (
+                                  <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
+                                    className="flex items-start gap-1.5 text-[8px] font-semibold hover:opacity-70 transition-opacity group"
+                                    style={{color: ni.fill}}>
+                                    <ArrowUpRight size={9} className="mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform"/>
+                                    <span className="leading-tight">{l.label}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Ativação Neural + Conexões */}
                           <div className="px-4 py-3 border-b border-black/08">
                             <div className="flex items-center justify-between mb-1.5">
                               <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest">Ativação Neural</span>
@@ -3104,61 +3077,36 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                             </div>
                           </div>
 
-                          {/* Definição */}
-                          <div className="px-4 py-3 border-b border-black/08">
-                            <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-1.5">Definição do Conceito</p>
-                            <p className="text-[9px] text-[#1A1A1A]/65 leading-relaxed">{nodeInfo.desc}</p>
-                          </div>
-
-                          {/* Links reais dos acervos */}
-                          {ni.linksReais?.length > 0 && (
-                            <div className="px-4 py-3 border-b border-black/08">
-                              <p className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest mb-2">Acervos que Custodiam este Conceito</p>
-                              <div className="space-y-1.5">
-                                {ni.acervos?.map((a: string, i: number) => (
-                                  <div key={i} className="flex items-center gap-1.5 text-[8px] text-[#1A1A1A]/50">
-                                    <span className="w-1 h-1 rounded-full flex-shrink-0" style={{background: ni.fill}}/>
-                                    {a}
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="space-y-1 mt-3">
-                                {ni.linksReais.map((l: {label: string; url: string}, i: number) => (
-                                  <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-1.5 text-[8px] font-semibold hover:opacity-70 transition-opacity"
-                                    style={{color: ni.fill}}>
-                                    <ArrowUpRight size={9}/>
-                                    {l.label}
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Sinapses ativas */}
+                          {/* Conexões Semânticas Ativas */}
                           <div>
                             <div className="px-4 py-2 bg-[#EEEBE3]/10">
-                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest">Conexões Neurais Ativas ({directConns.length})</span>
+                              <span className="text-[7px] uppercase font-bold text-[#1A1A1A]/35 tracking-widest">Conexões por Eixo ({directConns.length})</span>
                             </div>
-                            <div className="max-h-44 overflow-y-auto">
-                              {directConns.length > 0 ? directConns.map((c, i) => (
-                                <div key={i} className="flex items-center gap-2 px-4 py-2 border-b border-black/04 last:border-0">
-                                  <div className="w-1 h-1 rounded-full flex-shrink-0" style={{background: c.discovered ? '#a78bfa' : ni.fill}}/>
-                                  <span className="text-[8px] font-mono text-[#1A1A1A]/65 flex-1 truncate">
-                                    {c.discovered && <span className="text-purple-500 mr-1">★</span>}
-                                    {c.label}
-                                  </span>
-                                  <div className="flex items-center gap-1">
-                                    <div className="w-10 h-1 bg-black/08 rounded-full overflow-hidden">
-                                      <div className="h-full rounded-full" style={{width:`${c.weight*100}%`, background: c.discovered ? '#a78bfa' : ni.fill}}/>
+                            <div className="max-h-36 overflow-y-auto">
+                              {directConns.length > 0 ? directConns.map((c, i) => {
+                                const otherNode = interopNodes.find((n: any) => n.id === (c.role === 'SAIDA' ?
+                                  interopConnections.find((cn: any) => cn.from === nodeInfo.id && interopNodes.find((nn: any) => nn.label === c.label)?.id === cn.to)?.to :
+                                  interopConnections.find((cn: any) => cn.to === nodeInfo.id && interopNodes.find((nn: any) => nn.label === c.label)?.id === cn.from)?.from
+                                )) as any;
+                                return (
+                                  <div key={i} className="flex items-center gap-2 px-4 py-2 border-b border-black/04 last:border-0">
+                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: otherNode?.fill || ni.fill}}/>
+                                    <span className="text-[8px] font-mono text-[#1A1A1A]/65 flex-1 truncate">
+                                      {c.discovered && <span style={{color: otherNode?.fill || ni.fill}} className="mr-1">★</span>}
+                                      {c.label}
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <div className="w-10 h-1 bg-black/08 rounded-full overflow-hidden">
+                                        <div className="h-full rounded-full" style={{width:`${c.weight*100}%`, background: otherNode?.fill || ni.fill}}/>
+                                      </div>
+                                      <span className="text-[7px] font-mono text-[#1A1A1A]/35">{(c.weight*100).toFixed(0)}%</span>
                                     </div>
-                                    <span className="text-[7px] font-mono text-[#1A1A1A]/35">{(c.weight*100).toFixed(0)}%</span>
+                                    <span className={`text-[7px] font-bold px-1 py-0.5 rounded ${
+                                      c.role==='SAIDA' ? 'text-orange-700 bg-orange-500/10' : 'text-blue-700 bg-blue-500/10'
+                                    }`}>{c.role}</span>
                                   </div>
-                                  <span className={`text-[7px] font-bold px-1 py-0.5 rounded ${
-                                    c.role==='SAIDA' ? 'text-orange-700 bg-orange-500/10' : 'text-blue-700 bg-blue-500/10'
-                                  }`}>{c.role}</span>
-                                </div>
-                              )) : (
+                                );
+                              }) : (
                                 <p className="px-4 py-3 text-[8px] text-[#1A1A1A]/25 text-center">Sem conexões ativas</p>
                               )}
                             </div>
