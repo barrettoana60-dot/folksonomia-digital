@@ -22,16 +22,20 @@ const tabs = [
 ];
 
 const parseInlineMarkdown = (text: string) => {
+  if (!text) return text;
+
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   const boldRegex = /\*\*([^*]+)\*\*/g;
+  const codeRegex = /`([^`]+)`/g;
+  const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)|_([^_]+)_/g;
 
   let tempText = text;
   let placeholders: { [key: string]: React.ReactNode } = {};
   let placeholderCounter = 0;
 
-  // 1. Substituir links por placeholders
+  // 1. Links
   tempText = tempText.replace(linkRegex, (m, label, url) => {
-    const ph = `___LINK_PLACEHOLDER_${placeholderCounter}___`;
+    const ph = `___LINK_PH_${placeholderCounter}___`;
     placeholders[ph] = (
       <a 
         key={ph}
@@ -40,16 +44,16 @@ const parseInlineMarkdown = (text: string) => {
         rel="noopener noreferrer" 
         className="text-[#E8490A] hover:underline font-bold inline-flex items-center gap-0.5 hover:opacity-80 transition-opacity"
       >
-        {label} ↗
+        {label}
       </a>
     );
     placeholderCounter++;
     return ph;
   });
 
-  // 2. Substituir negritos por placeholders
+  // 2. Bold
   tempText = tempText.replace(boldRegex, (m, boldText) => {
-    const ph = `___BOLD_PLACEHOLDER_${placeholderCounter}___`;
+    const ph = `___BOLD_PH_${placeholderCounter}___`;
     placeholders[ph] = (
       <strong key={ph} className="font-bold text-[#1A1A1A] font-sans">
         {boldText}
@@ -59,7 +63,32 @@ const parseInlineMarkdown = (text: string) => {
     return ph;
   });
 
-  const finalRegex = /(___LINK_PLACEHOLDER_\d+___|___BOLD_PLACEHOLDER_\d+___)/g;
+  // 3. Code
+  tempText = tempText.replace(codeRegex, (m, codeText) => {
+    const ph = `___CODE_PH_${placeholderCounter}___`;
+    placeholders[ph] = (
+      <code key={ph} className="font-mono text-xs bg-black/05 text-[#E8490A] px-1 py-0.5 rounded border border-black/10">
+        {codeText}
+      </code>
+    );
+    placeholderCounter++;
+    return ph;
+  });
+
+  // 4. Italic
+  tempText = tempText.replace(italicRegex, (m, italic1, italic2) => {
+    const content = italic1 || italic2;
+    const ph = `___ITALIC_PH_${placeholderCounter}___`;
+    placeholders[ph] = (
+      <em key={ph} className="italic text-[#1A1A1A]/80 font-serif">
+        {content}
+      </em>
+    );
+    placeholderCounter++;
+    return ph;
+  });
+
+  const finalRegex = /(___LINK_PH_\d+___|___BOLD_PH_\d+___|___CODE_PH_\d+___|___ITALIC_PH_\d+___)/g;
   const splitParts = tempText.split(finalRegex);
 
   return splitParts.map((part, i) => {
@@ -72,33 +101,141 @@ const parseInlineMarkdown = (text: string) => {
 
 const renderMarkdown = (text: string) => {
   if (!text) return null;
-  
+
   const lines = text.split('\n');
-  return lines.map((line, idx) => {
-    let trimmed = line.trim();
-    
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // 1. Table Detection (| col 1 | col 2 |)
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith('|') && lines[i].trim().endsWith('|')) {
+        tableLines.push(lines[i].trim());
+        i++;
+      }
+
+      if (tableLines.length >= 2) {
+        const headerRow = tableLines[0].split('|').map(s => s.trim()).filter(s => s !== '');
+        const bodyRows = tableLines.slice(1)
+          .filter(r => !r.includes('---'))
+          .map(r => r.split('|').map(s => s.trim()).filter(s => s !== ''));
+
+        elements.push(
+          <div key={`table-${i}`} className="my-5 overflow-x-auto rounded-xl border border-black/10 shadow-sm bg-white/60 backdrop-blur-sm">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-[#E8490A]/10 border-b border-black/10 text-[#E8490A] uppercase tracking-wider font-bold">
+                  {headerRow.map((cell, cIdx) => (
+                    <th key={cIdx} className="px-4 py-2.5 font-bold">
+                      {parseInlineMarkdown(cell)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/05">
+                {bodyRows.map((row, rIdx) => (
+                  <tr key={rIdx} className="hover:bg-black/02 transition-colors">
+                    {row.map((cell, cIdx) => (
+                      <td key={cIdx} className="px-4 py-2 text-[#1A1A1A]/85 font-medium">
+                        {parseInlineMarkdown(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+        continue;
+      }
+    }
+
+    // 2. Horizontal Rule (---)
+    if (trimmed === '---' || trimmed === '***') {
+      elements.push(<hr key={`hr-${i}`} className="my-6 border-t border-black/10" />);
+      i++;
+      continue;
+    }
+
+    // 3. Headings
+    if (trimmed.startsWith('####')) {
+      elements.push(
+        <h5 key={`h5-${i}`} className="text-xs font-bold uppercase tracking-wider text-[#E8490A] mt-5 mb-2">
+          {parseInlineMarkdown(trimmed.replace(/^####\s+/, ''))}
+        </h5>
+      );
+      i++;
+      continue;
+    }
     if (trimmed.startsWith('###')) {
-      return <h4 key={idx} className="text-sm font-bold uppercase tracking-wider text-[#E8490A] mt-6 mb-2 border-b border-[#E8490A]/10 pb-1">{trimmed.replace(/^###\s+/, '')}</h4>;
+      elements.push(
+        <h4 key={`h4-${i}`} className="text-sm font-bold uppercase tracking-wider text-[#E8490A] mt-6 mb-2 border-b border-[#E8490A]/10 pb-1">
+          {parseInlineMarkdown(trimmed.replace(/^###\s+/, ''))}
+        </h4>
+      );
+      i++;
+      continue;
     }
     if (trimmed.startsWith('##')) {
-      return <h3 key={idx} className="text-base font-bold serif-title text-[#E8490A] mt-8 mb-3">{trimmed.replace(/^##\s+/, '')}</h3>;
+      elements.push(
+        <h3 key={`h3-${i}`} className="text-base font-bold serif-title text-[#E8490A] mt-8 mb-3">
+          {parseInlineMarkdown(trimmed.replace(/^##\s+/, ''))}
+        </h3>
+      );
+      i++;
+      continue;
     }
+
+    // 4. Blockquotes (>)
     if (trimmed.startsWith('>')) {
-      return (
-        <blockquote key={idx} className="border-l-4 border-[#E8490A]/50 pl-4 py-1.5 my-3 bg-[#E8490A]/5 italic text-[#1A1A1A]/70 text-xs rounded-r">
+      elements.push(
+        <blockquote key={`bq-${i}`} className="border-l-4 border-[#E8490A] pl-4 py-2 my-3 bg-[#E8490A]/05 italic text-[#1A1A1A]/80 text-xs rounded-r-lg shadow-sm">
           {parseInlineMarkdown(trimmed.replace(/^>\s*/, ''))}
         </blockquote>
       );
+      i++;
+      continue;
     }
-    if (line === '') {
-      return <div key={idx} className="h-2" />;
+
+    // 5. Bullet List (* or -)
+    if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+      const listItems: string[] = [];
+      while (i < lines.length && (lines[i].trim().startsWith('* ') || lines[i].trim().startsWith('- '))) {
+        listItems.push(lines[i].trim().replace(/^[\*\-]\s+/, ''));
+        i++;
+      }
+      elements.push(
+        <ul key={`ul-${i}`} className="my-3 space-y-1.5 pl-4 list-disc marker:text-[#E8490A]">
+          {listItems.map((item, lIdx) => (
+            <li key={lIdx} className="text-[#1A1A1A]/85 text-[13px] leading-relaxed">
+              {parseInlineMarkdown(item)}
+            </li>
+          ))}
+        </ul>
+      );
+      continue;
     }
-    return (
-      <p key={idx} className="text-[#1A1A1A]/85 text-[13px] leading-relaxed my-2">
+
+    // 6. Empty Line
+    if (trimmed === '') {
+      i++;
+      continue;
+    }
+
+    // 7. Standard Paragraph
+    elements.push(
+      <p key={`p-${i}`} className="text-[#1A1A1A]/85 text-[13px] leading-relaxed my-2">
         {parseInlineMarkdown(line)}
       </p>
     );
-  });
+    i++;
+  }
+
+  return elements;
 };
 
 export default function AdminPage() {
