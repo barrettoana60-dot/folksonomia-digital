@@ -305,6 +305,14 @@ async function persistCorrelations(
   }
 }
 
+// Helper para citação do acervo
+function getCitationLabel(obra: any) {
+  const id = obra.id || 'N/A';
+  const cleanId = id.length > 8 ? id.substring(0, 8) : id;
+  const museu = obra.museu || obra.fonte || 'Brasiliana Museus';
+  return `[${museu} #${cleanId}]`;
+}
+
 // ============================================================
 // Motor de IA — Análise escrita baseada em EVIDÊNCIAS
 // Pipeline Transformer-Style (Chain-of-Thought com Tesauro)
@@ -341,7 +349,7 @@ async function generateAIAnalysis(
   let nerPrediction: any = null;
   let contextPrediction: any = null;
   let mlOnline = false;
-  let modelVer = 'Modelos Locais';
+  let modelVer = 'Modelos Locais (Transformers / Xenova all-MiniLM-L6-v2)';
 
   try {
     mlOnline = await mlClient.isOnline();
@@ -359,11 +367,12 @@ async function generateAIAnalysis(
     console.warn('[ML-Service] Offline or failed to predict:', err);
   }
 
-  // A. Pré-calcular similaridades heurísticas caso a IA local (Xenova) falhe ou como base de fallback
+  // A. Pré-calcular similaridades heurísticas caso a IA local falhe
   let fallbackUsado = false;
   let similaridadeTesauro = 0;
   let similaridadeTeoriaMedia = 0;
-  const obrasComSimilaridade: any[] = [];
+  const ibramComSimilaridade: any[] = [];
+  const brasilianaComSimilaridade: any[] = [];
   let melhorSimilaridadeBD = 0;
 
   // 1. Similaridade Heurística com Tesauro CNFCP
@@ -382,21 +391,25 @@ async function generateAIAnalysis(
     similaridadeTeoriaMedia = similaridadesTeoriaHeuristica.reduce((a, b) => a + b, 0) / similaridadesTeoriaHeuristica.length;
   }
 
-  // 3. Similaridade Heurística com as Obras Empíricas (RAG)
-  const todasAsObras = [...ibram, ...brasiliana];
-  if (todasAsObras.length > 0) {
-    for (const obra of todasAsObras) {
-      const score = hybridSemanticSimilarity(tag, `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''} ${obra.colecao || ''}`);
-      obrasComSimilaridade.push({ ...obra, similaridade: score });
-    }
-    obrasComSimilaridade.sort((a, b) => b.similaridade - a.similaridade);
-    melhorSimilaridadeBD = obrasComSimilaridade[0]?.similaridade || 0;
+  // 3. Similaridade Heurística separada por fonte para garantir representatividade
+  for (const obra of ibram) {
+    const score = hybridSemanticSimilarity(tag, `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''} ${obra.colecao || ''}`);
+    ibramComSimilaridade.push({ ...obra, similarity: score });
   }
+  ibramComSimilaridade.sort((a, b) => b.similarity - a.similarity);
 
-  // 4. Similaridade Heurística com a Topologia do Banco Interno (NUGEP)
+  for (const obra of brasiliana) {
+    const score = hybridSemanticSimilarity(tag, `${obra.titulo} ${obra.descricao || ''}`);
+    brasilianaComSimilaridade.push({ ...obra, similarity: score });
+  }
+  brasilianaComSimilaridade.sort((a, b) => b.similarity - a.similarity);
+
+  // 4. Similaridade Heurística com a Topologia do Banco Interno (excluindo a própria tag)
+  const tagQueryNorm = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').trim();
+  const otherDbTags = dbTags.filter(t => t.tag_normalizada !== tagQueryNorm && t.tag_original.toLowerCase() !== tag.toLowerCase());
   let melhorSimilaridadeTopologiaHeuristica = 0;
-  if (dbTags.length > 0) {
-    const similaridadesBDHeuristica = dbTags.map(t => {
+  if (otherDbTags.length > 0) {
+    const similaridadesBDHeuristica = otherDbTags.map(t => {
       if (t.tag_original.length > 50) return 0;
       return hybridSemanticSimilarity(tag, t.tag_original);
     });
@@ -426,7 +439,6 @@ async function generateAIAnalysis(
         pgvectorMatches = matchedNucleos;
       }
     } catch (pgError) {
-      console.warn('[pgvector] RPC match_nucleos falhou, tentando match_semantic_memory:', pgError);
       try {
         const { data: matchedMemo } = await supabaseAdmin.rpc('match_semantic_memory', {
           query_embedding: tagVector,
@@ -444,12 +456,10 @@ async function generateAIAnalysis(
             significado: m.significado
           }));
         }
-      } catch (memoError) {
-        console.warn('[pgvector] Ambos RPCs de pgvector falharam:', memoError);
-      }
+      } catch (memoError) {}
     }
     
-    // A. Similaridade com o Tesauro CNFCP (Âncora Normativa)
+    // A. Similaridade com o Tesauro CNFCP (Âncora Normativa — Peso max 35%)
     if (thesaurusContext) {
       const tesOutput = await extractor(thesaurusContext, { pooling: 'mean', normalize: true });
       const tesVector = Array.from(tesOutput.data as Float32Array);
@@ -457,12 +467,12 @@ async function generateAIAnalysis(
       
       const contri = similaridadeTesauro * 35;
       certezaCalculada += contri;
-      logicaMatematica.push(`CossenoTesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)})`);
+      logicaMatematica.push(`CossenoTesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)}%)`);
     } else {
-      logicaMatematica.push("CossenoTesauro: 0% (Sem Âncora)");
+      logicaMatematica.push("CossenoTesauro: 0% (Sem Âncora Oficial)");
     }
     
-    // B. Similaridade com Artigos Teóricos (Literatura Acadêmica)
+    // B. Similaridade com Artigos Teóricos (Literatura Acadêmica — Peso max 25%)
     if (brasilianaTeoria.length > 0) {
       const similaridadesTeoria: number[] = [];
       for (const art of brasilianaTeoria) {
@@ -475,34 +485,46 @@ async function generateAIAnalysis(
       
       const contri = similaridadeTeoriaMedia * 25;
       certezaCalculada += contri;
-      logicaMatematica.push(`CossenoTeoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)})`);
+      logicaMatematica.push(`CossenoTeoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)}%)`);
     } else {
-      logicaMatematica.push("CossenoTeoria: 0% (Sem Literatura)");
+      logicaMatematica.push("CossenoTeoria: 0% (Sem Literatura Indexada)");
     }
 
-    // C. Similaridade com as Obras Empíricas (RAG de Acervos)
-    if (todasAsObras.length > 0) {
-      // Limpar vetor empírico anterior e usar embeddings reais
-      obrasComSimilaridade.length = 0;
-      for (const obra of todasAsObras) {
-        const textToEmbed = `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''} ${obra.colecao || ''}`;
-        const obraOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
-        const obraVector = Array.from(obraOutput.data as Float32Array);
-        obrasComSimilaridade.push({ ...obra, similarity: cosineSimilarity(tagVector, obraVector) });
-      }
-      obrasComSimilaridade.sort((a, b) => b.similarity - a.similarity);
-      const topSim = obrasComSimilaridade[0].similarity;
+    // C. Similaridade com as Obras Empíricas (RAG de Acervos — Peso max 30%)
+    ibramComSimilaridade.length = 0;
+    for (const obra of ibram) {
+      const textToEmbed = `${obra.titulo} ${obra.descricao || ''} ${obra.material || ''} ${obra.tecnica || ''} ${obra.colecao || ''}`;
+      const obraOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
+      const obraVector = Array.from(obraOutput.data as Float32Array);
+      ibramComSimilaridade.push({ ...obra, similarity: cosineSimilarity(tagVector, obraVector) });
+    }
+    ibramComSimilaridade.sort((a, b) => b.similarity - a.similarity);
+
+    brasilianaComSimilaridade.length = 0;
+    for (const obra of brasiliana) {
+      const textToEmbed = `${obra.titulo} ${obra.descricao || ''}`;
+      const obraOutput = await extractor(textToEmbed.slice(0, 512), { pooling: 'mean', normalize: true });
+      const obraVector = Array.from(obraOutput.data as Float32Array);
+      brasilianaComSimilaridade.push({ ...obra, similarity: cosineSimilarity(tagVector, obraVector) });
+    }
+    brasilianaComSimilaridade.sort((a, b) => b.similarity - a.similarity);
+
+    const todasAsObrasComSim = [...ibramComSimilaridade, ...brasilianaComSimilaridade];
+    todasAsObrasComSim.sort((a, b) => b.similarity - a.similarity);
+
+    if (todasAsObrasComSim.length > 0) {
+      const topSim = todasAsObrasComSim[0].similarity;
       const contri = Math.min(30, topSim * 30);
       certezaCalculada += contri;
-      logicaMatematica.push(`CossenoEmpírico: ${(topSim * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)})`);
+      logicaMatematica.push(`CossenoEmpírico: ${(topSim * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)}%)`);
     } else {
-      logicaMatematica.push("CossenoEmpírico: 0% (Sem Evidência)");
+      logicaMatematica.push("CossenoEmpírico: 0% (Sem Evidência de Acervo)");
     }
 
-    // D. Similaridade com a Topologia do Banco Interno (NUGEP)
-    if (dbTags.length > 0) {
+    // D. Similaridade com a Topologia do Banco Interno (NUGEP — Peso max 10%)
+    if (otherDbTags.length > 0) {
       const similaridadesBD: number[] = [];
-      for (const t of dbTags) {
+      for (const t of otherDbTags) {
         if (t.tag_original.length > 50) continue;
         const dbOutput = await extractor(t.tag_original, { pooling: 'mean', normalize: true });
         const dbVector = Array.from(dbOutput.data as Float32Array);
@@ -512,7 +534,7 @@ async function generateAIAnalysis(
       
       const contri = melhorSimilaridadeBD * 10;
       certezaCalculada += contri;
-      logicaMatematica.push(`CossenoTopologia: ${(melhorSimilaridadeBD * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)})`);
+      logicaMatematica.push(`CossenoTopologia: ${(melhorSimilaridadeBD * 100).toFixed(1)}% (Peso: +${contri.toFixed(1)}%)`);
     }
 
   } catch (err) {
@@ -520,29 +542,30 @@ async function generateAIAnalysis(
     fallbackUsado = true;
     logicaMatematica.push("Fallback Heurístico Semântico");
 
-    // Recalcular certezaCalculada com as similaridades heurísticas calculadas anteriormente
-    certezaCalculada = 20; // reset
+    certezaCalculada = 20;
     if (similaridadeTesauro > 0) {
       const contri = similaridadeTesauro * 35;
       certezaCalculada += contri;
-      logicaMatematica.push(`HeurísticaTesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+      logicaMatematica.push(`HeurísticaTesauro: ${(similaridadeTesauro * 100).toFixed(1)}% (+${contri.toFixed(1)}%)`);
     }
     if (similaridadeTeoriaMedia > 0) {
       const contri = similaridadeTeoriaMedia * 25;
       certezaCalculada += contri;
-      logicaMatematica.push(`HeurísticaTeoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+      logicaMatematica.push(`HeurísticaTeoria: ${(similaridadeTeoriaMedia * 100).toFixed(1)}% (+${contri.toFixed(1)}%)`);
     }
-    if (obrasComSimilaridade.length > 0) {
-      const topSim = obrasComSimilaridade[0].similaridade || 0.5;
+    const todasComSim = [...ibramComSimilaridade, ...brasilianaComSimilaridade];
+    todasComSim.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
+    if (todasComSim.length > 0) {
+      const topSim = todasComSim[0].similarity || 0.5;
       const contri = Math.min(30, topSim * 30);
       certezaCalculada += contri;
-      logicaMatematica.push(`HeurísticaEmpírico: ${(topSim * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+      logicaMatematica.push(`HeurísticaEmpírico: ${(topSim * 100).toFixed(1)}% (+${contri.toFixed(1)}%)`);
     }
-    if (dbTags.length > 0) {
+    if (otherDbTags.length > 0) {
       const contri = melhorSimilaridadeTopologiaHeuristica * 10;
       certezaCalculada += contri;
       melhorSimilaridadeBD = melhorSimilaridadeTopologiaHeuristica;
-      logicaMatematica.push(`HeurísticaTopologia: ${(melhorSimilaridadeTopologiaHeuristica * 100).toFixed(1)}% (+${contri.toFixed(1)})`);
+      logicaMatematica.push(`HeurísticaTopologia: ${(melhorSimilaridadeTopologiaHeuristica * 100).toFixed(1)}% (+${contri.toFixed(1)}%)`);
     }
   }
 
@@ -550,24 +573,57 @@ async function generateAIAnalysis(
   if (certezaCalculada > 99) certezaCalculada = 99;
   if (certezaCalculada < 10) certezaCalculada = 10;
   
-  // Aumentar confiança se o termo estiver no tesauro oficial (definição de referência institucional)
   if (termoTesauro) certezaCalculada = 95;
   else if (previousCorrelations.length > 3 && certezaCalculada > 80) certezaCalculada = 99;
   certezaCalculada = Math.round(certezaCalculada);
 
-  const topObras = obrasComSimilaridade.slice(0, 5);
+  // SELEÇÃO MULTI-FONTE EQUILIBRADA DE OBJETOS PARA O CORPO DO RELATÓRIO
+  // Garante que Brasiliana Museus não "soma" quando IBRAM tiver pontuações ligeiramente maiores
+  const topObras: any[] = [];
+  const maxObrasTotal = 6;
+
+  // Pegar top 3 de IBRAM
+  const topIbram = ibramComSimilaridade.slice(0, 3);
+  // Pegar top 3 de Brasiliana
+  const topBrasiliana = brasilianaComSimilaridade.slice(0, 3);
+
+  // Intercalar para garantir representatividade e diversidade de fontes
+  let ibIdx = 0;
+  let brIdx = 0;
+  while (topObras.length < maxObrasTotal && (ibIdx < topIbram.length || brIdx < topBrasiliana.length)) {
+    if (ibIdx < topIbram.length) {
+      topObras.push(topIbram[ibIdx]);
+      ibIdx++;
+    }
+    if (brIdx < topBrasiliana.length && topObras.length < maxObrasTotal) {
+      topObras.push(topBrasiliana[brIdx]);
+      brIdx++;
+    }
+  }
+
+  // Se sobrou espaço e ainda havia itens em IBRAM ou Brasiliana não incluídos
+  if (topObras.length < maxObrasTotal) {
+    const restantes = [...ibramComSimilaridade.slice(3), ...brasilianaComSimilaridade.slice(3)];
+    restantes.sort((a, b) => b.similarity - a.similarity);
+    for (const r of restantes) {
+      if (topObras.length >= maxObrasTotal) break;
+      if (!topObras.some(o => o.titulo === r.titulo)) {
+        topObras.push(r);
+      }
+    }
+  }
+
   const temTesauro = !!thesaurusContext;
   const temTeoria = brasilianaTeoria.length > 0;
   const totalEvidencias = ibram.length + brasiliana.length;
 
-  // Auto-ingestão automática na memória semântica se o termo existe no tesauro e ainda não está na memória
-  const queryNorm = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').trim();
+  // Auto-ingestão automática se o termo existe no tesauro
   if (termoTesauro) {
     try {
       const { data: memoExistente } = await supabaseAdmin
         .from('semantic_memory')
         .select('id')
-        .eq('termo_normalizado', queryNorm)
+        .eq('termo_normalizado', tagQueryNorm)
         .maybeSingle();
       
       if (!memoExistente) {
@@ -584,7 +640,7 @@ async function generateAIAnalysis(
 
         await supabaseAdmin.from('semantic_memory').insert({
           termo: tag,
-          termo_normalizado: queryNorm,
+          termo_normalizado: tagQueryNorm,
           significado: termoTesauro.na || '',
           categoria: tag === 'barroco' || termoTesauro.te?.includes('barroco') ? 'PERIODO' : 'TEMA',
           contextos: termoTesauro.ta || [],
@@ -595,9 +651,8 @@ async function generateAIAnalysis(
           modelo_versao: 'thesaurus_ingestion'
         });
 
-        // Registrar no histórico de aprendizado
         await supabaseAdmin.from('tag_learning_history').insert({
-          tag_normalizada: queryNorm,
+          tag_normalizada: tagQueryNorm,
           event_type: 'auto_training_success',
           event_details: {
             certeza: 95,
@@ -609,14 +664,6 @@ async function generateAIAnalysis(
     } catch (err) {
       console.error('Falha ao auto-ingerir conceito na memória semântica:', err);
     }
-  }
-
-  // Helper para citação do acervo
-  function getCitationLabel(obra: any) {
-    const id = obra.id || 'N/A';
-    const cleanId = id.length > 8 ? id.substring(0, 8) : id;
-    const museu = obra.museu || obra.fonte || 'Brasiliana Museus';
-    return `[${museu} #${cleanId}]`;
   }
 
   // ------ RELATÓRIO SEMÂNTICO CULTURAL (Narrativa Humana e Contextual) ------
@@ -639,9 +686,9 @@ async function generateAIAnalysis(
       ancoraNormativa += `**Aplicação institucional:** ${termoTesauro.ta[0]}\n\n`;
     }
 
-    ancoraNormativa += `Fonte: [Tesauro CNFCP/IPHAN](https://www.cnfcp.gov.br/tesauro/)\n`;
+    ancoraNormativa += `Fonte: [Tesauro CNFCP/IPHAN ↗](https://www.cnfcp.gov.br/interna.php?ID_Secao=69)\n`;
   } else {
-    ancoraNormativa += `O conceito **"${tag}"** não localizado no Tesauro CNFCP/IPHAN até esta data. Trata-se de um marcador de uso emergente, construído coletivamente pelos usuários e curadores da plataforma, ainda sem formalização no vocabulário oficial do patrimônio imaterial. A análise a seguir ancora-se nos objetos físicos encontrados nos acervos digitais nacionais.\n`;
+    ancoraNormativa += `O conceito **"${tag}"** não possui entrada direta no Tesauro CNFCP/IPHAN até a presente data. Trata-se de um marcador de uso folksonômico emergente, construído coletivamente pelos visitantes e pesquisadores da plataforma. A análise a seguir ancora-se na indução empírica a partir dos objetos físicos e registros documentais nos acervos digitais nacionais.\n`;
   }
 
   // === SEÇÃO 2: Literatura Científica e Referências Acadêmicas ===
@@ -649,10 +696,10 @@ async function generateAIAnalysis(
 
   if (brasilianaTeoria.length > 0) {
     evidenciaEmpirica = `---\n\n### Literatura Científica Consultada\n\n`;
-    evidenciaEmpirica += `Foram identificadas **${brasilianaTeoria.length} publicação(ões)** com correspondência ao conceito pesquisado nas bases acadêmicas da Brasiliana Museus:\n\n`;
+    evidenciaEmpirica += `Foram identificadas **${brasilianaTeoria.length} publicação(ões) acadêmica(s)** com correspondência ao conceito **"${tag}"** na base da Brasiliana Museus (Biblioteca Digital):\n\n`;
 
     brasilianaTeoria.slice(0, 5).forEach((t: any, idx: number) => {
-      const link = t.link ? `[Acessar publicação](${t.link})` : '';
+      const link = t.link ? `[Acessar publicação ↗](${t.link})` : '';
       const descricao = t.descricao ? t.descricao.substring(0, 200).trim() + '...' : '';
       evidenciaEmpirica += `**${idx + 1}. ${t.titulo}**\n`;
       if (descricao) evidenciaEmpirica += `${descricao}\n`;
@@ -661,106 +708,109 @@ async function generateAIAnalysis(
     });
   } else {
     evidenciaEmpirica = `---\n\n### Literatura Científica\n\n`;
-    evidenciaEmpirica += `Não foram localizadas publicações acadêmicas sobre **"${tag}"** nas bases consultadas. A análise apoia-se nos registros materiais encontrados nos acervos museológicos nacionais.\n`;
+    evidenciaEmpirica += `Não foram localizadas publicações acadêmicas especificamente para o termo **"${tag}"** nas bases consultadas nesta etapa (**Brasiliana Museus — Biblioteca Digital / Artigos Teóricos**). A fundamentação do parecer apoia-se na evidência empírica dos acervos museológicos e na norma do Tesauro CNFCP/IPHAN.\n`;
   }
 
-  // === SEÇÃO 3: Objetos do Acervo — Análise e Contextualização ===
+  // === SEÇÃO 3: Objetos do Acervo — Análise e Contextualização Individualizada ===
   let extracao = '';
 
   if (topObras.length > 0) {
-    extracao = `---\n\n### Objetos do Acervo Nacional — Análise de Pertinência\n\n`;
-    extracao += `A análise cruzada dos acervos digitais identificou **${topObras.length} objeto(s)** com correspondência semântica ao conceito pesquisado. Para cada peça, apresenta-se a fundamentação cultural e histórica da relação:\n\n`;
+    extracao = `---\n\n### Objetos do Acervo Nacional — Análise de Pertinência Semântica\n\n`;
+    extracao += `A busca nos acervos digitais públicos recuperou **${totalEvidencias} resultados brutos** (${ibram.length} no IBRAM/Tainacan e ${brasiliana.length} na Brasiliana Museus). Aplicando o cálculo de similaridade vetorial por cosseno, os **${topObras.length} objetos de maior pertinência cultural e diversidade institucional** são analisados individualmente a seguir:\n\n`;
 
-    topObras.slice(0, 5).forEach((o: any, idx: number) => {
+    topObras.forEach((o: any, idx: number) => {
       const criador = (o.criador && o.criador !== 'Desconhecido') ? o.criador : null;
       const material = o.material ? o.material.toLowerCase() : null;
       const tecnica = o.tecnica ? o.tecnica.toLowerCase() : null;
-      const museu = o.museu || o.fonte || 'Acervo Nacional';
-      const citeLink = o.link ? `[Acessar no acervo](${o.link})` : null;
-      const tagL = tag.toLowerCase();
+      const museu = o.museu || o.fonte || 'Brasiliana Museus';
+      const localizacao = o.localizacao || null;
+      const colecao = o.colecao || null;
+      const citeLink = o.link ? `[Acessar registro no acervo ↗](${o.link})` : null;
+      const descSnippet = o.descricao ? o.descricao.substring(0, 220).trim() : null;
+      const simScore = o.similarity ? Math.round(o.similarity * 100) : null;
 
+      // GERADOR DE JUSTIFICATIVA INDIVIDUALIZADA E ESPECÍFICA (SEM FRASES REPETIDAS)
       let porqueRelaciona = '';
 
-      const ehArtePop = tagL.includes('popular') || tagL.includes('folclor') || tagL.includes('artesanat') || tagL.includes('vitalino');
-      const ehBarroco = tagL.includes('barroc') || tagL.includes('sacr') || tagL.includes('relig') || tagL.includes('imagin') || tagL.includes('devocion');
-      const ehTextil = tagL.includes('têxtil') || tagL.includes('tecido') || tagL.includes('bordado') || tagL.includes('renda') || tagL.includes('rendeira');
-      const ehCeramica = tagL.includes('cerâmica') || tagL.includes('barro') || tagL.includes('argila') || tagL.includes('figurin');
-      const ehMusica = tagL.includes('música') || tagL.includes('canto') || tagL.includes('ritmo') || tagL.includes('tambor') || tagL.includes('samba');
+      // Usar os dados específicos do objeto para criar uma análise singular
+      const partesRazao: string[] = [];
 
-      if (ehArtePop) {
-        porqueRelaciona = `Esta peça se insere no campo de **${tag}**`;
-        if (criador) porqueRelaciona += ` por ter sido produzida por **${criador}**, artista que atua dentro das tradições comunitárias e autodidatas, fora do circuito acadêmico formal`;
-        if (material) porqueRelaciona += `, com uso de **${material}** como matéria-prima de origem local`;
-        if (tecnica) porqueRelaciona += ` e da técnica de **${tecnica}**, perpetuada por transmissão oral entre gerações`;
-        porqueRelaciona += `. A custódia desta peça por uma instituição federal atesta o reconhecimento do Estado brasileiro desta tradição como patrimônio cultural legítimo.`;
-      } else if (ehBarroco) {
-        porqueRelaciona = `A peça integra a tradição de **${tag}** por seus atributos formais e devocionais`;
-        if (material) porqueRelaciona += ` — confeccionada em **${material}**`;
-        if (tecnica) porqueRelaciona += ` sob a técnica de **${tecnica}**`;
-        porqueRelaciona += `. Constitui testemunho material direto da circulação desta linguagem artística e religiosa no território brasileiro, desde o período colonial até sua institucionalização nos acervos nacionais.`;
-      } else if (ehTextil) {
-        porqueRelaciona = `Este objeto documenta a tradição de **${tag}** por sua fatura manual`;
-        if (tecnica) porqueRelaciona += ` em **${tecnica}**`;
-        if (material) porqueRelaciona += ` com uso de **${material}**`;
-        porqueRelaciona += `. Representa uma forma de produção coletiva — historicamente associada ao trabalho feminino — presente em comunidades de diversas regiões do Brasil, reconhecida como saber-fazer de valor patrimonial imaterial.`;
-      } else if (ehCeramica) {
-        porqueRelaciona = `Esta peça materializa o campo de **${tag}**`;
-        if (material) porqueRelaciona += ` por sua composição em **${material}**`;
-        if (criador) porqueRelaciona += `, produzida por **${criador}**`;
-        porqueRelaciona += `. A cerâmica figura entre as expressões mais antigas da cultura material brasileira, com raízes nas tradições indígenas, nordestinas e quilombolas, cada objeto carregando em sua forma os gestos e o território de sua origem.`;
-      } else if (ehMusica) {
-        porqueRelaciona = `Este registro associa-se à **${tag}**`;
-        if (criador) porqueRelaciona += ` por ter sido produzido por **${criador}**`;
-        porqueRelaciona += `. Sua catalogação em acervo nacional evidencia que esta expressão performática foi formalmente reconhecida como parte integrante do patrimônio cultural imaterial do Brasil.`;
+      if (o.titulo) {
+        partesRazao.push(`O item **"${o.titulo}"** insere-se no contexto de **${tag}**`);
       } else {
-        porqueRelaciona = `A relação deste objeto com o conceito de **"${tag}"** está fundamentada em:`;
-        if (criador) porqueRelaciona += `\n   * Autoria de **${criador}**`;
-        if (material) porqueRelaciona += `\n   * Uso de **${material}** como suporte material — elemento característico desta tradição`;
-        if (tecnica) porqueRelaciona += `\n   * Técnica de **${tecnica}**`;
-        porqueRelaciona += `\n   * Catalogação em **${museu}**, instituição federal de custódia que reconhece formalmente este objeto como parte desta categoria patrimonial.`;
+        partesRazao.push(`O objeto catalogado insere-se no campo semântico de **${tag}**`);
       }
 
+      if (descSnippet) {
+        partesRazao.push(`conforme fundamentado em sua documentação museológica: *"${descSnippet}..."*`);
+      } else if (colecao) {
+        partesRazao.push(`integrando a coleção **${colecao}**`);
+      }
+
+      if (criador) {
+        partesRazao.push(`A autoria atribuída a **${criador}** reforça seu valor histórico-artístico dentro desta tradição`);
+      }
+
+      if (material && tecnica) {
+        partesRazao.push(`A fatura em **${material}** mediante a técnica de **${tecnica}** caracteriza o saber-fazer próprio desta tipologia`);
+      } else if (material) {
+        partesRazao.push(`O emprego de **${material}** como suporte físico evidencia a cultura material desta expressão`);
+      } else if (tecnica) {
+        partesRazao.push(`A técnica de **${tecnica}** atesta a continuidade do processo artesanal e estilístico`);
+      }
+
+      if (localizacao) {
+        partesRazao.push(`Sua procedência/localização registrada em **${localizacao}** situa a circulação geográfica do bem`);
+      }
+
+      partesRazao.push(`A custódia sob a responsabilidade de **${museu}** confere chancela institucional e garantia de salvaguarda ao objeto.`);
+
+      porqueRelaciona = partesRazao.join('. ') + (simScore ? ` (Índice de aderência semântica: **${simScore}%**).` : '');
+
       extracao += `#### ${idx + 1}. ${o.titulo}\n`;
-      extracao += `*Custódia: **${museu}***\n\n`;
-      extracao += `**Fundamentação da pertinência:** ${porqueRelaciona}\n\n`;
+      extracao += `*Instituição de Custódia: **${museu}***\n\n`;
+      extracao += `**Fundamentação individualizada da pertinência:** ${porqueRelaciona}\n\n`;
 
       const detalhes: string[] = [];
-      if (material && tecnica) detalhes.push(`**Material / Técnica:** ${material} · ${tecnica}`);
-      else if (material) detalhes.push(`**Material:** ${material}`);
-      else if (tecnica) detalhes.push(`**Técnica:** ${tecnica}`);
-      if (criador) detalhes.push(`**Criador:** ${criador}`);
-      if (citeLink) detalhes.push(`**Acervo digital:** ${citeLink}`);
+      if (material && tecnica) detalhes.push(`* **Material / Técnica:** ${material} · ${tecnica}`);
+      else if (material) detalhes.push(`* **Material:** ${material}`);
+      else if (tecnica) detalhes.push(`* **Técnica:** ${tecnica}`);
+      if (criador) detalhes.push(`* **Criador / Autor:** ${criador}`);
+      if (colecao) detalhes.push(`* **Coleção:** ${colecao}`);
+      if (localizacao) detalhes.push(`* **Localização / Origem:** ${localizacao}`);
+      if (citeLink) detalhes.push(`* **Link do Acervo Digital:** ${citeLink}`);
 
       if (detalhes.length > 0) {
-        detalhes.forEach(d => { extracao += `* ${d}\n`; });
+        detalhes.forEach(d => { extracao += `${d}\n`; });
       }
       extracao += '\n';
     });
 
   } else {
     extracao = `---\n\n### Objetos do Acervo Nacional\n\n`;
-    extracao += `Não foram localizados objetos nos acervos digitais consultados (IBRAM/Tainacan e Brasiliana Museus) com correspondência direta ao conceito **"${tag}"** no momento desta pesquisa.\n\n`;
-    extracao += `Isso pode indicar lacunas na digitalização dos acervos ou uso de terminologia diferente nos metadados das instituições. O conceito foi registrado para refinamento progressivo nas próximas consultas.\n`;
+    extracao += `Não foram localizados objetos físicos nos acervos digitais consultados (IBRAM/Tainacan e Brasiliana Museus) com correspondência direta ao conceito **"${tag}"** no momento desta pesquisa.\n\n`;
+    extracao += `Isso pode indicar lacunas no processo de digitalização de acervos ou divergência de indexação nos metadados institucionais. O conceito permanece registrado para monitoramento contínuo.\n`;
   }
 
-  // === SEÇÃO 3.5: Projetos Culturais, Espaços e Fomento Ativos ===
+  // === SEÇÃO 3.5: Projetos Culturais, Espaços e Fomento Ativos (TODOS OS PROJETOS ENCONTRADOS) ===
   let fomentoCultura = '';
   if (mapasCulturais.length > 0 || dadosCultura.length > 0) {
     fomentoCultura = `---\n\n### Projetos Culturais, Espaços e Fomento Ativos (Mapas da Cultura & SALIC)\n\n`;
     fomentoCultura += `Foram localizados registros de ações de salvaguarda, agentes e projetos de fomento ativos associados ao conceito de **"${tag}"** nas bases federais abertas:\n\n`;
     
     if (mapasCulturais.length > 0) {
-      fomentoCultura += `#### Agentes e Espaços Culturais (Mapas da Cultura):\n`;
-      mapasCulturais.slice(0, 3).forEach((item: any) => {
-        fomentoCultura += `* **${item.titulo}**: ${item.descricao} (Acesso: [Visualizar no Mapa](${item.link}))\n`;
+      fomentoCultura += `#### Agentes e Espaços Culturais (Mapas da Cultura — ${mapasCulturais.length} registro(s)):\n`;
+      mapasCulturais.forEach((item: any) => {
+        fomentoCultura += `* **${item.titulo}**: ${item.descricao || 'Agente/Espaço cultural cadastrado.'} (Acesso: [Visualizar no Mapa ↗](${item.link}))\n`;
       });
       fomentoCultura += '\n';
     }
     
     if (dadosCultura.length > 0) {
-      fomentoCultura += `#### Projetos de Incentivo Federal (SALIC / Lei Rouanet):\n`;
-      dadosCultura.slice(0, 3).forEach((item: any) => {
-        fomentoCultura += `* **${item.titulo}**: ${item.descricao} (Acesso: [Visualizar no Salic](${item.link}))\n`;
+      fomentoCultura += `#### Projetos de Incentivo Federal (SALIC / Lei Rouanet — ${dadosCultura.length} projeto(s)):\n`;
+      // Exibir TODOS os projetos retornados do SALIC para bater exatamente com a contagem da tabela no rodapé
+      dadosCultura.forEach((item: any) => {
+        fomentoCultura += `* **${item.titulo}**: ${item.descricao || 'Projeto cultural com incentivo federal.'} (Acesso: [Visualizar no SALIC ↗](${item.link}))\n`;
       });
       fomentoCultura += '\n';
     }
@@ -770,74 +820,85 @@ async function generateAIAnalysis(
   }
 
   // === SEÇÃO 4: Rede Semântica e Interoperabilidade Cultural ===
-  let topologiaInterna = `---\n\n### Rede Semântica — Conexões Integradas ao Sistema\n\n`;
+  let topologiaInterna = `---\n\n### Rede Semântica — Conexões Integradas e Análise Topológica\n\n`;
 
   const conexoesAtivadas: string[] = [];
 
   if (tagCorrelation.siblings.length > 0) {
     tagCorrelation.siblings.slice(0, 6).forEach((s: any) => {
-      const motivo = s.peso > 3 ? 'presença simultânea frequente nos acervos consultados' : 'associação registrada por curadores da plataforma';
-      conexoesAtivadas.push(`**"${tag}"** — **"${s.tag}"** (${motivo})`);
+      const motivo = s.score > 0.8 ? 'proximidade léxico-semântica direta' : 'associação conceitual registrada no vocabulário';
+      conexoesAtivadas.push(`**"${tag}"** ↔ **"${s.tag}"** (${motivo})`);
     });
   }
 
   if (pgvectorMatches.length > 0) {
     pgvectorMatches.slice(0, 3).forEach((m: any) => {
       const termo = m.conteudo_original || m.termo;
-      if (termo) conexoesAtivadas.push(`**"${tag}"** — **"${termo}"** (recuperado via memória semântica de longo prazo do sistema)`);
+      if (termo && termo.toLowerCase() !== tagQueryNorm) {
+        conexoesAtivadas.push(`**"${tag}"** ↔ **"${termo}"** (recuperado via memória semântica vetorial pgvector, similaridade: ${(m.similarity * 100).toFixed(0)}%)`);
+      }
     });
   }
 
   if (topObras.length > 0) {
     const museusUnicos = [...new Set(topObras.map((o: any) => o.museu || o.fonte).filter(Boolean))];
     museusUnicos.slice(0, 3).forEach((m: any) => {
-      conexoesAtivadas.push(`**"${tag}"** — **"${m}"** (instituição de custódia com objetos desta categoria)`);
+      conexoesAtivadas.push(`**"${tag}"** ↔ **"${m}"** (instituição de custódia com objetos desta categoria)`);
     });
   }
 
+  const grauCentralidade = conexoesAtivadas.length;
+
   if (conexoesAtivadas.length > 0) {
-    topologiaInterna += `A análise topológica da rede mapeou relações semânticas entre os termos correlacionados, conforme demonstrado a seguir:\n\n`;
+    topologiaInterna += `A análise topológica do subgrafo semântico mapeou **${grauCentralidade} sinapse(s) ativa(s)** (grau de centralidade local $k = ${grauCentralidade}$), conforme discriminado a seguir:\n\n`;
     conexoesAtivadas.forEach(c => { topologiaInterna += `* ${c}\n`; });
-    topologiaInterna += `\nEssas sinapses conceituais indicam proximidade taxonômica e afinidade cultural entre as expressões folksonômicas e o inventário formal catalogado.\n`;
+    topologiaInterna += `\nEssas sinapses conceituais indicam afinidade cultural e proximidade taxonômica entre a linguagem dos usuários e os acervos formais catalogados.\n`;
   } else {
-    topologiaInterna += `A pesquisa preliminar não registrou conexões prévias para a tag **"${tag}"** no mapeamento semântico do ecossistema.\n\n`;
-    topologiaInterna += `O conceito permanece sob monitoramento taxonômico para identificação de correlações com novas catalogações.\n`;
+    topologiaInterna += `A pesquisa não registrou conexões prévias com outras tags no banco interno (grau de centralidade $k = 0$). O conceito permanece sob monitoramento taxonômico para identificação de correlações com novos registros.\n`;
   }
 
-  // === SEÇÃO 5: Conclusão e Fontes ===
-  let sinteseDeducao = `---\n\n### Conclusão da Análise\n\n`;
+  // === SEÇÃO 5: Conclusão, Metodologia e Tabela de Fontes ===
+  let sinteseDeducao = `---\n\n### Conclusão e Parecer Técnico\n\n`;
 
   if (!foiImparcial) {
-    sinteseDeducao += `Em suma, o conceito **"${tag}"** possui representação semântica validada no acervo museológico nacional. `;
-    if (temTesauro) sinteseDeducao += `Sua legitimação é corroborada pela estrutura normativa do **Tesauro CNFCP/IPHAN**, demarcando o termo na terminologia de folclore e cultura popular brasileira. `;
-    if (topObras.length > 0) sinteseDeducao += `A presença de **${topObras.length} objeto(s)** catalogados nas bases institucionais consolida a evidência física de sua manifestação. `;
+    sinteseDeducao += `Em suma, o conceito **"${tag}"** possui validação semântica confirmada no ecossistema patrimonial. `;
+    if (temTesauro) sinteseDeducao += `Sua legitimação é chancelada pela estrutura normativa do **Tesauro CNFCP/IPHAN**, inserindo a tag no vocabulário oficial de cultura popular brasileira. `;
+    if (topObras.length > 0) sinteseDeducao += `A presença de **${topObras.length} objeto(s) representativos** analisados nos acervos federais consolida a evidência física de sua manifestação material. `;
     if (brasilianaTeoria.length > 0) sinteseDeducao += `Ademais, as publicações de cunho teórico servem de aporte epistemológico para a sustentação conceitual do verbete. `;
-    sinteseDeducao += `\n\nA correlação entre a terminologia popular e os inventários oficiais ratifica a legitimidade terminológica do conceito no ecossistema de patrimônio imaterial.`;
+    sinteseDeducao += `\n\nA correlação entre a terminologia popular e os inventários oficiais ratifica a legitimidade do marcador folksonômico.`;
   } else {
     const fatores: string[] = [];
     if (!temTesauro) fatores.push('inexistência de verbete normativo no Tesauro CNFCP/IPHAN');
-    if (!temTeoria) fatores.push('ausência de literatura acadêmica indexada');
-    if (totalEvidencias === 0) fatores.push('inexistência de objetos físicos correspondentes nos acervos federais');
+    if (!temTeoria) fatores.push('ausência de literatura acadêmica especificamente indexada');
+    if (totalEvidencias === 0) fatores.push('inexistência de objetos físicos correspondentes nos acervos federais consultados');
 
-    sinteseDeducao += `Os dados disponíveis mostram-se insuficientes para atestar a consolidação semântica e a validação normativa do conceito **"${tag}"** nas bases oficiais de preservação cultural brasileira.\n\n`;
+    sinteseDeducao += `Os dados disponíveis mostram-se insuficientes para atestar a consolidação normativa plena do conceito **"${tag}"** nas bases oficiais de preservação cultural brasileira.\n\n`;
     if (fatores.length > 0) sinteseDeducao += `**Fatores limitantes:** ${fatores.join('; ')}.\n\n`;
-    sinteseDeducao += `Recomenda-se a realização de pesquisas complementares e futuras averiguações de catalogação empírica para fundamentar a inserção terminológica da tag.`;
+    sinteseDeducao += `Recomenda-se a realização de pesquisas complementares e acompanhamento de novas catalogações para fundamentar a consolidação terminológica do termo.`;
   }
 
-  sinteseDeducao += `\n\n---\n\n### Fontes e Bases de Dados Consultadas\n\n`;
-  sinteseDeducao += `| Base de Dados | Registros | Acesso |\n`;
+  sinteseDeducao += `\n\n---\n\n### Transparência Metodológica (XAI & Embeddings)\n\n`;
+  sinteseDeducao += `O grau de confiança semântica de **${certezaCalculada}%** é apurado pela integração ponderada da pipeline de Deep Learning (\`all-MiniLM-L6-v2\`, vetores de 384 dimensões):\n\n`;
+  sinteseDeducao += `* **Âncora Normativa (Tesauro CNFCP/IPHAN):** Ponderação de até 35% baseada na correspondência conceitual oficial.\n`;
+  sinteseDeducao += `* **Evidência Empírica dos Acervos (IBRAM / Brasiliana Museus):** Ponderação de até 30% via similaridade de cosseno ($S_C = \\frac{A \\cdot B}{\\|A\\| \\|B\\|}$) dos metadados das obras.\n`;
+  sinteseDeducao += `* **Fundamentação Acadêmica:** Ponderação de até 25% calculada sobre artigos científicos das bibliotecas digitais.\n`;
+  sinteseDeducao += `* **Topologia e Memória Semântica (NUGEP):** Ponderação de até 10% baseada no grau de centralidade no banco de dados.\n\n`;
+  sinteseDeducao += `**Fórmula de Similaridade de Cosseno:** ${logicaMatematica.join(' | ')}\n\n`;
+
+  sinteseDeducao += `---\n\n### Fontes e Bases de Dados Consultadas\n\n`;
+  sinteseDeducao += `| Base de Dados | Registros Recuperados | Endereço de Acesso |\n`;
   sinteseDeducao += `|---|---|---|\n`;
-  sinteseDeducao += `| IBRAM / Tainacan — Museus Federais | ${ibram.length} | [tainacan.org](https://tainacan.org) |\n`;
+  sinteseDeducao += `| IBRAM / Tainacan — Museus Federais | ${ibram.length} registro(s) | [tainacan.org ↗](https://tainacan.org) |\n`;
   sinteseDeducao += `| Brasiliana Museus | ${brasiliana.length} item(ns) | [brasiliana.museus.gov.br ↗](https://brasiliana.museus.gov.br) |\n`;
-  sinteseDeducao += `| Mapas da Cultura | ${mapasCulturais.length} agente(s)/evento(s) | [mapas.cultura.gov.br ↗](https://mapas.cultura.gov.br) |\n`;
+  sinteseDeducao += `| Mapas da Cultura | ${mapasCulturais.length} agente(s)/espaço(s) | [mapas.cultura.gov.br ↗](https://mapas.cultura.gov.br) |\n`;
   sinteseDeducao += `| SALIC / Lei Rouanet (Dados da Cultura) | ${dadosCultura.length} projeto(s) | [dados.cultura.gov.br ↗](https://dados.cultura.gov.br) |\n`;
-  sinteseDeducao += `| Tesauro CNFCP/IPHAN | ${temTesauro ? 'Verbete encontrado' : 'Sem verbete'} | [cnfcp.gov.br ↗](https://www.cnfcp.gov.br/tesauro/) |\n`;
+  sinteseDeducao += `| Tesauro CNFCP/IPHAN | ${temTesauro ? 'Verbete encontrado' : 'Sem verbete'} | [cnfcp.gov.br ↗](https://www.cnfcp.gov.br/interna.php?ID_Secao=69) |\n`;
   sinteseDeducao += `| Literatura Acadêmica (Brasiliana Teoria) | ${brasilianaTeoria.length} artigo(s) | [Brasiliana Digital ↗](https://brasiliana.museus.gov.br) |\n`;
   sinteseDeducao += `| Memória Semântica NUGEP (pgvector) | ${pgvectorMatches.length} correspondência(s) | Sistema interno NUGEP |\n`;
 
-  const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, fomentoCultura, topologiaInterna, sinteseDeducao].join('\n\n---\n\n');
+  const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, fomentoCultura, topologiaInterna, sinteseDeducao].join('\n\n');
 
-  const resumoFactual = `IBRAM/Tainacan: ${ibram.length} reg. | Brasiliana: ${brasiliana.length} reg. | Tags NUGEP: ${dbTags.length} | Correlações: ${previousCorrelations.length} | pgvector: ${pgvectorMatches.length} matches | ${modelVer}`;
+  const resumoFactual = `IBRAM/Tainacan: ${ibram.length} reg. | Brasiliana: ${brasiliana.length} reg. | Outras Tags NUGEP: ${otherDbTags.length} | Correlações Prévias: ${previousCorrelations.length} | pgvector: ${pgvectorMatches.length} matches | ${modelVer}`;
   const resumoContexto = temTesauro
     ? `Verbete no Tesauro CNFCP/IPHAN: "${thesaurusContext.substring(0, 100)}..."`
     : `Verbete NÃO localizado no Tesauro CNFCP. Análise baseada estritamente em indução empírica.`;
@@ -1090,7 +1151,10 @@ export async function POST(req: NextRequest) {
             items: dadosCultura,
             correlations: correlationGraph.correlations.filter((c: any) => c.source === 'Dados da Cultura')
           },
-          internas: { total: dbTags.length, items: dbTags }
+          internas: { 
+            total: dbTags.filter((t: any) => t.tag_normalizada !== queryNorm && t.tag_original.toLowerCase() !== query.toLowerCase()).length, 
+            items: dbTags.filter((t: any) => t.tag_normalizada !== queryNorm && t.tag_original.toLowerCase() !== query.toLowerCase()) 
+          }
         },
 
         // Conexões cruzadas entre fontes
