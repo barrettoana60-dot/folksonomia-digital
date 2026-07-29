@@ -1202,34 +1202,9 @@ export async function POST(req: NextRequest) {
     if (tagError) console.error('[Tags] Supabase error:', tagError);
 
     const dbTags = existingTags || [];
-    
-    if (dbTags.length === 0) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          tag: query,
-          tagNaoExiste: true,
-          motores: {
-            modernbert: { status: 'active', descricao: 'Classificação de tokens e extração de entidades' },
-            rotate: { status: 'active', descricao: 'Inferência de relações no espaço complexo' },
-            gat: { status: 'active', descricao: 'Resolução de fronteiras fluidas e multi-membership' }
-          },
-          tesauro: {
-            termoEncontrado: !!thesaurusExpansion.context,
-            contexto: thesaurusContext,
-            termosExpandidos: thesaurusExpansion.expanded
-          },
-          correlacoes: {
-            ibram: { total: 0, items: [] },
-            brasiliana: { total: 0, items: [] },
-            auxiliares: { total: 0, items: [] },
-            internas: { total: 0, items: [] }
-          },
-          analiseEscrita: `A tag "${query}" não existe no sistema. Nenhum visitante criou essa tag sobre nenhuma obra. O Relatório Semântico só funciona com tags que foram efetivamente registradas por usuários no banco de dados. Crie a tag primeiro através da interface pública de tagging.${thesaurusExpansion.context ? `\n\nContexto do Tesauro CNFCP: ${thesaurusContext}` : ''}`,
-          profundidade: 'INEXISTENTE'
-        }
-      });
-    }
+    // Nota: Mesmo que a tag ainda não esteja cadastrada no banco local, a pipeline RAG 
+    // executará a análise semântica completa consultando o Tesauro CNFCP, os acervos federais,
+    // a literatura científica e as APIs de fomento.
 
     // ================================================================
     // PASSO 2: Carregar todas as tags do banco para correlação inter-tags
