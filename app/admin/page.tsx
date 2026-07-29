@@ -24,6 +24,8 @@ const tabs = [
 const parseInlineMarkdown = (text: string) => {
   if (!text) return text;
 
+  const displayMathRegex = /\$\$([\s\S]+?)\$\$/g;
+  const inlineMathRegex = /\$([^$\n]+)\$/g;
   const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
   const boldRegex = /\*\*([^*]+)\*\*/g;
   const codeRegex = /`([^`]+)`/g;
@@ -32,6 +34,30 @@ const parseInlineMarkdown = (text: string) => {
   let tempText = text;
   let placeholders: { [key: string]: React.ReactNode } = {};
   let placeholderCounter = 0;
+
+  // 0. Display Math ($$...$$)
+  tempText = tempText.replace(displayMathRegex, (m, mathFormula) => {
+    const ph = `___DMATH_PH_${placeholderCounter}___`;
+    placeholders[ph] = (
+      <div key={ph} className="my-4 p-3 bg-[#6D28D9]/05 border border-[#6D28D9]/20 rounded-xl text-center font-mono text-xs text-[#6D28D9] font-bold shadow-xs overflow-x-auto">
+        {mathFormula}
+      </div>
+    );
+    placeholderCounter++;
+    return ph;
+  });
+
+  // 0.5. Inline Math ($...$)
+  tempText = tempText.replace(inlineMathRegex, (m, mathFormula) => {
+    const ph = `___IMATH_PH_${placeholderCounter}___`;
+    placeholders[ph] = (
+      <span key={ph} className="font-mono text-xs text-[#6D28D9] font-bold px-1 bg-purple-500/10 rounded">
+        {mathFormula}
+      </span>
+    );
+    placeholderCounter++;
+    return ph;
+  });
 
   // 1. Links
   tempText = tempText.replace(linkRegex, (m, label, url) => {
@@ -88,7 +114,7 @@ const parseInlineMarkdown = (text: string) => {
     return ph;
   });
 
-  const finalRegex = /(___LINK_PH_\d+___|___BOLD_PH_\d+___|___CODE_PH_\d+___|___ITALIC_PH_\d+___)/g;
+  const finalRegex = /(___DMATH_PH_\d+___|___IMATH_PH_\d+___|___LINK_PH_\d+___|___BOLD_PH_\d+___|___CODE_PH_\d+___|___ITALIC_PH_\d+___)/g;
   const splitParts = tempText.split(finalRegex);
 
   return splitParts.map((part, i) => {
