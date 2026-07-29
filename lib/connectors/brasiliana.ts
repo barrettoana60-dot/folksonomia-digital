@@ -85,9 +85,8 @@ export class BrasilianaConnector implements OpenDataConnector {
    * Busca específica por Artigos, Livros ou Textos Teóricos na Brasiliana para embasamento conceitual.
    */
   async searchTheoreticalText(query: string): Promise<ExternalMatch[]> {
-    // Tenta forçar a busca para retornar documentos, livros, teses ou artigos
-    const theoreticalQuery = `${query} (livro OR artigo OR tese OR documento OR texto OR conceito)`;
-    return this.searchExternalSource(theoreticalQuery);
+    // Busca limpa sem sintaxe booleana inválida no Tainacan
+    return this.searchExternalSource(query);
   }
 
   private extractTitle(item: any): string {
