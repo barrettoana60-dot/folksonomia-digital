@@ -2282,16 +2282,8 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                 </div>
 
 
-                {/* RESULTADOS DA ANÁLISE */}
-                {semanticResult && semanticResult.tagNaoExiste && (
-                  <div className="glass-card p-12 text-center border-red-500/30 border">
-                    <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
-                    <h3 className="text-xl font-bold mb-2">Tag não encontrada no sistema</h3>
-                    <p className="text-[#1A1A1A]/55 text-sm max-w-lg mx-auto">A tag <span className="text-red-400 font-bold">&quot;{semanticResult.tag}&quot;</span> não foi criada por nenhum visitante. Crie a tag primeiro pela interface pública.</p>
-                  </div>
-                )}
-
-                {semanticResult && !semanticResult.tagNaoExiste && (
+                {/* RESULTADOS DA ANÁLISE SEMÂNTICA */}
+                {semanticResult && (
                   <div className="space-y-6">
                     <div className="glass-card p-6 border-l-4 border-[#E85002]/50">
                       <h3 className="text-base font-semibold">Resultados para <span className="text-[#E85002] italic font-serif">&quot;{semanticResult.tag}&quot;</span></h3>
