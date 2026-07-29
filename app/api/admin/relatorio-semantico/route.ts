@@ -383,6 +383,13 @@ async function searchBrasilianaTeoria(query: string): Promise<any[]> {
   return results.slice(0, 5);
 }
 
+// ============================================================
+// Fontes Auxiliares (OpenAlex / DBpedia)
+// ============================================================
+async function searchAuxiliares(query: string): Promise<any[]> {
+  return [];
+}
+
 
 // ============================================================
 // Mapas da Cultura — Conector Governamental de Agentes/Eventos
