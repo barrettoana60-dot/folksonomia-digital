@@ -8,34 +8,46 @@ import { ExternalMatch, OpenDataConnector } from './types';
 
 export class BrasilianaConnector implements OpenDataConnector {
   name = 'Brasiliana Museus';
-  private baseUrl = 'https://brasiliana.museus.gov.br';
+  private baseUrls = [
+    'https://brasilianamuseus.cultura.gov.br',
+    'https://brasiliana.museus.gov.br'
+  ];
   private apiPath = '/wp-json/tainacan/v2/items';
 
   /**
    * Busca nos acervos da Brasiliana Museus.
    */
   async searchExternalSource(query: string): Promise<ExternalMatch[]> {
-    try {
-      const queryParams = new URLSearchParams({
-        perpage: '5',
-        search: query,
-        exposer: 'json-flat'
-      });
+    const headers = {
+      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FolksonomiaDigital/2.0'
+    };
 
-      const url = `${this.baseUrl}${this.apiPath}/?${queryParams}`;
-      
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(12000)
-      });
+    const queryParams = new URLSearchParams({
+      perpage: '8',
+      search: query,
+      exposer: 'json-flat'
+    });
 
-      if (!res.ok) {
-        console.warn(`[Brasiliana] HTTP ${res.status}`);
-        return [];
+    let items: any[] = [];
+
+    for (const baseUrl of this.baseUrls) {
+      try {
+        const url = `${baseUrl}${this.apiPath}/?${queryParams}`;
+        const res = await fetch(url, {
+          headers,
+          signal: AbortSignal.timeout(10000)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          items = data.items || (Array.isArray(data) ? data : []);
+          if (items.length > 0) break;
+        }
+      } catch (err) {
+        console.warn(`[Brasiliana] Error fetching ${baseUrl}:`, err);
       }
-
-      const data = await res.json();
-      const items = data.items || (Array.isArray(data) ? data : []);
+    }
 
       // Deduplicar e parsear
       const seen = new Set<string>();

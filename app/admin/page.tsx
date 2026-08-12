@@ -296,10 +296,6 @@ export default function AdminPage() {
     incluirAcervos: true,
     incluirFomento: true,
     maxArtigos: 8,
-    pesoTeoria: 0.25,
-    pesoEmpirico: 0.30,
-    pesoTesauro: 0.35,
-    pesoTopologia: 0.10,
   });
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [chainLog, setChainLog] = useState<{ insight: string; ts: string }[]>([]);
@@ -2533,7 +2529,7 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Relatório Semântico</h2>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Análise semântica profunda com cruzamento de acervos e fontes institucionais</p>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
                     <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/45 backdrop-blur-md border border-white/50 shadow-md flex items-center gap-2 flex-1 md:flex-none justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed !text-[#1A1A1A]">
@@ -2623,17 +2619,6 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                             onChange={e => setAnalysisParams(p => ({ ...p, maxArtigos: Number(e.target.value) }))}
                             className="liquid-input !p-2 text-xs w-full" />
                         </div>
-                        <div>
-                          <label className="text-[9px] uppercase font-semibold tracking-wider text-[#1A1A1A]/40 block mb-1">Peso Teoria ({Math.round(analysisParams.pesoTeoria * 100)}%)</label>
-                          <input type="range" min={0.05} max={0.50} step={0.05} value={analysisParams.pesoTeoria}
-                            onChange={e => setAnalysisParams(p => ({ ...p, pesoTeoria: Number(e.target.value) }))}
-                            className="w-full accent-[#E85002]" />
-                        </div>
-                        <div>
-                          <label className="text-[9px] uppercase font-semibold tracking-wider text-[#1A1A1A]/40 block mb-1">Peso Empírico ({Math.round(analysisParams.pesoEmpirico * 100)}%)</label>
-                          <input type="range" min={0.05} max={0.50} step={0.05} value={analysisParams.pesoEmpirico}
-                            onChange={e => setAnalysisParams(p => ({ ...p, pesoEmpirico: Number(e.target.value) }))}
-                            className="w-full accent-[#E85002]" />
                         </div>
                         <label className="flex items-center gap-2 text-xs text-[#1A1A1A]/70 cursor-pointer">
                           <input type="checkbox" checked={analysisParams.incluirAcademico}

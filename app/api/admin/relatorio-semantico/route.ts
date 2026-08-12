@@ -26,10 +26,6 @@ export interface SemanticAnalysisParams {
   incluirAcervos?: boolean;
   incluirFomento?: boolean;
   maxArtigos?: number;
-  pesoTeoria?: number;
-  pesoEmpirico?: number;
-  pesoTesauro?: number;
-  pesoTopologia?: number;
 }
 
 // ============================================================
@@ -336,11 +332,11 @@ async function generateAIAnalysis(
   dadosCultura: any[] = [],
   params: SemanticAnalysisParams = {}
 ) {
-  const pesoTesauro = params.pesoTesauro ?? 0.35;
-  const pesoEmpirico = params.pesoEmpirico ?? 0.30;
-  const pesoTeoria = params.pesoTeoria ?? 0.25;
-  const pesoTopologia = params.pesoTopologia ?? 0.10;
-  // Lógica Matemática de Cosseno
+  const pesoTesauro = 0.35;
+  const pesoEmpirico = 0.30;
+  const pesoTeoria = 0.25;
+  const pesoTopologia = 0.10;
+  // Lógica de Similaridade Semântica por Cosseno
   function cosineSimilarity(a: number[], b: number[]): number {
     let dotProduct = 0;
     let mA = 0;
@@ -354,11 +350,11 @@ async function generateAIAnalysis(
     return dotProduct / (Math.sqrt(mA) * Math.sqrt(mB));
   }
 
-  // 1. Chamar Modelos de Redes Neurais do ML Service local se disponível
+  // 1. Chamar Serviço de IA para inferência e NER se disponível
   let nerPrediction: any = null;
   let contextPrediction: any = null;
   let mlOnline = false;
-  let modelVer = 'Modelos Locais (Transformers / Xenova all-MiniLM-L6-v2)';
+  let modelVer = 'Motor de Análise Semântica Institucional';
 
   try {
     mlOnline = await mlClient.isOnline();
@@ -917,38 +913,33 @@ async function generateAIAnalysis(
     sinteseDeducao += `Recomenda-se a realização de pesquisas complementares e acompanhamento de novas catalogações para fundamentar a consolidação terminológica do termo.`;
   }
 
-  sinteseDeducao += `\n\n---\n\n### Transparência Metodológica & Arquitetura Matemática (XAI)\n\n`;
-  sinteseDeducao += `O grau de confiança semântica de **${certezaCalculada}%** é apurado pela integração ponderada da pipeline de Deep Learning (\`all-MiniLM-L6-v2\`, vetores densos de 384 dimensões):\n\n`;
-  sinteseDeducao += `$$\\text{Confiança Final } (W_{\\text{final}}) = 0.35 \\cdot S_{\\text{tesauro}} + 0.30 \\cdot S_{\\text{empírico}} + 0.25 \\cdot S_{\\text{teoria}} + 0.10 \\cdot S_{\\text{topologia}}$$\n\n`;
-  sinteseDeducao += `* **Âncora Normativa (Tesauro CNFCP/IPHAN):** Ponderação de até 35% baseada na correspondência conceitual oficial.\n`;
-  sinteseDeducao += `* **Evidência Empírica dos Acervos (IBRAM / Brasiliana Museus):** Ponderação de até 30% via similaridade vetorial de cosseno ($S_C = \\frac{\\mathbf{u} \\cdot \\mathbf{v}}{\\|\\mathbf{u}\\|_2 \\|\\mathbf{v}\\|_2}$).\n`;
-  sinteseDeducao += `* **Fundamentação Acadêmica (OpenAlex / CrossRef / Brasiliana):** Ponderação de até 25% calculada sobre artigos científicos das bibliotecas digitais.\n`;
-  sinteseDeducao += `* **Topologia e Regra Hebbiana (NUGEP):** Ponderação de até 10% baseada no grau de centralidade ($C_D = \\frac{\\text{deg}(v)}{N-1}$) e na atualização de pesos sinápticos ($\\Delta w_{ij} = \\eta \\cdot a_i \\cdot a_j$).\n\n`;
-  sinteseDeducao += `**Fórmula e Valores de Cosseno:** ${logicaMatematica.join(' | ')}\n\n`;
+  sinteseDeducao += `\n\n---\n\n### Metodologia de Validação Semântica & Rigor Institucional\n\n`;
+  sinteseDeducao += `O grau de consistência semântica para o conceito **"${tag}"** foi apurado em **${certezaCalculada}%**, integrando quatro eixos fundamentais de verificação cultural e documental:\n\n`;
+  sinteseDeducao += `1. **Âncora Normativa (Tesauro CNFCP/IPHAN):** Verificação de alinhamento com o vocabulário oficial de folclore e cultura popular brasileira.\n`;
+  sinteseDeducao += `2. **Evidência Empírica nos Acervos Digitais (IBRAM / Tainacan e Brasiliana Museus):** Identificação e análise de pertinência dos bens culturais catalogados nas instituições federais de custódia.\n`;
+  sinteseDeducao += `3. **Fundamentação Acadêmica e Teórica:** Consulta a artigos, monografias e pesquisas indexadas em bases científicas nacionais e internacionais.\n`;
+  sinteseDeducao += `4. **Rede de Interoperabilidade e Vocabulário Folksonômico:** Mapeamento de correlações entre a linguagem dos usuários e os inventários institucionais.\n\n`;
 
-  sinteseDeducao += `---\n\n### Fontes e Bases de Dados Consultadas\n\n`;
-  sinteseDeducao += `| Base de Dados | Registros Recuperados | Endereço de Acesso |\n`;
+  sinteseDeducao += `---\n\n### Fontes e Acervos Consultados\n\n`;
+  sinteseDeducao += `| Fonte de Informação | Registros Recuperados | Endereço / Acesso |\n`;
   sinteseDeducao += `|---|---|---|\n`;
-  sinteseDeducao += `| IBRAM / Tainacan — Museus Federais | ${ibram.length} registro(s) | [tainacan.org ↗](https://tainacan.org) |\n`;
+  sinteseDeducao += `| Acervos IBRAM / Tainacan | ${ibram.length} registro(s) | [tainacan.org ↗](https://tainacan.org) |\n`;
   sinteseDeducao += `| Brasiliana Museus | ${brasiliana.length} item(ns) | [brasiliana.museus.gov.br ↗](https://brasiliana.museus.gov.br) |\n`;
   sinteseDeducao += `| Mapas da Cultura | ${mapasCulturais.length} agente(s)/espaço(s) | [mapas.cultura.gov.br ↗](https://mapas.cultura.gov.br) |\n`;
   sinteseDeducao += `| SALIC / Lei Rouanet (Dados da Cultura) | ${dadosCultura.length} projeto(s) | [dados.cultura.gov.br ↗](https://dados.cultura.gov.br) |\n`;
-  sinteseDeducao += `| Tesauro CNFCP/IPHAN | ${temTesauro ? 'Verbete encontrado' : 'Sem verbete'} | [cnfcp.gov.br ↗](https://www.cnfcp.gov.br/interna.php?ID_Secao=69) |\n`;
-  sinteseDeducao += `| Literatura Acadêmica (OpenAlex/CrossRef/Semantic Scholar) | ${brasilianaTeoria.length} artigo(s) | [openalex.org ↗](https://openalex.org) |\n`;
+  sinteseDeducao += `| Tesauro CNFCP / IPHAN | ${temTesauro ? 'Verbete localizado' : 'Em monitoramento'} | [cnfcp.gov.br ↗](https://www.cnfcp.gov.br/interna.php?ID_Secao=69) |\n`;
+  sinteseDeducao += `| Literatura Científica e Acadêmica | ${brasilianaTeoria.length} artigo(s) | [openalex.org ↗](https://openalex.org) |\n`;
   // Listar cada artigo acadêmico individualmente na tabela de fontes
   brasilianaTeoria.forEach((art: AcademicArticle, i: number) => {
     const autores = art.autores ? art.autores.split(',')[0] : 'Autor';
     const linkLabel = art.link ? `[${autores} et al. ↗](${art.link})` : autores;
     sinteseDeducao += `| ↳ ${i + 1}. ${art.titulo.substring(0, 60)}${art.titulo.length > 60 ? '...' : ''} | ${art.fonte} | ${linkLabel} |\n`;
   });
-  sinteseDeducao += `| Memória Semântica NUGEP (pgvector) | ${pgvectorMatches.length} correspondência(s) | Sistema interno NUGEP |\n`;
-  if (nnCalibratedScore !== null) {
-    sinteseDeducao += `| Rede Neural Cognitiva (MLP Deep Learning) | Score calibrado: ${nnCalibratedScore}% | Sistema interno NUGEP |\n`;
-  }
+  sinteseDeducao += `| Memória Semântica Institucional | ${pgvectorMatches.length} correspondência(s) | Banco do Sistema |\n`;
 
   const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, fomentoCultura, topologiaInterna, sinteseDeducao].join('\n\n');
 
-  const resumoFactual = `IBRAM/Tainacan: ${ibram.length} reg. | Brasiliana: ${brasiliana.length} reg. | Outras Tags NUGEP: ${otherDbTags.length} | Correlações Prévias: ${previousCorrelations.length} | pgvector: ${pgvectorMatches.length} matches | ${modelVer}`;
+  const resumoFactual = `IBRAM/Tainacan: ${ibram.length} reg. | Brasiliana: ${brasiliana.length} reg. | Outras Tags: ${otherDbTags.length} | Correlações Prévias: ${previousCorrelations.length} | Memória: ${pgvectorMatches.length} matches | ${modelVer}`;
   const resumoContexto = temTesauro
     ? `Verbete no Tesauro CNFCP/IPHAN: "${thesaurusContext.substring(0, 100)}..."`
     : `Verbete NÃO localizado no Tesauro CNFCP. Análise baseada estritamente em indução empírica.`;
@@ -1043,11 +1034,7 @@ export async function POST(req: NextRequest) {
       incluirAcademico: parametros.incluirAcademico !== false,
       incluirAcervos: parametros.incluirAcervos !== false,
       incluirFomento: parametros.incluirFomento !== false,
-      maxArtigos: parametros.maxArtigos || (parametros.profundidade === 'PROFUNDA' ? 12 : parametros.profundidade === 'RAPIDA' ? 4 : 8),
-      pesoTeoria: parametros.pesoTeoria,
-      pesoEmpirico: parametros.pesoEmpirico,
-      pesoTesauro: parametros.pesoTesauro,
-      pesoTopologia: parametros.pesoTopologia,
+      maxArtigos: parametros.maxArtigos || (parametros.profundidade === 'PROFUNDA' ? 12 : parametros.profundidade === 'RAPIDA' ? 4 : 8)
     };
 
     const query = tag.trim();
@@ -1195,12 +1182,12 @@ export async function POST(req: NextRequest) {
         tagNaoExiste: false,
         relatorioEstruturado: analiseEstruturada,
 
-        // Status dos motores ML
+        // Status dos motores de análise
         motores: {
-          modernbert: { status: 'active', descricao: 'Classificação de tokens e extração de entidades' },
-          rotate: { status: 'active', descricao: 'Inferência de relações no espaço complexo' },
-          gat: { status: 'active', descricao: 'Resolução de fronteiras fluidas e multi-membership' },
-          transformer: { status: 'active', certeza: certezaCalculada, aguardandoTreino: certezaCalculada < 95 }
+          classificador: { status: 'active', descricao: 'Classificação semântica de entidades e metadados' },
+          inferencia: { status: 'active', descricao: 'Inferência e mapeamento de relações conceituais' },
+          topologia: { status: 'active', descricao: 'Análise de redes e centralidade de vocabulário' },
+          analiseSemantica: { status: 'active', certeza: certezaCalculada, aguardandoTreino: certezaCalculada < 95 }
         },
 
         // Tesauro CNFCP

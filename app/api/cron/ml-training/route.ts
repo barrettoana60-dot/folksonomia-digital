@@ -442,7 +442,7 @@ export async function GET(request: Request) {
         : `O Tesauro do CNFCP/IPHAN não possui verbete formalizado para o termo.`;
 
       if (temTeoria) {
-        ancoraNormativa += ` Literatura acadêmica de suporte identificada (ex: "${brasilianaTeoria[0]?.titulo}"). Cosseno/similaridade média: ${(similaridadeTeoriaMedia * 100).toFixed(1)}%.`;
+        ancoraNormativa += ` Literatura acadêmica de suporte identificada (ex: "${brasilianaTeoria[0]?.titulo}"). Convergência conceitual: ${(similaridadeTeoriaMedia * 100).toFixed(1)}%.`;
       }
 
       let evidenciaEmpirica = `Registros identificados: IBRAM/Tainacan: ${ibram.length} | Brasiliana Museus: ${brasiliana.length}. `;
@@ -454,9 +454,9 @@ export async function GET(request: Request) {
 
       let extracao = '';
       if (topObras.length > 0) {
-        extracao = `Obras de maior proximidade vetorial: ${topObras.slice(0, 2).map(o => `"${o.titulo}" (Convergência: ${(o.similaridade * 100).toFixed(1)}%)`).join(', ')}. `;
+        extracao = `Obras de maior proximidade semântica: ${topObras.slice(0, 2).map(o => `"${o.titulo}" (Convergência: ${(o.similaridade * 100).toFixed(1)}%)`).join(', ')}. `;
         if (mlOnline && nerPrediction && nerPrediction.tokens) {
-          extracao += `Entidades rotuladas via ModernBERT NER: ${nerPrediction.tokens.filter((t:any) => t.category !== 'O').slice(0, 3).map((t:any) => `[${t.category}]: "${t.token}"`).join(', ')}.`;
+          extracao += `Entidades identificadas: ${nerPrediction.tokens.filter((t:any) => t.category !== 'O').slice(0, 3).map((t:any) => `[${t.category}]: "${t.token}"`).join(', ')}.`;
         }
       } else {
         extracao = `Ausência de corpus representativo para extração lexical.`;

@@ -145,19 +145,43 @@ export class IbramConnector implements OpenDataConnector {
 
       if (search) queryParams.set('search', search);
 
-      const url = `${endpoint.baseUrl}${endpoint.apiPath}/collection/${endpoint.collectionId}/items/?${queryParams}`;
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(12000)
-      });
+      const headers = {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 FolksonomiaDigital/2.0'
+      };
 
-      if (!res.ok) {
-        console.warn(`[IBRAM/${endpoint.shortName}] HTTP ${res.status}`);
-        return [];
+      const url = `${endpoint.baseUrl}${endpoint.apiPath}/collection/${endpoint.collectionId}/items/?${queryParams}`;
+      let items: any[] = [];
+
+      try {
+        const res = await fetch(url, {
+          headers,
+          signal: AbortSignal.timeout(10000)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          items = data.items || (Array.isArray(data) ? data : []);
+        }
+      } catch (collErr) {
+        console.warn(`[IBRAM/${endpoint.shortName}] Collection search error, fallbacking to global search:`, collErr);
       }
 
-      const data = await res.json();
-      const items = data.items || (Array.isArray(data) ? data : []);
+      // Fallback: se a busca por coleção específica retornar vazia ou falhar, buscar no endpoint global de itens do Tainacan
+      if (items.length === 0) {
+        try {
+          const globalUrl = `${endpoint.baseUrl}${endpoint.apiPath}/items/?${queryParams}`;
+          const resGlobal = await fetch(globalUrl, {
+            headers,
+            signal: AbortSignal.timeout(10000)
+          });
+          if (resGlobal.ok) {
+            const dataGlobal = await resGlobal.json();
+            items = dataGlobal.items || (Array.isArray(dataGlobal) ? dataGlobal : []);
+          }
+        } catch (globalErr) {
+          console.warn(`[IBRAM/${endpoint.shortName}] Global fetch failed:`, globalErr);
+        }
+      }
 
       return items.map((item: any) => this.parseRecord(item, endpoint));
     } catch (err) {
