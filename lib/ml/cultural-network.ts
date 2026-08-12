@@ -40,6 +40,11 @@ export interface CulturalNetworkEdge {
   eixoRel?: string;
   chainDepth?: number;
   mechanism?: 'hebbian' | 'propagated' | 'rag' | 'curator' | 'inferred';
+  /** Modelo ML que inferiu esta conexão */
+  model?: 'modernbert' | 'rotate' | 'gat' | 'mlp' | 'xenova' | 'heuristic';
+  relation?: string;
+  insight?: string;
+  live?: boolean;
 }
 
 export interface ChainInference {
