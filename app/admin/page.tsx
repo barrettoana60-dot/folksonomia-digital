@@ -304,6 +304,9 @@ export default function AdminPage() {
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [chainLog, setChainLog] = useState<{ insight: string; ts: string }[]>([]);
   const [realMetrics, setRealMetrics] = useState<any>(null);
+  const [modelStatuses, setModelStatuses] = useState<{ id: string; name: string; online: boolean; role: string; inferenceCount: number }[]>([]);
+  const [liveFeed, setLiveFeed] = useState<{ from: string; to: string; model: string; insight: string; confidence: number; ts: string }[]>([]);
+  const [isModelScanning, setIsModelScanning] = useState(false);
 
   // Análise de Tags State (ML)
   const [tagAnalysisResult, setTagAnalysisResult] = useState<any>(null);
@@ -804,6 +807,11 @@ export default function AdminPage() {
       setNnDiscovered(prevDisc => [...newDiscoveredItems, ...prevDisc].slice(0, 12));
     }
 
+    // 5b. Pulso vivo via modelos ML/DL a cada 2 épocas
+    if (nextEpoch % 2 === 0) {
+      pulseLiveNetwork(firedId);
+    }
+
     // 5. Expansão contínua: periodicamente criar novos pontos baseados na co-ocorrência
     if (nextEpoch % 3 === 0) {
       const parentId = firedId;
@@ -1134,6 +1142,7 @@ export default function AdminPage() {
           });
         }
         if (metrics) setRealMetrics(metrics);
+        if (json.data.models) setModelStatuses(json.data.models);
       }
     } catch (err) {
       console.warn('[Interop] Falha ao carregar rede:', err);
@@ -1160,6 +1169,158 @@ export default function AdminPage() {
         }
       }
     } catch { /* silent */ }
+  }, []);
+
+  /** Pulso vivo via modelos ML/DL (ModernBERT + RotatE + MLP) */
+  const pulseLiveNetwork = useCallback(async (sourceId?: string) => {
+    try {
+      const res = await fetch('/api/admin/interop-network', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'pulse',
+          sourceId,
+          nodes: interopNodesRef.current.map(n => ({
+            id: n.id, label: n.label, eixo: (n as any).eixo, type: (n as any).type || '',
+            desc: (n as any).desc || '', fill: n.fill, size: n.size, x: n.x, y: n.y,
+            activation: n.activation ?? 0,
+          })),
+          edges: interopConnectionsRef.current,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) return;
+
+      const { pulses, connections, activatedNodes, chains, models } = json.data;
+
+      if (models) setModelStatuses(models);
+
+      if (activatedNodes?.length) {
+        setInteropNodes(nodes => nodes.map(n => {
+          const act = activatedNodes.find((a: any) => a.id === n.id);
+          return act ? { ...n, activation: act.activation } : n;
+        }));
+      }
+
+      if (pulses?.length) {
+        setActiveSignals(pulses.map((p: any) => ({ id: p.id, from: p.from, to: p.to, progress: 0 })));
+        let step = 0;
+        const anim = setInterval(() => {
+          step += 0.08;
+          setActiveSignals(sigs => sigs.map(s => ({ ...s, progress: Math.min(1, step) })));
+          if (step >= 1) { clearInterval(anim); setTimeout(() => setActiveSignals([]), 300); }
+        }, 50);
+      }
+
+      if (connections?.length) {
+        setInteropConnections(conns => {
+          let updated = [...conns];
+          for (const c of connections) {
+            const exists = updated.some(e =>
+              (e.from === c.from && e.to === c.to) || (e.from === c.to && e.to === c.from)
+            );
+            if (!exists) {
+              updated.push({
+                from: c.from, to: c.to, weight: c.weight,
+                discovered: true, isNew: true,
+                model: c.model, relation: c.relation,
+                eixoRel: (interopNodesRef.current.find(n => n.id === c.from) as any)?.eixo,
+              } as any);
+            } else {
+              updated = updated.map(e =>
+                ((e.from === c.from && e.to === c.to) || (e.from === c.to && e.to === c.from))
+                  ? { ...e, weight: Math.min(1, e.weight + 0.02), model: c.model }
+                  : e
+              );
+            }
+          }
+          return updated;
+        });
+
+        setLiveFeed(prev => [
+          ...connections.slice(0, 4).map((c: any) => ({
+            from: c.fromLabel || c.from,
+            to: c.toLabel || c.to,
+            model: c.model,
+            insight: c.insight,
+            confidence: c.confidence,
+            ts: new Date().toLocaleTimeString('pt-BR'),
+          })),
+          ...prev,
+        ].slice(0, 20));
+      }
+
+      if (chains?.length) {
+        setChainLog(prev => [
+          ...chains.slice(0, 3).map((c: any) => ({ insight: c.insight, ts: new Date().toLocaleTimeString('pt-BR') })),
+          ...prev,
+        ].slice(0, 15));
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  const scanWithModels = useCallback(async () => {
+    setIsModelScanning(true);
+    try {
+      const res = await fetch('/api/admin/interop-network', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'infer-live',
+          maxPairs: 15,
+          nodes: interopNodesRef.current.filter(n => n.id !== 'core').map(n => ({ id: n.id, label: n.label })),
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const { connections, chains, models, pulses } = json.data;
+        if (models) setModelStatuses(models);
+
+        if (connections?.length) {
+          setInteropConnections(conns => {
+            const updated = [...conns];
+            for (const c of connections) {
+              if (!updated.some(e => (e.from === c.from && e.to === c.to) || (e.from === c.to && e.to === c.from))) {
+                updated.push({
+                  from: c.from, to: c.to, weight: c.weight,
+                  discovered: true, isNew: true, model: c.model, relation: c.relation,
+                } as any);
+              }
+            }
+            return updated;
+          });
+          setLiveFeed(prev => [
+            ...connections.map((c: any) => ({
+              from: c.fromLabel, to: c.toLabel, model: c.model,
+              insight: c.insight, confidence: c.confidence,
+              ts: new Date().toLocaleTimeString('pt-BR'),
+            })),
+            ...prev,
+          ].slice(0, 20));
+          setNnDiscovered(prev => [
+            ...connections.slice(0, 6).map((c: any, i: number) => ({
+              id: `live-${Date.now()}-${i}`,
+              from: c.from, to: c.to,
+              label: `[${c.model?.toUpperCase()}] ${c.insight}`,
+              epoch: nnEpochRef.current, confidence: c.confidence,
+            })),
+            ...prev,
+          ].slice(0, 12));
+        }
+
+        if (chains?.length) {
+          setChainLog(prev => [
+            ...chains.map((c: any) => ({ insight: c.insight, ts: new Date().toLocaleTimeString('pt-BR') })),
+            ...prev,
+          ].slice(0, 15));
+        }
+
+        if (pulses?.length) {
+          setActiveSignals(pulses.map((p: any) => ({ id: p.id, from: p.from, to: p.to, progress: 0 })));
+        }
+      }
+    } catch { /* silent */ }
+    finally { setIsModelScanning(false); }
   }, []);
 
   const handleSemanticSearch = async () => {
@@ -3113,6 +3274,20 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                             <circle key={`bg${i}`} cx={(i%8)*115+30} cy={Math.floor(i/8)*72+30} r="1.2" fill="rgba(255,255,255,0.03)"/>
                           ))}
 
+                          {/* SINAIS VIVOS — partículas percorrendo sinapses */}
+                          {activeSignals.map(sig => {
+                            const fn = interopNodes.find(n => n.id === sig.from);
+                            const tn = interopNodes.find(n => n.id === sig.to);
+                            if (!fn || !tn) return null;
+                            const px = fn.x + (tn.x - fn.x) * sig.progress;
+                            const py = fn.y + (tn.y - fn.y) * sig.progress;
+                            return (
+                              <circle key={sig.id} cx={px} cy={py} r="3.5"
+                                fill="#fff" opacity={0.9 - sig.progress * 0.3}
+                                filter="url(#nn-fire)" className="pointer-events-none"/>
+                            );
+                          })}
+
                           {/* SINAPSES com espessura proporcional ao peso e cor por eixo semântico */}
                           {interopConnections.map((conn: any, idx: number) => {
                             const fn = interopNodes.find((n: any) => n.id === conn.from);
@@ -3147,6 +3322,14 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                                   className={isDisc ? 'synapse-new' : 'synapse-pulse'}
                                   markerEnd={isDisc ? 'url(#arrow-new)' : 'url(#arrow-nn)'}
                                   style={{opacity: isSel ? 1 : isDisc ? 0.7 : w * 0.7 + 0.15}}/>
+                                {/* Badge de modelo ML na aresta descoberta */}
+                                {isDisc && (conn as any).model && (
+                                  <text x={(fn.x+tn.x)/2} y={(fn.y+tn.y)/2 + 8} textAnchor="middle"
+                                    fill="rgba(167,139,250,0.8)" fontSize="6" fontFamily="monospace"
+                                    className="pointer-events-none">
+                                    {(conn as any).model}
+                                  </text>
+                                )}
                                 {/* Label de peso nas arestas selecionadas */}
                                 {isSel && (
                                   <text x={(fn.x+tn.x)/2} y={(fn.y+tn.y)/2 - 5} textAnchor="middle"
@@ -3249,6 +3432,13 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                               Fila: {realMetrics.queuePending}p · {Math.round((realMetrics.nnAccuracy || 0) * 100)}% acc
                             </span>
                           )}
+                          <button
+                            onClick={scanWithModels}
+                            disabled={isModelScanning}
+                            className="text-[8px] uppercase font-bold px-2 py-1 bg-[#0891B2]/10 text-[#0891B2] rounded hover:bg-[#0891B2]/20 transition-colors disabled:opacity-50"
+                          >
+                            {isModelScanning ? 'Escaneando...' : 'Escanear Modelos'}
+                          </button>
                           <button
                             onClick={async () => {
                               try {
@@ -3479,6 +3669,49 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
 
                   {/* COLUNA 3: Painel de Inspecao do Neuronio */}
                   <div className="space-y-4">
+                    {/* Status dos Modelos ML/DL */}
+                    <div className="glass-card p-4 border border-black/07 space-y-3">
+                      <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#0891B2] flex items-center gap-2">
+                        <Cpu size={13}/> Modelos da Rede Viva
+                      </h3>
+                      <div className="space-y-2">
+                        {(modelStatuses.length > 0 ? modelStatuses : [
+                          { id: 'modernbert', name: 'ModernBERT NER', online: false, role: 'NER', inferenceCount: 0 },
+                          { id: 'rotate', name: 'RotatE', online: false, role: 'Relações', inferenceCount: 0 },
+                          { id: 'gat', name: 'GAT', online: false, role: 'Comunidades', inferenceCount: 0 },
+                          { id: 'mlp', name: 'MLP Cognitivo', online: true, role: 'Confiança', inferenceCount: 0 },
+                        ]).map(m => (
+                          <div key={m.id} className="flex items-center gap-2 p-2 rounded-lg bg-black/[0.02] border border-black/05">
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${m.online ? 'bg-green-400 animate-pulse' : 'bg-gray-300'}`}/>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[9px] font-bold text-[#1A1A1A]/80 truncate">{m.name}</p>
+                              <p className="text-[7px] text-[#1A1A1A]/40 truncate">{m.role}</p>
+                            </div>
+                            <span className="text-[7px] font-mono text-[#1A1A1A]/30">{m.inferenceCount || 0}x</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Feed de conexões vivas descobertas por modelos */}
+                    {liveFeed.length > 0 && (
+                      <div className="glass-card p-4 border border-[#0891B2]/20 space-y-2 max-h-48 overflow-y-auto">
+                        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[#0891B2]">
+                          Conexões Vivas ({liveFeed.length})
+                        </h3>
+                        {liveFeed.slice(0, 8).map((item, i) => (
+                          <div key={i} className="p-2 bg-[#0891B2]/5 border border-[#0891B2]/10 rounded-lg">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[7px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#0891B2]/15 text-[#0891B2]">{item.model}</span>
+                              <span className="text-[7px] font-mono text-[#1A1A1A]/30">{item.confidence}%</span>
+                            </div>
+                            <p className="text-[8px] text-[#1A1A1A]/70 mt-1 leading-snug">{item.insight}</p>
+                            <p className="text-[7px] text-[#1A1A1A]/40 mt-0.5">{item.from} ↔ {item.to}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Card de inspecao */}
                     {graphNodeSelected ? (() => {
                       const nodeInfo = interopNodes.find(n => n.label === graphNodeSelected);
@@ -3488,7 +3721,7 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                         .map(c => {
                           const otherId = c.from === nodeInfo.id ? c.to : c.from;
                           const other = interopNodes.find(n => n.id === otherId);
-                          return { label: other?.label ?? otherId, role: c.from === nodeInfo.id ? 'SAIDA' : 'ENTRADA', weight: c.weight, discovered: c.discovered };
+                          return { label: other?.label ?? otherId, role: c.from === nodeInfo.id ? 'SAIDA' : 'ENTRADA', weight: c.weight, discovered: c.discovered, model: (c as any).model, relation: (c as any).relation };
                         });
                       const ni = nodeInfo as any;
                       return (
@@ -3661,6 +3894,9 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                                     <span className={`text-[7px] font-bold px-1 py-0.5 rounded ${
                                       c.role==='SAIDA' ? 'text-orange-700 bg-orange-500/10' : 'text-blue-700 bg-blue-500/10'
                                     }`}>{c.role}</span>
+                                    {(c as any).model && (
+                                      <span className="text-[6px] font-mono px-1 py-0.5 rounded bg-purple-500/10 text-purple-600">{(c as any).model}</span>
+                                    )}
                                   </div>
                                 );
                               }) : (
