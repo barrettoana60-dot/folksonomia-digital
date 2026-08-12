@@ -1,0 +1,30 @@
+'use client';
+
+export default function AdminError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-8">
+      <div className="max-w-2xl w-full bg-white/80 border border-red-200 rounded-2xl p-8 space-y-4">
+        <h2 className="text-red-600 font-bold text-lg uppercase tracking-wider">
+          Erro detectado
+        </h2>
+        <pre className="bg-red-50 border border-red-100 rounded-xl p-4 text-xs text-red-800 overflow-auto whitespace-pre-wrap break-all">
+          {error?.message || 'Erro desconhecido'}
+          {'\n\n'}
+          {error?.stack || ''}
+        </pre>
+        <button
+          onClick={reset}
+          className="px-6 py-2 bg-red-600 text-white rounded-xl text-sm font-semibold"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    </div>
+  );
+}
