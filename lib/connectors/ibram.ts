@@ -156,11 +156,13 @@ export class IbramConnector implements OpenDataConnector {
       try {
         const res = await fetch(url, {
           headers,
-          signal: AbortSignal.timeout(10000)
+          signal: AbortSignal.timeout(12000),
         });
         if (res.ok) {
           const data = await res.json();
           items = data.items || (Array.isArray(data) ? data : []);
+        } else if (res.status === 403) {
+          console.warn(`[IBRAM/${endpoint.shortName}] API temporariamente indisponível (403)`);
         }
       } catch (collErr) {
         console.warn(`[IBRAM/${endpoint.shortName}] Collection search error, fallbacking to global search:`, collErr);
@@ -191,20 +193,32 @@ export class IbramConnector implements OpenDataConnector {
   }
 
   /**
-   * Busca em todos os museus do IBRAM simultaneamente.
+   * Busca em todos os museus do IBRAM com lotes paralelos controlados.
+   * Prioriza museus com acervo de cultura popular / folclore.
    */
   async searchAllMuseums(search: string = '', perPage: number = 5): Promise<TainacanRecord[]> {
-    const promises = IBRAM_ENDPOINTS.map((_, i) => 
-      this.searchMuseum(i, { search, perPage })
-    );
-
-    const results = await Promise.allSettled(promises);
+    const priorityOrder = [7, 0, 1, 4, 3, 2, 5, 6]; // CNFCP, MART, Caeté, Diamante, Abolição...
     const allRecords: TainacanRecord[] = [];
+    const seen = new Set<string>();
+    const batchSize = 3;
 
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        allRecords.push(...result.value);
+    for (let i = 0; i < priorityOrder.length; i += batchSize) {
+      const batch = priorityOrder.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(idx => this.searchMuseum(idx, { search, perPage }))
+      );
+
+      for (const result of results) {
+        if (result.status !== 'fulfilled') continue;
+        for (const rec of result.value) {
+          const key = `${rec.museum}-${rec.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          allRecords.push(rec);
+        }
       }
+
+      if (allRecords.length >= perPage * 4) break;
     }
 
     return allRecords;

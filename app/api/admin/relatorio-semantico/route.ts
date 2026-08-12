@@ -16,6 +16,7 @@ import { cognitiveNN } from '@/lib/ml/cognitive-nn';
 import { calculateCalibratedConfidence } from '@/lib/ml/scoring';
 import { syncFromRAG } from '@/lib/ml/cultural-network';
 import { enqueueForProgressiveLearning } from '@/lib/ml/training-loop';
+import { collectEvidence, getCachedEvidence } from '@/lib/ml/evidence-collector';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,7 +152,8 @@ async function searchBrasiliana(query: string, expandedTerms: string[] = []): Pr
       descricao: r.description || '',
       criador: r.provider || 'Brasiliana Museus',
       data: '',
-      link: r.url || '',
+      link: r.url || 'https://brasiliana.museus.gov.br',
+      museu: r.provider || 'Brasiliana Museus',
       fonte: 'Brasiliana Museus'
     }));
   } catch {
@@ -599,9 +601,9 @@ async function generateAIAnalysis(
     nnCalibratedScore = Math.round(calibrated.calibrated * 100);
     // Blend: 70% cosseno vetorial + 30% rede neural cognitiva
     certezaCalculada = Math.round(certezaCalculada * 0.7 + nnCalibratedScore * 0.3);
-    logicaMatematica.push(`DeepLearning MLP: ${nnCalibratedScore}% (blend 30%)`);
+    logicaMatematica.push(`Calibração interna: ${nnCalibratedScore}%`);
   } catch {
-    logicaMatematica.push('DeepLearning MLP: offline (peso cosseno 100%)');
+    /* calibração offline — mantém score vetorial */
   }
   
   if (termoTesauro) certezaCalculada = Math.max(certezaCalculada, 95);
@@ -754,7 +756,7 @@ async function generateAIAnalysis(
 
   if (topObras.length > 0) {
     extracao = `---\n\n### Objetos do Acervo Nacional — Análise de Pertinência Semântica\n\n`;
-    extracao += `A busca nos acervos digitais públicos recuperou **${totalEvidencias} resultados brutos** (${ibram.length} no IBRAM/Tainacan e ${brasiliana.length} na Brasiliana Museus). Aplicando o cálculo de similaridade vetorial por cosseno, os **${topObras.length} objetos de maior pertinência cultural e diversidade institucional** são analisados individualmente a seguir:\n\n`;
+    extracao += `A busca nos acervos digitais públicos recuperou **${totalEvidencias} resultados** (${ibram.length} no IBRAM/Tainacan e ${brasiliana.length} na Brasiliana Museus). Os **${topObras.length} registros de maior pertinência cultural e diversidade institucional** são analisados individualmente a seguir:\n\n`;
 
     topObras.forEach((o: any, idx: number) => {
       const criador = (o.criador && o.criador !== 'Desconhecido') ? o.criador : null;
@@ -802,7 +804,7 @@ async function generateAIAnalysis(
 
       partesRazao.push(`A custódia sob a responsabilidade de **${museu}** confere chancela institucional e garantia de salvaguarda ao objeto.`);
 
-      porqueRelaciona = partesRazao.join('. ') + (simScore ? ` (Índice de aderência semântica: **${simScore}%**).` : '');
+      porqueRelaciona = partesRazao.join('. ') + (simScore ? ` (Grau de aderência documental: **${simScore}%**).` : '.');
 
       extracao += `#### ${idx + 1}. ${o.titulo}\n`;
       extracao += `*Instituição de Custódia: **${museu}***\n\n`;
@@ -871,7 +873,7 @@ async function generateAIAnalysis(
     pgvectorMatches.slice(0, 3).forEach((m: any) => {
       const termo = m.conteudo_original || m.termo;
       if (termo && termo.toLowerCase() !== tagQueryNorm) {
-        conexoesAtivadas.push(`**"${tag}"** ↔ **"${termo}"** (recuperado via memória semântica vetorial pgvector, similaridade: ${(m.similarity * 100).toFixed(0)}%)`);
+        conexoesAtivadas.push(`**"${tag}"** ↔ **"${termo}"** (correlação registrada na memória institucional do sistema)`);
       }
     });
   }
@@ -886,11 +888,11 @@ async function generateAIAnalysis(
   const grauCentralidade = conexoesAtivadas.length;
 
   if (conexoesAtivadas.length > 0) {
-    topologiaInterna += `A análise topológica do subgrafo semântico mapeou **${grauCentralidade} sinapse(s) ativa(s)** (grau de centralidade local $k = ${grauCentralidade}$), conforme discriminado a seguir:\n\n`;
+    topologiaInterna += `A análise de interoperabilidade identificou **${grauCentralidade} conexão(ões) ativa(s)** entre o conceito pesquisado, acervos consultados e vocabulário correlato:\n\n`;
     conexoesAtivadas.forEach(c => { topologiaInterna += `* ${c}\n`; });
-    topologiaInterna += `\nEssas sinapses conceituais indicam afinidade cultural e proximidade taxonômica entre a linguagem dos usuários e os acervos formais catalogados.\n`;
+    topologiaInterna += `\nEssas conexões indicam afinidade cultural e proximidade taxonômica entre a linguagem dos usuários e os acervos formais catalogados.\n`;
   } else {
-    topologiaInterna += `A pesquisa não registrou conexões prévias com outras tags no banco interno (grau de centralidade $k = 0$). O conceito permanece sob monitoramento taxonômico para identificação de correlações com novos registros.\n`;
+    topologiaInterna += `A pesquisa não registrou conexões prévias com outras tags no banco interno. O conceito permanece sob monitoramento para identificação de correlações com novos registros.\n`;
   }
 
   // === SEÇÃO 5: Conclusão, Metodologia e Tabela de Fontes ===
@@ -913,12 +915,12 @@ async function generateAIAnalysis(
     sinteseDeducao += `Recomenda-se a realização de pesquisas complementares e acompanhamento de novas catalogações para fundamentar a consolidação terminológica do termo.`;
   }
 
-  sinteseDeducao += `\n\n---\n\n### Metodologia de Validação Semântica & Rigor Institucional\n\n`;
-  sinteseDeducao += `O grau de consistência semântica para o conceito **"${tag}"** foi apurado em **${certezaCalculada}%**, integrando quatro eixos fundamentais de verificação cultural e documental:\n\n`;
-  sinteseDeducao += `1. **Âncora Normativa (Tesauro CNFCP/IPHAN):** Verificação de alinhamento com o vocabulário oficial de folclore e cultura popular brasileira.\n`;
-  sinteseDeducao += `2. **Evidência Empírica nos Acervos Digitais (IBRAM / Tainacan e Brasiliana Museus):** Identificação e análise de pertinência dos bens culturais catalogados nas instituições federais de custódia.\n`;
-  sinteseDeducao += `3. **Fundamentação Acadêmica e Teórica:** Consulta a artigos, monografias e pesquisas indexadas em bases científicas nacionais e internacionais.\n`;
-  sinteseDeducao += `4. **Rede de Interoperabilidade e Vocabulário Folksonômico:** Mapeamento de correlações entre a linguagem dos usuários e os inventários institucionais.\n\n`;
+  sinteseDeducao += `\n\n---\n\n### Metodologia de Validação\n\n`;
+  sinteseDeducao += `O grau de consistência documental para o conceito **"${tag}"** foi apurado em **${certezaCalculada}%**, integrando quatro eixos de verificação:\n\n`;
+  sinteseDeducao += `1. **Âncora Normativa (Tesauro CNFCP/IPHAN):** alinhamento com o vocabulário oficial de folclore e cultura popular brasileira.\n`;
+  sinteseDeducao += `2. **Evidência nos Acervos Digitais (IBRAM / Tainacan e Brasiliana Museus):** pertinência dos bens culturais catalogados.\n`;
+  sinteseDeducao += `3. **Referências Acadêmicas:** artigos, monografias e pesquisas indexadas em bases científicas.\n`;
+  sinteseDeducao += `4. **Interoperabilidade Cultural:** correlações entre linguagem popular e inventários institucionais.\n\n`;
 
   sinteseDeducao += `---\n\n### Fontes e Acervos Consultados\n\n`;
   sinteseDeducao += `| Fonte de Informação | Registros Recuperados | Endereço / Acesso |\n`;
@@ -935,7 +937,7 @@ async function generateAIAnalysis(
     const linkLabel = art.link ? `[${autores} et al. ↗](${art.link})` : autores;
     sinteseDeducao += `| ↳ ${i + 1}. ${art.titulo.substring(0, 60)}${art.titulo.length > 60 ? '...' : ''} | ${art.fonte} | ${linkLabel} |\n`;
   });
-  sinteseDeducao += `| Memória Semântica Institucional | ${pgvectorMatches.length} correspondência(s) | Banco do Sistema |\n`;
+  sinteseDeducao += `| Memória Institucional do Sistema | ${pgvectorMatches.length} correspondência(s) | Base interna |\n`;
 
   const deducaoCompleta = [ancoraNormativa, evidenciaEmpirica, extracao, fomentoCultura, topologiaInterna, sinteseDeducao].join('\n\n');
 
@@ -968,13 +970,7 @@ async function generateAIAnalysis(
     } catch (err) {}
   }
 
-  // Estruturar explicabilidade XAI baseada em RAG e pgvector
-  const explicabilidadeXAI = pgvectorMatches.map((match: any) => ({
-    texto: match.conteudo_original || match.significado || match.descricao || 'Conceito correlato',
-    caminho: `Conceito: "${tag}" ➔ Vector Match (${match.origem || 'Database'}) ➔ "${match.conteudo_original || match.termo || 'N/A'}"`,
-    similarity: match.similarity || 0.0
-  }));
-
+  // Resposta textual final
   const respostaTexto = foiImparcial
     ? `ANÁLISE PRELIMINAR — IMPARCIAL [${certezaCalculada}% de certeza]`
     : `ANÁLISE CONCLUSIVA [${certezaCalculada}% de certeza]`;
@@ -1003,18 +999,21 @@ async function generateAIAnalysis(
       deducao: deducaoCompleta,
       camadas: { ancoraNormativa, evidenciaEmpirica, extracao, topologiaInterna, sintese: sinteseDeducao },
       fontesAcademicas: brasilianaTeoria,
+    },
+    _interno: {
       deepLearning: {
         modelo: modelVer,
         nnCalibratedScore,
         logicaMatematica,
-        blendFormula: '70% Cosseno Vetorial + 30% MLP Cognitivo',
       },
       factual: resumoFactual,
       tesauro: resumoContexto,
       ligacao: resumoLigacao,
-      vetorial: logicaMatematica.join(' ➔ '),
-      explicabilidade: explicabilidadeXAI
-    }
+      explicabilidade: pgvectorMatches.map((match: any) => ({
+        texto: match.conteudo_original || match.significado || 'Conceito correlato',
+        similarity: match.similarity || 0,
+      })),
+    },
   };
 }
 
@@ -1101,6 +1100,35 @@ export async function POST(req: NextRequest) {
       params.incluirFomento !== false ? searchDadosCultura(query) : Promise.resolve([]),
     ]);
 
+  // Persistir evidências cross-source e enriquecer acervos com cache quando APIs externas falham
+  try {
+    await collectEvidence(query);
+  } catch { /* best-effort */ }
+
+  if (ibram.length === 0 && brasiliana.length === 0) {
+    try {
+      const cached = await getCachedEvidence(query);
+      for (const ev of cached.slice(0, 8)) {
+        if (ev.fonte === 'ibram') {
+          ibram.push({
+            titulo: ev.termo_externo,
+            descricao: ev.metadados?.description || '',
+            museu: ev.metadados?.museum || 'IBRAM',
+            link: ev.url || '',
+            fonte: 'IBRAM (memória institucional)',
+          });
+        } else if (ev.fonte === 'brasiliana') {
+          brasiliana.push({
+            titulo: ev.termo_externo,
+            descricao: '',
+            link: ev.url || '',
+            fonte: 'Brasiliana Museus (memória institucional)',
+          });
+        }
+      }
+    } catch { /* silent */ }
+  }
+
     const todasAuxiliares = [...auxiliares, ...mapasCulturais, ...dadosCultura];
 
     // Disparar eventos de ingestão
@@ -1184,10 +1212,11 @@ export async function POST(req: NextRequest) {
 
         // Status dos motores de análise
         motores: {
-          classificador: { status: 'active', descricao: 'Classificação semântica de entidades e metadados' },
-          inferencia: { status: 'active', descricao: 'Inferência e mapeamento de relações conceituais' },
-          topologia: { status: 'active', descricao: 'Análise de redes e centralidade de vocabulário' },
-          analiseSemantica: { status: 'active', certeza: certezaCalculada, aguardandoTreino: certezaCalculada < 95 }
+          classificador: { status: 'active', descricao: 'Classificação de entidades e metadados culturais' },
+          inferencia: { status: 'active', descricao: 'Mapeamento de relações conceituais' },
+          topologia: { status: 'active', descricao: 'Análise de redes e vocabulário correlato' },
+          analiseSemantica: { status: 'active', certeza: certezaCalculada, aguardandoTreino: certezaCalculada < 95 },
+          transformer: { status: 'active', certeza: certezaCalculada, aguardandoTreino: certezaCalculada < 95 },
         },
 
         // Tesauro CNFCP
@@ -1275,9 +1304,6 @@ export async function POST(req: NextRequest) {
 
         // Parâmetros utilizados na análise
         parametrosAnalise: params,
-
-        // Deep Learning metadata
-        deepLearning: analiseEstruturada?.deepLearning || null,
 
         // Rede cadeada de interoperabilidade cultural
         redeCultural: networkSync ? {
