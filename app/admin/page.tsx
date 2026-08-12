@@ -296,10 +296,6 @@ export default function AdminPage() {
     incluirAcervos: true,
     incluirFomento: true,
     maxArtigos: 8,
-    pesoTeoria: 0.25,
-    pesoEmpirico: 0.30,
-    pesoTesauro: 0.35,
-    pesoTopologia: 0.10,
   });
   const [showAdvancedParams, setShowAdvancedParams] = useState(false);
   const [chainLog, setChainLog] = useState<{ insight: string; ts: string }[]>([]);
@@ -1838,8 +1834,8 @@ export default function AdminPage() {
     if (!semanticResult) return;
 
     const tag          = semanticResult.tag || '';
-    const certeza      = semanticResult.motores?.transformer?.certeza ?? 0;
-    const aguardando   = semanticResult.motores?.transformer?.aguardandoTreino;
+    const certeza      = semanticResult.motores?.analiseSemantica?.certeza ?? semanticResult.motores?.transformer?.certeza ?? 0;
+    const aguardando   = semanticResult.motores?.analiseSemantica?.aguardandoTreino ?? semanticResult.motores?.transformer?.aguardandoTreino;
     const tesauro      = semanticResult.tesauro?.contexto || '';
     const termosExp    = (semanticResult.tesauro?.termosExpandidos || []) as string[];
     const ibramTotal   = semanticResult.correlacoes?.ibram?.total ?? 0;
@@ -1961,7 +1957,7 @@ export default function AdminPage() {
 <div class="header">
   <div>
     <p class="sysname">Folksonomia Digital 2.0</p>
-    <p class="rtype">Relatório Semântico — Análise por Deep Learning</p>
+    <p class="rtype">Relatório Semântico — Parecer Institucional</p>
   </div>
   <div class="datebox">
     <p>Gerado em</p>
@@ -1981,7 +1977,7 @@ export default function AdminPage() {
     <p class="certeza-lbl">${aguardando ? 'Em aprendizado contínuo' : 'Certeza semântica atingida'}</p>
     <p class="certeza-desc">${aguardando
       ? 'Limiar de 95% não atingido. O sistema ampliará as buscas progressivamente.'
-      : 'O raciocínio vetorial confirma correlação semântica robusta com o acervo institucional.'}
+      : 'Evidências documentais confirmam correlação com o acervo institucional consultado.'}
     </p>
     ${certChart}
   </div>
@@ -2001,7 +1997,7 @@ ${tesauro ? `<p class="sec-title">📖 Tesauro CNFCP / IPHAN — Definição Nor
 <div class="bq">${tesauro.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
 ${termosExp.length > 0 ? `<div class="termos">${termosExp.map((t: string) => `<span class="termo">${t}</span>`).join('')}</div>` : ''}` : ''}
 
-<p class="sec-title">📋 Análise Completa do Sistema de IA</p>
+<p class="sec-title">📋 Parecer Semântico Completo</p>
 ${md2html(fullReport)}
 
 ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema</p>
@@ -2533,7 +2529,7 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Relatório Semântico</h2>
-                    <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Análise profunda com cruzamento de dados — ModernBERT + RotatE + GAT</p>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Análise semântica profunda com cruzamento de acervos e fontes institucionais</p>
                   </div>
                   <div className="flex gap-3 w-full md:w-auto">
                     <button onClick={handleExportPDF} disabled={!semanticResult} className="liquid-button !bg-white/45 backdrop-blur-md border border-white/50 shadow-md flex items-center gap-2 flex-1 md:flex-none justify-center hover:scale-105 active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed !text-[#1A1A1A]">
@@ -2623,18 +2619,6 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                             onChange={e => setAnalysisParams(p => ({ ...p, maxArtigos: Number(e.target.value) }))}
                             className="liquid-input !p-2 text-xs w-full" />
                         </div>
-                        <div>
-                          <label className="text-[9px] uppercase font-semibold tracking-wider text-[#1A1A1A]/40 block mb-1">Peso Teoria ({Math.round(analysisParams.pesoTeoria * 100)}%)</label>
-                          <input type="range" min={0.05} max={0.50} step={0.05} value={analysisParams.pesoTeoria}
-                            onChange={e => setAnalysisParams(p => ({ ...p, pesoTeoria: Number(e.target.value) }))}
-                            className="w-full accent-[#E85002]" />
-                        </div>
-                        <div>
-                          <label className="text-[9px] uppercase font-semibold tracking-wider text-[#1A1A1A]/40 block mb-1">Peso Empírico ({Math.round(analysisParams.pesoEmpirico * 100)}%)</label>
-                          <input type="range" min={0.05} max={0.50} step={0.05} value={analysisParams.pesoEmpirico}
-                            onChange={e => setAnalysisParams(p => ({ ...p, pesoEmpirico: Number(e.target.value) }))}
-                            className="w-full accent-[#E85002]" />
-                        </div>
                         <label className="flex items-center gap-2 text-xs text-[#1A1A1A]/70 cursor-pointer">
                           <input type="checkbox" checked={analysisParams.incluirAcademico}
                             onChange={e => setAnalysisParams(p => ({ ...p, incluirAcademico: e.target.checked }))}
@@ -2645,7 +2629,7 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                             onChange={e => setAnalysisParams(p => ({ ...p, incluirAcervos: e.target.checked }))}
                             className="accent-[#E85002]" /> Acervos IBRAM/Brasiliana
                         </label>
-                        <label className="flex items-center gap-2 text-xs text-[#1A1A1A]/70 cursor-pointer">
+                        <label className="flex items-center gap-2 text-xs text-[#1A1A1A]/70 cursor-pointer col-span-2 md:col-span-4">
                           <input type="checkbox" checked={analysisParams.incluirFomento}
                             onChange={e => setAnalysisParams(p => ({ ...p, incluirFomento: e.target.checked }))}
                             className="accent-[#E85002]" /> Fomento/SALIC
@@ -2661,19 +2645,17 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                   <div className="space-y-6">
                     <div className="glass-card p-6 border-l-4 border-[#E85002]/50">
                       <h3 className="text-base font-semibold">Resultados para <span className="text-[#E85002] italic font-serif">&quot;{semanticResult.tag}&quot;</span></h3>
-                      <div className="flex items-center gap-3">
-                        {semanticResult.layers && (
-                          <div className="flex gap-2">
-                            <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20">Factual: {semanticResult.layers.factual}</span>
-                            <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-[#E85002]/10 text-[#E85002] border border-[#E85002]/20">Inferida: {semanticResult.layers.inferred}</span>
-                            <span className="px-2 py-1 rounded text-[9px] uppercase font-semibold tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20">Validada: {semanticResult.layers.validated}</span>
-                          </div>
-                        )}
+                      <div className="flex items-center gap-3 mt-2">
                         <span className={`px-4 py-1 rounded-full text-[10px] uppercase font-semibold tracking-wider border ${
                           semanticResult.profundidade === 'ALTA' ? 'text-orange-500 border-orange-500/30 bg-orange-500/10' :
                           semanticResult.profundidade === 'MÉDIA' ? 'text-yellow-500 border-yellow-500/30 bg-yellow-500/10' :
                           'text-red-500 border-red-500/30 bg-red-500/10'
                         }`}>Profundidade: {semanticResult.profundidade}</span>
+                        {(semanticResult.motores?.analiseSemantica || semanticResult.motores?.transformer) && (
+                          <span className="px-4 py-1 rounded-full text-[10px] uppercase font-semibold tracking-wider border text-[#E85002] border-[#E85002]/30 bg-[#E85002]/10">
+                            Confiança: {(semanticResult.motores?.analiseSemantica || semanticResult.motores?.transformer)?.certeza}%
+                          </span>
+                        )}
                       </div>
                     </div>
  
@@ -2681,7 +2663,7 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                     {semanticResult.tagAnalysis && (semanticResult.tagAnalysis.duplicates?.length > 0 || semanticResult.tagAnalysis.siblings?.length > 0 || semanticResult.tagAnalysis.family) && (
                       <div className="glass-card p-6 border border-purple-500/20 space-y-4">
                         <h4 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                          <Network size={16} className="text-purple-400" /> Análise Inter-Tags (ML)
+                          <Network size={16} className="text-purple-400" /> Análise Inter-Tags
                         </h4>
  
                         {/* Duplicatas / Erros ortográficos */}
@@ -2872,22 +2854,22 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                     )}
  
                     {/* Nível de Confiança Semântica */}
-                    {semanticResult.motores?.transformer && (
-                      <div className={`glass-card p-6 border ${semanticResult.motores.transformer.aguardandoTreino ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-orange-500/30 bg-orange-500/5'}`}>
+                    {(semanticResult.motores?.analiseSemantica || semanticResult.motores?.transformer) && (
+                      <div className={`glass-card p-6 border ${(semanticResult.motores?.analiseSemantica || semanticResult.motores?.transformer)?.aguardandoTreino ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-orange-500/30 bg-orange-500/5'}`}>
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                           <div>
                             <h4 className="text-xs font-semibold uppercase tracking-wider mb-1 flex items-center gap-2">
-                              Nível de Confiança Semântica
+                              Nível de Confiança Documental
                             </h4>
                             <p className="text-xs text-[#1A1A1A]/60">
-                              {semanticResult.motores.transformer.aguardandoTreino 
-                                ? 'Classificação conceitual sob análise e monitoramento.' 
-                                : 'Classificação conceitual validada e confirmada.'}
+                              {(semanticResult.motores?.analiseSemantica || semanticResult.motores?.transformer)?.aguardandoTreino
+                                ? 'Conceito em monitoramento — aguardando consolidação nas bases consultadas.'
+                                : 'Conceito validado com evidências suficientes nas fontes institucionais.'}
                             </p>
                           </div>
                           <div className="text-right flex flex-col items-center">
-                            <div className={`text-4xl font-black tracking-tighter ${semanticResult.motores.transformer.aguardandoTreino ? 'text-yellow-400' : 'text-orange-400'}`}>
-                              {semanticResult.motores.transformer.certeza}%
+                            <div className={`text-4xl font-black tracking-tighter ${(semanticResult.motores?.analiseSemantica || semanticResult.motores?.transformer)?.aguardandoTreino ? 'text-yellow-400' : 'text-orange-400'}`}>
+                              {(semanticResult.motores?.analiseSemantica || semanticResult.motores?.transformer)?.certeza}%
                             </div>
                           </div>
                         </div>
@@ -2975,34 +2957,6 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                               <div className="text-[#1A1A1A] space-y-3 font-normal">
                                 {renderMarkdown(semanticResult.relatorioEstruturado.camadas.sintese || semanticResult.relatorioEstruturado.deducao)}
                               </div>
-
-                            {/* Deep Learning Info */}
-                            {semanticResult.deepLearning && (
-                              <div className="mt-4 pt-4 border-t border-black/10">
-                                <p className="text-[10px] uppercase font-semibold tracking-wider text-[#1A1A1A]/40 mb-2">Deep Learning — {semanticResult.deepLearning.blendFormula}</p>
-                                <p className="text-[11px] text-[#1A1A1A]/60 font-mono">{semanticResult.deepLearning.logicaMatematica?.join(' · ')}</p>
-                              </div>
-                            )}
-
-                            {/* Seção XAI (Rastreabilidade e Explicabilidade) */}
-                            {semanticResult.relatorioEstruturado.explicabilidade && semanticResult.relatorioEstruturado.explicabilidade.length > 0 && (
-                              <div className="mt-6 pt-6 border-t border-black/10">
-                                <h5 className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 mb-3 flex items-center gap-1.5">
-                                  <Layers size={12} className="text-orange-400" /> Rastreabilidade e Explicabilidade (XAI)
-                                </h5>
-                                <div className="space-y-3">
-                                  {semanticResult.relatorioEstruturado.explicabilidade.map((item: any, idx: number) => (
-                                    <div key={idx} className="p-3 bg-black/5 border border-black/10 rounded-lg text-xs">
-                                      <div className="flex justify-between items-center mb-1 text-[#1A1A1A]/40">
-                                        <span className="font-mono text-[9px] uppercase tracking-wide">{item.caminho}</span>
-                                        <span className="text-orange-400 font-bold">{(item.similarity * 100).toFixed(0)}% similaridade</span>
-                                      </div>
-                                      <p className="text-[#1A1A1A]/70 leading-relaxed italic">&quot;{item.texto}&quot;</p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                             </div>
                           </>
                         ) : (
@@ -3036,7 +2990,7 @@ ${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema
                       <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '150ms' }}></div>
                       <div className="w-4 h-4 rounded-full bg-[#E85002] animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
-                    <p className="text-[#E85002]/80 text-xs uppercase tracking-widest font-bold">O Cérebro Semântico está pesquisando e calculando correlações...</p>
+                    <p className="text-[#E85002]/80 text-xs uppercase tracking-widest font-bold">Consultando acervos digitais e bases institucionais...</p>
                   </div>
                 )}
 
