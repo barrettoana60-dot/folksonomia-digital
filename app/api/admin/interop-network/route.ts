@@ -6,12 +6,19 @@ import {
   hebbianReinforce,
   CulturalNetworkEdge,
 } from '@/lib/ml/cultural-network';
+import {
+  runSpreadingActivation,
+  calculateCentralityMetrics,
+  generateDeterministicHash,
+  CULTURAL_INTEROP_5_LAYERS,
+  CULTURAL_INTEROP_REFERENCES
+} from '@/lib/ml/graph-math';
 import { getLearningMetrics, processTrainingBatch } from '@/lib/ml/training-loop';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET — Carrega estado da rede + métricas de aprendizado progressivo
+ * GET — Carrega estado da rede + métricas de aprendizado progressivo + camadas de interoperabilidade
  */
 export async function GET() {
   try {
@@ -20,12 +27,17 @@ export async function GET() {
       getLearningMetrics(),
     ]);
 
+    const centrality = calculateCentralityMetrics(network.nodes as any, network.edges as any);
+
     return NextResponse.json({
       success: true,
       data: {
         nodes: network.nodes,
         edges: network.edges,
         metrics: { ...network.metrics, ...metrics },
+        centrality,
+        layers: CULTURAL_INTEROP_5_LAYERS,
+        references: CULTURAL_INTEROP_REFERENCES,
       },
     });
   } catch (error: any) {
@@ -34,7 +46,7 @@ export async function GET() {
 }
 
 /**
- * POST — Sincroniza RAG, reforço Hebbiano ou ciclo de treinamento
+ * POST — Sincroniza RAG, Spreading Activation, reforço Hebbiano ou snapshots
  */
 export async function POST(req: NextRequest) {
   try {
@@ -48,6 +60,33 @@ export async function POST(req: NextRequest) {
       }
       const result = await syncFromRAG({ tag, fontesAcademicas, siblings, certeza });
       return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === 'spreading') {
+      const { nodes = [], edges = [], sources = [], params = {} } = body;
+      const result = runSpreadingActivation(nodes, edges, sources, params);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === 'centrality') {
+      const { nodes = [], edges = [] } = body;
+      const result = calculateCentralityMetrics(nodes, edges);
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === 'snapshot') {
+      const { nodes = [], edges = [], metadata = {} } = body;
+      const hash = generateDeterministicHash({ nodes, edges, metadata, ts: Date.now() });
+      return NextResponse.json({
+        success: true,
+        data: {
+          snapshotId: `snap_${Date.now().toString(36)}`,
+          hash,
+          nodeCount: nodes.length,
+          edgeCount: edges.length,
+          timestamp: new Date().toISOString(),
+        }
+      });
     }
 
     if (action === 'hebbian') {
