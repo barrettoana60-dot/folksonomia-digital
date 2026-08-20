@@ -4,8 +4,7 @@ import { normalizeForComparison } from '@/lib/ml/tag-correlator';
 
 export const dynamic = 'force-dynamic';
 
-// ─── Dossiês Culturais Canônicos do Cofre Semântico Vivo ───────────────────
-export interface CanonicalCulturalConcept {
+export interface ConceptVaultItem {
   id: string;
   tag: string;
   uuid: string;
@@ -13,6 +12,7 @@ export interface CanonicalCulturalConcept {
   dataCriacao: string;
   eixo: 'SABERES' | 'FESTA' | 'MUSICA' | 'CRENCAS' | 'PATRIMONIO';
   cor: string;
+  triplaFrase: string;
   tripla: { sujeito: string; predicado: string; objeto: string };
   familia: string;
   descricao: string;
@@ -25,26 +25,33 @@ export interface CanonicalCulturalConcept {
     doi: string;
     url: string;
     resumo: string;
+    ehExemploIlustrativo?: boolean;
   };
-  conexoesNaturais: { targetId: string; peso: number; relacao: string; explicacao: string }[];
+  conexoesTextuais: {
+    targetId: string;
+    targetTag: string;
+    relacaoSKOS: 'skos:broadMatch' | 'skos:closeMatch' | 'skos:related';
+    afirmacaoCultural: string;
+  }[];
 }
 
-export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> = {
+export const CULTURAL_VAULT_REGISTRY: Record<string, ConceptVaultItem> = {
   carranca: {
     id: 'carranca',
     tag: 'Carranca',
     uuid: '123e4567-e89b-12d3-a456-426614174000',
-    autor: 'João Silva (Curador Social / Vale do São Francisco)',
-    dataCriacao: '2026-08-20T10:15:00Z',
+    autor: 'João Silva',
+    dataCriacao: '2026-08-20',
     eixo: 'SABERES',
     cor: '#1A6B3A',
+    triplaFrase: 'Carranca tem origem cultural no Rio São Francisco.',
     tripla: {
       sujeito: 'Carranca',
       predicado: 'tem_origem_cultural',
       objeto: 'Rio São Francisco'
     },
     familia: 'saberes.escultura.fluvial.apotropaica',
-    descricao: 'Escultura antropomórfica em madeira colocada na proa das embarcações fluviais do Rio São Francisco para afastar maus espíritos e proteger navegantes.',
+    descricao: 'Escultura antropomórfica em madeira colocada na proa das embarcações fluviais do Rio São Francisco com função de proteção aos navegantes.',
     wikidata: {
       id: 'Q5046049',
       uri: 'http://wikidata.org/entity/Q5046049',
@@ -58,29 +65,46 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Revista do Patrimônio Histórico e Artístico Nacional (IPHAN / Scielo)',
       doi: '10.1590/S0104-1234.1974.0042',
       url: 'https://www.cnfcp.gov.br',
-      resumo: 'Estudo monográfico fundamental sobre os mestres entalhadores ribeirinhos, as figuras zoomórficas míticas e a função apotropaica de afastar os perigos fluviais e o Minhocão.'
+      resumo: 'Estudo monográfico sobre os mestres entalhadores ribeirinhos, as figuras zoomórficas míticas e a tradição de proteção das navegações no Vale do São Francisco.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'mestre_vitalino', peso: 0.86, relacao: 'skos:related', explicacao: 'Tradição mística do artesanato modelado e imaginária popular nordestina.' },
-      { targetId: 'ex_voto', peso: 0.82, relacao: 'skos:related', explicacao: 'Entalhes de fé e proteção espiritual vinculados à promessa e devoção comunitária.' },
-      { targetId: 'bumba_boi', peso: 0.68, relacao: 'skos:related', explicacao: 'Simbolismo zoomórfico protetor presente no ciclo das narrativas populares.' }
+    conexoesTextuais: [
+      {
+        targetId: 'mestre_vitalino',
+        targetTag: 'Mestre Vitalino',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Carranca está relacionada a Mestre Vitalino pela tradição da escultura figurativa e imaginária popular nordestina.'
+      },
+      {
+        targetId: 'ex_voto',
+        targetTag: 'Ex-votos do Nordeste',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Carranca está associada a Ex-votos do Nordeste pela técnica de entalhe em madeira ligada à fé e proteção tradicional.'
+      },
+      {
+        targetId: 'cordel',
+        targetTag: 'Literatura de Cordel',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Carranca compartilha narrativas com a Literatura de Cordel através dos mitos e lendas dos canoeiros ribeirinhos.'
+      }
     ]
   },
   mestre_vitalino: {
     id: 'mestre_vitalino',
     tag: 'Mestre Vitalino',
     uuid: '99e31a02-88b1-41c3-aa77-548192ca1044',
-    autor: 'Ana Beatriz (Pesquisadora Comunitária de Caruaru)',
-    dataCriacao: '2026-08-20T12:10:00Z',
+    autor: 'Ana Beatriz',
+    dataCriacao: '2026-08-20',
     eixo: 'SABERES',
     cor: '#1A6B3A',
+    triplaFrase: 'Mestre Vitalino produziu arte em Cerâmica Figurativa de Caruaru.',
     tripla: {
       sujeito: 'Mestre Vitalino',
       predicado: 'produziu_arte_em',
       objeto: 'Cerâmica Figurativa de Caruaru'
     },
     familia: 'saberes.ceramica.figurativa.agreste',
-    descricao: 'Pioneiro da cerâmica figurativa em barro no Alto do Moura, retratando com expressividade o cotidiano, retirantes, músicos e vaqueiros do sertão.',
+    descricao: 'Pioneiro da cerâmica figurativa em barro no Alto do Moura, retratando o cotidiano, retirantes, músicos e personagens do sertão.',
     wikidata: {
       id: 'Q6822831',
       uri: 'http://wikidata.org/entity/Q6822831',
@@ -94,29 +118,46 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Cadernos de Cultura / CNFCP-IPHAN',
       doi: '10.1590/vitalino.barro.1954',
       url: 'https://www.cnfcp.gov.br',
-      resumo: 'Documentação seminal sobre a gênese da cerâmica do Alto do Moura, o universo sociocultural dos artesãos e a escultura identitária do agreste pernambucano.'
+      resumo: 'Registro etnográfico da arte do barro no Alto do Moura e a consolidação da identidade estética do agreste pernambucano.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'carranca', peso: 0.86, relacao: 'skos:related', explicacao: 'Expressão magna da arte popular figurativa de matriz ribeirinha e sertaneja.' },
-      { targetId: 'cordel', peso: 0.79, relacao: 'skos:related', explicacao: 'Narrativas visuais correspondentes às xilogravuras e folhetos de cordel.' },
-      { targetId: 'frevo', peso: 0.71, relacao: 'skos:related', explicacao: 'Registro iconográfico em barro dos músicos de bandas marciais e passistas.' }
+    conexoesTextuais: [
+      {
+        targetId: 'carranca',
+        targetTag: 'Carranca',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Mestre Vitalino conecta-se à Carranca pela modelagem e representação visual das tradições populares do Nordeste.'
+      },
+      {
+        targetId: 'cordel',
+        targetTag: 'Literatura de Cordel',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Mestre Vitalino dialoga com a Literatura de Cordel expressando em barro os mesmos causos, tipos sociais e feiras sertanejas.'
+      },
+      {
+        targetId: 'ex_voto',
+        targetTag: 'Ex-votos do Nordeste',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Mestre Vitalino relaciona-se aos Ex-votos pela anatomia figurativa e ligação com a religiosidade e devoção popular.'
+      }
     ]
   },
   bumba_boi: {
     id: 'bumba_boi',
     tag: 'Bumba-meu-boi',
     uuid: '87b6a124-4f21-48e2-9b34-871239ab4510',
-    autor: 'Maria Eduarda (Guardiã de Tradição de São Luís)',
-    dataCriacao: '2026-08-20T11:30:00Z',
+    autor: 'Maria Eduarda',
+    dataCriacao: '2026-08-20',
     eixo: 'FESTA',
     cor: '#1E3A8A',
+    triplaFrase: 'Bumba-meu-boi celebra ciclo ritual nas Festas Juninas.',
     tripla: {
       sujeito: 'Bumba-meu-boi',
       predicado: 'celebra_ciclo_ritual',
-      objeto: 'Festas Juninas e Solstício de Inverno'
+      objeto: 'Festas Juninas e Solstício'
     },
     familia: 'festa.popular.auto_dramatico.nordeste',
-    descricao: 'Complexo ritual lúdico-dramático do ciclo junino maranhense com sotaques de matraca, zabumba, orquestra e costa-de-mão, patrimônio imaterial da humanidade.',
+    descricao: 'Complexo lúdico-dramático do ciclo junino maranhense com sotaques de matraca, zabumba e orquestra, patrimônio cultural imaterial.',
     wikidata: {
       id: 'Q1006547',
       uri: 'http://wikidata.org/entity/Q1006547',
@@ -130,29 +171,46 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Dossiê do Patrimônio Imaterial do Brasil — IPHAN / UNESCO',
       doi: '10.1590/iphan.dossie.0018',
       url: 'https://www.gov.br/iphan/pt-br/patrimonio-imaterial/registros-do-patrimonio-imaterial/bens-registrados/complexo-cultural-do-bumba-meu-boi-do-maranhao',
-      resumo: 'Inventário e análise etnográfica do ciclo do boi: batismo, morte, ressurreição, toadas, sincretismo religioso e relações de compadrio comunitário.'
+      resumo: 'Inventário completo dos grupos e sotaques do Maranhão, abordando a teatralidade mítica da morte e ressurreição do boi.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'maracatu', peso: 0.85, relacao: 'skos:related', explicacao: 'Ritualização dramática e cortejo percussivo sincrético de festas públicas.' },
-      { targetId: 'frevo', peso: 0.74, relacao: 'skos:related', explicacao: 'Folguedos de rua que mobilizam comunidades urbanas e matrizes percussivas.' },
-      { targetId: 'carranca', peso: 0.68, relacao: 'skos:related', explicacao: 'Imaginário mítico zoomórfico que une terra, rio e devoção ancestral.' }
+    conexoesTextuais: [
+      {
+        targetId: 'maracatu',
+        targetTag: 'Maracatu Nação',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Bumba-meu-boi está relacionado ao Maracatu Nação pelo formato de cortejo dramático e presença de matrizes percussivas tradicionais.'
+      },
+      {
+        targetId: 'frevo',
+        targetTag: 'Frevo',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Bumba-meu-boi compartilha com o Frevo a mobilização de agremiações comunitárias e a celebração de folguedos populares de rua.'
+      },
+      {
+        targetId: 'cordel',
+        targetTag: 'Literatura de Cordel',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Bumba-meu-boi está documentado em folhetos de Cordel que rimam o auto da Mãe Catirina e Pai Francisco.'
+      }
     ]
   },
   frevo: {
     id: 'frevo',
     tag: 'Frevo',
     uuid: '45d92e10-91a3-41c8-8832-114920fe8139',
-    autor: 'Carlos Alberto (Passista e Pesquisador do Recife)',
-    dataCriacao: '2026-08-20T09:45:00Z',
+    autor: 'Carlos Alberto',
+    dataCriacao: '2026-08-20',
     eixo: 'MUSICA',
     cor: '#0891B2',
+    triplaFrase: 'Frevo possui matriz performática no Passo Acrobático e Dobrados Urbanos.',
     tripla: {
       sujeito: 'Frevo',
       predicado: 'possui_matriz_performatica',
-      objeto: 'Passo Acrobático e Dobrados Urbanos'
+      objeto: 'Passo Acrobático e Dobrados'
     },
     familia: 'musica.danca.carnaval.acrobatico',
-    descricao: 'Expressão musical e coreográfica de ritmo sincopado acelerado e passos acrobáticos nascida no carnaval de Recife e Olinda, patrimônio imaterial da humanidade.',
+    descricao: 'Expressão musical e coreográfica de ritmo acelerado e passos sincopados nascida no carnaval de Pernambuco.',
     wikidata: {
       id: 'Q1455589',
       uri: 'http://wikidata.org/entity/Q1455589',
@@ -166,29 +224,46 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Revista do Arquivo Municipal / Publicações IPHAN',
       doi: '10.1590/frevo.unesco.2012',
       url: 'https://pacodofrevo.org.br',
-      resumo: 'Exame etnomusicológico da fusão entre as marchas militares, polcas e a corporalidade defensiva dos capoeiristas nos cortejos de rua do século XIX.'
+      resumo: 'Análise etnomusicológica sobre a origem das bandas marciais militares e a capoeira de rua que formaram a dança e ritmo do frevo.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'capoeira', peso: 0.89, relacao: 'skos:related', explicacao: 'O passo do frevo descende diretamente da agilidade marcial e rasteiras da capoeira.' },
-      { targetId: 'maracatu', peso: 0.81, relacao: 'skos:related', explicacao: 'Tradição centenária de agremiações carnavalescas de Pernambuco.' },
-      { targetId: 'bumba_boi', peso: 0.74, relacao: 'skos:related', explicacao: 'Expressão rítmica e de catarse coletiva nos espaços públicos brasileiros.' }
+    conexoesTextuais: [
+      {
+        targetId: 'capoeira',
+        targetTag: 'Roda de Capoeira',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Frevo descende diretamente da agilidade corporal e movimentos defensivos dos capoeiristas do Recife oitocentista.'
+      },
+      {
+        targetId: 'maracatu',
+        targetTag: 'Maracatu Nação',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Frevo e Maracatu Nação integram as matrizes carnavalescas e tradições de agremiações de Pernambuco.'
+      },
+      {
+        targetId: 'bumba_boi',
+        targetTag: 'Bumba-meu-boi',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Frevo relaciona-se ao Bumba-meu-boi pela dinâmica festiva e ocupação dos espaços públicos coletivos.'
+      }
     ]
   },
   capoeira: {
     id: 'capoeira',
     tag: 'Roda de Capoeira',
     uuid: '71a48c90-3321-4f99-8812-390481bc9401',
-    autor: 'Mestre Damião (Mestre de Ofício Tradicional de Salvador)',
-    dataCriacao: '2026-08-20T08:20:00Z',
+    autor: 'Mestre Damião',
+    dataCriacao: '2026-08-20',
     eixo: 'MUSICA',
     cor: '#0891B2',
+    triplaFrase: 'Roda de Capoeira expressa cosmologia afro no Berimbau e Jogo Ritual.',
     tripla: {
       sujeito: 'Roda de Capoeira',
       predicado: 'expressa_cosmologia_afro',
       objeto: 'Oralidade, Berimbau e Jogo Ritual'
     },
     familia: 'musica.luta.matriz_africana.tradicao_oral',
-    descricao: 'Prática cultural afro-brasileira que mescla luta, dança, musicalidade, ancestralidade, teatro e jogo ritual de resistência, patrimônio imaterial da humanidade.',
+    descricao: 'Prática cultural afro-brasileira que mescla luta, dança, musicalidade, ancestralidade e jogo ritual de resistência.',
     wikidata: {
       id: 'Q11418',
       uri: 'http://wikidata.org/entity/Q11418',
@@ -202,29 +277,46 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Dossiê IPHAN / UNESCO Repositório Internacional',
       doi: '10.1590/capoeira.unesco.2014',
       url: 'https://www.gov.br/iphan/pt-br/patrimonio-imaterial/registros-do-patrimonio-imaterial/bens-registrados/roda-de-capoeira',
-      resumo: 'Investigação etnofilosófica da ancestralidade bantu, toques de berimbau, fundamentos dos mestres e a transmissão geracional do saber corporal.'
+      resumo: 'Investigação sobre a ancestralidade bantu, toques de berimbau e a transmissão geracional de saberes entre mestres e discípulos.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'frevo', peso: 0.89, relacao: 'skos:related', explicacao: 'Matriz corporal acrobática formadora do passo pernambucano nos primórdios do carnaval.' },
-      { targetId: 'maracatu', peso: 0.83, relacao: 'skos:related', explicacao: 'Herança litúrgica e percussiva de resistência afro-brasileira.' },
-      { targetId: 'ex_voto', peso: 0.65, relacao: 'skos:related', explicacao: 'Práticas de salvaguarda e fé nas proteções espirituais ancestrais.' }
+    conexoesTextuais: [
+      {
+        targetId: 'frevo',
+        targetTag: 'Frevo',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Roda de Capoeira forneceu a base dos passos acrobáticos e ginga que deram origem ao passo do frevo.'
+      },
+      {
+        targetId: 'maracatu',
+        targetTag: 'Maracatu Nação',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Roda de Capoeira conecta-se ao Maracatu Nação pela ancestralidade, musicalidade de resistência e matrizes afro-brasileiras.'
+      },
+      {
+        targetId: 'ex_voto',
+        targetTag: 'Ex-votos do Nordeste',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Roda de Capoeira e Ex-votos compartilham a devoção sincrética e pedidos de proteção espiritual tradicional.'
+      }
     ]
   },
   maracatu: {
     id: 'maracatu',
     tag: 'Maracatu Nação',
     uuid: '33e198b0-a54c-4821-bc10-998811ae2310',
-    autor: 'Dona Elda (Batuqueira e Pesquisadora de Olinda)',
-    dataCriacao: '2026-08-20T13:00:00Z',
+    autor: 'Dona Elda',
+    dataCriacao: '2026-08-20',
     eixo: 'MUSICA',
     cor: '#0891B2',
+    triplaFrase: 'Maracatu Nação coroa reis e rainhas em Cortejo Sagrado Afro-Pernambucano.',
     tripla: {
       sujeito: 'Maracatu Nação',
       predicado: 'coroa_reis_e_rainhas_em',
       objeto: 'Cortejo Sagrado Afro-Pernambucano'
     },
     familia: 'musica.cortejo.afro_brasileiro.percussao',
-    descricao: 'Manifestação artística e religiosa sincrética de cortejo real com baque virado de alfaias, calungas sagradas e louvação aos ancestrais nos terreiros e ruas.',
+    descricao: 'Manifestação percussiva e religiosa de cortejo real com baque virado de alfaias, calungas e coroação de Reis de Congo.',
     wikidata: {
       id: 'Q1892305',
       uri: 'http://wikidata.org/entity/Q1892305',
@@ -238,29 +330,46 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Publicações da Fundação Joaquim Nabuco (Fundaj / IPHAN)',
       doi: '10.1590/fundaj.maracatu.2014',
       url: 'https://fundaj.gov.br',
-      resumo: 'Análise etnográfica da instituição das Nações de Maracatu do Recife, a autoridade sagrada das Calungas e o sincretismo entre Nagô, Mina e Catolicismo popular.'
+      resumo: 'Documentação etnográfica das Nações de Maracatu de Baque Virado, a autoridade das Calungas e as devoções aos orixás e ancestrais.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'bumba_boi', peso: 0.85, relacao: 'skos:related', explicacao: 'Ritualização dramática e cortejo percussivo sincrético de festas públicas.' },
-      { targetId: 'capoeira', peso: 0.83, relacao: 'skos:related', explicacao: 'Matriz rítmica e espiritual de resistência ancestral afro-brasileira.' },
-      { targetId: 'frevo', peso: 0.81, relacao: 'skos:related', explicacao: 'Tradições centenárias de agremiações carnavalescas de Pernambuco.' }
+    conexoesTextuais: [
+      {
+        targetId: 'bumba_boi',
+        targetTag: 'Bumba-meu-boi',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Maracatu Nação e Bumba-meu-boi compartilham cortejos dramáticos e percussão de celebrações populares.'
+      },
+      {
+        targetId: 'capoeira',
+        targetTag: 'Roda de Capoeira',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Maracatu Nação liga-se à Capoeira pela salvaguarda das tradições orais e rítmicas de matriz africana.'
+      },
+      {
+        targetId: 'frevo',
+        targetTag: 'Frevo',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Maracatu Nação integra o patrimônio musical do ciclo carnavalesco pernambucano ao lado do Frevo.'
+      }
     ]
   },
   cordel: {
     id: 'cordel',
     tag: 'Literatura de Cordel',
     uuid: '55f891a2-33b4-4c12-98ab-44119933cc55',
-    autor: 'Severino do Vale (Poeta e Xilogravador de Patos)',
-    dataCriacao: '2026-08-20T14:15:00Z',
+    autor: 'Severino do Vale',
+    dataCriacao: '2026-08-20',
     eixo: 'SABERES',
     cor: '#1A6B3A',
+    triplaFrase: 'Literatura de Cordel narra memória social em Folhetos em Sextilha e Xilogravura.',
     tripla: {
       sujeito: 'Literatura de Cordel',
       predicado: 'narra_memoria_social_em',
       objeto: 'Folhetos em Sextilha e Xilogravura'
     },
     familia: 'saberes.literatura_oral.poesia_popular',
-    descricao: 'Gênero poético popular estruturado em métrica, rima e oratória, impresso em folhetos ilustrados com xilogravuras e cantado em feiras nordestinas.',
+    descricao: 'Gênero poético popular impresso em folhetos ilustrados com xilogravuras e recitado em feiras, salvaguardando a tradição oral.',
     wikidata: {
       id: 'Q1132204',
       uri: 'http://wikidata.org/entity/Q1132204',
@@ -274,29 +383,46 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Dossiê do Patrimônio Cultural Imaterial IPHAN',
       doi: '10.1590/iphan.cordel.2018',
       url: 'https://www.gov.br/iphan/pt-br/patrimonio-imaterial/registros-do-patrimonio-imaterial/bens-registrados/literatura-de-cordel',
-      resumo: 'Estudo sobre os gêneros de peleja, valentia, fatos históricos e a circulação da memória oral impressa nas feiras do Nordeste brasileiro.'
+      resumo: 'Estudo dos ciclos de peleja, valentia, fatos históricos e a circulação da memória oral impressa no Nordeste.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'mestre_vitalino', peso: 0.79, relacao: 'skos:related', explicacao: 'Tradução visual e plástica das mesmíssimas narrativas épicas do sertão.' },
-      { targetId: 'carranca', peso: 0.75, relacao: 'skos:related', explicacao: 'Mitos sertanejos e ribeirinhos narrados nas sagas e lendas poéticas.' },
-      { targetId: 'bumba_boi', peso: 0.72, relacao: 'skos:related', explicacao: 'Autos de boi e folguedos registrados em estrofes e declamações rimadas.' }
+    conexoesTextuais: [
+      {
+        targetId: 'mestre_vitalino',
+        targetTag: 'Mestre Vitalino',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Literatura de Cordel traduz em versos os mesmos personagens e cenas cotidianas esculpidos por Mestre Vitalino.'
+      },
+      {
+        targetId: 'carranca',
+        targetTag: 'Carranca',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Literatura de Cordel preserva lendas ribeirinhas e mitos associados às Carrancas do Rio São Francisco.'
+      },
+      {
+        targetId: 'bumba_boi',
+        targetTag: 'Bumba-meu-boi',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Literatura de Cordel registra em folhetos rimados as toadas e os enredos dos autos de boi.'
+      }
     ]
   },
   ex_voto: {
     id: 'ex_voto',
     tag: 'Ex-votos do Nordeste',
     uuid: '66a119c4-88e2-411a-99bb-223344dd5566',
-    autor: 'Francisca de Assis (Curadora de Santuário de Juazeiro)',
-    dataCriacao: '2026-08-20T15:00:00Z',
+    autor: 'Francisca de Assis',
+    dataCriacao: '2026-08-20',
     eixo: 'CRENCAS',
     cor: '#6D28D9',
+    triplaFrase: 'Ex-votos do Nordeste testemunha promessa em Madeira e Cera nas Salas de Milagres.',
     tripla: {
       sujeito: 'Ex-votos do Nordeste',
       predicado: 'testemunha_promessa_em',
       objeto: 'Madeira e Cera nas Salas de Milagres'
     },
     familia: 'crencas.religiosidade_popular.imaginaria',
-    descricao: 'Objetos esculpidos em madeira ou moldados em cera ofertados em santuários como agradecimento a graças alcançadas, constituindo rica coleção de arte votiva.',
+    descricao: 'Peças entalhadas em madeira ou moldadas em cera depositadas em santuários como testemunho de graças e promessas atendidas.',
     wikidata: {
       id: 'Q1139417',
       uri: 'http://wikidata.org/entity/Q1139417',
@@ -310,12 +436,28 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
       veiculo: 'Revista Barroco / CNFCP-IPHAN',
       doi: '10.1590/exvoto.clarival.1970',
       url: 'https://www.cnfcp.gov.br',
-      resumo: 'Estudo clássico da iconografia votiva popular, as técnicas primitivas de entalhe em cedro e a relação existencial de troca entre o romeiro e a divindade.'
+      resumo: 'Estudo da iconografia votiva popular, as técnicas rústicas de entalhe em madeira e a relação entre romeiros e santuários.',
+      ehExemploIlustrativo: false
     },
-    conexoesNaturais: [
-      { targetId: 'carranca', peso: 0.82, relacao: 'skos:related', explicacao: 'Técnica de entalhe devocional e proteção espiritual em madeira rústica.' },
-      { targetId: 'mestre_vitalino', peso: 0.76, relacao: 'skos:related', explicacao: 'Modelagem anatômica figurativa e fé popular no interior nordestino.' },
-      { targetId: 'capoeira', peso: 0.65, relacao: 'skos:related', explicacao: 'Devoção sincrética e proteção aos guerreiros e romeiros nas peregrinações.' }
+    conexoesTextuais: [
+      {
+        targetId: 'carranca',
+        targetTag: 'Carranca',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Ex-votos do Nordeste compartilham com a Carranca o entalhe em madeira associado à fé e proteção mística.'
+      },
+      {
+        targetId: 'mestre_vitalino',
+        targetTag: 'Mestre Vitalino',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Ex-votos do Nordeste relacionam-se ao Mestre Vitalino pela expressão artística figurativa e fé comunitária.'
+      },
+      {
+        targetId: 'capoeira',
+        targetTag: 'Roda de Capoeira',
+        relacaoSKOS: 'skos:related',
+        afirmacaoCultural: 'Ex-votos do Nordeste e Capoeira refletem devoções e pedidos de proteção espiritual nas jornadas tradicionais.'
+      }
     ]
   }
 };
@@ -323,37 +465,17 @@ export const CANONICAL_CULTURE_VAULT: Record<string, CanonicalCulturalConcept> =
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { sourceTag, allNodeIds } = body;
+    const { sourceTag } = body;
 
     const queryKey = normalizeForComparison(sourceTag || 'carranca').replace(/\s+/g, '_');
-    const concept = CANONICAL_CULTURE_VAULT[queryKey] || CANONICAL_CULTURE_VAULT['carranca'];
-
-    // Obter conexões autônomas da rede neural
-    const discoveries = concept.conexoesNaturais.map(c => {
-      const target = CANONICAL_CULTURE_VAULT[c.targetId];
-      return {
-        targetTag: target?.tag || c.targetId,
-        targetId: c.targetId,
-        similarity: c.peso,
-        cohesion: c.peso * 0.95,
-        combinedScore: c.peso,
-        relation: c.relacao,
-        insight: c.explicacao,
-        targetConcept: target
-      };
-    });
+    const concept = CULTURAL_VAULT_REGISTRY[queryKey] || CULTURAL_VAULT_REGISTRY['carranca'];
 
     return NextResponse.json({
       success: true,
       data: {
-        sourceTag: concept.tag,
-        sourceId: concept.id,
         concept,
-        discoveries,
-        article: concept.artigo,
-        totalTagsAnalyzed: Object.keys(CANONICAL_CULTURE_VAULT).length,
-        newConnectionsPersisted: discoveries.length,
-        timestamp: new Date().toISOString()
+        conexoes: concept.conexoesTextuais,
+        totalCadastrados: Object.keys(CULTURAL_VAULT_REGISTRY).length
       }
     });
   } catch (error: any) {

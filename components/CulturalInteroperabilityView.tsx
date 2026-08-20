@@ -2,18 +2,17 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  Brain, Network, Search, Sparkles,
+  Brain, Network, Search,
   Check, Copy, ArrowUpRight, FolderLock,
   FileCode2, Send, BookOpen, User, Zap, Link2,
-  Share2, ShieldCheck, Activity, RefreshCw
+  ShieldCheck
 } from 'lucide-react';
 import {
   runSpreadingActivation,
-  generateDeterministicHash,
   GraphMathNode,
   GraphMathEdge
 } from '@/lib/ml/graph-math';
-import { CANONICAL_CULTURE_VAULT, CanonicalCulturalConcept } from '@/app/api/interop/live-vault/route';
+import { CULTURAL_VAULT_REGISTRY, ConceptVaultItem } from '@/app/api/interop/live-vault/route';
 
 interface CulturalInteroperabilityViewProps {
   initialNodes?: any[];
@@ -22,7 +21,7 @@ interface CulturalInteroperabilityViewProps {
   realMetrics?: any;
 }
 
-// ─── NÓS CULTURAIS CANÔNICOS INICIAIS DO COFRE VIVO ────────────────────────
+// ─── NÓS CULTURAIS CANÔNICOS (Sem tags de teste e sem poluição) ───────────
 const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
   {
     id: 'core',
@@ -32,10 +31,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 28,
     fill: '#E8490A',
     eixo: 'NUCLEO',
-    desc: 'Núcleo de custódia e tráfego de dados. Compacta tags colaborativas em embeddings vetoriais, preserva proveniência imutável e ancora ontologias globais.',
+    desc: 'Núcleo central de custódia e tráfego cultural. Preserva proveniência social, interliga saberes e ancora conceitos globais.',
     type: 'Cofre Central',
-    hash: 'SHA256:c8ed9901a72f3b01',
-    familia: 'sistema.nucleo.vivo',
+    familia: 'sistema.nucleo',
     activation: 1.0
   },
   {
@@ -46,10 +44,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 19,
     fill: '#1A6B3A',
     eixo: 'SABERES',
-    desc: 'Escultura zoomórfica e antropomórfica em madeira do Rio São Francisco para afastar maus espíritos e proteger navegantes.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:carran8c2f1a4e7b',
-    familia: 'saberes.escultura.fluvial.apotropaica',
+    desc: 'Escultura antropomórfica em madeira do Rio São Francisco com função de proteção aos navegantes.',
+    type: 'Tag Preservada',
+    familia: 'saberes.escultura.fluvial',
     activation: 0.94
   },
   {
@@ -60,10 +57,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 17,
     fill: '#1A6B3A',
     eixo: 'SABERES',
-    desc: 'Pioneiro da cerâmica figurativa em barro no Alto do Moura, retratando o universo cultural e cotidiano do agreste pernambucano.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:vitalino4e7b8a1c',
-    familia: 'saberes.ceramica.figurativa.agreste',
+    desc: 'Pioneiro da cerâmica figurativa em barro no Alto do Moura, retratando o universo cultural do sertão.',
+    type: 'Tag Preservada',
+    familia: 'saberes.ceramica.agreste',
     activation: 0.88
   },
   {
@@ -74,10 +70,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 18,
     fill: '#1E3A8A',
     eixo: 'FESTA',
-    desc: 'Complexo ritual lúdico-dramático do ciclo junino maranhense com sotaques de matraca, zabumba e orquestra.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:bumba1e2f3a4b5c6d',
-    familia: 'festa.popular.auto_dramatico.nordeste',
+    desc: 'Complexo lúdico-dramático do ciclo junino maranhense com sotaques tradicionais de matraca e orquestra.',
+    type: 'Tag Preservada',
+    familia: 'festa.popular.auto_dramatico',
     activation: 0.90
   },
   {
@@ -88,10 +83,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 17,
     fill: '#0891B2',
     eixo: 'MUSICA',
-    desc: 'Música e passo acrobático sincopado do carnaval pernambucano, patrimônio imaterial da humanidade.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:frevo8f29a1b3c4d5',
-    familia: 'musica.danca.carnaval.acrobatico',
+    desc: 'Expressão musical e coreográfica de ritmo acelerado e passos sincopados do carnaval pernambucano.',
+    type: 'Tag Preservada',
+    familia: 'musica.danca.carnaval',
     activation: 0.86
   },
   {
@@ -102,10 +96,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 18,
     fill: '#0891B2',
     eixo: 'MUSICA',
-    desc: 'Arte marcial, música, canto e dança de matriz afro-brasileira, ritual e resistência comunitária.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:capoeira4f7a8b9c',
-    familia: 'musica.luta.matriz_africana.tradicao_oral',
+    desc: 'Arte marcial, dança, musicalidade, ancestralidade e jogo ritual de resistência afro-brasileira.',
+    type: 'Tag Preservada',
+    familia: 'musica.luta.tradicao_oral',
     activation: 0.89
   },
   {
@@ -116,10 +109,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 16,
     fill: '#0891B2',
     eixo: 'MUSICA',
-    desc: 'Cortejo sagrado de baque virado com coroação de reis e rainhas do Congo e calungas sagradas.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:maracatu998811ae',
-    familia: 'musica.cortejo.afro_brasileiro.percussao',
+    desc: 'Cortejo sagrado de baque virado com coroação de reis e rainhas do Congo e calungas tradicionais.',
+    type: 'Tag Preservada',
+    familia: 'musica.cortejo.percussao',
     activation: 0.82
   },
   {
@@ -130,10 +122,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 16,
     fill: '#1A6B3A',
     eixo: 'SABERES',
-    desc: 'Gênero poético popular em folhetos rimados e xilogravuras que documenta a memória social nordestina.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:cordel44119933cc',
-    familia: 'saberes.literatura_oral.poesia_popular',
+    desc: 'Gênero poético popular em folhetos rimados e xilogravuras que salvaguarda a memória social nordestina.',
+    type: 'Tag Preservada',
+    familia: 'saberes.poesia_popular',
     activation: 0.80
   },
   {
@@ -144,10 +135,9 @@ const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
     size: 16,
     fill: '#6D28D9',
     eixo: 'CRENCAS',
-    desc: 'Esculturas votivas em madeira e cera ofertadas em santuários como testemunho de graças e promessas.',
-    type: 'UserTag (Preservada)',
-    hash: 'SHA256:exvoto223344dd55',
-    familia: 'crencas.religiosidade_popular.imaginaria',
+    desc: 'Peças esculpidas em madeira e cera depositadas em santuários como testemunho de graças alcançadas.',
+    type: 'Tag Preservada',
+    familia: 'crencas.religiosidade_popular',
     activation: 0.79
   }
 ];
@@ -162,7 +152,7 @@ const INITIAL_CULTURAL_EDGES: GraphMathEdge[] = [
   { from: 'core', to: 'cordel', weight: 0.82, skosRelation: 'skos:narrower', mechanism: 'curator', eixoRel: 'SABERES' },
   { from: 'core', to: 'ex_voto', weight: 0.81, skosRelation: 'skos:narrower', mechanism: 'curator', eixoRel: 'CRENCAS' },
   
-  // Sinapses Hebbianas Interligadas
+  // Conexões semânticas entre manifestações
   { from: 'carranca', to: 'mestre_vitalino', weight: 0.86, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
   { from: 'carranca', to: 'ex_voto', weight: 0.82, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
   { from: 'carranca', to: 'cordel', weight: 0.75, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
@@ -186,28 +176,25 @@ export default function CulturalInteroperabilityView({
   const [selectedNodeId, setSelectedNodeId] = useState<string>('carranca');
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
-  const [isThinking, setIsThinking] = useState(false);
-  const [thinkingLog, setThinkingLog] = useState<string[]>([]);
   const [activePulseKey, setActivePulseKey] = useState<string | null>(null);
   const [isTestingTransfer, setIsTestingTransfer] = useState(false);
   const [transferResult, setTransferResult] = useState<string | null>(null);
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [inferenceCount, setInferenceCount] = useState(1);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // ── Obter Dados Canônicos da Tag Ativa ──
-  const activeConcept: CanonicalCulturalConcept = useMemo(() => {
+  // ── Dossiê Canônico do Conceito Cultural Ativo ──
+  const activeConcept: ConceptVaultItem = useMemo(() => {
     const key = (selectedNodeId || 'carranca').toLowerCase().replace(/\s+/g, '_');
-    return CANONICAL_CULTURE_VAULT[key] || CANONICAL_CULTURE_VAULT['carranca'];
+    return CULTURAL_VAULT_REGISTRY[key] || CULTURAL_VAULT_REGISTRY['carranca'];
   }, [selectedNodeId]);
 
   const selectedNode = useMemo(() => {
     return nodes.find(n => n.id === selectedNodeId) || nodes[1] || nodes[0];
   }, [nodes, selectedNodeId]);
 
-  // ── Ativação Semântica Dinâmica (Spreading Activation) ──
+  // ── Spreading Activation em Background (Sem exibir números na tela) ──
   const spreadingResult = useMemo(() => {
     if (!selectedNodeId) return null;
     return runSpreadingActivation(nodes, connections, [{ id: selectedNodeId, initialEnergy: 1.0 }], {
@@ -220,28 +207,21 @@ export default function CulturalInteroperabilityView({
 
   const nodeActivations = useMemo(() => spreadingResult?.nodeActivations || {}, [spreadingResult]);
 
-  // ── Vizinhos Conectados no Grafo ──
+  // ── Conexões do Grafo com Afirmações Textuais ──
   const connectedNeighbors = useMemo(() => {
     if (!selectedNode) return [];
-    return connections
-      .filter(c => c.from === selectedNode.id || c.to === selectedNode.id)
-      .map(c => {
-        const otherId = c.from === selectedNode.id ? c.to : c.from;
-        const targetConcept = CANONICAL_CULTURE_VAULT[otherId];
-        const n = nodes.find(x => x.id === otherId);
-        return {
-          id: otherId,
-          label: targetConcept?.tag || n?.label || otherId,
-          weight: c.weight,
-          relation: c.skosRelation || 'skos:related',
-          node: n
-        };
-      })
-      .filter(item => item.id !== 'core' && item.node !== undefined)
-      .sort((a, b) => b.weight - a.weight);
-  }, [connections, selectedNode, nodes]);
+    return activeConcept.conexoesTextuais.map(conn => {
+      const n = nodes.find(x => x.id === conn.targetId);
+      return {
+        id: conn.targetId,
+        label: conn.targetTag,
+        afirmacaoCultural: conn.afirmacaoCultural,
+        node: n
+      };
+    });
+  }, [activeConcept, nodes]);
 
-  // ── Automação Viva: Pulso Neural Contínuo Trafegando Informação ──
+  // ── Tráfego Sináptico Autônomo (Pulso sutil de dados na rede) ──
   useEffect(() => {
     const pulseInterval = setInterval(() => {
       if (connections.length === 0) return;
@@ -251,8 +231,8 @@ export default function CulturalInteroperabilityView({
 
       setTimeout(() => {
         setActivePulseKey(null);
-      }, 1800);
-    }, 3800);
+      }, 1600);
+    }, 4000);
 
     return () => clearInterval(pulseInterval);
   }, [connections]);
@@ -341,59 +321,17 @@ export default function CulturalInteroperabilityView({
 
   const handleMouseUp = () => setDraggedNodeId(null);
 
-  // ── Motor Cognitivo: Pensar e Interligar Sinapses em Tempo Real ──
-  const handleTriggerThinking = useCallback(async () => {
-    if (isThinking) return;
-    setIsThinking(true);
-    setThinkingLog([]);
-
-    const log = (msg: string) => setThinkingLog(prev => [...prev, msg]);
-
-    log(`[1. Preservação de Proveniência] Tag "${activeConcept.tag}" ancorada — UUID: ${activeConcept.uuid.substring(0, 8)}... (prov:wasAttributedTo: ${activeConcept.autor})`);
-    log(`[2. Compactação Vetorial] Extraindo coordenadas em R^d para busca por similaridade de cosseno...`);
-
-    try {
-      const res = await fetch('/api/interop/live-vault', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sourceTag: activeConcept.id })
-      });
-
-      if (res.ok) {
-        const json = await res.json();
-        const discoveries = json.data?.discoveries || [];
-
-        log(`[3. Graph Neural Network] Propagação de mensagens GNN h_v^(k) agregada dos vizinhos culturais.`);
-        
-        discoveries.forEach((d: any) => {
-          log(`[4. Sinapse Criada] "${activeConcept.tag}" ↔ "${d.targetTag}" (${Math.round(d.combinedScore * 100)}%) — ${d.insight}`);
-        });
-
-        log(`[5. Ancoragem Científica] Artigo verificado: "${activeConcept.artigo.titulo}" (DOI: ${activeConcept.artigo.doi})`);
-        log(`[6. Integridade Criptográfica] Hash Merkle SHA-256 autenticado no cofre.`);
-
-        setInferenceCount(prev => prev + 1);
-      }
-    } catch {
-      log(`[3. Spreading Activation] Propagando ativação semântica pelas sinapses ativas do grafo.`);
-      log(`[4. Ancoragem Científica] Artigo verificado: "${activeConcept.artigo.titulo}" (DOI: ${activeConcept.artigo.doi})`);
-    } finally {
-      setIsThinking(false);
-    }
-  }, [activeConcept, isThinking]);
-
-  // ── Pacote JSON-LD 1.1 Gerado para o Teste de Transferência ──
+  // ── JSON-LD 1.1 Conforme Especificação ──
   const currentJsonLd = useMemo(() => {
     return {
       "@context": {
         "skos": "http://www.w3.org/2004/02/skos/core#",
         "schema": "http://schema.org/",
         "prov": "http://www.w3.org/ns/prov#",
-        "wd": "http://www.wikidata.org/entity/",
-        "crm": "http://www.cidoc-crm.org/cidoc-crm/"
+        "wd": "http://www.wikidata.org/entity/"
       },
       "@id": `https://folksonomia-digital.cultura.gov.br/tag/${activeConcept.id}`,
-      "@type": ["skos:Concept", "crm:E28_Conceptual_Object"],
+      "@type": "skos:Concept",
       "skos:prefLabel": {
         "@value": activeConcept.tag,
         "@language": "pt-BR"
@@ -405,7 +343,7 @@ export default function CulturalInteroperabilityView({
         "schema:name": activeConcept.autor
       },
       "skos:broadMatch": {
-        "@id": activeConcept.wikidata.uri,
+        "@id": activeConcept.wikidata.id,
         "@type": "skos:Concept",
         "skos:prefLabel": {
           "@value": activeConcept.wikidata.enLabel,
@@ -414,23 +352,16 @@ export default function CulturalInteroperabilityView({
       },
       "schema:subjectOf": [
         {
-          "@id": `https://doi.org/${activeConcept.artigo.doi}`,
+          "@id": activeConcept.artigo.url,
           "@type": "schema:ScholarlyArticle",
           "schema:name": activeConcept.artigo.titulo,
-          "schema:author": activeConcept.artigo.autor,
-          "schema:publisher": activeConcept.artigo.veiculo,
-          "schema:identifier": activeConcept.artigo.doi
+          "schema:publisher": activeConcept.artigo.veiculo
         }
-      ],
-      "crm:P1_is_identified_by": {
-        "@type": "crm:E42_Identifier",
-        "crm:P2_has_type": "SHA-256 Merkle Custody Hash",
-        "schema:value": generateDeterministicHash({ tag: activeConcept.tag, uuid: activeConcept.uuid })
-      }
+      ]
     };
   }, [activeConcept]);
 
-  // ── Executar Teste de Transferência de Dados via API ──
+  // ── Teste de Transferência de Dados via API ──
   const handleRunTransferTest = async () => {
     setIsTestingTransfer(true);
     setTransferResult(null);
@@ -471,42 +402,33 @@ export default function CulturalInteroperabilityView({
             </h2>
             <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 border border-green-500/20 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
-              Sinapses Vivas
+              Rede Conectada
             </span>
           </div>
           <p className="text-xs text-[#1A1A1A]/50 mt-1 font-medium">
-            Preservação de tags colaborativas, compactação em embeddings vetoriais, ancoragem a artigos científicos reais e transferência federada em JSON-LD.
+            Preservação de tags criadas por usuários, proveniência social, vinculação a artigos científicos e transferência em padrão internacional JSON-LD.
           </p>
         </div>
 
-        {/* BUSCA RÁPIDA + BOTÃO PENSAR */}
+        {/* BUSCA RÁPIDA DE TAGS */}
         <div className="flex items-center gap-2">
-          <div className="relative w-full md:w-56">
+          <div className="relative w-full md:w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" />
             <input
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Localizar no cofre..."
+              placeholder="Localizar tag no cofre..."
               className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8490A]/30"
             />
           </div>
-
-          <button
-            onClick={handleTriggerThinking}
-            disabled={isThinking}
-            className="px-3.5 py-1.5 bg-[#6D28D9] hover:bg-[#5b21b6] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 shadow-xs whitespace-nowrap"
-          >
-            <Brain size={14} className={isThinking ? 'animate-spin' : ''} />
-            <span>{isThinking ? 'Correlacionando...' : 'Pensar e Correlacionar'}</span>
-          </button>
         </div>
       </div>
 
       {/* ── ÁREA PRINCIPAL: GRAFO INTERLIGADO + COFRE VIVO DA TAG ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* COLUNA ESQUERDA (7 colunas): GRAFO NEURAL INTERLIGADO G=(V,E,R) */}
+        {/* COLUNA ESQUERDA (7 colunas): GRAFO INTERLIGADO */}
         <div className="lg:col-span-7 space-y-3">
           <div className="glass-card p-4 border border-black/07">
             <div className="flex items-center justify-between mb-3">
@@ -515,9 +437,6 @@ export default function CulturalInteroperabilityView({
                 <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
                   Rede de Interconexão Semântica
                 </h3>
-                <span className="text-[10px] text-[#1A1A1A]/40 font-mono">
-                  ({nodes.length} nós / {connections.length} sinapses)
-                </span>
               </div>
               <span className="text-[10px] text-[#1A1A1A]/50 font-medium">
                 Clique nos nós para abrir o cofre de cada tag
@@ -551,7 +470,7 @@ export default function CulturalInteroperabilityView({
                   </filter>
                 </defs>
 
-                {/* Grade de Fundo Sutil */}
+                {/* Grade de Fundo */}
                 {Array.from({ length: 48 }).map((_, i) => (
                   <circle
                     key={`dot-${i}`}
@@ -562,7 +481,7 @@ export default function CulturalInteroperabilityView({
                   />
                 ))}
 
-                {/* SINAPSES / ARESTAS */}
+                {/* ARESTAS / SINAPSES (Sem números nem percentuais) */}
                 {connections.map((conn, idx) => {
                   const fn = nodes.find(n => n.id === conn.from);
                   const tn = nodes.find(n => n.id === conn.to);
@@ -570,7 +489,6 @@ export default function CulturalInteroperabilityView({
 
                   const isHighlighted = selectedNodeId && (fn.id === selectedNodeId || tn.id === selectedNodeId);
                   const isPulsing = activePulseKey === `${conn.from}__${conn.to}` || activePulseKey === `${conn.to}__${conn.from}`;
-                  const w = conn.weight || 0.6;
                   const color = isPulsing ? '#a855f7' : (fn.fill || '#E8490A');
 
                   return (
@@ -581,23 +499,10 @@ export default function CulturalInteroperabilityView({
                         x2={tn.x ?? 400}
                         y2={tn.y ?? 215}
                         stroke={color}
-                        strokeWidth={isPulsing ? 4 : isHighlighted ? 3.2 : 1.8}
-                        opacity={isPulsing ? 1.0 : isHighlighted ? 0.92 : 0.24}
+                        strokeWidth={isPulsing ? 3.8 : isHighlighted ? 2.8 : 1.4}
+                        opacity={isPulsing ? 1.0 : isHighlighted ? 0.88 : 0.22}
                         className={isPulsing ? 'animate-pulse' : ''}
                       />
-                      {isHighlighted && (
-                        <text
-                          x={((fn.x ?? 400) + (tn.x ?? 400)) / 2}
-                          y={((fn.y ?? 215) + (tn.y ?? 215)) / 2 - 4}
-                          textAnchor="middle"
-                          fill="#ffffff"
-                          fontSize="8.5"
-                          fontFamily="monospace"
-                          className="pointer-events-none opacity-90 font-bold"
-                        >
-                          {(w * 100).toFixed(0)}%
-                        </text>
-                      )}
                     </g>
                   );
                 })}
@@ -617,7 +522,7 @@ export default function CulturalInteroperabilityView({
                       onMouseDown={e => handleMouseDown(node.id, e)}
                       onClick={() => setSelectedNodeId(node.id)}
                     >
-                      {/* Halo de Ativação */}
+                      {/* Halo */}
                       <circle
                         cx={nx}
                         cy={ny}
@@ -657,31 +562,12 @@ export default function CulturalInteroperabilityView({
                 })}
               </svg>
 
-              {/* Legenda de Rodapé */}
               <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[9px] text-white/50 font-mono pointer-events-none">
-                <span>Clique em qualquer nó para abrir seu cofre vivo e artigo científico</span>
-                <span className="text-[#E8490A] font-bold">Grafo Ativo G=(V,E,R)</span>
+                <span>Clique em qualquer manifestação para visualizar seu cofre vivo e proveniência</span>
+                <span className="text-[#E8490A] font-bold">Rede Interligada</span>
               </div>
             </div>
           </div>
-
-          {/* LOG COGNITIVO DO PENSAMENTO DA REDE */}
-          {thinkingLog.length > 0 && (
-            <div className="glass-card p-3 border border-purple-500/20 bg-purple-500/[0.03] space-y-1.5 animate-fade-in">
-              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-purple-700">
-                <Brain size={12} className="text-purple-600" />
-                <span>Fluxo de Inferência do Cofre Vivo (Deep Learning & RAG)</span>
-              </div>
-              <div className="space-y-0.5 font-mono text-[10px] text-[#1A1A1A]/70 max-h-32 overflow-y-auto">
-                {thinkingLog.map((logItem, idx) => (
-                  <div key={idx} className="flex items-start gap-1.5">
-                    <span className="text-purple-600 font-bold shrink-0">{String(idx + 1).padStart(2, '0')}.</span>
-                    <span>{logItem}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* COLUNA DIREITA (5 colunas): COFRE VIVO DA TAG SELECIONADA */}
@@ -706,24 +592,25 @@ export default function CulturalInteroperabilityView({
               </div>
             </div>
 
-            {/* Proveniência Social & Autor da Tag (O "Cofre" registrando o autor com PROV-O) */}
+            {/* Proveniência Social & Autor da Tag (Linguagem simples, frase natural) */}
             <div className="p-3 bg-black/[0.02] border border-black/06 rounded-xl space-y-1.5 text-xs">
               <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
-                <span className="flex items-center gap-1"><User size={11} className="text-[#E8490A]" /> Proveniência do Usuário</span>
-                <span className="font-mono text-green-700 font-bold">Imutável (PROV-O)</span>
+                <span className="flex items-center gap-1"><User size={11} className="text-[#E8490A]" /> Proveniência e Contexto</span>
+                <span className="font-mono text-green-700 font-bold">Autoria Preservada</span>
               </div>
-              <p className="font-semibold text-[#1A1A1A] text-[11px]">{activeConcept.autor}</p>
-              <div className="flex items-center justify-between text-[9.5px] font-mono text-[#1A1A1A]/60 pt-1 border-t border-black/04">
-                <span>Tripla Semântica:</span>
-                <span className="font-bold text-[#E8490A]">({activeConcept.tripla.sujeito}) → [{activeConcept.tripla.predicado}] → ({activeConcept.tripla.objeto})</span>
+              <p className="text-[#1A1A1A] text-[11px]">
+                Criada por <strong className="font-semibold">{activeConcept.autor}</strong> em {activeConcept.dataCriacao}.
+              </p>
+              <div className="text-[11px] text-[#1A1A1A]/80 pt-1 border-t border-black/04 leading-relaxed">
+                <strong className="text-[#E8490A] font-semibold">Relação cultural:</strong> {activeConcept.triplaFrase}
               </div>
             </div>
 
             {/* ARTIGO CIENTÍFICO REAL ANCORADO À TAG */}
             <div className="p-3.5 bg-gradient-to-br from-white via-white to-[#E8490A]/04 border border-[#E8490A]/20 rounded-xl space-y-2">
               <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-[#E8490A]">
-                <span className="flex items-center gap-1"><BookOpen size={12} /> Artigo Científico Vinculado à Tag</span>
-                <span className="font-mono">DOI Verificado</span>
+                <span className="flex items-center gap-1"><BookOpen size={12} /> Artigo Científico Vinculado</span>
+                <span className="font-mono text-[9px] text-[#1A1A1A]/50">Fonte Acadêmica</span>
               </div>
 
               <div>
@@ -747,27 +634,29 @@ export default function CulturalInteroperabilityView({
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-bold text-[#E8490A] hover:underline"
                 >
-                  <span>Acessar Artigo / Base</span>
+                  <span>Acessar Publicação</span>
                   <ArrowUpRight size={11} />
                 </a>
               </div>
             </div>
 
-            {/* CONEXÕES SEMÂNTICAS COM OUTRAS FAMÍLIAS CULTURAIS */}
+            {/* CONEXÕES CULTURAIS DESCOBERTAS (Afirmações textuais, sem scores) */}
             {connectedNeighbors.length > 0 && (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <p className="text-[9px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
-                  Famílias Distintivas Interligadas:
+                  Conexões Culturais Interligadas:
                 </p>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="space-y-1.5">
                   {connectedNeighbors.map((item, i) => (
                     <button
                       key={i}
                       onClick={() => setSelectedNodeId(item.id)}
-                      className="p-2 rounded-lg bg-black/[0.02] hover:bg-[#E8490A]/08 border border-black/05 text-left transition-all flex items-center justify-between cursor-pointer"
+                      className="w-full p-2.5 rounded-xl bg-black/[0.02] hover:bg-[#E8490A]/06 border border-black/05 text-left transition-all flex items-start gap-2 cursor-pointer group"
                     >
-                      <span className="text-[10px] font-bold text-[#1A1A1A] truncate">{item.label}</span>
-                      <span className="text-[9px] text-[#E8490A] font-mono font-bold">{(item.weight * 100).toFixed(0)}%</span>
+                      <Link2 size={12} className="text-[#E8490A] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                      <p className="text-[10.5px] text-[#1A1A1A]/80 leading-snug">
+                        {item.afirmacaoCultural}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -803,10 +692,10 @@ export default function CulturalInteroperabilityView({
                 <FileCode2 size={18} className="text-[#E8490A]" />
                 <div>
                   <h3 className="text-sm font-bold text-white">
-                    Pacote de Transferência de Dados Interoperável — "{activeConcept.tag}"
+                    Pacote de Transferência de Dados — "{activeConcept.tag}"
                   </h3>
                   <p className="text-[10px] text-white/50 font-mono">
-                    Padrão JSON-LD 1.1 • CIDOC-CRM • SKOS W3C • PROV-O
+                    JSON-LD 1.1 • W3C SKOS • PROV-O • Schema.org
                   </p>
                 </div>
               </div>
@@ -818,10 +707,10 @@ export default function CulturalInteroperabilityView({
               </button>
             </div>
 
-            {/* Informações do Teste de Transferência */}
+            {/* Informações da Consulta */}
             <div className="p-3 bg-black/30 border-b border-white/05 text-[10.5px] font-mono text-white/70 flex flex-wrap items-center justify-between gap-2">
               <span>Endpoint: <code>/api/interop/jsonld?tag={activeConcept.id}</code></span>
-              <span className="text-green-400 font-bold">Status: 200 OK (Content Negotiation)</span>
+              <span className="text-green-400 font-bold">Accept: application/ld+json (200 OK)</span>
             </div>
 
             {/* Código JSON-LD Formatado */}
@@ -834,7 +723,7 @@ export default function CulturalInteroperabilityView({
             {/* Footer do Modal */}
             <div className="p-3.5 border-t border-white/10 flex items-center justify-between bg-black/40">
               <span className="text-[10px] text-white/50 font-mono">
-                A tag original do usuário permanece soberana e vinculada ao artigo científico com DOI.
+                A tag original permanece soberana e ancorada a conceitos globais via SKOS.
               </span>
               <button
                 onClick={() => {

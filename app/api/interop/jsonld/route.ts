@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDeterministicHash } from '@/lib/ml/graph-math';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
-import { CANONICAL_CULTURE_VAULT } from '../live-vault/route';
+import { CULTURAL_VAULT_REGISTRY } from '../live-vault/route';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,19 +10,18 @@ export async function GET(req: NextRequest) {
   const tagParam = searchParams.get('tag') || 'carranca';
   const cleanId = normalizeForComparison(tagParam).replace(/\s+/g, '_');
   
-  const item = CANONICAL_CULTURE_VAULT[cleanId] || CANONICAL_CULTURE_VAULT['carranca'];
-  const hashSha256 = generateDeterministicHash({ tag: item.tag, uuid: item.uuid });
+  const item = CULTURAL_VAULT_REGISTRY[cleanId] || CULTURAL_VAULT_REGISTRY['carranca'];
 
+  // Schema exato do JSON-LD 1.1 especificado pelo usuário
   const jsonLdPayload = {
     "@context": {
       "skos": "http://www.w3.org/2004/02/skos/core#",
       "schema": "http://schema.org/",
       "prov": "http://www.w3.org/ns/prov#",
-      "wd": "http://www.wikidata.org/entity/",
-      "crm": "http://www.cidoc-crm.org/cidoc-crm/"
+      "wd": "http://www.wikidata.org/entity/"
     },
     "@id": `https://folksonomia-digital.cultura.gov.br/tag/${item.id}`,
-    "@type": ["skos:Concept", "crm:E28_Conceptual_Object"],
+    "@type": "skos:Concept",
     "skos:prefLabel": {
       "@value": item.tag,
       "@language": "pt-BR"
@@ -34,7 +33,7 @@ export async function GET(req: NextRequest) {
       "schema:name": item.autor
     },
     "skos:broadMatch": {
-      "@id": item.wikidata.uri,
+      "@id": item.wikidata.id,
       "@type": "skos:Concept",
       "skos:prefLabel": {
         "@value": item.wikidata.enLabel,
@@ -43,19 +42,12 @@ export async function GET(req: NextRequest) {
     },
     "schema:subjectOf": [
       {
-        "@id": `https://doi.org/${item.artigo.doi}`,
+        "@id": item.artigo.url,
         "@type": "schema:ScholarlyArticle",
         "schema:name": item.artigo.titulo,
-        "schema:author": item.artigo.autor,
-        "schema:publisher": item.artigo.veiculo,
-        "schema:identifier": item.artigo.doi
+        "schema:publisher": item.artigo.veiculo
       }
-    ],
-    "crm:P1_is_identified_by": {
-      "@type": "crm:E42_Identifier",
-      "crm:P2_has_type": "SHA-256 Merkle Custody Hash",
-      "schema:value": hashSha256
-    }
+    ]
   };
 
   return NextResponse.json(jsonLdPayload, {
