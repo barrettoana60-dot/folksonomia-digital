@@ -3173,31 +3173,6 @@ ${internasHtml}
                 }}
                 realMetrics={realMetrics}
               />
-
-                    {/* Legenda */}
-                    <div className="glass-card p-4 border border-black/07 space-y-2">
-                      <p className="text-[8px] uppercase font-bold text-[#1A1A1A]/40 tracking-widest mb-2">Legenda da Rede</p>
-                      {[
-                        { color: '#E8490A', label: 'Nucleo do Acervo' },
-                        { color: '#1E3A8A', label: 'Objeto Imaterial IPHAN' },
-                        { color: '#C0252B', label: 'Cultura Popular' },
-                        { color: '#1A6B3A', label: 'Arte Popular' },
-                        { color: '#E8A920', label: 'Documento / Dossie' },
-                        { color: '#6D28D9', label: 'Artigo Cientifico' },
-                        { color: '#0891B2', label: 'Patrimonio UNESCO' },
-                        { color: '#a78bfa', label: 'Sinapse Descoberta' },
-                      ].map(l => (
-                        <div key={l.label} className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: l.color}}></span>
-                          <span className="text-[9px] text-[#1A1A1A]/55">{l.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              </div>
->>>>>>> origin/main
             )}
 
           </>
