@@ -5,7 +5,7 @@ import {
   Brain, Network, Cpu, Activity, Share2, Layers, BookOpen, ExternalLink,
   Search, ShieldCheck, Download, Save, RefreshCw, ChevronRight, CheckCircle2,
   Sparkles, Hash, Info, Filter, ArrowRight, Database, Check, Copy, ArrowUpRight,
-  FolderLock, Tag, Plus, Flame
+  FolderLock, Tag, Plus, Flame, Radio, Zap, Globe, Lock
 } from 'lucide-react';
 import {
   runSpreadingActivation,
@@ -35,70 +35,107 @@ export default function CulturalInteroperabilityView({
   // ── Sub-Aba Ativa ──
   const [subTab, setSubTab] = useState<'grafo' | 'camadas' | 'artigos'>('grafo');
 
-  // ── Estados do Grafo Semântico ──
-  const [nodes, setNodes] = useState<GraphMathNode[]>(() => {
-    if (initialNodes && initialNodes.length > 0) return initialNodes;
-    return [
-      { id: "core", label: "Núcleo Folksonômico", x: 400, y: 215, size: 26, fill: "#E8490A", eixo: "NUCLEO", desc: "Centralizador semântico do acervo. Indexa manifestações populares e saberes de todas as regiões brasileiras.", type: "Núcleo do Acervo Semântico", hash: "SHA3:c8ed9901a72f3b01", familia: "sistema.nucleo.folksonomico", regiao: "Nacional", linksReais: [{ label: "IBRAM — Museus Federais", url: "https://www.gov.br/museus/pt-br" }, { label: "Tesauro CNFCP/IPHAN", url: "https://www.cnfcp.gov.br/interna.php?ID_Secao=69" }], acervos: ["IBRAM", "Brasiliana", "IPHAN", "Mapas da Cultura"], activation: 1.0, skosType: "ConceptScheme" },
-      { id: "bumba_boi", label: "Bumba-meu-boi", x: 230, y: 110, size: 18, fill: "#1E3A8A", eixo: "FESTA", desc: "Festa popular do ciclo junino — Patrimônio Cultural Imaterial do Brasil (IPHAN/UNESCO). Complexo lúdico-dramático do Maranhão, Pará e Amazonas.", type: "Patrimônio Imaterial IPHAN", hash: "SHA3:bumba1e2f3a4b5c6d", familia: "festa.popular.ciclo_junino.nordeste", regiao: "Norte/Nordeste", linksReais: [{ label: "IPHAN — Dossiê Bumba-meu-boi", url: "https://www.iphan.gov.br" }, { label: "CNFCP — Folclore Brasileiro", url: "https://cnfcp.gov.br" }], acervos: ["Museu do Folclore Edison Carneiro", "IBRAM-MA"], activation: 0.85, skosType: "Concept", skosBroader: ["core"] },
-      { id: "boi_bumba", label: "Boi-Bumbá de Parintins", x: 120, y: 150, size: 14, fill: "#1E3A8A", eixo: "FESTA", desc: "Expressão amazônica do auto do boi (Garantido e Caprichoso). Sincretismo entre tradições indígenas, afrodescendentes e lusas.", type: "Patrimônio Cultural do Brasil", hash: "SHA3:parintins7a8b9c", familia: "festa.popular.auto_do_boi.amazonia", regiao: "Norte", linksReais: [{ label: "Mapas da Cultura — Festival de Parintins", url: "https://mapas.cultura.gov.br" }], acervos: ["Secretaria de Cultura do Amazonas"], activation: 0.65, skosType: "Concept", skosBroader: ["bumba_boi"] },
-      { id: "carranca", label: "Carranca do São Francisco", x: 220, y: 310, size: 17, fill: "#1A6B3A", eixo: "SABERES", desc: "Escultura antropomórfica de proa fluvial. Proteção mística ribeirinha e símbolo mor da arte escultórica popular brasileira.", type: "Arte Popular / Ofício Ribeirinho", hash: "SHA3:carran8c2f1a4e7b", familia: "saberes.escultura.fluvial.sao_francisco", regiao: "Nordeste (São Francisco)", linksReais: [{ label: "Museu Casa do Pontal — Carrancas", url: "https://casadopontal.org.br" }, { label: "Brasiliana — Acervo São Francisco", url: "https://brasiliana.museus.gov.br" }], acervos: ["Museu Casa do Pontal", "Museu do São Francisco"], activation: 0.78, skosType: "Concept", skosBroader: ["core"] },
-      { id: "mestre_vitalino", label: "Mestre Vitalino & Alto do Moura", x: 330, y: 340, size: 16, fill: "#1A6B3A", eixo: "SABERES", desc: "Mestre da cerâmica figurativa de Caruaru (PE). Retratou o cotidiano, as festas e os tipos humanos do agreste pernambucano.", type: "Mestre de Notório Saber Cultural", hash: "SHA3:vitalino4e7b8a1c", familia: "saberes.ceramica.figurativa.caruaru", regiao: "Nordeste (Pernambuco)", linksReais: [{ label: "Casa Museu Mestre Vitalino", url: "https://caruaru.pe.gov.br" }, { label: "IPHAN — Cerâmica do Alto do Moura", url: "https://iphan.gov.br" }], acervos: ["Museu do Barro de Caruaru", "Museu do Homem do Nordeste"], activation: 0.72, skosType: "Concept", skosRelated: ["carranca"] },
-      { id: "frevo", label: "Frevo Pernambucano", x: 570, y: 120, size: 16, fill: "#0891B2", eixo: "MUSICA", desc: "Música e dança acrobática — Patrimônio Cultural Imaterial da Humanidade (UNESCO 2012). Ritmo sincopado de marchas e dobrados urbanos.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:frevo8f29a1b3c4d5", familia: "musica.danca.carnaval.nordeste", regiao: "Nordeste (Recife/Olinda)", linksReais: [{ label: "UNESCO — Frevo Inscription", url: "https://ich.unesco.org" }, { label: "Paço do Frevo", url: "https://pacodofrevo.org.br" }], acervos: ["Paço do Frevo", "Museu da Cidade do Recife"], activation: 0.60, skosType: "Concept", skosBroader: ["core"] },
-      { id: "capoeira", label: "Roda de Capoeira & Mestres de Ofício", x: 640, y: 220, size: 15, fill: "#0891B2", eixo: "MUSICA", desc: "Arte marcial, música, canto e dança afro-brasileira (UNESCO 2014). Símbolo de resistência e cosmologia de matriz africana.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:capoeira4f7a8b9c", familia: "musica.danca.luta.afro.nacional", regiao: "Nacional (Bahia)", linksReais: [{ label: "UNESCO — Capoeira Circle", url: "https://ich.unesco.org" }], acervos: ["Museu Afro Brasil", "IPHAN"], activation: 0.55, skosType: "Concept", skosBroader: ["core"] },
-      { id: "jongo", label: "Jongo do Sudeste", x: 580, y: 320, size: 13, fill: "#0891B2", eixo: "MUSICA", desc: "Dança e percussão de tambores de tronco (caxambu/candongueiro). Raiz histórica do samba carioca e tradição quilombola.", type: "Patrimônio Imaterial IPHAN", hash: "SHA3:jongo1d2e3f4a", familia: "musica.percussao.afro.sudeste", regiao: "Sudeste (Vale do Paraíba)", linksReais: [{ label: "IPHAN — Dossiê Jongo", url: "https://iphan.gov.br" }], acervos: ["Comunidades Jongueiras RJ/SP/MG", "CNFCP"], activation: 0.40, skosType: "Concept", skosRelated: ["capoeira"] },
-      { id: "candomble", label: "Terreiro & Tradição dos Orixás", x: 450, y: 350, size: 14, fill: "#6D28D9", eixo: "CRENCAS", desc: "Tradição de matriz africana, ritos, toques de atabaque e culinária sagrada. Patrimônio afro-religioso tombado pelo IPHAN.", type: "Patrimônio Material/Imaterial IPHAN", hash: "SHA3:candomble9a8b", familia: "crencas.matriz_africana.terreiros", regiao: "Nacional (BA/RJ/PE)", linksReais: [{ label: "IPHAN — Terreiros Tombados", url: "https://iphan.gov.br" }], acervos: ["Museu Afro Brasil", "IPHAN"], activation: 0.48, skosType: "Concept", skosRelated: ["jongo", "capoeira"] },
-      { id: "renda_bilro", label: "Renda de Bilro & Artesanato Têxtil", x: 130, y: 250, size: 13, fill: "#1A6B3A", eixo: "SABERES", desc: "Ofício tradicional de tecelagem manual em almofada com bilros de madeira. Prática centenária do litoral de SC, CE e MA.", type: "Saber Tradicional / Artesanato", hash: "SHA3:bilro2b3c4d", familia: "saberes.artesanato.textil.litoral", regiao: "Litoral Brasileiro", linksReais: [{ label: "CNFCP — Rendeiras do Brasil", url: "https://cnfcp.gov.br" }], acervos: ["Museu de Arte Popular de Florianópolis", "CNFCP"], activation: 0.35, skosType: "Concept", skosBroader: ["core"] },
-    ];
+  // ── Estados do Grafo Semântico e da Rede Viva ──
+  const [nodes, setNodes] = useState<GraphMathNode[]>(() => initialNodes.length > 0 ? initialNodes : [
+    { id: "core", label: "Núcleo Folksonômico", x: 400, y: 215, size: 26, fill: "#E8490A", eixo: "NUCLEO", desc: "Centralizador semântico do acervo. Aglomera e trafega informações das manifestações e saberes dos visitantes e acervos federais.", type: "Núcleo do Acervo Semântico", hash: "SHA3:c8ed9901a72f3b01", familia: "sistema.nucleo.folksonomico", regiao: "Nacional", linksReais: [{ label: "IBRAM — Museus Federais", url: "https://www.gov.br/museus/pt-br" }, { label: "Tesauro CNFCP/IPHAN", url: "https://www.cnfcp.gov.br/interna.php?ID_Secao=69" }], acervos: ["IBRAM", "Brasiliana", "IPHAN", "Mapas da Cultura"], activation: 1.0, skosType: "ConceptScheme" },
+    { id: "bumba_boi", label: "Bumba-meu-boi", x: 230, y: 110, size: 18, fill: "#1E3A8A", eixo: "FESTA", desc: "Festa popular do ciclo junino — Patrimônio Cultural Imaterial do Brasil (IPHAN/UNESCO). Complexo lúdico-dramático do Maranhão, Pará e Amazonas.", type: "Patrimônio Imaterial IPHAN", hash: "SHA3:bumba1e2f3a4b5c6d", familia: "festa.popular.ciclo_junino.nordeste", regiao: "Norte/Nordeste", linksReais: [{ label: "IPHAN — Dossiê Bumba-meu-boi", url: "https://www.iphan.gov.br" }, { label: "CNFCP — Folclore Brasileiro", url: "https://cnfcp.gov.br" }], acervos: ["Museu do Folclore Edison Carneiro", "IBRAM-MA"], activation: 0.85, skosType: "Concept", skosBroader: ["core"] },
+    { id: "carranca", label: "Carranca do São Francisco", x: 220, y: 310, size: 17, fill: "#1A6B3A", eixo: "SABERES", desc: "Escultura antropomórfica de proa fluvial. Proteção mística ribeirinha e símbolo mor da arte escultórica popular brasileira.", type: "Arte Popular / Ofício Ribeirinho", hash: "SHA3:carran8c2f1a4e7b", familia: "saberes.escultura.fluvial.sao_francisco", regiao: "Nordeste (São Francisco)", linksReais: [{ label: "Museu Casa do Pontal — Carrancas", url: "https://casadopontal.org.br" }, { label: "Brasiliana — Acervo São Francisco", url: "https://brasiliana.museus.gov.br" }], acervos: ["Museu Casa do Pontal", "Museu do São Francisco"], activation: 0.78, skosType: "Concept", skosBroader: ["core"] },
+    { id: "frevo", label: "Frevo Pernambucano", x: 570, y: 120, size: 16, fill: "#0891B2", eixo: "MUSICA", desc: "Música e dança acrobática — Patrimônio Cultural Imaterial da Humanidade (UNESCO 2012). Ritmo sincopado de marchas e dobrados urbanos.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:frevo8f29a1b3c4d5", familia: "musica.danca.carnaval.nordeste", regiao: "Nordeste (Recife/Olinda)", linksReais: [{ label: "UNESCO — Frevo Inscription", url: "https://ich.unesco.org" }, { label: "Paço do Frevo", url: "https://pacodofrevo.org.br" }], acervos: ["Paço do Frevo", "Museu da Cidade do Recife"], activation: 0.75, skosType: "Concept", skosBroader: ["core"] },
+    { id: "capoeira", label: "Roda de Capoeira", x: 640, y: 220, size: 15, fill: "#0891B2", eixo: "MUSICA", desc: "Arte marcial, música, canto e dança afro-brasileira (UNESCO 2014). Símbolo de resistência e cosmologia de matriz africana.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:capoeira4f7a8b9c", familia: "musica.danca.luta.afro.nacional", regiao: "Nacional (Bahia)", linksReais: [{ label: "UNESCO — Capoeira Circle", url: "https://ich.unesco.org" }], acervos: ["Museu Afro Brasil", "IPHAN"], activation: 0.70, skosType: "Concept", skosBroader: ["core"] },
+  ]);
+
+  const [connections, setConnections] = useState<GraphMathEdge[]>(() => initialConnections.length > 0 ? initialConnections : [
+    { from: "core", to: "bumba_boi", weight: 0.88, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "FESTA" },
+    { from: "core", to: "carranca", weight: 0.84, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "SABERES" },
+    { from: "core", to: "frevo", weight: 0.86, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
+    { from: "core", to: "capoeira", weight: 0.85, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
+    { from: "frevo", to: "capoeira", weight: 0.65, skosRelation: "skos:related", mechanism: "hebbian", eixoRel: "MUSICA" },
+  ]);
+
+  const [networkStats, setNetworkStats] = useState<{
+    totalTags: number;
+    tagsNoGrafo: number;
+    memoriaAprendida: number;
+    sinapses: number;
+    correlacoes: number;
+    historico: number;
+  }>({
+    totalTags: 0,
+    tagsNoGrafo: 5,
+    memoriaAprendida: 0,
+    sinapses: 5,
+    correlacoes: 0,
+    historico: 0,
   });
 
-  const [connections, setConnections] = useState<GraphMathEdge[]>(() => {
-    if (initialConnections && initialConnections.length > 0) return initialConnections;
-    return [
-      { from: "core", to: "bumba_boi", weight: 0.88, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "FESTA" },
-      { from: "bumba_boi", to: "boi_bumba", weight: 0.82, skosRelation: "skos:closeMatch", mechanism: "propagated", eixoRel: "FESTA" },
-      { from: "core", to: "carranca", weight: 0.84, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "SABERES" },
-      { from: "carranca", to: "mestre_vitalino", weight: 0.79, skosRelation: "skos:related", mechanism: "hebbian", eixoRel: "SABERES" },
-      { from: "core", to: "frevo", weight: 0.86, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
-      { from: "core", to: "capoeira", weight: 0.85, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
-      { from: "capoeira", to: "jongo", weight: 0.74, skosRelation: "skos:related", mechanism: "propagated", eixoRel: "MUSICA" },
-      { from: "jongo", to: "candomble", weight: 0.76, skosRelation: "skos:related", mechanism: "hebbian", eixoRel: "CRENCAS" },
-      { from: "capoeira", to: "candomble", weight: 0.71, skosRelation: "skos:related", mechanism: "hebbian", eixoRel: "CRENCAS" },
-      { from: "core", to: "renda_bilro", weight: 0.70, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "SABERES" },
-      { from: "mestre_vitalino", to: "renda_bilro", weight: 0.62, skosRelation: "skos:related", mechanism: "inferred", eixoRel: "SABERES" },
-      { from: "bumba_boi", to: "carranca", weight: 0.58, skosRelation: "skos:related", mechanism: "inferred", eixoRel: "PATRIMONIO" },
-    ];
-  });
-
-  // ── Seleção e Interação Direta ──
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('bumba_boi');
-  const [newTagInput, setNewTagInput] = useState('');
-  const [isThinking, setIsThinking] = useState(false);
-  const [thinkingLog, setThinkingLog] = useState<string | null>(null);
+  const [isLoadingLiveNetwork, setIsLoadingLiveNetwork] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('core');
   const [filterEixo, setFilterEixo] = useState<string>('TODOS');
   const [articleCategoryFilter, setArticleCategoryFilter] = useState<string>('TODOS');
+  const [searchTerm, setSearchTerm] = useState('');
   const [isSimulatingPhysics, setIsSimulatingPhysics] = useState(true);
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [livePulseTick, setLivePulseTick] = useState(0);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // ── Calcular Métricas de Centralidade ──
+  // ── 1. Carregar Rede Semântica Viva do Banco de Dados ──
+  const fetchSemanticNetwork = useCallback(async () => {
+    setIsLoadingLiveNetwork(true);
+    try {
+      const res = await fetch('/api/admin/semantic-graph', {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          if (json.data.nodes && json.data.nodes.length > 0) {
+            setNodes(json.data.nodes);
+          }
+          if (json.data.edges && json.data.edges.length > 0) {
+            setConnections(json.data.edges);
+          }
+          if (json.data.stats) {
+            setNetworkStats(json.data.stats);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[SemanticGraph] Falha ao carregar rede ao vivo:', e);
+    } finally {
+      setIsLoadingLiveNetwork(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSemanticNetwork();
+  }, [fetchSemanticNetwork]);
+
+  // ── 2. Pulso Periódico de Energia / Deep Learning Live Loop ──
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLivePulseTick(t => (t + 1) % 100);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // ── 3. Métricas de Centralidade de Brandes ──
   const centrality = useMemo(() => {
     return calculateCentralityMetrics(nodes, connections);
   }, [nodes, connections]);
 
-  // ── Nó Selecionado ──
+  // ── 4. Nó Selecionado ──
   const selectedNode = useMemo(() => {
     return nodes.find(n => n.id === selectedNodeId) || nodes[0] || null;
   }, [nodes, selectedNodeId]);
 
-  // ── Executar Ativação Semântica Automática quando Nó é Selecionado ──
+  // ── 5. Spreading Activation Dinâmico ao Selecionar Nó ──
   const spreadingResult = useMemo(() => {
     if (!selectedNodeId) return null;
     return runSpreadingActivation(nodes, connections, [{ id: selectedNodeId, initialEnergy: 1.0 }], {
-      decay: 0.78,
-      retention: 0.22,
+      decay: 0.76,
+      retention: 0.24,
       maxIterations: 8,
       normalize: true,
     });
@@ -108,39 +145,61 @@ export default function CulturalInteroperabilityView({
     return spreadingResult?.nodeActivations || {};
   }, [spreadingResult]);
 
-  // ── Famílias Similares do Nó Selecionado ──
+  // ── 6. Famílias Similares do Nó Selecionado ──
   const similarFamilies = useMemo(() => {
     if (!selectedNode) return [];
+    if (selectedNode.id === 'core') {
+      return nodes.filter(n => n.id !== 'core').slice(0, 4);
+    }
     const prefix = (selectedNode.familia || '').split('.').slice(0, 2).join('.');
-    return nodes.filter(n => n.id !== selectedNode.id && n.familia && n.familia.startsWith(prefix));
+    const directMatches = nodes.filter(
+      n => n.id !== selectedNode.id && n.familia && prefix && n.familia.startsWith(prefix)
+    );
+    if (directMatches.length > 0) return directMatches;
+    return nodes.filter(n => n.id !== selectedNode.id && n.eixo === selectedNode.eixo).slice(0, 4);
   }, [nodes, selectedNode]);
 
-  // ── Artigos Relacionados ao Nó Selecionado + Artigos Fundacionais ──
+  // ── 7. Artigos Relacionados ao Nó Selecionado (Dossiê Dinâmico) ──
   const activeArticles = useMemo(() => {
-    if (!selectedNode) return CULTURAL_INTEROP_REFERENCES;
-    const tagId = selectedNode.id;
-    return CULTURAL_INTEROP_REFERENCES.filter(art => {
-      if (articleCategoryFilter !== 'TODOS' && art.categoria !== articleCategoryFilter) return false;
-      return true;
-    });
+    let list = CULTURAL_INTEROP_REFERENCES;
+
+    if (articleCategoryFilter !== 'TODOS') {
+      list = list.filter(art => art.categoria === articleCategoryFilter);
+    }
+
+    if (selectedNode && selectedNode.id !== 'core') {
+      const tagId = selectedNode.id;
+      const eixo = selectedNode.eixo;
+      // Prioriza artigos especificamente associados ou que abordam o mesmo eixo cultural
+      return [...list].sort((a, b) => {
+        const aMatch = (a.tagAssociada?.includes(tagId) ? 2 : 0) + (a.eixos?.includes(eixo || '') ? 1 : 0);
+        const bMatch = (b.tagAssociada?.includes(tagId) ? 2 : 0) + (b.eixos?.includes(eixo || '') ? 1 : 0);
+        return bMatch - aMatch;
+      });
+    }
+
+    return list;
   }, [selectedNode, articleCategoryFilter]);
 
   const articlesSpecificToNode = useMemo(() => {
     if (!selectedNode) return [];
     const tagId = selectedNode.id;
-    return CULTURAL_INTEROP_REFERENCES.filter(art => art.tagAssociada && art.tagAssociada.includes(tagId));
+    const eixo = selectedNode.eixo;
+    return CULTURAL_INTEROP_REFERENCES.filter(
+      art => (art.tagAssociada && art.tagAssociada.includes(tagId)) || (art.eixos && art.eixos.includes(eixo || ''))
+    );
   }, [selectedNode]);
 
-  // ── Física de Força Dirigida (Grafo Semântico) ──
+  // ── 8. Física de Força Dirigida (Grafo com Molas) ──
   useEffect(() => {
     if (!isSimulatingPhysics) return;
     let animId: number;
 
     const tick = () => {
       setNodes(prev => {
-        const kRepulsion = 4200;
-        const kSpring = 0.045;
-        const centerGravity = 0.012;
+        const kRepulsion = 4600;
+        const kSpring = 0.042;
+        const centerGravity = 0.014;
         const cx = 400;
         const cy = 215;
 
@@ -150,19 +209,17 @@ export default function CulturalInteroperabilityView({
           let fx = (cx - (node.x || 400)) * centerGravity;
           let fy = (cy - (node.y || 215)) * centerGravity;
 
-          // Repulsão entre nós
           for (const other of prev) {
             if (other.id === node.id) continue;
             const dx = (node.x || 400) - (other.x || 400);
             const dy = (node.y || 215) - (other.y || 215);
-            const distSq = dx * dx + dy * dy + 100;
+            const distSq = dx * dx + dy * dy + 120;
             const dist = Math.sqrt(distSq);
             const force = kRepulsion / distSq;
             fx += (dx / dist) * force;
             fy += (dy / dist) * force;
           }
 
-          // Atração pelas arestas conectadas
           for (const edge of connections) {
             let neighborId: string | null = null;
             if (edge.from === node.id) neighborId = edge.to;
@@ -174,7 +231,7 @@ export default function CulturalInteroperabilityView({
                 const dx = (neighbor.x || 400) - (node.x || 400);
                 const dy = (neighbor.y || 215) - (node.y || 215);
                 const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                const targetDist = 130;
+                const targetDist = 135;
                 const springForce = (dist - targetDist) * kSpring * (edge.weight || 0.6);
                 fx += (dx / dist) * springForce;
                 fy += (dy / dist) * springForce;
@@ -182,7 +239,7 @@ export default function CulturalInteroperabilityView({
             }
           }
 
-          const damping = 0.82;
+          const damping = 0.80;
           const vx = ((node.vx || 0) + fx) * damping;
           const vy = ((node.vy || 0) + fy) * damping;
 
@@ -200,109 +257,7 @@ export default function CulturalInteroperabilityView({
     return () => cancelAnimationFrame(animId);
   }, [isSimulatingPhysics, draggedNodeId, connections]);
 
-  // ── Processar / Ingerir Nova Tag no Cofre Vivo ──
-  const handleCorrelateNewTag = async (tagToProcess?: string) => {
-    const rawTag = (tagToProcess || newTagInput).trim();
-    if (!rawTag) return;
-
-    setIsThinking(true);
-    setThinkingLog(`Correlacionando "${rawTag}" nas bases federais e calculando sinapses...`);
-
-    const cleanId = rawTag.toLowerCase().replace(/\s+/g, '_').replace(/[^\w\s]/g, '');
-
-    // Se já existe, apenas seleciona
-    const existing = nodes.find(n => n.id === cleanId || n.label.toLowerCase() === rawTag.toLowerCase());
-    if (existing) {
-      setSelectedNodeId(existing.id);
-      setIsThinking(false);
-      setThinkingLog(`Manifestação "${existing.label}" recuperada no Cofre Semântico.`);
-      setNewTagInput('');
-      return;
-    }
-
-    try {
-      if (onTriggerRAG) {
-        await onTriggerRAG(rawTag);
-      }
-
-      // Determinar eixo semântico inferido
-      let eixo = 'SABERES';
-      let fill = '#1A6B3A';
-      let familia = `saberes.manifestacao.${cleanId}`;
-
-      const lower = rawTag.toLowerCase();
-      if (lower.includes('boi') || lower.includes('festa') || lower.includes('junin') || lower.includes('bumba') || lower.includes('reis')) {
-        eixo = 'FESTA';
-        fill = '#1E3A8A';
-        familia = `festa.popular.${cleanId}`;
-      } else if (lower.includes('som') || lower.includes('dança') || lower.includes('musica') || lower.includes('frevo') || lower.includes('capoeira') || lower.includes('ritmo')) {
-        eixo = 'MUSICA';
-        fill = '#0891B2';
-        familia = `musica.expressao.${cleanId}`;
-      } else if (lower.includes('santo') || lower.includes('reza') || lower.includes('orixá') || lower.includes('terreiro') || lower.includes('crença')) {
-        eixo = 'CRENCAS';
-        fill = '#6D28D9';
-        familia = `crencas.religiosidade.${cleanId}`;
-      }
-
-      const generatedHash = generateDeterministicHash({
-        tag: rawTag,
-        eixo,
-        familia,
-        timestamp: new Date().toISOString(),
-      });
-
-      const newNode: GraphMathNode = {
-        id: cleanId,
-        label: rawTag,
-        x: 350 + (Math.random() - 0.5) * 120,
-        y: 200 + (Math.random() - 0.5) * 120,
-        size: 15,
-        fill,
-        eixo,
-        familia,
-        regiao: 'Brasil',
-        desc: `Manifestação integrada ao Cofre Semântico Vivo. Informações aglomeradas via aprendizado progressivo e correlacionadas com as matrizes culturais do patrimônio.`,
-        type: 'Manifestação Cultural / Cofre Vivo',
-        hash: generatedHash,
-        acervos: ['IBRAM', 'Brasiliana Museus', 'CNFCP/IPHAN', 'Mapas da Cultura'],
-        linksReais: [
-          { label: `Brasiliana Museus — Pesquisar "${rawTag}"`, url: `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(rawTag)}` },
-          { label: `CNFCP/IPHAN — Vocabulário Oficial`, url: `https://www.cnfcp.gov.br/interna.php?ID_Secao=69` },
-          { label: `Mapas da Cultura — Agentes & Festas`, url: `https://mapas.cultura.gov.br/busca/` }
-        ],
-        activation: 0.90,
-        skosType: 'Concept',
-        skosBroader: ['core'],
-      };
-
-      // Adicionar novo nó e conectar ao núcleo e a um nó afim
-      setNodes(prev => [...prev, newNode]);
-
-      // Encontrar nó afim para conexão sináptica
-      const siblingNode = nodes.find(n => n.eixo === eixo && n.id !== 'core') || nodes[0];
-      const newEdge: GraphMathEdge = {
-        from: siblingNode ? siblingNode.id : 'core',
-        to: cleanId,
-        weight: 0.78,
-        discovered: true,
-        mechanism: 'rag',
-        eixoRel: eixo,
-        skosRelation: 'skos:related',
-      };
-
-      setConnections(prev => [...prev, newEdge]);
-      setSelectedNodeId(cleanId);
-      setThinkingLog(`Tag "${rawTag}" consolidada no Cofre Semântico com hash ${generatedHash.slice(0, 12)}...`);
-      setNewTagInput('');
-    } catch (err) {
-      console.error('Erro ao correlacionar tag:', err);
-    } finally {
-      setIsThinking(false);
-    }
-  };
-
-  // ── Arraste de Nós no Grafo ──
+  // ── 9. Arraste de Nós no SVG ──
   const handleMouseDown = (nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setDraggedNodeId(nodeId);
@@ -321,7 +276,7 @@ export default function CulturalInteroperabilityView({
     setDraggedNodeId(null);
   };
 
-  // ── Eixos Semânticos ──
+  // ── Eixos Semânticos & Cores ──
   const EIXO_COLORS: Record<string, { color: string; label: string }> = {
     'NUCLEO':     { color: '#E8490A', label: 'Núcleo do Acervo' },
     'FESTA':      { color: '#1E3A8A', label: 'Festas & Rituais' },
@@ -331,18 +286,37 @@ export default function CulturalInteroperabilityView({
     'PATRIMONIO': { color: '#E8A920', label: 'Dossiês & Tombamentos' },
   };
 
+  // ── Nós filtrados pela busca ou pelo eixo ──
+  const filteredNodes = useMemo(() => {
+    return nodes.filter(node => {
+      if (filterEixo !== 'TODOS' && node.eixo !== filterEixo && node.id !== 'core') {
+        return false;
+      }
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        return node.label.toLowerCase().includes(term) || (node.familia || '').toLowerCase().includes(term);
+      }
+      return true;
+    });
+  }, [nodes, filterEixo, searchTerm]);
+
   return (
     <div className="space-y-6 text-[#1A1A1A]">
 
-      {/* ── HEADER PRINCIPAL COM AS 3 ABAS ── */}
+      {/* ── HEADER PRINCIPAL COM AS 3 ABAS & STATUS DO COFRE ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-black/10 pb-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
-            <Brain size={24} className="text-[#E8490A]" />
-            Interoperabilidade Cultural — Grafo Semântico
-          </h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
+              <Brain size={24} className="text-[#E8490A]" />
+              Grafo Semântico & Tráfego de Informação
+            </h2>
+            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 border border-green-500/20 flex items-center gap-1">
+              <Radio size={10} className="animate-pulse text-green-600" /> Rede Viva
+            </span>
+          </div>
           <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold">
-            Cofre Semântico Vivo • Correlação de Famílias Culturais • CIDOC-CRM ISO 21127 • SKOS W3C
+            Cofre Semântico Vivo • Aprendizado Deep Learning Hebbiano • SKOS W3C • CIDOC-CRM ISO 21127
           </p>
         </div>
 
@@ -374,49 +348,70 @@ export default function CulturalInteroperabilityView({
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* ABA 1: GRAFO SEMÂNTICO (COFRE SEMÂNTICO VIVO)                           */}
+      {/* ABA 1: GRAFO SEMÂNTICO (COFRE SEMÂNTICO VIVO AUTOMÁTICO)                */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {subTab === 'grafo' && (
         <div className="space-y-6 animate-fade-in">
           
-          {/* BARRA DE ENTRADA DO USUÁRIO — CORRELAÇÃO DINÂMICA NO COFRE VIVO */}
-          <div className="glass-card p-4 border border-black/07 bg-gradient-to-r from-white/90 via-white/80 to-[#E8490A]/05 shadow-sm">
-            <div className="flex flex-col md:flex-row items-center gap-3">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#E8490A] whitespace-nowrap">
-                <FolderLock size={16} />
-                <span>Cofre Semântico Vivo:</span>
+          {/* BARRA DE TELEMETRIA DA REDE VIVA & BUSCA RÁPIDA */}
+          <div className="glass-card p-4 border border-black/07 bg-gradient-to-r from-white via-white to-[#E8490A]/05 shadow-sm space-y-3">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              
+              {/* Telemetria do Deep Learning & Tráfego */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#E8490A]">
+                  <FolderLock size={16} />
+                  <span>Cofre Semântico Vivo:</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-mono">
+                  <span className="px-2 py-0.5 rounded bg-black/05 font-bold text-[#1A1A1A]">
+                    {nodes.length} nós ativos
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-black/05 font-bold text-[#1A1A1A]">
+                    {connections.length} sinapses calculadas
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-800 font-bold flex items-center gap-1">
+                    <Zap size={10} /> Auto-Aglomeração Contínua
+                  </span>
+                </div>
               </div>
-              <div className="relative flex-1 w-full">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-black/40" />
-                <input
-                  type="text"
-                  value={newTagInput}
-                  onChange={e => setNewTagInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleCorrelateNewTag()}
-                  placeholder="Digite uma tag ou manifestação para pensar e correlacionar (ex: Xaxado, Cordel, Maracatu, Samba de Roda)..."
-                  className="w-full pl-10 pr-4 py-2 text-xs bg-white border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8490A]/30 focus:border-[#E8490A]"
-                />
+
+              {/* Controles: Busca / Filtro + Recarregar do Banco */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative flex-1 md:w-64">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Localizar tag no grafo..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8490A]/30"
+                  />
+                </div>
+
+                <button
+                  onClick={fetchSemanticNetwork}
+                  disabled={isLoadingLiveNetwork}
+                  className="px-3 py-1.5 bg-black/05 hover:bg-black/10 text-[#1A1A1A] text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0"
+                  title="Sincronizar rede com as tags mais recentes do banco"
+                >
+                  <RefreshCw size={12} className={isLoadingLiveNetwork ? 'animate-spin' : ''} />
+                  <span>Sincronizar Banco</span>
+                </button>
               </div>
-              <button
-                onClick={() => handleCorrelateNewTag()}
-                disabled={isThinking || !newTagInput.trim()}
-                className="w-full md:w-auto px-4 py-2 bg-[#E8490A] text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-sm hover:bg-[#c44000] disabled:opacity-50 transition-all flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer"
-              >
-                <Sparkles size={14} className={isThinking ? 'animate-spin' : ''} />
-                {isThinking ? 'Processando...' : 'Pensar & Correlacionar'}
-              </button>
+
             </div>
 
-            {/* Status / Log de Ingestão */}
-            {thinkingLog && (
-              <div className="mt-2.5 pt-2 border-t border-black/05 flex items-center justify-between text-[11px] text-[#1A1A1A]/70 font-mono">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  {thinkingLog}
-                </span>
-                <span className="text-[9px] uppercase font-bold text-[#E8490A]">Cofre Atualizado</span>
-              </div>
-            )}
+            {/* Banner de Tráfego & Deep Learning */}
+            <div className="pt-2 border-t border-black/05 flex flex-col sm:flex-row sm:items-center justify-between text-[10.5px] text-[#1A1A1A]/70 font-mono gap-2">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#E8490A] animate-ping" />
+                <span>O sistema captura e correlaciona automaticamente as tags adicionadas pelos visitantes via RAG e Spreading Activation.</span>
+              </span>
+              <span className="text-[9.5px] uppercase font-bold text-[#E8490A] flex items-center gap-1">
+                <Lock size={10} /> Custódia SHA3 Imutável
+              </span>
+            </div>
           </div>
 
           {/* ÁREA CENTRAL: GRAFO + PAINEL DO COFRE */}
@@ -429,10 +424,10 @@ export default function CulturalInteroperabilityView({
                   <div className="flex items-center gap-2">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-1.5">
                       <Network size={14} className="text-[#E8490A]" />
-                      Grafo Semântico Interativo
+                      Tráfego Semântico & Rede de Conceitos
                     </h3>
                     <span className="text-[10px] text-[#1A1A1A]/40 font-mono">
-                      ({nodes.length} conceitos / {connections.length} sinapses)
+                      ({filteredNodes.length} visíveis / {connections.length} sinapses)
                     </span>
                   </div>
 
@@ -449,12 +444,13 @@ export default function CulturalInteroperabilityView({
                       <option value="MUSICA">Música & Expressão</option>
                       <option value="SABERES">Saberes & Ofícios</option>
                       <option value="CRENCAS">Crenças & Religiosidade</option>
+                      <option value="PATRIMONIO">Dossiês / Documentação</option>
                     </select>
                   </div>
                 </div>
 
                 {/* SVG DO GRAFO SEMÂNTICO */}
-                <div className="relative w-full h-[450px] bg-[#0A0A08] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                <div className="relative w-full h-[460px] bg-[#0A0A08] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
                   <svg
                     ref={svgRef}
                     className="w-full h-full cursor-grab active:cursor-grabbing select-none"
@@ -491,13 +487,13 @@ export default function CulturalInteroperabilityView({
                       />
                     ))}
 
-                    {/* SINAPSES (Arestas Ponderadas) */}
+                    {/* SINAPSES (Arestas Ponderadas com Tráfego Semântico) */}
                     {connections.map((conn, idx) => {
                       const fn = nodes.find(n => n.id === conn.from);
                       const tn = nodes.find(n => n.id === conn.to);
                       if (!fn || !tn) return null;
 
-                      if (filterEixo !== 'TODOS' && fn.eixo !== filterEixo && tn.eixo !== filterEixo) {
+                      if (filterEixo !== 'TODOS' && fn.eixo !== filterEixo && tn.eixo !== filterEixo && fn.id !== 'core' && tn.id !== 'core') {
                         return null;
                       }
 
@@ -514,8 +510,8 @@ export default function CulturalInteroperabilityView({
                             x2={tn.x ?? 400}
                             y2={tn.y ?? 215}
                             stroke={color}
-                            strokeWidth={isHighlighted ? w * 3 + 1 : w * 2}
-                            opacity={isHighlighted ? 0.85 : 0.25}
+                            strokeWidth={isHighlighted ? w * 3.5 + 1 : w * 1.8}
+                            opacity={isHighlighted ? 0.9 : 0.22}
                             strokeDasharray={conn.discovered ? '4,4' : undefined}
                           />
                           {isHighlighted && (
@@ -526,7 +522,7 @@ export default function CulturalInteroperabilityView({
                               fill="#ffffff"
                               fontSize="8"
                               fontFamily="monospace"
-                              className="pointer-events-none opacity-80"
+                              className="pointer-events-none opacity-90"
                             >
                               {(w * 100).toFixed(0)}%
                             </text>
@@ -536,11 +532,7 @@ export default function CulturalInteroperabilityView({
                     })}
 
                     {/* NÓS DO GRAFO */}
-                    {nodes.map(node => {
-                      if (filterEixo !== 'TODOS' && node.eixo !== filterEixo && node.id !== 'core') {
-                        return null;
-                      }
-
+                    {filteredNodes.map(node => {
                       const isSel = node.id === selectedNodeId;
                       const act = activeActivations[node.id] || node.activation || 0.5;
                       const radius = isSel ? (node.size || 14) + 4 : node.size || 14;
@@ -560,7 +552,7 @@ export default function CulturalInteroperabilityView({
                             cy={ny}
                             r={radius + 14 * act}
                             fill={node.fill}
-                            opacity={isSel ? 0.35 : act * 0.15}
+                            opacity={isSel ? 0.38 : act * 0.16}
                             filter="url(#sem-halo)"
                             className="pointer-events-none transition-all duration-300"
                           />
@@ -571,7 +563,7 @@ export default function CulturalInteroperabilityView({
                             cy={ny}
                             r={radius}
                             fill={node.fill}
-                            stroke={isSel ? '#ffffff' : 'rgba(255,255,255,0.4)'}
+                            stroke={isSel ? '#ffffff' : 'rgba(255,255,255,0.45)'}
                             strokeWidth={isSel ? 2.5 : 1}
                             filter={isSel ? 'url(#sem-glow)' : undefined}
                             className="transition-all duration-200"
@@ -582,8 +574,8 @@ export default function CulturalInteroperabilityView({
                             x={nx}
                             y={ny + radius + 15}
                             textAnchor="middle"
-                            fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.7)'}
-                            fontSize={isSel ? '10' : '8.5'}
+                            fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.75)'}
+                            fontSize={isSel ? '10.5' : '8.5'}
                             fontWeight={isSel ? '700' : '400'}
                             className="pointer-events-none select-none transition-all"
                           >
@@ -607,7 +599,7 @@ export default function CulturalInteroperabilityView({
               </div>
             </div>
 
-            {/* COLUNA 3: Painel do Cofre Semântico Vivo & Detalhes da Tag */}
+            {/* COLUNA 3: Painel do Cofre Semântico Vivo & Detalhes da Manifestação */}
             <div className="space-y-4">
               {selectedNode ? (
                 <div className="glass-card p-5 border border-black/07 space-y-4 shadow-sm">
@@ -634,7 +626,7 @@ export default function CulturalInteroperabilityView({
                     </div>
                   </div>
 
-                  {/* Hash do Cofre / DNA Semântico */}
+                  {/* Hash do Cofre / DNA Semântico SHA3 */}
                   <div className="p-2.5 bg-black/[0.02] border border-black/06 rounded-xl flex items-center justify-between text-[9px] font-mono">
                     <div className="flex items-center gap-1.5 truncate">
                       <Hash size={12} className="text-[#E8490A]" />
@@ -647,12 +639,25 @@ export default function CulturalInteroperabilityView({
                         setTimeout(() => setCopySuccess(false), 2000);
                       }}
                       className="text-[#E8490A] hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
+                      title="Copiar Hash de Custódia SHA3"
                     >
                       {copySuccess ? <Check size={10} /> : <Copy size={10} />}
                     </button>
                   </div>
 
-                  {/* Descrição Curatorial */}
+                  {/* Relações SKOS / Taxonomia */}
+                  <div className="p-2.5 bg-black/[0.02] border border-black/06 rounded-xl space-y-1.5 text-[9.5px]">
+                    <div className="flex items-center justify-between text-[#1A1A1A]/50 font-mono uppercase text-[8px] font-bold">
+                      <span>Mapeamento SKOS W3C</span>
+                      <span className="text-[#E8490A]">{selectedNode.skosType || 'Concept'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[#1A1A1A]/80 font-mono">
+                      <span className="text-[#E8490A] font-bold">skos:broader:</span>
+                      <span>{selectedNode.skosBroader?.join(', ') || 'core (Núcleo Folksonômico)'}</span>
+                    </div>
+                  </div>
+
+                  {/* Descrição Curatorial & Aglomeração */}
                   <div>
                     <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
                       Aglomeração & Contexto no Cofre:
@@ -666,7 +671,7 @@ export default function CulturalInteroperabilityView({
                   {selectedNode.familia && (
                     <div>
                       <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1.5">
-                        Família Cultural & Genealogia:
+                        Genealogia Semântica:
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {selectedNode.familia.split('.').map((part, i, arr) => (
@@ -685,14 +690,14 @@ export default function CulturalInteroperabilityView({
                   {similarFamilies.length > 0 && (
                     <div>
                       <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1.5">
-                        Conexões por Família Similar:
+                        Manifestações Conectadas (Hebbiano / ML):
                       </p>
                       <div className="space-y-1">
-                        {similarFamilies.slice(0, 3).map(sim => (
+                        {similarFamilies.map(sim => (
                           <button
                             key={sim.id}
                             onClick={() => setSelectedNodeId(sim.id)}
-                            className="w-full text-left p-1.5 rounded-lg bg-black/[0.02] hover:bg-[#E8490A]/08 border border-black/04 transition-all flex items-center justify-between text-[10px]"
+                            className="w-full text-left p-1.5 rounded-lg bg-black/[0.02] hover:bg-[#E8490A]/08 border border-black/04 transition-all flex items-center justify-between text-[10px] cursor-pointer"
                           >
                             <span className="font-semibold text-[#1A1A1A]/85">{sim.label}</span>
                             <span className="text-[9px] text-[#E8490A] font-mono">Ver nó ↗</span>
@@ -706,13 +711,35 @@ export default function CulturalInteroperabilityView({
                   {selectedNode.acervos && selectedNode.acervos.length > 0 && (
                     <div>
                       <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
-                        Acervos Federados que Custodiam:
+                        Acervos Federados Integrados:
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {selectedNode.acervos.map((acervo, i) => (
                           <span key={i} className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#1E3A8A]/08 text-[#1E3A8A]">
                             {acervo}
                           </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Links Reais nos Acervos Oficiais */}
+                  {selectedNode.linksReais && selectedNode.linksReais.length > 0 && (
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
+                        Pontos de Acesso Federados:
+                      </p>
+                      <div className="space-y-1">
+                        {selectedNode.linksReais.map((link, i) => (
+                          <a
+                            key={i}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block p-1.5 rounded-lg bg-black/[0.02] hover:bg-[#1E3A8A]/08 border border-black/04 text-[10px] font-bold text-[#1E3A8A] hover:text-[#E8490A] transition-colors truncate"
+                          >
+                            {link.label} ↗
+                          </a>
                         ))}
                       </div>
                     </div>
@@ -725,7 +752,7 @@ export default function CulturalInteroperabilityView({
                       className="w-full py-2 bg-black/[0.03] hover:bg-[#E8490A]/10 text-[#E8490A] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <BookOpen size={13} />
-                      <span>Ver Artigos Desta Tag ({articlesSpecificToNode.length > 0 ? articlesSpecificToNode.length : 'Gerais'})</span>
+                      <span>Ver Artigos Desta Tag ({articlesSpecificToNode.length})</span>
                     </button>
                   </div>
                 </div>
@@ -798,7 +825,7 @@ export default function CulturalInteroperabilityView({
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* ABA 3: ARTIGOS & BIBLIOGRAFIA CIENTÍFICA                                 */}
+      {/* ABA 3: ARTIGOS & BIBLIOGRAFIA CIENTÍFICA (CORRELACIONADOS POR TAG)       */}
       {/* ═══════════════════════════════════════════════════════════════════════ */}
       {subTab === 'artigos' && (
         <div className="space-y-6 animate-fade-in">
@@ -813,21 +840,21 @@ export default function CulturalInteroperabilityView({
                 Artigos e Padrões da Documentação Patrimonial
               </h3>
               <p className="text-xs text-[#1A1A1A]/60 mt-0.5">
-                {selectedNode ? (
-                  <span>Exibindo artigos correlacionados à tag ativa <strong className="text-[#E8490A]">"{selectedNode.label}"</strong> e literatura fundamental.</span>
+                {selectedNode && selectedNode.id !== 'core' ? (
+                  <span>Exibindo artigos científicos e normativos específicos da manifestação cultural <strong className="text-[#E8490A]">"{selectedNode.label}"</strong> ({EIXO_COLORS[selectedNode.eixo || 'SABERES']?.label}).</span>
                 ) : (
-                  <span>Bibliografia completa em CIDOC-CRM ISO 21127, Europeana EDM, SKOS W3C e RAG Multi-Hop.</span>
+                  <span>Bibliografia completa em CIDOC-CRM ISO 21127, Europeana EDM, SKOS W3C, Tesauro CNFCP e RAG Multi-Hop.</span>
                 )}
               </p>
             </div>
 
             {/* Filtro por Categoria */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              {['TODOS', 'Padrões de Interoperabilidade (CIDOC-CRM / EDM)', 'Camada Semântica & SKOS', 'Spreading Activation & RAG'].map(cat => (
+              {['TODOS', 'Padrões de Interoperabilidade (CIDOC-CRM / EDM)', 'Camada Semântica & SKOS', 'Spreading Activation & RAG', 'Preservação & Custódia Digital'].map(cat => (
                 <button
                   key={cat}
                   onClick={() => setArticleCategoryFilter(cat)}
-                  className={`text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg transition-all ${
+                  className={`text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
                     articleCategoryFilter === cat
                       ? 'bg-[#1E3A8A] text-white shadow-xs'
                       : 'bg-black/04 text-[#1A1A1A]/60 hover:bg-black/08'
@@ -842,13 +869,15 @@ export default function CulturalInteroperabilityView({
           {/* LISTA DE ARTIGOS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {activeArticles.map(art => {
-              const isDirectlyAssociated = selectedNode && art.tagAssociada && art.tagAssociada.includes(selectedNode.id);
+              const isDirectlyAssociated = selectedNode && selectedNode.id !== 'core' && (
+                art.tagAssociada?.includes(selectedNode.id) || art.eixos?.includes(selectedNode.eixo || '')
+              );
 
               return (
                 <div
                   key={art.id}
                   className={`glass-card p-5 border transition-all space-y-3.5 flex flex-col justify-between ${
-                    isDirectlyAssociated ? 'border-[#E8490A]/40 bg-[#E8490A]/02 shadow-sm' : 'border-black/07'
+                    isDirectlyAssociated ? 'border-[#E8490A]/50 bg-[#E8490A]/03 shadow-md' : 'border-black/07'
                   }`}
                 >
                   <div className="space-y-2">
@@ -874,7 +903,7 @@ export default function CulturalInteroperabilityView({
 
                   <div className="space-y-2.5 pt-2 border-t border-black/06">
                     <div className="text-[10px] text-[#1A1A1A]/65">
-                      <strong className="text-[#1A1A1A]">Impacto no SFD:</strong> {art.aplicacaoNoSFD}
+                      <strong className="text-[#1A1A1A]">Aplicação no SFD:</strong> {art.aplicacaoNoSFD}
                     </div>
 
                     <a
@@ -883,7 +912,7 @@ export default function CulturalInteroperabilityView({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E3A8A] hover:text-[#E8490A] transition-colors"
                     >
-                      <span>Acessar Publicação / DOI</span>
+                      <span>Acessar Publicação / Norma Oficial</span>
                       <ArrowUpRight size={12} />
                     </a>
                   </div>
