@@ -1560,11 +1560,13 @@ export default function AdminPage() {
 
   // Efeito para evoluir o Grafo Neural com base nas tags reais de visitantes cadastradas no banco de dados
   useEffect(() => {
-    if (dashboardData?.recentTags?.length > 0) {
+    const rTags = dashboardData?.recentTags || dashboardData?.relatorioSemantico?.recentTags;
+    if (rTags && Array.isArray(rTags) && rTags.length > 0) {
       setInteropNodes(currentNodes => {
         const updated = [...currentNodes];
         // Adicionar as 5 tags mais recentes como novos pontos ativos no cérebro do sistema
-        dashboardData.recentTags.slice(0, 5).forEach((t: any) => {
+        rTags.slice(0, 5).forEach((t: any) => {
+          if (!t?.tag) return;
           const id = t.tag.toLowerCase().replace(/\s+/g, '_');
           if (!updated.some(n => n.id === id)) {
             const angle = Math.random() * Math.PI * 2;
@@ -1581,7 +1583,7 @@ export default function AdminPage() {
               fill: '#7C3AED', // Violeta intenso para tags evolutivas do banco
               desc: `Ponto semântico evoluído a partir das interações reais dos visitantes. Catalogado no acervo sob a categoria "${t.grupo || 'Outros'}".`,
               type: `Tag do Visitante (${t.grupo || 'Outros'})`,
-              hash: `SHA3:visitor_${t.id.substring(0,8)}`,
+              hash: `SHA3:visitor_${(t.id || 'x').substring(0,8)}`,
               familia: `visitante.tag.${(t.grupo || 'outros').toLowerCase().replace(/\s+/g, '_')}`,
               linksReais: [
                 { label: `Ver no acervo original`, url: `#` }
@@ -1599,7 +1601,8 @@ export default function AdminPage() {
       // Conectar as novas tags ao Core
       setInteropConnections(currentConns => {
         const updatedConns = [...currentConns];
-        dashboardData.recentTags.slice(0, 5).forEach((t: any) => {
+        rTags.slice(0, 5).forEach((t: any) => {
+          if (!t?.tag) return;
           const id = t.tag.toLowerCase().replace(/\s+/g, '_');
           const exists = updatedConns.some(c => (c.from === 'core' && c.to === id) || (c.to === 'core' && c.from === id));
           if (!exists) {
@@ -1708,10 +1711,10 @@ export default function AdminPage() {
   };
 
   const stats = [
-    { label: 'Volume de Dados', value: dashboardData?.visaoGeral.totalDados || 0, icon: Database, color: '#E85002' },
-    { label: 'Usuários Únicos', value: dashboardData?.visaoGeral.usuarios || 0, icon: Users, color: '#E85002' },
-    { label: 'Tags Criadas', value: dashboardData?.visaoGeral.tags || 0, icon: TagIcon, color: '#E85002' },
-    { label: 'Registros Validados', value: dashboardData?.visaoGeral.validados || 0, icon: ShieldCheck, color: '#00FF00' },
+    { label: 'Volume de Dados', value: dashboardData?.visaoGeral?.totalDados || 0, icon: Database, color: '#E85002' },
+    { label: 'Usuários Únicos', value: dashboardData?.visaoGeral?.usuarios || 0, icon: Users, color: '#E85002' },
+    { label: 'Tags Criadas', value: dashboardData?.visaoGeral?.tags || 0, icon: TagIcon, color: '#E85002' },
+    { label: 'Registros Validados', value: dashboardData?.visaoGeral?.validados || 0, icon: ShieldCheck, color: '#00FF00' },
   ];
 
   // Estado do modal do grafo
