@@ -2246,7 +2246,7 @@ ${internasHtml}
                        <TagIcon className="text-[#E85002]" size={18} /> Tags no Sistema
                      </h3>
                      <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                        {dashboardData?.relatorioSemantico?.recentTags?.length > 0 ? (
+                        {dashboardData?.relatorioSemantico?.recentTags && dashboardData.relatorioSemantico.recentTags.length > 0 ? (
                           dashboardData.relatorioSemantico.recentTags.map((tagObj: any, i: number) => (
                             <div key={tagObj.id || i} className={`p-4 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
                               selectedTagForAnalysis === tagObj.tag 

@@ -103,25 +103,31 @@ export default function Header() {
     checkToken();
     window.addEventListener('storage', checkToken);
 
-    // carregar preferências salvas
-    const savedTheme      = (localStorage.getItem('theme')      || 'creme')  as ThemeKey;
-    const savedFont       = (localStorage.getItem('fontFamily') || 'sans')   as FontFamilyKey;
-    const savedFontSize   = parseInt(localStorage.getItem('fontSize')   || '16');
-    const savedLineHeight = parseFloat(localStorage.getItem('lineHeight') || '1.5');
-    const savedZoom       = parseInt(localStorage.getItem('zoomLevel')  || '100');
+    // carregar preferências salvas com validação segura
+    try {
+      const rawTheme = localStorage.getItem('theme');
+      const savedTheme = (rawTheme && ['creme', 'claro', 'contraste', 'escuro'].includes(rawTheme) ? rawTheme : 'creme') as ThemeKey;
+      const rawFont = localStorage.getItem('fontFamily');
+      const savedFont = (rawFont && ['sans', 'serif', 'mono'].includes(rawFont) ? rawFont : 'sans') as FontFamilyKey;
+      const savedFontSize = parseInt(localStorage.getItem('fontSize') || '16') || 16;
+      const savedLineHeight = parseFloat(localStorage.getItem('lineHeight') || '1.5') || 1.5;
+      const savedZoom = parseInt(localStorage.getItem('zoomLevel') || '100') || 100;
 
-    setActiveTheme(savedTheme);
-    setFontFamily(savedFont);
-    setFontSize(savedFontSize);
-    setLineHeight(savedLineHeight);
-    setZoomLevel(savedZoom);
+      setActiveTheme(savedTheme);
+      setFontFamily(savedFont);
+      setFontSize(savedFontSize);
+      setLineHeight(savedLineHeight);
+      setZoomLevel(savedZoom);
 
-    applyTheme(savedTheme);
-    document.documentElement.style.setProperty('--text-scale-factor', String(savedFontSize / 16));
-    document.documentElement.style.setProperty('--font-current', FONT_STACK[savedFont]);
-    document.documentElement.style.lineHeight = String(savedLineHeight);
-    // @ts-ignore
-    document.body.style.zoom = `${savedZoom}%`;
+      applyTheme(savedTheme);
+      document.documentElement.style.setProperty('--text-scale-factor', String(savedFontSize / 16));
+      document.documentElement.style.setProperty('--font-current', FONT_STACK[savedFont] || FONT_STACK['sans']);
+      document.documentElement.style.lineHeight = String(savedLineHeight);
+      // @ts-ignore
+      if (document.body) document.body.style.zoom = `${savedZoom}%`;
+    } catch (e) {
+      console.warn('[Header] Falha ao carregar preferências:', e);
+    }
 
     return () => window.removeEventListener('storage', checkToken);
   }, []);

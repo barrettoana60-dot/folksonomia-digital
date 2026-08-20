@@ -509,10 +509,10 @@ export default function CulturalInteroperabilityView({
                       return (
                         <g key={`edge-${idx}`}>
                           <line
-                            x1={fn.x}
-                            y1={fn.y}
-                            x2={tn.x}
-                            y2={tn.y}
+                            x1={fn.x ?? 400}
+                            y1={fn.y ?? 215}
+                            x2={tn.x ?? 400}
+                            y2={tn.y ?? 215}
                             stroke={color}
                             strokeWidth={isHighlighted ? w * 3 + 1 : w * 2}
                             opacity={isHighlighted ? 0.85 : 0.25}
@@ -520,8 +520,8 @@ export default function CulturalInteroperabilityView({
                           />
                           {isHighlighted && (
                             <text
-                              x={(fn.x! + tn.x!) / 2}
-                              y={(fn.y! + tn.y!) / 2 - 4}
+                              x={((fn.x ?? 400) + (tn.x ?? 400)) / 2}
+                              y={((fn.y ?? 215) + (tn.y ?? 215)) / 2 - 4}
                               textAnchor="middle"
                               fill="#ffffff"
                               fontSize="8"
@@ -543,7 +543,9 @@ export default function CulturalInteroperabilityView({
 
                       const isSel = node.id === selectedNodeId;
                       const act = activeActivations[node.id] || node.activation || 0.5;
-                      const radius = isSel ? node.size! + 4 : node.size || 14;
+                      const radius = isSel ? (node.size || 14) + 4 : node.size || 14;
+                      const nx = node.x ?? 400;
+                      const ny = node.y ?? 215;
 
                       return (
                         <g
@@ -554,8 +556,8 @@ export default function CulturalInteroperabilityView({
                         >
                           {/* Halo de Ativação / Certeza Residual */}
                           <circle
-                            cx={node.x}
-                            cy={node.y}
+                            cx={nx}
+                            cy={ny}
                             r={radius + 14 * act}
                             fill={node.fill}
                             opacity={isSel ? 0.35 : act * 0.15}
@@ -565,8 +567,8 @@ export default function CulturalInteroperabilityView({
 
                           {/* Núcleo do Conceito */}
                           <circle
-                            cx={node.x}
-                            cy={node.y}
+                            cx={nx}
+                            cy={ny}
                             r={radius}
                             fill={node.fill}
                             stroke={isSel ? '#ffffff' : 'rgba(255,255,255,0.4)'}
@@ -577,8 +579,8 @@ export default function CulturalInteroperabilityView({
 
                           {/* Rótulo do Conceito */}
                           <text
-                            x={node.x}
-                            y={node.y! + radius + 15}
+                            x={nx}
+                            y={ny + radius + 15}
                             textAnchor="middle"
                             fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.7)'}
                             fontSize={isSel ? '10' : '8.5'}
