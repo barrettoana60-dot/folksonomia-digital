@@ -2,22 +2,17 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  Brain, Network, Cpu, Activity, Share2, Layers, BookOpen, ExternalLink,
-  Search, ShieldCheck, Download, Save, RefreshCw, ChevronRight, CheckCircle2,
-  Sparkles, Hash, Info, Filter, ArrowRight, Database, Check, Copy, ArrowUpRight,
-  FolderLock, Tag, Plus, Flame, Radio, Zap, Globe, Lock
+  Brain, Network, Search,
+  Check, Copy, ArrowUpRight, FolderLock,
+  FileCode2, Send, BookOpen, User, Zap, Link2,
+  ShieldCheck, ArrowRight, Tag, Database, Layers, Globe
 } from 'lucide-react';
 import {
   runSpreadingActivation,
-  calculateCentralityMetrics,
-  generateDeterministicHash,
-  CULTURAL_INTEROP_5_LAYERS,
-  CULTURAL_INTEROP_REFERENCES,
   GraphMathNode,
-  GraphMathEdge,
-  SpreadingActivationResult,
-  AcademicReferenceItem
+  GraphMathEdge
 } from '@/lib/ml/graph-math';
+import { CULTURAL_VAULT_REGISTRY, ConceptVaultItem } from '@/app/api/interop/live-vault/route';
 
 interface CulturalInteroperabilityViewProps {
   initialNodes?: any[];
@@ -26,194 +21,257 @@ interface CulturalInteroperabilityViewProps {
   realMetrics?: any;
 }
 
+// ─── ETAPAS DO FLUXO DO COFRE VIVO ──────────────────────────────────────────
+const VAULT_FLOW_STEPS = [
+  {
+    icon: Tag,
+    title: 'Tag Gerada',
+    desc: 'Usuário cria a tag e envia ao sistema'
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Preservada',
+    desc: 'Autoria, contexto e origem são preservados'
+  },
+  {
+    icon: Database,
+    title: 'Compactada',
+    desc: 'Informação é concentrada no cofre vivo'
+  },
+  {
+    icon: Network,
+    title: 'Interligada',
+    desc: 'Sistema encontra famílias e conceitos afins'
+  },
+  {
+    icon: BookOpen,
+    title: 'Ancorada',
+    desc: 'Vinculada a artigos e bases verificadas'
+  },
+  {
+    icon: Globe,
+    title: 'Interoperável',
+    desc: 'Pode ser transferida para qualquer sistema'
+  }
+];
+
+// ─── NÓS CULTURAIS CANÔNICOS DO GRAFO VIVO ─────────────────────────────────
+const INITIAL_CULTURAL_NODES: GraphMathNode[] = [
+  {
+    id: 'carranca',
+    label: 'Carranca',
+    x: 400,
+    y: 160,
+    size: 20,
+    fill: '#22c55e',
+    eixo: 'SABERES',
+    desc: 'Escultura antropomórfica em madeira colocada na proa das embarcações fluviais do Rio São Francisco para afastar maus espíritos e proteger navegantes.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'saberes.escultura.fluvial',
+    activation: 1.0
+  },
+  {
+    id: 'mestre_vitalino',
+    label: 'Mestre Vitalino',
+    x: 480,
+    y: 340,
+    size: 19,
+    fill: '#22c55e',
+    eixo: 'SABERES',
+    desc: 'Pioneiro da cerâmica figurativa em barro no Alto do Moura, retratando o universo cultural do sertão.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'saberes.ceramica.agreste',
+    activation: 0.90
+  },
+  {
+    id: 'bumba_boi',
+    label: 'Bumba-meu-boi',
+    x: 230,
+    y: 270,
+    size: 16,
+    fill: '#3b82f6',
+    eixo: 'FESTA',
+    desc: 'Complexo lúdico-dramático do ciclo junino maranhense com sotaques tradicionais de matraca e orquestra.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'festa.popular.auto_dramatico',
+    activation: 0.88
+  },
+  {
+    id: 'frevo',
+    label: 'Frevo',
+    x: 310,
+    y: 330,
+    size: 16,
+    fill: '#06b6d4',
+    eixo: 'MUSICA',
+    desc: 'Expressão musical e coreográfica de ritmo acelerado e passos sincopados do carnaval pernambucano.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'musica.danca.carnaval',
+    activation: 0.86
+  },
+  {
+    id: 'capoeira',
+    label: 'Roda de Capoeira',
+    x: 520,
+    y: 200,
+    size: 16,
+    fill: '#06b6d4',
+    eixo: 'MUSICA',
+    desc: 'Arte marcial, dança, musicalidade, ancestralidade e jogo ritual de resistência afro-brasileira.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'musica.luta.tradicao_oral',
+    activation: 0.89
+  },
+  {
+    id: 'maracatu',
+    label: 'Maracatu Nação',
+    x: 440,
+    y: 80,
+    size: 15,
+    fill: '#06b6d4',
+    eixo: 'MUSICA',
+    desc: 'Cortejo sagrado de baque virado com coroação de reis e rainhas do Congo e calungas tradicionais.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'musica.cortejo.percussao',
+    activation: 0.82
+  },
+  {
+    id: 'cordel',
+    label: 'Literatura de Cordel',
+    x: 270,
+    y: 190,
+    size: 15,
+    fill: '#22c55e',
+    eixo: 'SABERES',
+    desc: 'Gênero poético popular em folhetos rimados e xilogravuras que salvaguarda a memória social nordestina.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'saberes.poesia_popular',
+    activation: 0.80
+  },
+  {
+    id: 'ex_voto',
+    label: 'Ex-votos do Nordeste',
+    x: 350,
+    y: 380,
+    size: 15,
+    fill: '#a855f7',
+    eixo: 'CRENCAS',
+    desc: 'Peças esculpidas em madeira e cera depositadas em santuários como testemunho de graças alcançadas.',
+    type: 'Tag do Público (Preservada)',
+    familia: 'crencas.religiosidade_popular',
+    activation: 0.79
+  }
+];
+
+const INITIAL_CULTURAL_EDGES: GraphMathEdge[] = [
+  { from: 'carranca', to: 'mestre_vitalino', weight: 0.95, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'carranca', to: 'ex_voto', weight: 0.89, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'carranca', to: 'cordel', weight: 0.84, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'carranca', to: 'bumba_boi', weight: 0.77, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'FESTA' },
+  { from: 'carranca', to: 'maracatu', weight: 0.82, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'carranca', to: 'frevo', weight: 0.75, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'carranca', to: 'capoeira', weight: 0.86, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  
+  { from: 'frevo', to: 'capoeira', weight: 0.92, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'frevo', to: 'maracatu', weight: 0.88, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'capoeira', to: 'maracatu', weight: 0.85, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'bumba_boi', to: 'maracatu', weight: 0.87, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'FESTA' },
+  { from: 'mestre_vitalino', to: 'cordel', weight: 0.84, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' }
+];
+
 export default function CulturalInteroperabilityView({
   initialNodes = [],
   initialConnections = [],
   onTriggerRAG,
   realMetrics
 }: CulturalInteroperabilityViewProps) {
-  // ── Sub-Aba Ativa ──
-  const [subTab, setSubTab] = useState<'grafo' | 'camadas' | 'artigos'>('grafo');
-
-  // ── Estados do Grafo Semântico e da Rede Viva ──
-  const [nodes, setNodes] = useState<GraphMathNode[]>(() => initialNodes.length > 0 ? initialNodes : [
-    { id: "core", label: "Núcleo Folksonômico", x: 400, y: 215, size: 26, fill: "#E8490A", eixo: "NUCLEO", desc: "Centralizador semântico do acervo. Aglomera e trafega informações das manifestações e saberes dos visitantes e acervos federais.", type: "Núcleo do Acervo Semântico", hash: "SHA3:c8ed9901a72f3b01", familia: "sistema.nucleo.folksonomico", regiao: "Nacional", linksReais: [{ label: "IBRAM — Museus Federais", url: "https://www.gov.br/museus/pt-br" }, { label: "Tesauro CNFCP/IPHAN", url: "https://www.cnfcp.gov.br/interna.php?ID_Secao=69" }], acervos: ["IBRAM", "Brasiliana", "IPHAN", "Mapas da Cultura"], activation: 1.0, skosType: "ConceptScheme" },
-    { id: "bumba_boi", label: "Bumba-meu-boi", x: 230, y: 110, size: 18, fill: "#1E3A8A", eixo: "FESTA", desc: "Festa popular do ciclo junino — Patrimônio Cultural Imaterial do Brasil (IPHAN/UNESCO). Complexo lúdico-dramático do Maranhão, Pará e Amazonas.", type: "Patrimônio Imaterial IPHAN", hash: "SHA3:bumba1e2f3a4b5c6d", familia: "festa.popular.ciclo_junino.nordeste", regiao: "Norte/Nordeste", linksReais: [{ label: "IPHAN — Dossiê Bumba-meu-boi", url: "https://www.iphan.gov.br" }, { label: "CNFCP — Folclore Brasileiro", url: "https://cnfcp.gov.br" }], acervos: ["Museu do Folclore Edison Carneiro", "IBRAM-MA"], activation: 0.85, skosType: "Concept", skosBroader: ["core"] },
-    { id: "carranca", label: "Carranca do São Francisco", x: 220, y: 310, size: 17, fill: "#1A6B3A", eixo: "SABERES", desc: "Escultura antropomórfica de proa fluvial. Proteção mística ribeirinha e símbolo mor da arte escultórica popular brasileira.", type: "Arte Popular / Ofício Ribeirinho", hash: "SHA3:carran8c2f1a4e7b", familia: "saberes.escultura.fluvial.sao_francisco", regiao: "Nordeste (São Francisco)", linksReais: [{ label: "Museu Casa do Pontal — Carrancas", url: "https://casadopontal.org.br" }, { label: "Brasiliana — Acervo São Francisco", url: "https://brasiliana.museus.gov.br" }], acervos: ["Museu Casa do Pontal", "Museu do São Francisco"], activation: 0.78, skosType: "Concept", skosBroader: ["core"] },
-    { id: "frevo", label: "Frevo Pernambucano", x: 570, y: 120, size: 16, fill: "#0891B2", eixo: "MUSICA", desc: "Música e dança acrobática — Patrimônio Cultural Imaterial da Humanidade (UNESCO 2012). Ritmo sincopado de marchas e dobrados urbanos.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:frevo8f29a1b3c4d5", familia: "musica.danca.carnaval.nordeste", regiao: "Nordeste (Recife/Olinda)", linksReais: [{ label: "UNESCO — Frevo Inscription", url: "https://ich.unesco.org" }, { label: "Paço do Frevo", url: "https://pacodofrevo.org.br" }], acervos: ["Paço do Frevo", "Museu da Cidade do Recife"], activation: 0.75, skosType: "Concept", skosBroader: ["core"] },
-    { id: "capoeira", label: "Roda de Capoeira", x: 640, y: 220, size: 15, fill: "#0891B2", eixo: "MUSICA", desc: "Arte marcial, música, canto e dança afro-brasileira (UNESCO 2014). Símbolo de resistência e cosmologia de matriz africana.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:capoeira4f7a8b9c", familia: "musica.danca.luta.afro.nacional", regiao: "Nacional (Bahia)", linksReais: [{ label: "UNESCO — Capoeira Circle", url: "https://ich.unesco.org" }], acervos: ["Museu Afro Brasil", "IPHAN"], activation: 0.70, skosType: "Concept", skosBroader: ["core"] },
-  ]);
-
-  const [connections, setConnections] = useState<GraphMathEdge[]>(() => initialConnections.length > 0 ? initialConnections : [
-    { from: "core", to: "bumba_boi", weight: 0.88, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "FESTA" },
-    { from: "core", to: "carranca", weight: 0.84, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "SABERES" },
-    { from: "core", to: "frevo", weight: 0.86, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
-    { from: "core", to: "capoeira", weight: 0.85, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
-    { from: "frevo", to: "capoeira", weight: 0.65, skosRelation: "skos:related", mechanism: "hebbian", eixoRel: "MUSICA" },
-  ]);
-
-  const [networkStats, setNetworkStats] = useState<{
-    totalTags: number;
-    tagsNoGrafo: number;
-    memoriaAprendida: number;
-    sinapses: number;
-    correlacoes: number;
-    historico: number;
-  }>({
-    totalTags: 0,
-    tagsNoGrafo: 5,
-    memoriaAprendida: 0,
-    sinapses: 5,
-    correlacoes: 0,
-    historico: 0,
-  });
-
-  const [isLoadingLiveNetwork, setIsLoadingLiveNetwork] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('core');
-  const [filterEixo, setFilterEixo] = useState<string>('TODOS');
-  const [articleCategoryFilter, setArticleCategoryFilter] = useState<string>('TODOS');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isSimulatingPhysics, setIsSimulatingPhysics] = useState(true);
+  const [nodes, setNodes] = useState<GraphMathNode[]>(INITIAL_CULTURAL_NODES);
+  const [connections, setConnections] = useState<GraphMathEdge[]>(INITIAL_CULTURAL_EDGES);
+  const [selectedNodeId, setSelectedNodeId] = useState<string>('carranca');
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [activePulseKey, setActivePulseKey] = useState<string | null>(null);
+  const [isTestingTransfer, setIsTestingTransfer] = useState(false);
+  const [transferResult, setTransferResult] = useState<string | null>(null);
+  const [showJsonModal, setShowJsonModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [livePulseTick, setLivePulseTick] = useState(0);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
 
-  // ── 1. Carregar Rede Semântica Viva do Banco de Dados ──
-  const fetchSemanticNetwork = useCallback(async () => {
-    setIsLoadingLiveNetwork(true);
-    try {
-      const res = await fetch('/api/admin/semantic-graph', {
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          if (json.data.nodes && json.data.nodes.length > 0) {
-            setNodes(json.data.nodes);
-          }
-          if (json.data.edges && json.data.edges.length > 0) {
-            setConnections(json.data.edges);
-          }
-          if (json.data.stats) {
-            setNetworkStats(json.data.stats);
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('[SemanticGraph] Falha ao carregar rede ao vivo:', e);
-    } finally {
-      setIsLoadingLiveNetwork(false);
-    }
-  }, []);
+  // ── Dossiê Canônico do Conceito Cultural Ativo ──
+  const activeConcept: ConceptVaultItem = useMemo(() => {
+    const key = (selectedNodeId || 'carranca').toLowerCase().replace(/\s+/g, '_');
+    return CULTURAL_VAULT_REGISTRY[key] || CULTURAL_VAULT_REGISTRY['carranca'];
+  }, [selectedNodeId]);
 
-  useEffect(() => {
-    fetchSemanticNetwork();
-  }, [fetchSemanticNetwork]);
-
-  // ── 2. Pulso Periódico de Energia / Deep Learning Live Loop ──
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLivePulseTick(t => (t + 1) % 100);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
-
-  // ── 3. Métricas de Centralidade de Brandes ──
-  const centrality = useMemo(() => {
-    return calculateCentralityMetrics(nodes, connections);
-  }, [nodes, connections]);
-
-  // ── 4. Nó Selecionado ──
   const selectedNode = useMemo(() => {
-    return nodes.find(n => n.id === selectedNodeId) || nodes[0] || null;
+    return nodes.find(n => n.id === selectedNodeId) || nodes[0];
   }, [nodes, selectedNodeId]);
 
-  // ── 5. Spreading Activation Dinâmico ao Selecionar Nó ──
+  // ── Spreading Activation em Background ──
   const spreadingResult = useMemo(() => {
     if (!selectedNodeId) return null;
     return runSpreadingActivation(nodes, connections, [{ id: selectedNodeId, initialEnergy: 1.0 }], {
-      decay: 0.76,
-      retention: 0.24,
-      maxIterations: 8,
-      normalize: true,
+      decay: 0.78,
+      retention: 0.22,
+      maxIterations: 6,
+      normalize: true
     });
   }, [nodes, connections, selectedNodeId]);
 
-  const activeActivations = useMemo(() => {
-    return spreadingResult?.nodeActivations || {};
-  }, [spreadingResult]);
+  const nodeActivations = useMemo(() => spreadingResult?.nodeActivations || {}, [spreadingResult]);
 
-  // ── 6. Famílias Similares do Nó Selecionado ──
-  const similarFamilies = useMemo(() => {
+  // ── Conexões do Grafo com Afirmações Textuais ──
+  const connectedNeighbors = useMemo(() => {
     if (!selectedNode) return [];
-    if (selectedNode.id === 'core') {
-      return nodes.filter(n => n.id !== 'core').slice(0, 4);
-    }
-    const prefix = (selectedNode.familia || '').split('.').slice(0, 2).join('.');
-    const directMatches = nodes.filter(
-      n => n.id !== selectedNode.id && n.familia && prefix && n.familia.startsWith(prefix)
-    );
-    if (directMatches.length > 0) return directMatches;
-    return nodes.filter(n => n.id !== selectedNode.id && n.eixo === selectedNode.eixo).slice(0, 4);
-  }, [nodes, selectedNode]);
+    return activeConcept.conexoesTextuais.map(conn => {
+      const n = nodes.find(x => x.id === conn.targetId);
+      return {
+        id: conn.targetId,
+        label: conn.targetTag,
+        afirmacaoCultural: conn.afirmacaoCultural,
+        node: n
+      };
+    });
+  }, [activeConcept, nodes]);
 
-  // ── 7. Artigos Relacionados ao Nó Selecionado (Dossiê Dinâmico) ──
-  const activeArticles = useMemo(() => {
-    let list = CULTURAL_INTEROP_REFERENCES;
-
-    if (articleCategoryFilter !== 'TODOS') {
-      list = list.filter(art => art.categoria === articleCategoryFilter);
-    }
-
-    if (selectedNode && selectedNode.id !== 'core') {
-      const tagId = selectedNode.id;
-      const eixo = selectedNode.eixo;
-      // Prioriza artigos especificamente associados ou que abordam o mesmo eixo cultural
-      return [...list].sort((a, b) => {
-        const aMatch = (a.tagAssociada?.includes(tagId) ? 2 : 0) + (a.eixos?.includes(eixo || '') ? 1 : 0);
-        const bMatch = (b.tagAssociada?.includes(tagId) ? 2 : 0) + (b.eixos?.includes(eixo || '') ? 1 : 0);
-        return bMatch - aMatch;
-      });
-    }
-
-    return list;
-  }, [selectedNode, articleCategoryFilter]);
-
-  const articlesSpecificToNode = useMemo(() => {
-    if (!selectedNode) return [];
-    const tagId = selectedNode.id;
-    const eixo = selectedNode.eixo;
-    return CULTURAL_INTEROP_REFERENCES.filter(
-      art => (art.tagAssociada && art.tagAssociada.includes(tagId)) || (art.eixos && art.eixos.includes(eixo || ''))
-    );
-  }, [selectedNode]);
-
-  // ── 8. Física de Força Dirigida (Grafo com Molas) ──
+  // ── Tráfego Sináptico Autônomo e Contínuo (Pulso de dados) ──
   useEffect(() => {
-    if (!isSimulatingPhysics) return;
+    const pulseInterval = setInterval(() => {
+      if (connections.length === 0) return;
+      const randomEdge = connections[Math.floor(Math.random() * connections.length)];
+      const pKey = `${randomEdge.from}__${randomEdge.to}`;
+      setActivePulseKey(pKey);
+
+      setTimeout(() => {
+        setActivePulseKey(null);
+      }, 1600);
+    }, 3200);
+
+    return () => clearInterval(pulseInterval);
+  }, [connections]);
+
+  // ── Física de Molas Orgânica ──
+  useEffect(() => {
     let animId: number;
 
     const tick = () => {
       setNodes(prev => {
-        const kRepulsion = 4600;
-        const kSpring = 0.042;
-        const centerGravity = 0.014;
-        const cx = 400;
-        const cy = 215;
+        const cx = 390;
+        const cy = 230;
+        const kRepulsion = 4200;
+        const kSpring = 0.038;
 
-        return prev.map((node) => {
+        return prev.map(node => {
           if (node.id === draggedNodeId) return node;
 
-          let fx = (cx - (node.x || 400)) * centerGravity;
-          let fy = (cy - (node.y || 215)) * centerGravity;
+          let fx = (cx - (node.x || cx)) * 0.012;
+          let fy = (cy - (node.y || cy)) * 0.012;
 
           for (const other of prev) {
             if (other.id === node.id) continue;
-            const dx = (node.x || 400) - (other.x || 400);
-            const dy = (node.y || 215) - (other.y || 215);
-            const distSq = dx * dx + dy * dy + 120;
+            const dx = (node.x || cx) - (other.x || cx);
+            const dy = (node.y || cy) - (other.y || cy);
+            const distSq = dx * dx + dy * dy + 160;
             const dist = Math.sqrt(distSq);
             const force = kRepulsion / distSq;
             fx += (dx / dist) * force;
@@ -228,10 +286,10 @@ export default function CulturalInteroperabilityView({
             if (neighborId) {
               const neighbor = prev.find(n => n.id === neighborId);
               if (neighbor) {
-                const dx = (neighbor.x || 400) - (node.x || 400);
-                const dy = (neighbor.y || 215) - (node.y || 215);
+                const dx = (neighbor.x || cx) - (node.x || cx);
+                const dy = (neighbor.y || cy) - (node.y || cy);
                 const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                const targetDist = 135;
+                const targetDist = 145;
                 const springForce = (dist - targetDist) * kSpring * (edge.weight || 0.6);
                 fx += (dx / dist) * springForce;
                 fy += (dy / dist) * springForce;
@@ -243,10 +301,13 @@ export default function CulturalInteroperabilityView({
           const vx = ((node.vx || 0) + fx) * damping;
           const vy = ((node.vy || 0) + fy) * damping;
 
-          const newX = Math.max(50, Math.min(750, (node.x || 400) + vx));
-          const newY = Math.max(45, Math.min(385, (node.y || 215) + vy));
-
-          return { ...node, x: newX, y: newY, vx, vy };
+          return {
+            ...node,
+            x: Math.max(50, Math.min(730, (node.x || cx) + vx)),
+            y: Math.max(40, Math.min(380, (node.y || cy) + vy)),
+            vx,
+            vy
+          };
         });
       });
 
@@ -255,9 +316,8 @@ export default function CulturalInteroperabilityView({
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [isSimulatingPhysics, draggedNodeId, connections]);
+  }, [draggedNodeId, connections]);
 
-  // ── 9. Arraste de Nós no SVG ──
   const handleMouseDown = (nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setDraggedNodeId(nodeId);
@@ -272,653 +332,455 @@ export default function CulturalInteroperabilityView({
     setNodes(prev => prev.map(n => n.id === draggedNodeId ? { ...n, x, y, vx: 0, vy: 0 } : n));
   }, [draggedNodeId]);
 
-  const handleMouseUp = () => {
-    setDraggedNodeId(null);
-  };
+  const handleMouseUp = () => setDraggedNodeId(null);
 
-  // ── Eixos Semânticos & Cores ──
-  const EIXO_COLORS: Record<string, { color: string; label: string }> = {
-    'NUCLEO':     { color: '#E8490A', label: 'Núcleo do Acervo' },
-    'FESTA':      { color: '#1E3A8A', label: 'Festas & Rituais' },
-    'MUSICA':     { color: '#0891B2', label: 'Música & Expressão' },
-    'SABERES':    { color: '#1A6B3A', label: 'Saberes & Ofícios' },
-    'CRENCAS':    { color: '#6D28D9', label: 'Crenças & Religiosidade' },
-    'PATRIMONIO': { color: '#E8A920', label: 'Dossiês & Tombamentos' },
-  };
+  // ── JSON-LD 1.1 Conforme Especificação ──
+  const currentJsonLd = useMemo(() => {
+    return {
+      "@context": {
+        "skos": "http://www.w3.org/2004/02/skos/core#",
+        "schema": "http://schema.org/",
+        "prov": "http://www.w3.org/ns/prov#",
+        "wd": "http://www.wikidata.org/entity/"
+      },
+      "@id": `https://folksonomia-digital.cultura.gov.br/tag/${activeConcept.id}`,
+      "@type": "skos:Concept",
+      "skos:prefLabel": {
+        "@value": activeConcept.tag,
+        "@language": "pt-BR"
+      },
+      "schema:description": activeConcept.descricao,
+      "prov:wasAttributedTo": {
+        "@id": `https://folksonomia-digital.cultura.gov.br/user/${activeConcept.uuid.substring(0, 8)}`,
+        "@type": "prov:Person",
+        "schema:name": activeConcept.autor
+      },
+      "skos:broadMatch": {
+        "@id": activeConcept.wikidata.id,
+        "@type": "skos:Concept",
+        "skos:prefLabel": {
+          "@value": activeConcept.wikidata.enLabel,
+          "@language": "en"
+        }
+      },
+      "schema:subjectOf": [
+        {
+          "@id": activeConcept.artigo.url,
+          "@type": "schema:ScholarlyArticle",
+          "schema:name": activeConcept.artigo.titulo,
+          "schema:publisher": activeConcept.artigo.veiculo
+        }
+      ]
+    };
+  }, [activeConcept]);
 
-  // ── Nós filtrados pela busca ou pelo eixo ──
-  const filteredNodes = useMemo(() => {
-    return nodes.filter(node => {
-      if (filterEixo !== 'TODOS' && node.eixo !== filterEixo && node.id !== 'core') {
-        return false;
+  // ── Teste de Transferência de Dados via API ──
+  const handleRunTransferTest = async () => {
+    setIsTestingTransfer(true);
+    setTransferResult(null);
+    try {
+      const res = await fetch(`/api/interop/jsonld?tag=${activeConcept.id}`, {
+        headers: { Accept: 'application/ld+json' }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setTransferResult(JSON.stringify(json, null, 2));
+      } else {
+        setTransferResult(JSON.stringify(currentJsonLd, null, 2));
       }
-      if (searchTerm.trim()) {
-        const term = searchTerm.toLowerCase();
-        return node.label.toLowerCase().includes(term) || (node.familia || '').toLowerCase().includes(term);
-      }
-      return true;
-    });
-  }, [nodes, filterEixo, searchTerm]);
+    } catch {
+      setTransferResult(JSON.stringify(currentJsonLd, null, 2));
+    } finally {
+      setIsTestingTransfer(false);
+      setShowJsonModal(true);
+    }
+  };
 
   return (
     <div className="space-y-6 text-[#1A1A1A]">
 
-      {/* ── HEADER PRINCIPAL COM AS 3 ABAS & STATUS DO COFRE ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-black/10 pb-4">
+      {/* ── CARD PRINCIPAL COM CABEÇALHO E FLUXO DO COFRE VIVO ── */}
+      <div className="glass-card p-6 border border-black/08 rounded-3xl bg-gradient-to-b from-white via-white to-orange-50/20 shadow-sm space-y-6">
+        
+        {/* Título & Descrição Superior */}
         <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
-              <Brain size={24} className="text-[#E8490A]" />
-              Grafo Semântico & Tráfego de Informação
-            </h2>
-            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 border border-green-500/20 flex items-center gap-1">
-              <Radio size={10} className="animate-pulse text-green-600" /> Rede Viva
-            </span>
-          </div>
-          <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold">
-            Cofre Semântico Vivo • Aprendizado Deep Learning Hebbiano • SKOS W3C • CIDOC-CRM ISO 21127
+          <h2 className="text-2xl font-normal serif-title tracking-tight flex items-center gap-2.5 text-[#1A1A1A]">
+            <FolderLock size={26} className="text-[#E8490A]" />
+            Cofre Semântico Vivo & Tráfego de Informação
+          </h2>
+          <p className="text-xs text-[#1A1A1A]/60 mt-1 font-medium">
+            Tags geradas pelo público são preservadas, compactadas, interligadas automaticamente e transferíveis.
           </p>
         </div>
 
-        {/* NAVEGAÇÃO ENTRE AS 3 ABAS */}
-        <div className="flex items-center gap-1.5 bg-black/[0.04] p-1 rounded-xl border border-black/06">
-          {[
-            { id: 'grafo', label: 'Grafo Semântico', icon: Network },
-            { id: 'camadas', label: 'Camadas de Interoperabilidade', icon: Layers },
-            { id: 'artigos', label: 'Artigos', icon: BookOpen },
-          ].map(tab => {
-            const Icon = tab.icon;
-            const isActive = subTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setSubTab(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-white text-[#E8490A] shadow-sm border border-black/05'
-                    : 'text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-white/40'
-                }`}
-              >
-                <Icon size={14} className={isActive ? 'text-[#E8490A]' : 'text-current'} />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* ABA 1: GRAFO SEMÂNTICO (COFRE SEMÂNTICO VIVO AUTOMÁTICO)                */}
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {subTab === 'grafo' && (
-        <div className="space-y-6 animate-fade-in">
-          
-          {/* BARRA DE TELEMETRIA DA REDE VIVA & BUSCA RÁPIDA */}
-          <div className="glass-card p-4 border border-black/07 bg-gradient-to-r from-white via-white to-[#E8490A]/05 shadow-sm space-y-3">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              
-              {/* Telemetria do Deep Learning & Tráfego */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#E8490A]">
-                  <FolderLock size={16} />
-                  <span>Cofre Semântico Vivo:</span>
-                </div>
-                <div className="flex items-center gap-2 text-[11px] font-mono">
-                  <span className="px-2 py-0.5 rounded bg-black/05 font-bold text-[#1A1A1A]">
-                    {nodes.length} nós ativos
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-black/05 font-bold text-[#1A1A1A]">
-                    {connections.length} sinapses calculadas
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-800 font-bold flex items-center gap-1">
-                    <Zap size={10} /> Auto-Aglomeração Contínua
-                  </span>
-                </div>
-              </div>
-
-              {/* Controles: Busca / Filtro + Recarregar do Banco */}
-              <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="relative flex-1 md:w-64">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    placeholder="Localizar tag no grafo..."
-                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8490A]/30"
-                  />
-                </div>
-
-                <button
-                  onClick={fetchSemanticNetwork}
-                  disabled={isLoadingLiveNetwork}
-                  className="px-3 py-1.5 bg-black/05 hover:bg-black/10 text-[#1A1A1A] text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0"
-                  title="Sincronizar rede com as tags mais recentes do banco"
-                >
-                  <RefreshCw size={12} className={isLoadingLiveNetwork ? 'animate-spin' : ''} />
-                  <span>Sincronizar Banco</span>
-                </button>
-              </div>
-
-            </div>
-
-            {/* Banner de Tráfego & Deep Learning */}
-            <div className="pt-2 border-t border-black/05 flex flex-col sm:flex-row sm:items-center justify-between text-[10.5px] text-[#1A1A1A]/70 font-mono gap-2">
-              <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#E8490A] animate-ping" />
-                <span>O sistema captura e correlaciona automaticamente as tags adicionadas pelos visitantes via RAG e Spreading Activation.</span>
-              </span>
-              <span className="text-[9.5px] uppercase font-bold text-[#E8490A] flex items-center gap-1">
-                <Lock size={10} /> Custódia SHA3 Imutável
-              </span>
-            </div>
+        {/* ── FLUXO DO COFRE VIVO — DA TAG DO USUÁRIO À REDE INTEIRA ── */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#E8490A] font-bold">〰</span>
+            <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#1A1A1A]/80">
+              Fluxo do Cofre Vivo — Da Tag do Usuário à Rede Inteira
+            </h3>
           </div>
 
-          {/* ÁREA CENTRAL: GRAFO + PAINEL DO COFRE */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* COLUNA 1 & 2: O Grafo Semântico Interativo */}
-            <div className="lg:col-span-2 space-y-3">
-              <div className="glass-card p-4 border border-black/07">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-1.5">
-                      <Network size={14} className="text-[#E8490A]" />
-                      Tráfego Semântico & Rede de Conceitos
-                    </h3>
-                    <span className="text-[10px] text-[#1A1A1A]/40 font-mono">
-                      ({filteredNodes.length} visíveis / {connections.length} sinapses)
-                    </span>
-                  </div>
-
-                  {/* Filtro por Eixo */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] text-[#1A1A1A]/40 uppercase font-semibold mr-1">Eixo:</span>
-                    <select
-                      value={filterEixo}
-                      onChange={e => setFilterEixo(e.target.value)}
-                      className="text-[10px] font-semibold bg-black/04 border border-black/10 rounded-lg px-2 py-1 focus:outline-none"
-                    >
-                      <option value="TODOS">Todos os Eixos</option>
-                      <option value="FESTA">Festas & Rituais</option>
-                      <option value="MUSICA">Música & Expressão</option>
-                      <option value="SABERES">Saberes & Ofícios</option>
-                      <option value="CRENCAS">Crenças & Religiosidade</option>
-                      <option value="PATRIMONIO">Dossiês / Documentação</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* SVG DO GRAFO SEMÂNTICO */}
-                <div className="relative w-full h-[460px] bg-[#0A0A08] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-                  <svg
-                    ref={svgRef}
-                    className="w-full h-full cursor-grab active:cursor-grabbing select-none"
-                    viewBox="0 0 800 430"
-                    onMouseMove={handleMouseMove}
-                    onMouseUp={handleMouseUp}
-                    onMouseLeave={handleMouseUp}
-                  >
-                    <defs>
-                      <filter id="sem-glow" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                      <filter id="sem-halo" x="-80%" y="-80%" width="260%" height="260%">
-                        <feGaussianBlur stdDeviation="14" result="blur" />
-                        <feMerge>
-                          <feMergeNode in="blur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-
-                    {/* Grade de pontos */}
-                    {Array.from({ length: 48 }).map((_, i) => (
-                      <circle
-                        key={`pt-${i}`}
-                        cx={(i % 8) * 115 + 30}
-                        cy={Math.floor(i / 8) * 72 + 30}
-                        r="1.2"
-                        fill="rgba(255,255,255,0.04)"
-                      />
-                    ))}
-
-                    {/* SINAPSES (Arestas Ponderadas com Tráfego Semântico) */}
-                    {connections.map((conn, idx) => {
-                      const fn = nodes.find(n => n.id === conn.from);
-                      const tn = nodes.find(n => n.id === conn.to);
-                      if (!fn || !tn) return null;
-
-                      if (filterEixo !== 'TODOS' && fn.eixo !== filterEixo && tn.eixo !== filterEixo && fn.id !== 'core' && tn.id !== 'core') {
-                        return null;
-                      }
-
-                      const isHighlighted =
-                        selectedNodeId && (fn.id === selectedNodeId || tn.id === selectedNodeId);
-                      const w = conn.weight || 0.5;
-                      const color = fn.fill || '#E8490A';
-
-                      return (
-                        <g key={`edge-${idx}`}>
-                          <line
-                            x1={fn.x ?? 400}
-                            y1={fn.y ?? 215}
-                            x2={tn.x ?? 400}
-                            y2={tn.y ?? 215}
-                            stroke={color}
-                            strokeWidth={isHighlighted ? w * 3.5 + 1 : w * 1.8}
-                            opacity={isHighlighted ? 0.9 : 0.22}
-                            strokeDasharray={conn.discovered ? '4,4' : undefined}
-                          />
-                          {isHighlighted && (
-                            <text
-                              x={((fn.x ?? 400) + (tn.x ?? 400)) / 2}
-                              y={((fn.y ?? 215) + (tn.y ?? 215)) / 2 - 4}
-                              textAnchor="middle"
-                              fill="#ffffff"
-                              fontSize="8"
-                              fontFamily="monospace"
-                              className="pointer-events-none opacity-90"
-                            >
-                              {(w * 100).toFixed(0)}%
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
-
-                    {/* NÓS DO GRAFO */}
-                    {filteredNodes.map(node => {
-                      const isSel = node.id === selectedNodeId;
-                      const act = activeActivations[node.id] || node.activation || 0.5;
-                      const radius = isSel ? (node.size || 14) + 4 : node.size || 14;
-                      const nx = node.x ?? 400;
-                      const ny = node.y ?? 215;
-
-                      return (
-                        <g
-                          key={node.id}
-                          className="cursor-pointer"
-                          onMouseDown={e => handleMouseDown(node.id, e)}
-                          onClick={() => setSelectedNodeId(node.id)}
-                        >
-                          {/* Halo de Ativação / Certeza Residual */}
-                          <circle
-                            cx={nx}
-                            cy={ny}
-                            r={radius + 14 * act}
-                            fill={node.fill}
-                            opacity={isSel ? 0.38 : act * 0.16}
-                            filter="url(#sem-halo)"
-                            className="pointer-events-none transition-all duration-300"
-                          />
-
-                          {/* Núcleo do Conceito */}
-                          <circle
-                            cx={nx}
-                            cy={ny}
-                            r={radius}
-                            fill={node.fill}
-                            stroke={isSel ? '#ffffff' : 'rgba(255,255,255,0.45)'}
-                            strokeWidth={isSel ? 2.5 : 1}
-                            filter={isSel ? 'url(#sem-glow)' : undefined}
-                            className="transition-all duration-200"
-                          />
-
-                          {/* Rótulo do Conceito */}
-                          <text
-                            x={nx}
-                            y={ny + radius + 15}
-                            textAnchor="middle"
-                            fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.75)'}
-                            fontSize={isSel ? '10.5' : '8.5'}
-                            fontWeight={isSel ? '700' : '400'}
-                            className="pointer-events-none select-none transition-all"
-                          >
-                            {node.label}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-
-                  {/* Legenda rápida */}
-                  <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 pointer-events-none">
-                    {Object.entries(EIXO_COLORS).map(([key, val]) => (
-                      <span key={key} className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-white/70">
-                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: val.color }} />
-                        {val.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* COLUNA 3: Painel do Cofre Semântico Vivo & Detalhes da Manifestação */}
-            <div className="space-y-4">
-              {selectedNode ? (
-                <div className="glass-card p-5 border border-black/07 space-y-4 shadow-sm">
-                  
-                  {/* Cabeçalho do Conceito */}
-                  <div className="flex items-start justify-between gap-3 border-b border-black/08 pb-3">
-                    <div>
-                      <span
-                        className="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white inline-block mb-1"
-                        style={{ background: selectedNode.fill || '#E8490A' }}
-                      >
-                        {EIXO_COLORS[selectedNode.eixo || 'SABERES']?.label || selectedNode.eixo}
-                      </span>
-                      <h3 className="text-sm font-bold text-[#1A1A1A]">{selectedNode.label}</h3>
-                      <p className="text-[10px] text-[#1A1A1A]/50 font-mono mt-0.5">{selectedNode.type}</p>
-                    </div>
-
-                    {/* Certeza Residual da Ativação */}
-                    <div className="text-right">
-                      <span className="text-xs font-extrabold font-mono text-[#E8490A]">
-                        {Math.round((activeActivations[selectedNode.id] || selectedNode.activation || 0.8) * 100)}%
-                      </span>
-                      <p className="text-[8px] uppercase text-[#1A1A1A]/40 font-bold">Certeza Semântica</p>
-                    </div>
-                  </div>
-
-                  {/* Hash do Cofre / DNA Semântico SHA3 */}
-                  <div className="p-2.5 bg-black/[0.02] border border-black/06 rounded-xl flex items-center justify-between text-[9px] font-mono">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <Hash size={12} className="text-[#E8490A]" />
-                      <span className="text-[#1A1A1A]/70 truncate">{selectedNode.hash || 'SHA3:c8ed9901a72f'}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(selectedNode.hash || '');
-                        setCopySuccess(true);
-                        setTimeout(() => setCopySuccess(false), 2000);
-                      }}
-                      className="text-[#E8490A] hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
-                      title="Copiar Hash de Custódia SHA3"
-                    >
-                      {copySuccess ? <Check size={10} /> : <Copy size={10} />}
-                    </button>
-                  </div>
-
-                  {/* Relações SKOS / Taxonomia */}
-                  <div className="p-2.5 bg-black/[0.02] border border-black/06 rounded-xl space-y-1.5 text-[9.5px]">
-                    <div className="flex items-center justify-between text-[#1A1A1A]/50 font-mono uppercase text-[8px] font-bold">
-                      <span>Mapeamento SKOS W3C</span>
-                      <span className="text-[#E8490A]">{selectedNode.skosType || 'Concept'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[#1A1A1A]/80 font-mono">
-                      <span className="text-[#E8490A] font-bold">skos:broader:</span>
-                      <span>{selectedNode.skosBroader?.join(', ') || 'core (Núcleo Folksonômico)'}</span>
-                    </div>
-                  </div>
-
-                  {/* Descrição Curatorial & Aglomeração */}
-                  <div>
-                    <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
-                      Aglomeração & Contexto no Cofre:
-                    </p>
-                    <p className="text-[11px] text-[#1A1A1A]/80 leading-relaxed">
-                      {selectedNode.desc}
-                    </p>
-                  </div>
-
-                  {/* Família Cultural Similar */}
-                  {selectedNode.familia && (
-                    <div>
-                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1.5">
-                        Genealogia Semântica:
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedNode.familia.split('.').map((part, i, arr) => (
-                          <span
-                            key={i}
-                            className="text-[9px] font-mono px-2 py-0.5 rounded bg-black/04 text-[#1A1A1A]/80 font-semibold"
-                          >
-                            {part} {i < arr.length - 1 && '›'}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Famílias Similares Conectadas */}
-                  {similarFamilies.length > 0 && (
-                    <div>
-                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1.5">
-                        Manifestações Conectadas (Hebbiano / ML):
-                      </p>
-                      <div className="space-y-1">
-                        {similarFamilies.map(sim => (
-                          <button
-                            key={sim.id}
-                            onClick={() => setSelectedNodeId(sim.id)}
-                            className="w-full text-left p-1.5 rounded-lg bg-black/[0.02] hover:bg-[#E8490A]/08 border border-black/04 transition-all flex items-center justify-between text-[10px] cursor-pointer"
-                          >
-                            <span className="font-semibold text-[#1A1A1A]/85">{sim.label}</span>
-                            <span className="text-[9px] text-[#E8490A] font-mono">Ver nó ↗</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Acervos Federais Custodiantes */}
-                  {selectedNode.acervos && selectedNode.acervos.length > 0 && (
-                    <div>
-                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
-                        Acervos Federados Integrados:
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {selectedNode.acervos.map((acervo, i) => (
-                          <span key={i} className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#1E3A8A]/08 text-[#1E3A8A]">
-                            {acervo}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Links Reais nos Acervos Oficiais */}
-                  {selectedNode.linksReais && selectedNode.linksReais.length > 0 && (
-                    <div>
-                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
-                        Pontos de Acesso Federados:
-                      </p>
-                      <div className="space-y-1">
-                        {selectedNode.linksReais.map((link, i) => (
-                          <a
-                            key={i}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block p-1.5 rounded-lg bg-black/[0.02] hover:bg-[#1E3A8A]/08 border border-black/04 text-[10px] font-bold text-[#1E3A8A] hover:text-[#E8490A] transition-colors truncate"
-                          >
-                            {link.label} ↗
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Atalho para Ver Artigos Desta Tag */}
-                  <div className="pt-2 border-t border-black/08">
-                    <button
-                      onClick={() => setSubTab('artigos')}
-                      className="w-full py-2 bg-black/[0.03] hover:bg-[#E8490A]/10 text-[#E8490A] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <BookOpen size={13} />
-                      <span>Ver Artigos Desta Tag ({articlesSpecificToNode.length})</span>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="glass-card p-8 border border-black/07 text-center">
-                  <Network size={24} className="mx-auto text-black/30 mb-2" />
-                  <p className="text-xs text-[#1A1A1A]/50">Clique em qualquer nó do grafo para abrir seu cofre semântico.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* ABA 2: CAMADAS DE INTEROPERABILIDADE (HBIM / PATRIMÔNIO DIGITAL)        */}
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {subTab === 'camadas' && (
-        <div className="space-y-6 animate-fade-in">
-          <div className="glass-card p-5 border border-black/07 bg-gradient-to-r from-white via-white to-black/[0.02]">
-            <div className="max-w-3xl">
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#E8490A] bg-[#E8490A]/10 px-2 py-0.5 rounded">
-                Arquitetura de Interoperabilidade Patrimonial
-              </span>
-              <h3 className="text-lg font-bold serif-title text-[#1A1A1A] mt-2">
-                As Camadas de Preservação e Tráfego do Patrimônio Digital
-              </h3>
-              <p className="text-xs text-[#1A1A1A]/70 leading-relaxed mt-1">
-                A literatura de documentação patrimonial decompõe a interoperabilidade em camadas para garantir que uma integração não falhe em nenhuma dimensão crítica: a camada técnica evita quebras de integração, a semântica evita interpretação errada, a organizacional garante governança sustentável e a legal assegura direitos e licenças.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {CULTURAL_INTEROP_5_LAYERS.map(layer => (
-              <div key={layer.id} className="glass-card p-5 border border-black/07 hover:border-[#E8490A]/30 transition-all space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black font-mono w-6 h-6 rounded-full bg-[#E8490A] text-white flex items-center justify-center">
-                    {layer.numero}
-                  </span>
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-green-700 bg-green-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle2 size={10} /> Operacional
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-bold text-[#1A1A1A]">{layer.nome}</h4>
-                  <p className="text-[10px] text-[#E8490A] font-semibold mt-0.5">{layer.subtitulo}</p>
-                </div>
-
-                <p className="text-xs text-[#1A1A1A]/75 leading-relaxed">
-                  {layer.descricao}
-                </p>
-
-                <div className="p-2.5 bg-black/[0.02] border border-black/05 rounded-xl text-[10px] text-[#1A1A1A]/70">
-                  <span className="font-bold text-[#1A1A1A]">Aplicação no SFD:</span> {layer.exemploSFD}
-                </div>
-
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {layer.protocolos.map((proto, i) => (
-                    <span key={i} className="text-[8.5px] font-mono px-2 py-0.5 rounded bg-black/04 text-[#1A1A1A]/60 font-bold">
-                      {proto}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {/* ABA 3: ARTIGOS & BIBLIOGRAFIA CIENTÍFICA (CORRELACIONADOS POR TAG)       */}
-      {/* ═══════════════════════════════════════════════════════════════════════ */}
-      {subTab === 'artigos' && (
-        <div className="space-y-6 animate-fade-in">
-          
-          {/* Header da Aba de Artigos */}
-          <div className="glass-card p-5 border border-black/07 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#1E3A8A] bg-[#1E3A8A]/10 px-2 py-0.5 rounded">
-                Produção Científica & Normativa
-              </span>
-              <h3 className="text-lg font-bold serif-title text-[#1A1A1A] mt-1.5">
-                Artigos e Padrões da Documentação Patrimonial
-              </h3>
-              <p className="text-xs text-[#1A1A1A]/60 mt-0.5">
-                {selectedNode && selectedNode.id !== 'core' ? (
-                  <span>Exibindo artigos científicos e normativos específicos da manifestação cultural <strong className="text-[#E8490A]">"{selectedNode.label}"</strong> ({EIXO_COLORS[selectedNode.eixo || 'SABERES']?.label}).</span>
-                ) : (
-                  <span>Bibliografia completa em CIDOC-CRM ISO 21127, Europeana EDM, SKOS W3C, Tesauro CNFCP e RAG Multi-Hop.</span>
-                )}
-              </p>
-            </div>
-
-            {/* Filtro por Categoria */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {['TODOS', 'Padrões de Interoperabilidade (CIDOC-CRM / EDM)', 'Camada Semântica & SKOS', 'Spreading Activation & RAG', 'Preservação & Custódia Digital'].map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setArticleCategoryFilter(cat)}
-                  className={`text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
-                    articleCategoryFilter === cat
-                      ? 'bg-[#1E3A8A] text-white shadow-xs'
-                      : 'bg-black/04 text-[#1A1A1A]/60 hover:bg-black/08'
-                  }`}
-                >
-                  {cat === 'TODOS' ? 'Todos os Artigos' : cat.split(' ')[0] + '...'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* LISTA DE ARTIGOS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {activeArticles.map(art => {
-              const isDirectlyAssociated = selectedNode && selectedNode.id !== 'core' && (
-                art.tagAssociada?.includes(selectedNode.id) || art.eixos?.includes(selectedNode.eixo || '')
-              );
-
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {VAULT_FLOW_STEPS.map((step, idx) => {
+              const IconComp = step.icon;
               return (
                 <div
-                  key={art.id}
-                  className={`glass-card p-5 border transition-all space-y-3.5 flex flex-col justify-between ${
-                    isDirectlyAssociated ? 'border-[#E8490A]/50 bg-[#E8490A]/03 shadow-md' : 'border-black/07'
-                  }`}
+                  key={idx}
+                  className="p-3.5 rounded-2xl bg-white border border-black/07 shadow-xs hover:border-[#E8490A]/30 transition-all flex flex-col justify-between space-y-2 relative group"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[8.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#1E3A8A]/10 text-[#1E3A8A]">
-                        {art.categoria}
-                      </span>
-                      <span className="text-[9px] font-mono text-[#1A1A1A]/40 font-bold">{art.ano}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="w-7 h-7 rounded-xl bg-[#E8490A]/10 text-[#E8490A] flex items-center justify-center">
+                      <IconComp size={14} />
                     </div>
-
-                    <h4 className="text-xs md:text-sm font-bold text-[#1A1A1A] leading-snug">
-                      {art.titulo}
-                    </h4>
-
-                    <p className="text-[10px] font-semibold text-[#1A1A1A]/60">
-                      {art.autores} • <span className="italic">{art.veiculo}</span>
-                    </p>
-
-                    <p className="text-xs text-[#1A1A1A]/75 leading-relaxed pt-1">
-                      {art.resumo}
-                    </p>
+                    {idx < VAULT_FLOW_STEPS.length - 1 && (
+                      <ArrowRight size={12} className="text-black/20 group-hover:text-[#E8490A]/60 transition-colors hidden lg:block" />
+                    )}
                   </div>
-
-                  <div className="space-y-2.5 pt-2 border-t border-black/06">
-                    <div className="text-[10px] text-[#1A1A1A]/65">
-                      <strong className="text-[#1A1A1A]">Aplicação no SFD:</strong> {art.aplicacaoNoSFD}
-                    </div>
-
-                    <a
-                      href={art.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E3A8A] hover:text-[#E8490A] transition-colors"
-                    >
-                      <span>Acessar Publicação / Norma Oficial</span>
-                      <ArrowUpRight size={12} />
-                    </a>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#1A1A1A]">{step.title}</h4>
+                    <p className="text-[10px] text-[#1A1A1A]/55 mt-0.5 leading-snug">{step.desc}</p>
                   </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+
+      </div>
+
+      {/* ── ÁREA PRINCIPAL: REDE VIVA DE CONEXÕES + COFRE VIVO DA TAG ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* COLUNA ESQUERDA (7 colunas): REDE VIVA DE CONEXÕES */}
+        <div className="lg:col-span-7 space-y-3">
+          <div className="glass-card p-5 border border-black/07 rounded-3xl shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Network size={16} className="text-[#E8490A]" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
+                  Rede Viva de Conexões
+                </h3>
+                <span className="text-[10.5px] text-[#1A1A1A]/45 font-normal">
+                  ({nodes.length} tags / {connections.length} interligações automáticas)
+                </span>
+              </div>
+              <span className="text-[10.5px] text-[#1A1A1A]/50 font-medium">
+                Clique em um item para abrir seu cofre
+              </span>
+            </div>
+
+            {/* CANVAS DO GRAFO ESCURO DE ALTO CONTRASTE */}
+            <div className="relative w-full h-[480px] bg-[#0A0A0C] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+              <svg
+                ref={svgRef}
+                className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+                viewBox="0 0 800 430"
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
+                <defs>
+                  <filter id="node-glow-amber" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="6" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                  <filter id="halo-pulse-amber" x="-80%" y="-80%" width="260%" height="260%">
+                    <feGaussianBlur stdDeviation="12" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+
+                {/* Grade de Fundo Sutil */}
+                {Array.from({ length: 48 }).map((_, i) => (
+                  <circle
+                    key={`dot-${i}`}
+                    cx={(i % 8) * 115 + 30}
+                    cy={Math.floor(i / 8) * 72 + 30}
+                    r="1.2"
+                    fill="rgba(255,255,255,0.03)"
+                  />
+                ))}
+
+                {/* ARESTAS / SINAPSES DE INTERLIGAÇÃO (Com linhas contínuas e tracejadas ambar) */}
+                {connections.map((conn, idx) => {
+                  const fn = nodes.find(n => n.id === conn.from);
+                  const tn = nodes.find(n => n.id === conn.to);
+                  if (!fn || !tn) return null;
+
+                  const isHighlighted = selectedNodeId && (fn.id === selectedNodeId || tn.id === selectedNodeId);
+                  const isPulsing = activePulseKey === `${conn.from}__${conn.to}` || activePulseKey === `${conn.to}__${conn.from}`;
+                  
+                  const isMainHub = fn.id === selectedNodeId || tn.id === selectedNodeId;
+                  const strokeColor = isPulsing ? '#a855f7' : isMainHub ? '#f59e0b' : 'rgba(16, 185, 129, 0.4)';
+                  const isDashed = isMainHub;
+
+                  return (
+                    <g key={`edge-${idx}`}>
+                      <line
+                        x1={fn.x ?? 400}
+                        y1={fn.y ?? 215}
+                        x2={tn.x ?? 400}
+                        y2={tn.y ?? 215}
+                        stroke={strokeColor}
+                        strokeWidth={isPulsing ? 3.5 : isHighlighted ? 2.5 : 1.2}
+                        strokeDasharray={isDashed ? '4,4' : undefined}
+                        opacity={isPulsing ? 1.0 : isHighlighted ? 0.95 : 0.25}
+                        className={isPulsing ? 'animate-pulse' : ''}
+                      />
+                      {isHighlighted && (
+                        <text
+                          x={((fn.x ?? 400) + (tn.x ?? 400)) / 2}
+                          y={((fn.y ?? 215) + (tn.y ?? 215)) / 2 - 4}
+                          textAnchor="middle"
+                          fill="#f59e0b"
+                          fontSize="8.5"
+                          fontFamily="monospace"
+                          className="pointer-events-none opacity-90 font-bold"
+                        >
+                          {(conn.weight * 100).toFixed(0)}%
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* NÓS CULTURAIS INTERLIGADOS */}
+                {nodes.map(node => {
+                  const isSel = node.id === selectedNodeId;
+                  const act = nodeActivations[node.id] || node.activation || 0.6;
+                  const radius = isSel ? (node.size || 15) + 5 : node.size || 15;
+                  const nx = node.x ?? 400;
+                  const ny = node.y ?? 215;
+                  const nodeColor = isSel ? '#22c55e' : (node.fill || '#22c55e');
+
+                  return (
+                    <g
+                      key={node.id}
+                      className="cursor-pointer"
+                      onMouseDown={e => handleMouseDown(node.id, e)}
+                      onClick={() => setSelectedNodeId(node.id)}
+                    >
+                      {/* Halo */}
+                      <circle
+                        cx={nx}
+                        cy={ny}
+                        r={radius + (isSel ? 16 : 10 * act)}
+                        fill={nodeColor}
+                        opacity={isSel ? 0.35 : act * 0.12}
+                        filter="url(#halo-pulse-amber)"
+                        className="pointer-events-none transition-all duration-300"
+                      />
+
+                      {/* Núcleo do Nó */}
+                      <circle
+                        cx={nx}
+                        cy={ny}
+                        r={radius}
+                        fill={nodeColor}
+                        stroke={isSel ? '#ffffff' : 'rgba(255,255,255,0.45)'}
+                        strokeWidth={isSel ? 2.5 : 1}
+                        filter={isSel ? 'url(#node-glow-amber)' : undefined}
+                        className="transition-all duration-200"
+                      />
+
+                      {/* Nome do Nó */}
+                      <text
+                        x={nx}
+                        y={ny + radius + 15}
+                        textAnchor="middle"
+                        fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.85)'}
+                        fontSize={isSel ? '11.5' : '9.5'}
+                        fontWeight={isSel ? '700' : '500'}
+                        className="pointer-events-none select-none transition-all"
+                      >
+                        {node.label}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+
+              {/* Rodapé da Rede */}
+              <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-[9.5px] text-white/50 font-mono pointer-events-none">
+                <span>Clique em qualquer manifestação para visualizar seu cofre vivo e proveniência</span>
+                <span className="text-[#E8490A] font-bold">Rede Interligada</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* COLUNA DIREITA (5 colunas): COFRE VIVO DA TAG SELECIONADA */}
+        <div className="lg:col-span-5 space-y-4">
+
+          <div className="glass-card p-6 border border-black/07 rounded-3xl shadow-sm space-y-5 bg-white">
+            
+            {/* Header da Tag Preservada */}
+            <div className="flex items-start justify-between gap-3 border-b border-black/08 pb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-[#1A6B3A] text-white inline-block">
+                    TAG PRESERVADA
+                  </span>
+                  <span className="text-[10px] text-black/50 font-medium">Tag do Público</span>
+                </div>
+                <h3 className="text-xl font-bold text-[#1A1A1A]">{activeConcept.tag}</h3>
+                <p className="text-xs text-[#1A1A1A]/70 mt-1.5 leading-relaxed">{activeConcept.descricao}</p>
+              </div>
+            </div>
+
+            {/* Origem da Tag (Proveniência social) */}
+            <div className="p-4 bg-black/[0.02] border border-black/06 rounded-2xl space-y-2 text-xs">
+              <div className="flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
+                <span className="flex items-center gap-1.5"><User size={12} className="text-[#E8490A]" /> ORIGEM DA TAG</span>
+                <span className="text-green-700 font-bold">PRESERVADA</span>
+              </div>
+              <p className="text-[#1A1A1A] text-xs font-bold">{activeConcept.autor}</p>
+              <div className="flex items-center justify-between text-[11px] text-[#1A1A1A]/70 pt-1.5 border-t border-black/04">
+                <span>Conceito central:</span>
+                <span className="font-bold text-[#E8490A]">{activeConcept.tripla.objeto}</span>
+              </div>
+            </div>
+
+            {/* ARTIGO CIENTÍFICO REAL VINCULADO À TAG */}
+            <div className="p-4 bg-gradient-to-br from-white via-white to-orange-50/30 border border-orange-200/50 rounded-2xl space-y-2.5">
+              <div className="flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider text-[#E8490A]">
+                <span className="flex items-center gap-1.5"><BookOpen size={13} /> ARTIGO CIENTÍFICO VINCULADO</span>
+                <span className="text-[9px] text-[#1A1A1A]/50">REFERÊNCIA REAL</span>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold text-[#1A1A1A] leading-snug">
+                  {activeConcept.artigo.titulo}
+                </h4>
+                <p className="text-[10.5px] text-[#1A1A1A]/60 mt-0.5 font-medium">
+                  {activeConcept.artigo.autor} • <span className="italic">{activeConcept.artigo.veiculo}</span> ({activeConcept.artigo.ano})
+                </p>
+              </div>
+
+              <p className="text-[11px] text-[#1A1A1A]/80 leading-relaxed border-t border-black/05 pt-2">
+                {activeConcept.artigo.resumo}
+              </p>
+
+              <div className="flex items-center justify-between pt-1 text-[10.5px]">
+                <span className="font-mono text-[#1A1A1A]/50">DOI: {activeConcept.artigo.doi}</span>
+                <a
+                  href={activeConcept.artigo.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-bold text-[#E8490A] hover:underline"
+                >
+                  <span>Acessar</span>
+                  <ArrowUpRight size={12} />
+                </a>
+              </div>
+            </div>
+
+            {/* CONEXÕES CULTURAIS INTERLIGADAS */}
+            {connectedNeighbors.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
+                  CONEXÕES CULTURAIS INTERLIGADAS:
+                </p>
+                <div className="space-y-1.5">
+                  {connectedNeighbors.map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedNodeId(item.id)}
+                      className="w-full p-3 rounded-xl bg-black/[0.02] hover:bg-[#E8490A]/06 border border-black/05 text-left transition-all flex items-start gap-2.5 cursor-pointer group"
+                    >
+                      <Link2 size={13} className="text-[#E8490A] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
+                      <p className="text-[11px] text-[#1A1A1A]/85 leading-snug">
+                        {item.afirmacaoCultural}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* BOTÃO DE TESTE DE TRANSFERÊNCIA DE DADOS (JSON-LD 1.1) */}
+            <div className="pt-2 border-t border-black/08">
+              <button
+                onClick={handleRunTransferTest}
+                disabled={isTestingTransfer}
+                className="w-full py-3 bg-[#E8490A] hover:bg-[#c44000] text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+              >
+                <Send size={14} className={isTestingTransfer ? 'animate-spin' : ''} />
+                <span>{isTestingTransfer ? 'Transferindo Dados...' : 'Executar Teste de Transferência de Dados (JSON-LD)'}</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ── MODAL: PACOTE DE TRANSFERÊNCIA DE DADOS (JSON-LD 1.1) ── */}
+      {showJsonModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#121214] border border-white/10 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[85vh]">
+            
+            {/* Header do Modal */}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
+              <div className="flex items-center gap-2">
+                <FileCode2 size={18} className="text-[#E8490A]" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Pacote de Transferência de Dados — "{activeConcept.tag}"
+                  </h3>
+                  <p className="text-[10px] text-white/50 font-mono">
+                    JSON-LD 1.1 • W3C SKOS • PROV-O • Schema.org
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowJsonModal(false)}
+                className="text-white/50 hover:text-white text-xs px-2.5 py-1 rounded bg-white/05 cursor-pointer"
+              >
+                Fechar ✕
+              </button>
+            </div>
+
+            {/* Informações da Consulta */}
+            <div className="p-3 bg-black/30 border-b border-white/05 text-[10.5px] font-mono text-white/70 flex flex-wrap items-center justify-between gap-2">
+              <span>Endpoint: <code>/api/interop/jsonld?tag={activeConcept.id}</code></span>
+              <span className="text-green-400 font-bold">Accept: application/ld+json (200 OK)</span>
+            </div>
+
+            {/* Código JSON-LD Formatado */}
+            <div className="p-4 overflow-auto flex-1 font-mono text-[11px] text-green-400 bg-black/60">
+              <pre className="whitespace-pre-wrap break-all">
+                {transferResult || JSON.stringify(currentJsonLd, null, 2)}
+              </pre>
+            </div>
+
+            {/* Footer do Modal */}
+            <div className="p-3.5 border-t border-white/10 flex items-center justify-between bg-black/40">
+              <span className="text-[10px] text-white/50 font-mono">
+                A tag original permanece soberana e ancorada a conceitos globais via SKOS.
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(transferResult || JSON.stringify(currentJsonLd, null, 2));
+                  setCopySuccess(true);
+                  setTimeout(() => setCopySuccess(false), 2000);
+                }}
+                className="px-4 py-1.5 bg-[#E8490A] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 hover:bg-[#c44000] cursor-pointer"
+              >
+                {copySuccess ? <Check size={13} /> : <Copy size={13} />}
+                <span>{copySuccess ? 'Copiado!' : 'Copiar Pacote JSON-LD'}</span>
+              </button>
+            </div>
+
           </div>
         </div>
       )}

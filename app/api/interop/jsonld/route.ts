@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDeterministicHash } from '@/lib/ml/graph-math';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
-import { CULTURAL_VAULT_DATABASE } from '@/components/CulturalInteroperabilityView';
+import { CULTURAL_VAULT_REGISTRY } from '../live-vault/route';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +10,9 @@ export async function GET(req: NextRequest) {
   const tagParam = searchParams.get('tag') || 'carranca';
   const cleanId = normalizeForComparison(tagParam).replace(/\s+/g, '_');
   
-  const item = CULTURAL_VAULT_DATABASE[cleanId] || CULTURAL_VAULT_DATABASE['carranca'];
+  const item = CULTURAL_VAULT_REGISTRY[cleanId] || CULTURAL_VAULT_REGISTRY['carranca'];
 
+  // Schema exato do JSON-LD 1.1 especificado pelo usuário
   const jsonLdPayload = {
     "@context": {
       "skos": "http://www.w3.org/2004/02/skos/core#",
@@ -32,10 +33,10 @@ export async function GET(req: NextRequest) {
       "schema:name": item.autor
     },
     "skos:broadMatch": {
-      "@id": `wd:Q5046049`,
+      "@id": item.wikidata.id,
       "@type": "skos:Concept",
       "skos:prefLabel": {
-        "@value": item.tag,
+        "@value": item.wikidata.enLabel,
         "@language": "en"
       }
     },
