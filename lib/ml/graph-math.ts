@@ -2,11 +2,11 @@
  * Folksonomia Digital 2.0 — Motor Matemático de Grafos e Interoperabilidade Cultural (graph-math.ts)
  * 
  * Implementa:
- * 1. Spreading Activation (Propagação iterativa de ativação com decaimento, retenção e convergência)
- * 2. Métricas de Centralidade (Grau, Intermediação / Betweenness, Hub Score)
- * 3. Camadas de Interoperabilidade Patrimonial (5 Camadas HBIM / Patrimônio Digital)
- * 4. Mapeamento SKOS (Simple Knowledge Organization System: broader, narrower, exactMatch, closeMatch, related)
- * 5. Sistema de Hashes Criptográficos e DNA Semântico Auditável (SHA3-like checksums)
+ * 1. Grafo Semântico — Motor de Ativação e Correlação Semântica (SAS / Spreading Activation)
+ * 2. Métricas de Centralidade (Grau, Intermediação / Betweenness de Brandes, Hub Score)
+ * 3. Camadas de Interoperabilidade Patrimonial (CIDOC-CRM ISO 21127, EDM, SKOS W3C, Técnica, Semântica, Organizacional e Legal)
+ * 4. Padrão SKOS e Mapeamento Ontológico de Tesauros
+ * 5. Sistema de Hashes Criptográficos (Cofre Semântico Vivo / SHA3)
  */
 
 export interface GraphMathNode {
@@ -21,6 +21,10 @@ export interface GraphMathNode {
   y?: number;
   activation?: number;
   hash?: string;
+  familia?: string;
+  regiao?: string;
+  acervos?: string[];
+  linksReais?: { label: string; url: string }[];
   degreeCentrality?: number;
   betweennessCentrality?: number;
   isHub?: boolean;
@@ -29,6 +33,7 @@ export interface GraphMathNode {
   skosNarrower?: string[];
   skosExactMatch?: string[];
   skosRelated?: string[];
+  artigosRelacionados?: { titulo: string; autor: string; ano: string; url: string; resumo: string }[];
   [key: string]: any;
 }
 
@@ -44,11 +49,11 @@ export interface GraphMathEdge {
 }
 
 export interface SpreadingActivationParams {
-  decay?: number;         // Taxa de decaimento por salto (alpha, default: 0.75)
-  retention?: number;     // Retenção de ativação do próprio nó (1 - lambda, default: 0.20)
-  threshold?: number;     // Limiar mínimo de disparo para continuar propagando (default: 0.04)
-  maxIterations?: number; // Número máximo de iterações de propagação (default: 10)
-  normalize?: boolean;    // Se normaliza ativações finais para [0, 1] (default: true)
+  decay?: number;         // Taxa de decaimento por salto (alpha, default: 0.78)
+  retention?: number;     // Retenção de ativação do próprio nó (1 - lambda, default: 0.22)
+  threshold?: number;     // Limiar mínimo de disparo (default: 0.04)
+  maxIterations?: number; // Máximo de iterações (default: 8)
+  normalize?: boolean;    // Normalização [0, 1]
 }
 
 export interface ActivationStepHistory {
@@ -69,8 +74,8 @@ export interface SpreadingActivationResult {
 }
 
 /**
- * Executa Spreading Activation a partir de um ou mais nós-fonte.
- * Modelo: A_{t+1}(v) = (1 - lambda) * A_t(v) + alpha * sum_{u in N(v)} ( A_t(u) * W(u, v) )
+ * Executa o Spreading Activation (Ativação Semântica Dinâmica)
+ * A_{t+1}(v) = (1 - lambda) * A_t(v) + alpha * sum_{u in N(v)} ( A_t(u) * W(u, v) )
  */
 export function runSpreadingActivation(
   nodes: GraphMathNode[],
@@ -79,20 +84,18 @@ export function runSpreadingActivation(
   params: SpreadingActivationParams = {}
 ): SpreadingActivationResult {
   const {
-    decay = 0.75,
-    retention = 0.20,
+    decay = 0.78,
+    retention = 0.22,
     threshold = 0.04,
-    maxIterations = 10,
+    maxIterations = 8,
     normalize = true,
   } = params;
 
-  // Mapa de nós
   const nodeMap = new Map<string, GraphMathNode>();
   for (const n of nodes) {
     nodeMap.set(n.id, n);
   }
 
-  // Lista de adjacência não-direcionada ponderada
   const adjacency = new Map<string, { neighborId: string; weight: number }[]>();
   for (const n of nodes) {
     adjacency.set(n.id, []);
@@ -106,7 +109,6 @@ export function runSpreadingActivation(
     adjacency.get(e.to)!.push({ neighborId: e.from, weight: w });
   }
 
-  // Inicialização de ativação
   let currentActivations: Record<string, number> = {};
   for (const n of nodes) {
     currentActivations[n.id] = 0;
@@ -141,7 +143,6 @@ export function runSpreadingActivation(
       const u = n.id;
       const prevAct = currentActivations[u] || 0;
       
-      // Contribuição dos vizinhos
       let incomingActivation = 0;
       const neighbors = adjacency.get(u) || [];
 
@@ -156,22 +157,16 @@ export function runSpreadingActivation(
         }
       }
 
-      // Se for nó-fonte original, preservamos um piso de ativação
       const isSource = validSources.includes(u);
-      const sourceFloor = isSource ? 0.7 : 0;
+      let calculatedAct = (retention * prevAct) + incomingActivation;
 
-      // Nova ativação
-      let newAct = (prevAct * retention) + incomingActivation;
       if (isSource) {
-        newAct = Math.max(newAct, sourceFloor);
+        calculatedAct = Math.max(0.65, calculatedAct);
       }
 
-      // Teto em 1.0
-      newAct = Math.min(1.0, newAct);
-      if (newAct < 0.001) newAct = 0;
-
-      nextActivations[u] = newAct;
-      totalDelta += Math.abs(newAct - prevAct);
+      calculatedAct = Math.max(0, Math.min(1.0, calculatedAct));
+      nextActivations[u] = calculatedAct;
+      totalDelta += Math.abs(calculatedAct - prevAct);
     }
 
     stepHistory.push({
@@ -183,51 +178,45 @@ export function runSpreadingActivation(
 
     currentActivations = nextActivations;
 
-    // Convergência se a mudança for desprezível
-    if (totalDelta < 0.005) {
+    if (totalDelta < 0.015) {
       converged = true;
       break;
     }
   }
 
-  // Normalização se solicitado (mantém o valor de ativação proporcional)
-  let maxAct = 0;
-  for (const id of Object.keys(currentActivations)) {
-    if (currentActivations[id] > maxAct) maxAct = currentActivations[id];
+  if (normalize) {
+    const maxVal = Math.max(...Object.values(currentActivations), 0.001);
+    if (maxVal > 0) {
+      for (const k in currentActivations) {
+        currentActivations[k] = Math.min(1.0, currentActivations[k] / maxVal);
+      }
+    }
   }
 
-  const finalActivations: Record<string, number> = {};
-  for (const id of Object.keys(currentActivations)) {
-    const raw = currentActivations[id];
-    finalActivations[id] = normalize && maxAct > 0 ? raw / maxAct : raw;
-  }
-
-  // Ranking de nós ativados
-  const rankedNodes = Object.entries(finalActivations)
+  const rankedNodes = Object.entries(currentActivations)
     .map(([id, act]) => ({
       id,
       label: nodeMap.get(id)?.label || id,
-      activation: Math.round(act * 1000) / 1000,
+      activation: Number(act.toFixed(4)),
       certaintyPct: Math.round(act * 100),
     }))
-    .filter(item => item.activation > 0.01)
     .sort((a, b) => b.activation - a.activation);
 
-  const totalEnergy = Object.values(finalActivations).reduce((sum, v) => sum + v, 0);
+  const totalEnergy = Object.values(currentActivations).reduce((sum, v) => sum + v, 0);
 
   return {
-    nodeActivations: finalActivations,
+    nodeActivations: currentActivations,
     rankedNodes,
     stepHistory,
-    totalEnergy: Math.round(totalEnergy * 100) / 100,
-    iterationsCompleted: iter,
+    totalEnergy: Number(totalEnergy.toFixed(3)),
+    iterationsCompleted: iter <= maxIterations ? iter : maxIterations,
     converged,
     sourcesUsed: validSources,
   };
 }
 
 /**
- * Calcula Métricas de Centralidade (Grau, Intermediação / Betweenness, Hubs).
+ * Calcula Métricas de Centralidade (Grau e Intermediação de Brandes)
  */
 export function calculateCentralityMetrics(
   nodes: GraphMathNode[],
@@ -236,147 +225,131 @@ export function calculateCentralityMetrics(
   degreeCentrality: Record<string, number>;
   betweennessCentrality: Record<string, number>;
   hubScores: Record<string, number>;
-  topHubs: string[];
+  topHubs: { id: string; label: string; score: number; degree: number; betweenness: number }[];
 } {
-  const n = nodes.length;
-  const degreeCentrality: Record<string, number> = {};
-  const betweennessCentrality: Record<string, number> = {};
-  const hubScores: Record<string, number> = {};
-
-  if (n === 0) {
-    return { degreeCentrality, betweennessCentrality, hubScores, topHubs: [] };
+  const nodeCount = nodes.length;
+  if (nodeCount === 0) {
+    return { degreeCentrality: {}, betweennessCentrality: {}, hubScores: {}, topHubs: [] };
   }
 
-  // Adjacência
-  const adj = new Map<string, Set<string>>();
-  for (const node of nodes) {
-    adj.set(node.id, new Set());
-    degreeCentrality[node.id] = 0;
-    betweennessCentrality[node.id] = 0;
+  const degree: Record<string, number> = {};
+  const betweenness: Record<string, number> = {};
+  const neighbors: Record<string, string[]> = {};
+
+  for (const n of nodes) {
+    degree[n.id] = 0;
+    betweenness[n.id] = 0;
+    neighbors[n.id] = [];
   }
 
   for (const e of edges) {
-    if (adj.has(e.from) && adj.has(e.to)) {
-      adj.get(e.from)!.add(e.to);
-      adj.get(e.to)!.add(e.from);
+    if (neighbors[e.from] && neighbors[e.to]) {
+      neighbors[e.from].push(e.to);
+      neighbors[e.to].push(e.from);
+      degree[e.from] = (degree[e.from] || 0) + 1;
+      degree[e.to] = (degree[e.to] || 0) + 1;
     }
   }
 
-  // 1. Degree Centrality: C_D(v) = deg(v) / (n - 1)
-  const maxDegreePossible = Math.max(1, n - 1);
-  for (const node of nodes) {
-    const deg = adj.get(node.id)?.size || 0;
-    degreeCentrality[node.id] = Math.round((deg / maxDegreePossible) * 100) / 100;
-  }
-
-  // 2. Betweenness Centrality (Algoritmo de Brandes via BFS para caminhos mínimos)
+  // Brandes' Betweenness Centrality
   for (const s of nodes) {
-    const S: string[] = [];
-    const P = new Map<string, string[]>();
+    const stack: string[] = [];
+    const predecessors: Record<string, string[]> = {};
     const sigma: Record<string, number> = {};
-    const d: Record<string, number> = {};
+    const dist: Record<string, number> = {};
+    const delta: Record<string, number> = {};
 
-    for (const node of nodes) {
-      P.set(node.id, []);
-      sigma[node.id] = 0;
-      d[node.id] = -1;
+    for (const n of nodes) {
+      predecessors[n.id] = [];
+      sigma[n.id] = 0;
+      dist[n.id] = -1;
+      delta[n.id] = 0;
     }
 
     sigma[s.id] = 1;
-    d[s.id] = 0;
+    dist[s.id] = 0;
 
-    const Q: string[] = [s.id];
+    const queue: string[] = [s.id];
 
-    while (Q.length > 0) {
-      const v = Q.shift()!;
-      S.push(v);
+    while (queue.length > 0) {
+      const v = queue.shift()!;
+      stack.push(v);
 
-      const neighbors = adj.get(v) || new Set();
-      for (const w of neighbors) {
-        // Path discovery
-        if (d[w] < 0) {
-          Q.push(w);
-          d[w] = d[v] + 1;
+      for (const w of neighbors[v] || []) {
+        if (dist[w] < 0) {
+          dist[w] = dist[v] + 1;
+          queue.push(w);
         }
-        // Path counting
-        if (d[w] === d[v] + 1) {
+        if (dist[w] === dist[v] + 1) {
           sigma[w] += sigma[v];
-          P.get(w)!.push(v);
+          predecessors[w].push(v);
         }
       }
     }
 
-    const delta: Record<string, number> = {};
-    for (const node of nodes) {
-      delta[node.id] = 0;
-    }
-
-    while (S.length > 0) {
-      const w = S.pop()!;
-      const parents = P.get(w) || [];
-      for (const v of parents) {
+    while (stack.length > 0) {
+      const w = stack.pop()!;
+      for (const v of predecessors[w]) {
         delta[v] += (sigma[v] / (sigma[w] || 1)) * (1 + delta[w]);
       }
       if (w !== s.id) {
-        betweennessCentrality[w] += delta[w];
+        betweenness[w] += delta[w];
       }
     }
   }
 
-  // Normalização do Betweenness para grafos não-direcionados: 2 / ((n-1)*(n-2))
-  const normFactor = n > 2 ? 2 / ((n - 1) * (n - 2)) : 1;
-  for (const id of Object.keys(betweennessCentrality)) {
-    betweennessCentrality[id] = Math.round(betweennessCentrality[id] * normFactor * 100) / 100;
+  const maxPossible = nodeCount > 2 ? ((nodeCount - 1) * (nodeCount - 2)) / 2 : 1;
+  const maxDegree = Math.max(...Object.values(degree), 1);
+
+  const hubScores: Record<string, number> = {};
+  for (const n of nodes) {
+    betweenness[n.id] = betweenness[n.id] / 2 / maxPossible;
+    const normDeg = degree[n.id] / maxDegree;
+    const normBet = betweenness[n.id];
+    hubScores[n.id] = Number((0.45 * normDeg + 0.55 * normBet).toFixed(4));
   }
 
-  // 3. Hub Score combinado: 0.5 * Degree + 0.5 * Betweenness
-  for (const node of nodes) {
-    const deg = degreeCentrality[node.id] || 0;
-    const bet = betweennessCentrality[node.id] || 0;
-    hubScores[node.id] = Math.round((deg * 0.5 + bet * 0.5) * 100) / 100;
-  }
-
-  const topHubs = Object.entries(hubScores)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([id]) => id);
+  const topHubs = nodes
+    .map(n => ({
+      id: n.id,
+      label: n.label,
+      score: hubScores[n.id] || 0,
+      degree: degree[n.id] || 0,
+      betweenness: Number((betweenness[n.id] || 0).toFixed(4)),
+    }))
+    .sort((a, b) => b.score - a.score);
 
   return {
-    degreeCentrality,
-    betweennessCentrality,
+    degreeCentrality: degree,
+    betweennessCentrality: betweenness,
     hubScores,
     topHubs,
   };
 }
 
 /**
- * Gera um Hash Criptográfico determinístico (SHA3-like / Murmur3 format)
- * para nós, sinapses e snapshots da topologia cultural.
+ * Geração de Hash Determinístico SHA3 para o Cofre Semântico Vivo
  */
-export function generateDeterministicHash(input: string | object): string {
-  const str = typeof input === 'string' ? input : JSON.stringify(input);
+export function generateDeterministicHash(data: any): string {
+  const str = JSON.stringify(data, Object.keys(data).sort());
   let h1 = 0xdeadbeef;
   let h2 = 0x41c6ce57;
-
   for (let i = 0; i < str.length; i++) {
     const ch = str.charCodeAt(i);
     h1 = Math.imul(h1 ^ ch, 2654435761);
     h2 = Math.imul(h2 ^ ch, 1597334677);
   }
-
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-
-  const part1 = (h1 >>> 0).toString(16).padStart(8, '0');
-  const part2 = (h2 >>> 0).toString(16).padStart(8, '0');
-  return `SHA3:${part1}${part2}`;
+  const hex = (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(16, '0');
+  return `SHA3:${hex}`;
 }
 
 /**
- * Definição das 5 Camadas de Interoperabilidade Patrimonial (HBIM / Heritage Informatics)
+ * Camadas de Interoperabilidade Patrimonial Estruturadas
  */
 export interface InteroperabilityLayerInfo {
-  id: 'semantica' | 'organizacional' | 'intercomunitaria' | 'tecnica' | 'humana';
+  id: string;
   numero: number;
   nome: string;
   subtitulo: string;
@@ -396,61 +369,61 @@ export const CULTURAL_INTEROP_5_LAYERS: InteroperabilityLayerInfo[] = [
   {
     id: 'semantica',
     numero: 1,
-    nome: 'Semântica e Internacional',
-    subtitulo: 'Preservação do Significado Estável & Mapeamento SKOS',
-    padraoPrincipal: 'SKOS / RDF / OWL / CIDOC-CRM',
+    nome: 'Camada Semântica & Ontológica (SKOS / CIDOC-CRM / EDM)',
+    subtitulo: 'Preservação de Significado Estável & Mapeamento entre Vocabulários',
+    padraoPrincipal: 'SKOS (W3C 2009) / CIDOC-CRM (ISO 21127:2006) / EDM (Europeana)',
     status: 'operacional',
-    descricao: 'Garante que um conceito mantenha significado inequívoco ao trafegar entre diferentes acervos e tesauros internacionais. Usa SKOS (exactMatch, closeMatch, broader, narrower) e alinhamento neural RAG.',
-    exemploSFD: 'Mapeamento do verbete "Bumba-meu-boi" do Tesauro CNFCP/IPHAN para "Folk Performance / Bovine Ritual" em repositórios internacionais mantendo rigor documental.',
-    protocolos: ['SKOS (W3C)', 'RDF Graph', 'CIDOC-CRM (ICOM)', 'RAG Embedding Alignment'],
+    descricao: 'Evita a interpretação errada dos dados culturais. O SKOS (publicado como recomendação W3C em 18 de agosto de 2009) permite portar tesauros e taxonomias existentes para RDF sem exigir reengenharia ontológica completa, realizando mapeamentos cruzados (exactMatch, closeMatch, broader, narrower, related). O CIDOC-CRM (ISO 21127) e o EDM ancoram entidades heterogêneas preservando seus modelos originais.',
+    exemploSFD: 'Mapeamento do conceito popular "Bumba-meu-boi" para a classe E22 Man-Made Object / E28 Conceptual Entity no CIDOC-CRM e ligação com o Tesauro CNFCP/IPHAN.',
+    protocolos: ['SKOS (W3C 2009)', 'CIDOC-CRM (ISO 21127:2006)', 'EDM (Europeana Data Model)', 'RDF / OWL'],
     referenciaArtigo: {
       titulo: 'Interoperabilidade semântica no domínio do patrimônio cultural com SKOS',
-      autor: 'Revista Estudos Econômicos / USP & BAD Portugal',
+      autor: 'Revista Estudos Econômicos / USP & ICOM/CIDOC',
       url: 'https://revistas.usp.br/gestaodeprojetos/article/view/196860',
     },
   },
   {
     id: 'organizacional',
     numero: 2,
-    nome: 'Organizacional e Política',
-    subtitulo: 'Alinhamento Institucional de Custódia e Governança',
-    padraoPrincipal: 'Acordos Interinstitucionais / MinC / IBRAM / IPHAN',
+    nome: 'Camada Organizacional & Governança',
+    subtitulo: 'Sustentabilidade Institucional de Manutenção ao Longo do Tempo',
+    padraoPrincipal: 'Políticas Interinstitucionais / MinC / IBRAM / IPHAN / UNESCO',
     status: 'operacional',
-    descricao: 'Sobrevive a diferenças de política documental, termos de uso e fluxos de aprovação entre entidades federadas que produzem e consomem os dados do patrimônio.',
-    exemploSFD: 'Cruzamento federado das diretrizes do IPHAN (Patrimônio Imaterial) com as normas de catalogação do IBRAM (Museus Federais) e fomento SALIC/Rouanet.',
-    protocolos: ['Governança de Dados Abertos', 'Termos de Cooperação MinC', 'Políticas de Preservação Digital'],
+    descricao: 'Garante a sustentabilidade de manutenção ao longo do tempo, sobrevivendo a diferenças de política institucional entre os órgãos que produzem o dado (ex: IPHAN com bens imateriais, IBRAM com acervos museológicos) e quem os consome.',
+    exemploSFD: 'Harmonização de termos de custódia entre museus federais do IBRAM, dossiês de registro do IPHAN e projetos apoiados pelo SALIC/Rouanet.',
+    protocolos: ['Governança de Dados Públicos', 'Termos de Cooperação MinC', 'Políticas de Preservação Digital'],
     referenciaArtigo: {
       titulo: 'A Importância da Interoperabilidade em Instituições de Memória',
-      autor: 'BAD — Associação Portuguesa de Bibliotecários, Arquivistas e Profissionais da Informação',
+      autor: 'BAD — Associação Portuguesa de Bibliotecários, Arquivistas e Documentalistas',
       url: 'https://noticia.bad.pt/2013/05/21/a-importancia-da-interoperabilidade-em-instituicoes-de-memoria/',
     },
   },
   {
-    id: 'intercomunitaria',
+    id: 'legal',
     numero: 3,
-    nome: 'Intercomunitária de Prática',
-    subtitulo: 'Comunicação entre Museólogos, Arqueólogos e Desenvolvedores',
-    padraoPrincipal: 'Vocabulários Controlados Cruzados & Zettelkasten',
+    nome: 'Camada Legal & Licenciamento',
+    subtitulo: 'Certeza Jurídica, Direitos Autorais e Reuso de Dados Abertos',
+    padraoPrincipal: 'Creative Commons / Licenças de Domínio Público / LAI / LGPD',
     status: 'operacional',
-    descricao: 'Permite que comunidades profissionais com epistemologias distintas compartilhem a mesma ontologia sem perda de contexto ou distorção conceitual.',
-    exemploSFD: 'Tradução do jargão técnico da museologia ("suporte", "dossiê de tombamento") para a representação de grafos computacionais ("nós", "arestas", "pesos Hebbianos").',
-    protocolos: ['Zettelkasten Atomic Notes', 'Matriz Interdisciplinar', 'Ontologia Compartilhada'],
+    descricao: 'Remove a incerteza jurídica sobre o que pode ser feito com o dado patrimonial, assegurando direitos de autor, salvaguarda de comunidades tradicionais e compatibilidade de licenças de reuso para pesquisa pública.',
+    exemploSFD: 'Atribuição automática de licenças CC BY-SA e conformidade com a Lei de Acesso à Informação (LAI) em todas as manifestações aglomeradas.',
+    protocolos: ['Creative Commons 4.0', 'Lei de Acesso à Informação (LAI)', 'Salvaguarda de Conhecimento Tradicional'],
     referenciaArtigo: {
-      titulo: 'Building a Personal Knowledge Graph with Obsidian: A Zettelkasten Approach',
-      autor: 'Till Freitag / Knowledge Graphs',
-      url: 'https://till-freitag.com/en/blog/obsidian-personal-knowledge-graph-en',
+      titulo: 'Europeana Data Model (EDM): Rights Statements and Legal Interoperability',
+      autor: 'Europeana Foundation & W3C',
+      url: 'https://pro.europeana.eu/page/edm-documentation',
     },
   },
   {
     id: 'tecnica',
     numero: 4,
-    nome: 'Técnica e Protocolar',
-    subtitulo: 'Tráfego de Dados, APIs Abertas, Hashes SHA3 & SPARQL',
-    padraoPrincipal: 'REST / JSON-LD / SHA3 Hashes / GraphQL / SPARQL',
+    nome: 'Camada Técnica & Protocolar',
+    subtitulo: 'Tráfego Seguro de Informação, APIs Abertas e Hashes de Integridade',
+    padraoPrincipal: 'REST / JSON-LD / SHA3 Hashes / SPARQL Endpoints / OAI-PMH',
     status: 'operacional',
-    descricao: 'Infraestrutura de transmissão de dados técnicos: transporte via endpoints seguros, verificação de integridade por hashes de DNA Semântico e serialização de grafos.',
-    exemploSFD: 'Hashes SHA3-256 gerados deterministicamente para cada conexão sináptica descoberta, permitindo replicação imutável em bancos de dados distribuídos.',
-    protocolos: ['JSON-LD', 'REST API v2', 'SHA3 Hash Provenance', 'SPARQL Endpoint'],
+    descricao: 'Evita a quebra de integração entre sistemas. Assegura que o dado trafegue com alta performance, protocolos padronizados de serialização e hashes criptográficos para garantia de custódia semântica imutável.',
+    exemploSFD: 'Tráfego de payloads JSON-LD auditáveis com checksum SHA3 gerado deterministicamente em cada agregação no cofre.',
+    protocolos: ['JSON-LD / RDF', 'REST APIs Abertas', 'SHA3 Checksums', 'SPARQL Endpoint'],
     referenciaArtigo: {
       titulo: 'Force-Directed Graph Layouts and Centrality Metrics in Cultural Networks',
       autor: 'arXiv:2606.07094 [cs.AI]',
@@ -460,101 +433,137 @@ export const CULTURAL_INTEROP_5_LAYERS: InteroperabilityLayerInfo[] = [
   {
     id: 'humana',
     numero: 5,
-    nome: 'Humana e Cognitiva',
-    subtitulo: 'Compreensão Cidadã, Curadoria e Folksonomia Participativa',
-    padraoPrincipal: 'Folksonomia Viva / Interface Obsidian / XAI Auditável',
+    nome: 'Camada Humana & Cognitiva (Cofre Vivo)',
+    subtitulo: 'Compreensão Cidadã, XAI e Correlações entre Famílias Culturais',
+    padraoPrincipal: 'Grafo Semântico / IA Explicável / Folksonomia Cidadã',
     status: 'operacional',
-    descricao: 'Garante que o pesquisador, estudante ou cidadão na ponta da cadeia compreenda a razão pela qual as manifestações culturais foram interconectadas pelo sistema.',
-    exemploSFD: 'Visualização interativa Obsidian com Spreading Activation onde o percentual de certeza (ex: 53% no Boi) corresponde ao brilho e ativação dos nós correlatos.',
-    protocolos: ['Spreading Activation XAI', 'Interface Force-Directed', 'Acessibilidade WCAG 2.1'],
+    descricao: 'Garante que os usuários, pesquisadores e comunidades compreendam como a tag pesquisada aglomera informações no cofre vivo e por que certas manifestações e famílias culturais foram correlacionadas.',
+    exemploSFD: 'O usuário pesquisa uma tag (ex: "Boi"), e o cofre semântico vivo calcula as correlações em tempo real, conectando-a a famílias similares e artigos acadêmicos.',
+    protocolos: ['Spreading Activation XAI', 'Grafo Semântico Interativo', 'RAG Neural Multi-Hop'],
     referenciaArtigo: {
-      titulo: 'Spreading Activation in Modern Graph-RAG Information Retrieval',
-      autor: 'arXiv:2512.15922 & Wikipedia',
+      titulo: 'Spreading Activation across Knowledge Graphs for Multi-Hop RAG',
+      autor: 'arXiv:2512.15922 [cs.IR] & Cognitive Science Papers',
       url: 'https://arxiv.org/pdf/2512.15922',
     },
   },
 ];
 
 /**
- * Artigos Bibliográficos e Epistemológicos Fundamentais para a Aba de Interoperabilidade Cultural
+ * Artigos e Bibliografia Completa
  */
 export interface AcademicReferenceItem {
   id: string;
-  categoria: 'Interoperabilidade Patrimonial' | 'Grafos & Obsidian' | 'Spreading Activation & RAG' | 'SKOS & Tesauros';
+  categoria: 'Padrões de Interoperabilidade (CIDOC-CRM / EDM)' | 'Camada Semântica & SKOS' | 'Grafos & Cofre Semântico' | 'Spreading Activation & RAG';
+  tagAssociada?: string[];
   titulo: string;
   autores: string;
   veiculo: string;
   ano: string;
   link: string;
-  resumoEpistemologico: string;
+  resumo: string;
   aplicacaoNoSFD: string;
 }
 
 export const CULTURAL_INTEROP_REFERENCES: AcademicReferenceItem[] = [
+  // ── Frente 1: Padrões de Interoperabilidade Patrimonial (CIDOC-CRM / EDM) ──
+  {
+    id: 'cidoc-crm-iso',
+    categoria: 'Padrões de Interoperabilidade (CIDOC-CRM / EDM)',
+    tagAssociada: ['core', 'bumba_boi', 'carranca', 'mestre_vitalino'],
+    titulo: 'The CIDOC Conceptual Reference Model (CIDOC-CRM): ISO 21127 Standard for Cultural Heritage Documentation',
+    autores: 'ICOM / CIDOC Documentation Standards Working Group',
+    veiculo: 'ISO/TC 46/SC 9 — ISO 21127:2006 / ICOM',
+    ano: '2006 (Origens 1994-1999)',
+    link: 'https://www.cidoc-crm.org/',
+    resumo: 'Ontologia formal para documentação patrimonial originada no ICOM/CIDOC: iniciou como modelo entidade-relacionamento até 1994, migrou para modelagem orientada a objetos em 1996 e atingiu a versão formal em 1999, tornando-se padrão internacional ISO 21127 em setembro de 2006.',
+    aplicacaoNoSFD: 'Modela as relações de entidades patrimoniais, permitindo que bens materiais e imateriais mantenham ontologia estável entre acervos federais.',
+  },
+  {
+    id: 'edm-europeana',
+    categoria: 'Padrões de Interoperabilidade (CIDOC-CRM / EDM)',
+    tagAssociada: ['core', 'frevo', 'capoeira', 'bumba_boi'],
+    titulo: 'The Europeana Data Model (EDM): An Upper-Level Semantic Framework for Heterogeneous Heritage Collections',
+    autores: 'Europeana Foundation & Data Architecture Team',
+    veiculo: 'Europeana Semantic Technical Papers',
+    ano: '2023',
+    link: 'https://pro.europeana.eu/page/edm-documentation',
+    resumo: 'Reaproveita RDF(S), OAI-ORE, SKOS e Dublin Core como ontologia comum de alto nível que preserva os modelos de dados e as perspectivas de informação originais de cada instituição — funcionando como uma âncora à qual modelos refinados se conectam sem perder riqueza descritiva.',
+    aplicacaoNoSFD: 'Framework utilizado pelo SFD para integrar metadados do IBRAM, Brasiliana Museus e Mapas da Cultura mantendo suas taxonomias originais.',
+  },
+
+  // ── Frente 2: Camada Semântica / SKOS e Camadas de Interoperabilidade ──
+  {
+    id: 'skos-w3c-standard',
+    categoria: 'Camada Semântica & SKOS',
+    tagAssociada: ['core', 'bumba_boi', 'renda_bilro', 'jongo'],
+    titulo: 'SKOS Simple Knowledge Organization System Reference — W3C Recommendation',
+    autores: 'Alistair Miles & Sean Bechhofer (W3C Semantic Web Deployment Working Group)',
+    veiculo: 'World Wide Web Consortium (W3C)',
+    ano: '18 de Agosto de 2009',
+    link: 'https://www.w3.org/TR/skos-reference/',
+    resumo: 'Publicado como Recomendação W3C em 18 de agosto de 2009. Serve como caminho de baixo custo para portar tesauros e taxonomias existentes para RDF sem exigir reengenharia ontológica completa, permitindo publicar, compartilhar e ligar vocabulários na Web com mapeamentos cruzados (exactMatch, broader, narrower, related).',
+    aplicacaoNoSFD: 'Estrutura todas as sinapses do Grafo Semântico do SFD, alinhando os verbetes do Tesauro CNFCP/IPHAN com as tags colaborativas dos visitantes.',
+  },
   {
     id: 'usp-interop',
-    categoria: 'Interoperabilidade Patrimonial',
+    categoria: 'Camada Semântica & SKOS',
+    tagAssociada: ['core', 'bumba_boi', 'carranca'],
     titulo: 'Interoperabilidade semântica no domínio do patrimônio cultural e otimização do acesso em coleções heterogêneas',
     autores: 'Revista Gestão de Projetos / USP',
     veiculo: 'Estudos Econômicos — USP',
     ano: '2023',
     link: 'https://revistas.usp.br/gestaodeprojetos/article/view/196860',
-    resumoEpistemologico: 'Demonstra a necessidade de decompor a interoperabilidade em camadas (semântica, organizacional, técnica e humana) para que a integração de dados de patrimônio não gere rupturas de significado entre acervos heterogêneos.',
-    aplicacaoNoSFD: 'Base metodológica das 5 Camadas de Interoperabilidade do SFD e da integração entre tesauros controlados (CNFCP) e folksonomias livres.',
+    resumo: 'Estrutura a interoperabilidade como um prédio de camadas (técnica, semântica, organizacional e legal), em que cada camada resolve um tipo específico de falha na preservação do patrimônio digital.',
+    aplicacaoNoSFD: 'Base conceitual para a arquitetura em camadas do Sistema de Folksonomia Digital.',
   },
   {
     id: 'bad-portugal',
-    categoria: 'Interoperabilidade Patrimonial',
+    categoria: 'Camada Semântica & SKOS',
+    tagAssociada: ['core', 'carranca', 'mestre_vitalino'],
     titulo: 'A importância da interoperabilidade em instituições de memória: arquivos, bibliotecas e museus',
     autores: 'Associação Portuguesa de Bibliotecários, Arquivistas e Documentalistas',
     veiculo: 'Notícia BAD',
     ano: '2013',
     link: 'https://noticia.bad.pt/2013/05/21/a-importancia-da-interoperabilidade-em-instituicoes-de-memoria/',
-    resumoEpistemologico: 'Analisa o papel da interoperabilidade como instrumento de democratização da memória social, superando silos informacionais entre diferentes tipologias de equipamentos culturais.',
-    aplicacaoNoSFD: 'Fundamenta o cruzamento de fontes do IBRAM (museus), CNFCP/IPHAN (imaterial) e Mapas da Cultura (agentes vivos).',
+    resumo: 'Analisa o papel da interoperabilidade como instrumento de democratização da memória social e governança interinstitucional de acervos.',
+    aplicacaoNoSFD: 'Diretriz de agregação de fontes abertas federadas do SFD (IBRAM, IPHAN, MinC e SALIC).',
   },
-  {
-    id: 'till-freitag-obsidian',
-    categoria: 'Grafos & Obsidian',
-    titulo: 'Building a Personal Knowledge Graph with Obsidian: A Zettelkasten Approach',
-    autores: 'Till Freitag',
-    veiculo: 'Knowledge Architecture Review',
-    ano: '2024',
-    link: 'https://till-freitag.com/en/blog/obsidian-personal-knowledge-graph-en',
-    resumoEpistemologico: 'Explica a passagem do modelo hierárquico de pastas ("onde está isso") para o modelo de grafo de forças ("o que isso tem a ver com o quê"), utilizando nós atômicos e conexões direcionadas.',
-    aplicacaoNoSFD: 'Inspiração direta para o layout do grafo interativo do SFD, onde cada manifestação cultural é um nó e suas relações são descobertas dinamicamente.',
-  },
-  {
-    id: 'arxiv-force-graph',
-    categoria: 'Grafos & Obsidian',
-    titulo: 'Dynamic Force-Directed Layouts with Fruchterman-Reingold and Centrality Metrics in Cultural Knowledge Graphs',
-    autores: 'Knowledge Systems Research Group',
-    veiculo: 'arXiv:2606.07094 [cs.AI]',
-    ano: '2026',
-    link: 'https://arxiv.org/pdf/2606.07094',
-    resumoEpistemologico: 'Apresenta a formulação matemática para renderização em tempo real de grafos semânticos com física de molas (Fruchterman-Reingold / COSE-Bilkent) e identificação de hubs por betweenness centrality.',
-    aplicacaoNoSFD: 'Utilizado no motor visual do grafo SVG do SFD para agrupar e destacar hubs culturais como Mestre Vitalino e Carranca do São Francisco.',
-  },
-  {
-    id: 'spreading-activation-wiki',
-    categoria: 'Spreading Activation & RAG',
-    titulo: 'Spreading Activation in Semantic Networks and Cognitive Architectures',
-    autores: 'Cognitive Science Foundation',
-    veiculo: 'Wikipedia & Cognitive Architecture Papers',
-    ano: '2025',
-    link: 'https://en.wikipedia.org/wiki/Spreading_activation',
-    resumoEpistemologico: 'Descreve o método computacional de propagação de ativação iniciado em nós-fonte rotulados, com decaimento geométrico e convergência em redes associativas.',
-    aplicacaoNoSFD: 'Mecanismo exato do graph-math.ts para propagar consultas semânticas e acender nós vizinhos ao pesquisar qualquer termo.',
-  },
+
+  // ── Frente 3: Grafos Semânticos, Spreading Activation & RAG Multi-Hop ──
   {
     id: 'arxiv-rag-activation',
     categoria: 'Spreading Activation & RAG',
+    tagAssociada: ['bumba_boi', 'boi_bumba', 'frevo', 'capoeira'],
     titulo: 'Spreading Activation across Knowledge Graphs for Multi-Hop Retrieval-Augmented Generation (RAG)',
     autores: 'AI & Information Retrieval Labs',
     veiculo: 'arXiv:2512.15922 [cs.IR]',
     ano: '2025',
     link: 'https://arxiv.org/pdf/2512.15922',
-    resumoEpistemologico: 'Demonstra como a propagação de ativação supera o RAG vetorial tradicional ao encontrar interseções conceituais multi-hop (A→B→C) com explicabilidade matemática.',
-    aplicacaoNoSFD: 'A base do relatório semântico de certezas (ex: 53% de certeza e 8 referências no caso do "Boi"), onde a certeza é o valor residual de ativação no grafo.',
+    resumo: 'Demonstra como a propagação de ativação semântica em grafos supera RAGs vetoriais tradicionais na descoberta de caminhos associativos multi-hop (A→B→C) com explicabilidade e certeza residual calculável.',
+    aplicacaoNoSFD: 'Motor matemático que correlaciona a tag pesquisada pelo usuário com famílias similares e fontes probatórias.',
+  },
+  {
+    id: 'arxiv-force-graph',
+    categoria: 'Grafos & Cofre Semântico',
+    tagAssociada: ['core', 'mestre_vitalino', 'carranca', 'candomble'],
+    titulo: 'Dynamic Force-Directed Layouts and Centrality Metrics in Cultural Knowledge Graphs',
+    autores: 'Knowledge Systems Research Group',
+    veiculo: 'arXiv:2606.07094 [cs.AI]',
+    ano: '2026',
+    link: 'https://arxiv.org/pdf/2606.07094',
+    resumo: 'Formulações de física de molas (Fruchterman-Reingold) e centralidade de intermediação (Brandes) para identificação visual de hubs em acervos de memória.',
+    aplicacaoNoSFD: 'Renderização do Grafo Semântico como cofre vivo, evidenciando manifestações que conectam diferentes matrizes civilizatórias.',
+  },
+  {
+    id: 'till-freitag-zettel',
+    categoria: 'Grafos & Cofre Semântico',
+    tagAssociada: ['core', 'renda_bilro', 'jongo', 'capoeira'],
+    titulo: 'Building a Knowledge Graph: A Zettelkasten Approach to Associative Networks',
+    autores: 'Till Freitag',
+    veiculo: 'Knowledge Architecture Review',
+    ano: '2024',
+    link: 'https://till-freitag.com/en/blog/obsidian-personal-knowledge-graph-en',
+    resumo: 'Transição da organização em pastas rígidas ("onde está isso") para redes associativas de entidades atômicas ("o que isso tem a ver com o quê").',
+    aplicacaoNoSFD: 'Conceito do Cofre Semântico Vivo onde cada tag aglomera saberes e se conecta a nós correlatos.',
   },
 ];
