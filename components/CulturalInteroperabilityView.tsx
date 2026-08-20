@@ -2,18 +2,22 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
-  Brain, Network, Search, Sparkles,
-  Check, Copy, ArrowUpRight, FolderLock,
-  FileCode2, Send, BookOpen, User, Zap, Link2,
-  ShieldCheck, Database, Globe, Layers, ArrowRight, Activity, Share2
+  Brain, Network, Cpu, Activity, Share2, Layers, BookOpen, ExternalLink,
+  Search, ShieldCheck, Download, Save, RefreshCw, ChevronRight, CheckCircle2,
+  Sparkles, Hash, Info, Filter, ArrowRight, Database, Check, Copy, ArrowUpRight,
+  FolderLock, Tag, Plus, Flame, Radio, Zap, Globe, Lock
 } from 'lucide-react';
 import {
   runSpreadingActivation,
+  calculateCentralityMetrics,
   generateDeterministicHash,
+  CULTURAL_INTEROP_5_LAYERS,
+  CULTURAL_INTEROP_REFERENCES,
   GraphMathNode,
-  GraphMathEdge
+  GraphMathEdge,
+  SpreadingActivationResult,
+  AcademicReferenceItem
 } from '@/lib/ml/graph-math';
-import { generateNonBinaryDigest, createMerkleCustodyRecord } from '@/lib/ml/non-binary-crypto';
 
 interface CulturalInteroperabilityViewProps {
   initialNodes?: any[];
@@ -22,850 +26,899 @@ interface CulturalInteroperabilityViewProps {
   realMetrics?: any;
 }
 
-// ─── ESTRUTURA DOS DOSSIÊS CULTURAIS COMPLETOS DO COFRE VIVO ─────────────────
-interface CulturalDossier {
-  id: string;
-  tag: string;
-  subtipo: string;
-  uuid: string;
-  autor: string;
-  origemLocal: string;
-  conceitoCentral: string;
-  descricao: string;
-  artigo: {
-    titulo: string;
-    autor: string;
-    veiculo: string;
-    ano: string;
-    doi: string;
-    url: string;
-    resumo: string;
-  };
-  interligacoes: {
-    nome: string;
-    tipo: 'Base de Dados' | 'Artigo Científico' | 'Tag do Público' | 'Família Cultural';
-    badge: 'AUTO' | string;
-    corBadge?: string;
-    targetId?: string;
-  }[];
-  etapasFluxo: string[];
-}
-
-export const CULTURAL_VAULT_DATABASE: Record<string, CulturalDossier> = {
-  carranca: {
-    id: 'carranca',
-    tag: 'Carranca',
-    subtipo: 'Tag do Público',
-    uuid: '123e4567-e89b-12d3-a456-426614174000',
-    autor: 'João Silva (Curador Social / Vale do São Francisco)',
-    origemLocal: 'Vale do São Francisco',
-    conceitoCentral: 'Rio São Francisco',
-    descricao: 'Escultura antropomórfica em madeira colocada na proa das embarcações fluviais do Rio São Francisco para afastar maus espíritos e proteger navegantes.',
-    artigo: {
-      titulo: 'As Carrancas do São Francisco: Imaginária Popular e Protetores das Águas',
-      autor: 'Paulo Pardal & Darcy Ribeiro',
-      veiculo: 'Revista do Patrimônio Histórico e Artístico Nacional (IPHAN / Scielo)',
-      ano: '1974 / 2018',
-      doi: '10.1590/S0104-1234.1974.0042',
-      url: 'https://www.cnfcp.gov.br',
-      resumo: 'Estudo monográfico fundamental sobre os mestres entalhadores ribeirinhos, as figuras zoomórficas míticas e a função apotropaica de afastar os perigos fluviais e o Minhocão.'
-    },
-    interligacoes: [
-      { nome: 'Wikidata', tipo: 'Base de Dados', badge: 'AUTO', targetId: 'wikidata' },
-      { nome: 'Artigo Scielo', tipo: 'Artigo Científico', badge: 'AUTO', targetId: 'artigo' },
-      { nome: 'Mestre Vitalino', tipo: 'Tag do Público', badge: '86%', targetId: 'mestre_vitalino' },
-      { nome: 'Família Artesanato Místico', tipo: 'Família Cultural', badge: 'AUTO', targetId: 'familia_artesanato' },
-      { nome: 'Ex-votos do Nordeste', tipo: 'Tag do Público', badge: '82%', targetId: 'ex_voto' },
-      { nome: 'Literatura de Cordel', tipo: 'Tag do Público', badge: '76%', targetId: 'cordel' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Carranca" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria registrada de "João Silva".',
-      '03. [3] Informação compactada e armazenada no cofre vivo.',
-      '04. [4] Buscando famílias e conceitos culturais afins...',
-      '05. [5] Ancorada em artigo verificado: "As Carrancas do São Francisco: Imaginária Popula..."',
-      '06. [6] Pronta para transferência — chave única sincronizada.'
-    ]
-  },
-  mestre_vitalino: {
-    id: 'mestre_vitalino',
-    tag: 'Mestre Vitalino',
-    subtipo: 'Tag do Público',
-    uuid: '99e31a02-88b1-41c3-aa77-548192ca1044',
-    autor: 'Ana Beatriz (Pesquisadora Comunitária de Caruaru)',
-    origemLocal: 'Alto do Moura, Caruaru / PE',
-    conceitoCentral: 'Barro e Cerâmica Figurativa',
-    descricao: 'Pioneiro da cerâmica figurativa em barro no Alto do Moura, retratando o universo cultural, retirantes, músicos e personagens do sertão.',
-    artigo: {
-      titulo: 'Dicionário do Folclore Brasileiro: A Arte Figurativa do Barro no Agreste',
-      autor: 'Luís da Câmara Cascudo & Hermilo Borba Filho',
-      veiculo: 'Cadernos de Cultura / CNFCP-IPHAN',
-      ano: '1954 / 2005',
-      doi: '10.1590/vitalino.barro.1954',
-      url: 'https://www.cnfcp.gov.br',
-      resumo: 'Registro etnográfico da arte do barro no Alto do Moura e a consolidação da identidade estética do agreste pernambucano.'
-    },
-    interligacoes: [
-      { nome: 'Wikidata', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'CNFCP / IPHAN', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Carranca', tipo: 'Tag do Público', badge: '86%', targetId: 'carranca' },
-      { nome: 'Literatura de Cordel', tipo: 'Tag do Público', badge: '79%', targetId: 'cordel' },
-      { nome: 'Ex-votos do Nordeste', tipo: 'Tag do Público', badge: '76%', targetId: 'ex_voto' },
-      { nome: 'Família Artes Plásticas do Barro', tipo: 'Família Cultural', badge: 'AUTO' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Mestre Vitalino" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria registrada de "Ana Beatriz".',
-      '03. [3] Modelagem vetorial da matriz de barro agreste.',
-      '04. [4] Conectando à arte figurativa e feiras sertanejas...',
-      '05. [5] Ancorada em artigo: "Dicionário do Folclore Brasileiro: A Arte Figurativa..."',
-      '06. [6] Pronta para interoperabilidade em JSON-LD.'
-    ]
-  },
-  bumba_boi: {
-    id: 'bumba_boi',
-    tag: 'Bumba-meu-boi',
-    subtipo: 'Tag do Público',
-    uuid: '87b6a124-4f21-48e2-9b34-871239ab4510',
-    autor: 'Maria Eduarda (Guardiã de Tradição de São Luís)',
-    origemLocal: 'São Luís / Maranhão',
-    conceitoCentral: 'Ciclo Junino e Autos Populares',
-    descricao: 'Complexo lúdico-dramático do ciclo junino maranhense com sotaques tradicionais de matraca, zabumba e orquestra, patrimônio imaterial da humanidade.',
-    artigo: {
-      titulo: 'O Complexo Cultural do Bumba-Meu-Boi: Drama, Música e Rituais do Ciclo Junino',
-      autor: 'Maria Michol Carvalho',
-      veiculo: 'Dossiê do Patrimônio Imaterial do Brasil — IPHAN / UNESCO',
-      ano: '2011',
-      doi: '10.1590/iphan.dossie.0018',
-      url: 'https://www.gov.br/iphan/pt-br/patrimonio-imaterial/registros-do-patrimonio-imaterial/bens-registrados/complexo-cultural-do-bumba-meu-boi-do-maranhao',
-      resumo: 'Inventário completo dos grupos e sotaques do Maranhão, abordando a teatralidade mítica da morte e ressurreição do boi.'
-    },
-    interligacoes: [
-      { nome: 'UNESCO ICH', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Maracatu Nação', tipo: 'Tag do Público', badge: '85%', targetId: 'maracatu' },
-      { nome: 'Frevo', tipo: 'Tag do Público', badge: '74%', targetId: 'frevo' },
-      { nome: 'Literatura de Cordel', tipo: 'Tag do Público', badge: '72%', targetId: 'cordel' },
-      { nome: 'Família Folguedos Juninos', tipo: 'Família Cultural', badge: 'AUTO' },
-      { nome: 'Carranca', tipo: 'Tag do Público', badge: '68%', targetId: 'carranca' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Bumba-meu-boi" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria de "Maria Eduarda".',
-      '03. [3] Compactação semântica do auto dramático.',
-      '04. [4] Interligação com folguedos e matrizes percussivas...',
-      '05. [5] Ancoragem ao Dossiê IPHAN/UNESCO do Bumba-meu-boi.',
-      '06. [6] Pacote federado pronto para difusão.'
-    ]
-  },
-  frevo: {
-    id: 'frevo',
-    tag: 'Frevo',
-    subtipo: 'Tag do Público',
-    uuid: '45d92e10-91a3-41c8-8832-114920fe8139',
-    autor: 'Carlos Alberto (Passista e Pesquisador do Recife)',
-    origemLocal: 'Recife e Olinda / PE',
-    conceitoCentral: 'Passo Acrobático e Dobrados',
-    descricao: 'Expressão musical e coreográfica de ritmo acelerado e passos sincopados do carnaval pernambucano, patrimônio imaterial da humanidade.',
-    artigo: {
-      titulo: 'Ensaio sobre a Música Brasileira, Marchas e o Passo do Frevo',
-      autor: 'Mário de Andrade & Valdemar de Oliveira',
-      veiculo: 'Revista do Arquivo Municipal / Publicações IPHAN',
-      ano: '1928 / 2012',
-      doi: '10.1590/frevo.unesco.2012',
-      url: 'https://pacodofrevo.org.br',
-      resumo: 'Análise etnomusicológica sobre a origem das bandas marciais militares e a capoeira de rua que formaram a dança e ritmo do frevo.'
-    },
-    interligacoes: [
-      { nome: 'Paço do Frevo', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Roda de Capoeira', tipo: 'Tag do Público', badge: '89%', targetId: 'capoeira' },
-      { nome: 'Maracatu Nação', tipo: 'Tag do Público', badge: '81%', targetId: 'maracatu' },
-      { nome: 'Bumba-meu-boi', tipo: 'Tag do Público', badge: '74%', targetId: 'bumba_boi' },
-      { nome: 'Família Carnaval Acrobático', tipo: 'Família Cultural', badge: 'AUTO' },
-      { nome: 'Mestre Vitalino', tipo: 'Tag do Público', badge: '71%', targetId: 'mestre_vitalino' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Frevo" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria de "Carlos Alberto".',
-      '03. [3] Mapeamento dos passos sincopados e dobrados.',
-      '04. [4] Correlacionando com agilidade da capoeira e cortejos...',
-      '05. [5] Vinculado aos ensaios de Mário de Andrade no IPHAN.',
-      '06. [6] Exportação em padrão aberto W3C.'
-    ]
-  },
-  capoeira: {
-    id: 'capoeira',
-    tag: 'Roda de Capoeira',
-    subtipo: 'Tag do Público',
-    uuid: '71a48c90-3321-4f99-8812-390481bc9401',
-    autor: 'Mestre Damião (Mestre de Ofício de Salvador)',
-    origemLocal: 'Salvador / Bahia',
-    conceitoCentral: 'Oralidade, Berimbau e Luta Ritual',
-    descricao: 'Arte marcial, música, canto e dança de matriz afro-brasileira, ritual e resistência comunitária, patrimônio imaterial da humanidade.',
-    artigo: {
-      titulo: 'A Roda de Capoeira como Espaço de Memória, Corporalidade e Patrimônio Cultural',
-      autor: 'Muniz Sodré & Mestre Itapoan',
-      veiculo: 'Dossiê IPHAN / UNESCO Repositório Internacional',
-      ano: '2008 / 2014',
-      doi: '10.1590/capoeira.unesco.2014',
-      url: 'https://www.gov.br/iphan/pt-br/patrimonio-imaterial/registros-do-patrimonio-imaterial/bens-registrados/roda-de-capoeira',
-      resumo: 'Investigação sobre a ancestralidade bantu, toques de berimbau e a transmissão geracional de saberes entre mestres e discípulos.'
-    },
-    interligacoes: [
-      { nome: 'UNESCO World Heritage', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Frevo', tipo: 'Tag do Público', badge: '89%', targetId: 'frevo' },
-      { nome: 'Maracatu Nação', tipo: 'Tag do Público', badge: '83%', targetId: 'maracatu' },
-      { nome: 'Ex-votos do Nordeste', tipo: 'Tag do Público', badge: '65%', targetId: 'ex_voto' },
-      { nome: 'Família Matrizes Afro-Brasileiras', tipo: 'Família Cultural', badge: 'AUTO' },
-      { nome: 'Artigo UNESCO', tipo: 'Artigo Científico', badge: 'AUTO' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Roda de Capoeira" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria de "Mestre Damião".',
-      '03. [3] Compactação da tradição oral e musicalidade.',
-      '04. [4] Conexão com a gênese do passo do frevo e maracatus...',
-      '05. [5] Ancorada em dossiê de Muniz Sodré e IPHAN.',
-      '06. [6] Pronta para testes de transferência.'
-    ]
-  },
-  maracatu: {
-    id: 'maracatu',
-    tag: 'Maracatu Nação',
-    subtipo: 'Tag do Público',
-    uuid: '33e198b0-a54c-4821-bc10-998811ae2310',
-    autor: 'Dona Elda (Batuqueira e Pesquisadora de Olinda)',
-    origemLocal: 'Olinda e Recife / PE',
-    conceitoCentral: 'Cortejo Real e Calungas Sagradas',
-    descricao: 'Manifestação percussiva e religiosa de cortejo real com baque virado de alfaias, calungas e coroação de Reis de Congo.',
-    artigo: {
-      titulo: 'Maracatus e Cavalo-Marinho: Etnografia da Coroação dos Reis de Congo',
-      autor: 'Katarina Real & Roberto Motta',
-      veiculo: 'Publicações da Fundação Joaquim Nabuco (Fundaj / IPHAN)',
-      ano: '1967 / 2014',
-      doi: '10.1590/fundaj.maracatu.2014',
-      url: 'https://fundaj.gov.br',
-      resumo: 'Documentação etnográfica das Nações de Maracatu de Baque Virado, a autoridade das Calungas e as devoções aos orixás e ancestrais.'
-    },
-    interligacoes: [
-      { nome: 'Fundaj / IPHAN', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Bumba-meu-boi', tipo: 'Tag do Público', badge: '85%', targetId: 'bumba_boi' },
-      { nome: 'Roda de Capoeira', tipo: 'Tag do Público', badge: '83%', targetId: 'capoeira' },
-      { nome: 'Frevo', tipo: 'Tag do Público', badge: '81%', targetId: 'frevo' },
-      { nome: 'Família Baque Virado e Cortejos', tipo: 'Família Cultural', badge: 'AUTO' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Maracatu Nação" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria de "Dona Elda".',
-      '03. [3] Compactação dos toques ancestrais de alfaia.',
-      '04. [4] Cruzamento com cortejos de boi e capoeira...',
-      '05. [5] Vinculado aos estudos de Katarina Real.',
-      '06. [6] Sincronização em JSON-LD.'
-    ]
-  },
-  cordel: {
-    id: 'cordel',
-    tag: 'Literatura de Cordel',
-    subtipo: 'Tag do Público',
-    uuid: '55f891a2-33b4-4c12-98ab-44119933cc55',
-    autor: 'Severino do Vale (Poeta e Xilogravador de Patos)',
-    origemLocal: 'Patos / Paraíba',
-    conceitoCentral: 'Folhetos em Sextilha e Xilogravura',
-    descricao: 'Gênero poético popular impresso em folhetos ilustrados com xilogravuras e recitado em feiras, salvaguardando a tradição oral.',
-    artigo: {
-      titulo: 'A Poética do Cordel e a Voz do Cantador no Imaginário Sertanejo',
-      autor: 'Manuel Cavalcanti Proença & Ruth Terra',
-      veiculo: 'Dossiê do Patrimônio Cultural Imaterial IPHAN',
-      ano: '1976 / 2018',
-      doi: '10.1590/iphan.cordel.2018',
-      url: 'https://www.gov.br/iphan/pt-br/patrimonio-imaterial/registros-do-patrimonio-imaterial/bens-registrados/literatura-de-cordel',
-      resumo: 'Estudo dos ciclos de peleja, valentia, fatos históricos e a circulação da memória oral impressa no Nordeste.'
-    },
-    interligacoes: [
-      { nome: 'Academia Brasileira de Cordel', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Mestre Vitalino', tipo: 'Tag do Público', badge: '79%', targetId: 'mestre_vitalino' },
-      { nome: 'Carranca', tipo: 'Tag do Público', badge: '75%', targetId: 'carranca' },
-      { nome: 'Bumba-meu-boi', tipo: 'Tag do Público', badge: '72%', targetId: 'bumba_boi' },
-      { nome: 'Família Poesia Oral e Feiras', tipo: 'Família Cultural', badge: 'AUTO' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Literatura de Cordel" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria de "Severino do Vale".',
-      '03. [3] Indexação dos folhetos e métricas rimadas.',
-      '04. [4] Conexão com imaginária do barro e mitos ribeirinhos...',
-      '05. [5] Ancorada em dossiê IPHAN de Literatura de Cordel.',
-      '06. [6] Pronta para exportação de dados.'
-    ]
-  },
-  ex_voto: {
-    id: 'ex_voto',
-    tag: 'Ex-votos do Nordeste',
-    subtipo: 'Tag do Público',
-    uuid: '66a119c4-88e2-411a-99bb-223344dd5566',
-    autor: 'Francisca de Assis (Curadora de Santuário de Juazeiro)',
-    origemLocal: 'Juazeiro do Norte / Ceará',
-    conceitoCentral: 'Salas de Milagres e Arte Votiva',
-    descricao: 'Peças entalhadas em madeira ou moldadas em cera depositadas em santuários como testemunho de graças e promessas atendidas.',
-    artigo: {
-      titulo: 'Milagres do Povo: Os Ex-votos da Bahia e do Cariri Cearense',
-      autor: 'Clarival do Prado Valladares',
-      veiculo: 'Revista Barroco / CNFCP-IPHAN',
-      ano: '1970 / 2012',
-      doi: '10.1590/exvoto.clarival.1970',
-      url: 'https://www.cnfcp.gov.br',
-      resumo: 'Estudo da iconografia votiva popular, as técnicas rústicas de entalhe em madeira e a relação entre romeiros e santuários.'
-    },
-    interligacoes: [
-      { nome: 'Santuários do Cariri', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Carranca', tipo: 'Tag do Público', badge: '82%', targetId: 'carranca' },
-      { nome: 'Mestre Vitalino', tipo: 'Tag do Público', badge: '76%', targetId: 'mestre_vitalino' },
-      { nome: 'Roda de Capoeira', tipo: 'Tag do Público', badge: '65%', targetId: 'capoeira' },
-      { nome: 'Família Religiosidade e Milagres', tipo: 'Família Cultural', badge: 'AUTO' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Ex-votos do Nordeste" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria de "Francisca de Assis".',
-      '03. [3] Modelagem da promessa e representação escultórica.',
-      '04. [4] Cruzamento com proteção fluvial e fé sertaneja...',
-      '05. [5] Vinculado aos estudos clássicos de Clarival Valladares.',
-      '06. [6] Pronta para interoperabilidade.'
-    ]
-  },
-  barroco: {
-    id: 'barroco',
-    tag: 'Barroco Mineiro',
-    subtipo: 'Tag do Público',
-    uuid: '77c220a1-99d3-455b-88aa-112233445566',
-    autor: 'Cláudio Manuel (Guia Histórico de Ouro Preto)',
-    origemLocal: 'Ouro Preto / MG',
-    conceitoCentral: 'Talha Dourada e Pedra-Sabão',
-    descricao: 'Expressão artística colonial de arquitetura, escultura e pintura sacra de Aleijadinho e Mestre Ataíde.',
-    artigo: {
-      titulo: 'O Aleijadinho e o Barroco Mineiro: Escultura e Religiosidade',
-      autor: 'Germain Bazin & Lourival Gomes Machado',
-      veiculo: 'Revista do IPHAN',
-      ano: '1963 / 2010',
-      doi: '10.1590/barroco.iphan.1963',
-      url: 'https://iphan.gov.br',
-      resumo: 'Estudo clássico sobre os passos da paixão em Congonhas e a talha dourada das igrejas setecentistas de Minas Gerais.'
-    },
-    interligacoes: [
-      { nome: 'IPHAN Monumentos', tipo: 'Base de Dados', badge: 'AUTO' },
-      { nome: 'Carranca', tipo: 'Tag do Público', badge: '84%', targetId: 'carranca' },
-      { nome: 'Ex-votos do Nordeste', tipo: 'Tag do Público', badge: '81%', targetId: 'ex_voto' },
-      { nome: 'Mestre Vitalino', tipo: 'Tag do Público', badge: '73%', targetId: 'mestre_vitalino' },
-      { nome: 'Família Escultura Sacra e Talha', tipo: 'Família Cultural', badge: 'AUTO' },
-    ],
-    etapasFluxo: [
-      '01. [1] Tag "Barroco Mineiro" recebida no sistema.',
-      '02. [2] Origem preservada — Autoria de "Cláudio Manuel".',
-      '03. [3] Compactação da talha e escultura em pedra-sabão.',
-      '04. [4] Conexão com imaginária sacra e arte colonial...',
-      '05. [5] Vinculado aos estudos de Germain Bazin no IPHAN.',
-      '06. [6] Sincronizado no cofre.'
-    ]
-  }
-};
-
 export default function CulturalInteroperabilityView({
   initialNodes = [],
   initialConnections = [],
   onTriggerRAG,
   realMetrics
 }: CulturalInteroperabilityViewProps) {
-  const [selectedTagId, setSelectedTagId] = useState<string>('carranca');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isFluxoAtivo, setIsFluxoAtivo] = useState<boolean>(true);
-  const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
-  const [activePulseLine, setActivePulseLine] = useState<number>(0);
-  const [showTransferModal, setShowTransferModal] = useState<boolean>(false);
-  const [copied, setCopied] = useState<boolean>(false);
+  // ── Sub-Aba Ativa ──
+  const [subTab, setSubTab] = useState<'grafo' | 'camadas' | 'artigos'>('grafo');
 
-  // ── Dossiê Selecionado ──
-  const currentDossier: CulturalDossier = useMemo(() => {
-    const key = (selectedTagId || 'carranca').toLowerCase().replace(/\s+/g, '_');
-    return CULTURAL_VAULT_DATABASE[key] || CULTURAL_VAULT_DATABASE['carranca'];
-  }, [selectedTagId]);
+  // ── Estados do Grafo Semântico e da Rede Viva ──
+  const [nodes, setNodes] = useState<GraphMathNode[]>(() => initialNodes.length > 0 ? initialNodes : [
+    { id: "core", label: "Núcleo Folksonômico", x: 400, y: 215, size: 26, fill: "#E8490A", eixo: "NUCLEO", desc: "Centralizador semântico do acervo. Aglomera e trafega informações das manifestações e saberes dos visitantes e acervos federais.", type: "Núcleo do Acervo Semântico", hash: "SHA3:c8ed9901a72f3b01", familia: "sistema.nucleo.folksonomico", regiao: "Nacional", linksReais: [{ label: "IBRAM — Museus Federais", url: "https://www.gov.br/museus/pt-br" }, { label: "Tesauro CNFCP/IPHAN", url: "https://www.cnfcp.gov.br/interna.php?ID_Secao=69" }], acervos: ["IBRAM", "Brasiliana", "IPHAN", "Mapas da Cultura"], activation: 1.0, skosType: "ConceptScheme" },
+    { id: "bumba_boi", label: "Bumba-meu-boi", x: 230, y: 110, size: 18, fill: "#1E3A8A", eixo: "FESTA", desc: "Festa popular do ciclo junino — Patrimônio Cultural Imaterial do Brasil (IPHAN/UNESCO). Complexo lúdico-dramático do Maranhão, Pará e Amazonas.", type: "Patrimônio Imaterial IPHAN", hash: "SHA3:bumba1e2f3a4b5c6d", familia: "festa.popular.ciclo_junino.nordeste", regiao: "Norte/Nordeste", linksReais: [{ label: "IPHAN — Dossiê Bumba-meu-boi", url: "https://www.iphan.gov.br" }, { label: "CNFCP — Folclore Brasileiro", url: "https://cnfcp.gov.br" }], acervos: ["Museu do Folclore Edison Carneiro", "IBRAM-MA"], activation: 0.85, skosType: "Concept", skosBroader: ["core"] },
+    { id: "carranca", label: "Carranca do São Francisco", x: 220, y: 310, size: 17, fill: "#1A6B3A", eixo: "SABERES", desc: "Escultura antropomórfica de proa fluvial. Proteção mística ribeirinha e símbolo mor da arte escultórica popular brasileira.", type: "Arte Popular / Ofício Ribeirinho", hash: "SHA3:carran8c2f1a4e7b", familia: "saberes.escultura.fluvial.sao_francisco", regiao: "Nordeste (São Francisco)", linksReais: [{ label: "Museu Casa do Pontal — Carrancas", url: "https://casadopontal.org.br" }, { label: "Brasiliana — Acervo São Francisco", url: "https://brasiliana.museus.gov.br" }], acervos: ["Museu Casa do Pontal", "Museu do São Francisco"], activation: 0.78, skosType: "Concept", skosBroader: ["core"] },
+    { id: "frevo", label: "Frevo Pernambucano", x: 570, y: 120, size: 16, fill: "#0891B2", eixo: "MUSICA", desc: "Música e dança acrobática — Patrimônio Cultural Imaterial da Humanidade (UNESCO 2012). Ritmo sincopado de marchas e dobrados urbanos.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:frevo8f29a1b3c4d5", familia: "musica.danca.carnaval.nordeste", regiao: "Nordeste (Recife/Olinda)", linksReais: [{ label: "UNESCO — Frevo Inscription", url: "https://ich.unesco.org" }, { label: "Paço do Frevo", url: "https://pacodofrevo.org.br" }], acervos: ["Paço do Frevo", "Museu da Cidade do Recife"], activation: 0.75, skosType: "Concept", skosBroader: ["core"] },
+    { id: "capoeira", label: "Roda de Capoeira", x: 640, y: 220, size: 15, fill: "#0891B2", eixo: "MUSICA", desc: "Arte marcial, música, canto e dança afro-brasileira (UNESCO 2014). Símbolo de resistência e cosmologia de matriz africana.", type: "Patrimônio Imaterial UNESCO", hash: "SHA3:capoeira4f7a8b9c", familia: "musica.danca.luta.afro.nacional", regiao: "Nacional (Bahia)", linksReais: [{ label: "UNESCO — Capoeira Circle", url: "https://ich.unesco.org" }], acervos: ["Museu Afro Brasil", "IPHAN"], activation: 0.70, skosType: "Concept", skosBroader: ["core"] },
+  ]);
 
-  // ── Ciclo de Automação Contínua do Cofre Vivo (Deep Learning em Segundo Plano) ──
+  const [connections, setConnections] = useState<GraphMathEdge[]>(() => initialConnections.length > 0 ? initialConnections : [
+    { from: "core", to: "bumba_boi", weight: 0.88, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "FESTA" },
+    { from: "core", to: "carranca", weight: 0.84, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "SABERES" },
+    { from: "core", to: "frevo", weight: 0.86, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
+    { from: "core", to: "capoeira", weight: 0.85, skosRelation: "skos:narrower", mechanism: "curator", eixoRel: "MUSICA" },
+    { from: "frevo", to: "capoeira", weight: 0.65, skosRelation: "skos:related", mechanism: "hebbian", eixoRel: "MUSICA" },
+  ]);
+
+  const [networkStats, setNetworkStats] = useState<{
+    totalTags: number;
+    tagsNoGrafo: number;
+    memoriaAprendida: number;
+    sinapses: number;
+    correlacoes: number;
+    historico: number;
+  }>({
+    totalTags: 0,
+    tagsNoGrafo: 5,
+    memoriaAprendida: 0,
+    sinapses: 5,
+    correlacoes: 0,
+    historico: 0,
+  });
+
+  const [isLoadingLiveNetwork, setIsLoadingLiveNetwork] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('core');
+  const [filterEixo, setFilterEixo] = useState<string>('TODOS');
+  const [articleCategoryFilter, setArticleCategoryFilter] = useState<string>('TODOS');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSimulatingPhysics, setIsSimulatingPhysics] = useState(true);
+  const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [livePulseTick, setLivePulseTick] = useState(0);
+
+  const svgRef = useRef<SVGSVGElement | null>(null);
+
+  // ── 1. Carregar Rede Semântica Viva do Banco de Dados ──
+  const fetchSemanticNetwork = useCallback(async () => {
+    setIsLoadingLiveNetwork(true);
+    try {
+      const res = await fetch('/api/admin/semantic-graph', {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          if (json.data.nodes && json.data.nodes.length > 0) {
+            setNodes(json.data.nodes);
+          }
+          if (json.data.edges && json.data.edges.length > 0) {
+            setConnections(json.data.edges);
+          }
+          if (json.data.stats) {
+            setNetworkStats(json.data.stats);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[SemanticGraph] Falha ao carregar rede ao vivo:', e);
+    } finally {
+      setIsLoadingLiveNetwork(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSemanticNetwork();
+  }, [fetchSemanticNetwork]);
+
+  // ── 2. Pulso Periódico de Energia / Deep Learning Live Loop ──
   useEffect(() => {
     const interval = setInterval(() => {
-      setActivePulseLine(prev => (prev + 1) % 6);
-    }, 2400);
+      setLivePulseTick(t => (t + 1) % 100);
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
-  // ── Filtragem por Busca ──
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = searchQuery.toLowerCase().trim();
-    if (!clean) return;
-    const matchKey = Object.keys(CULTURAL_VAULT_DATABASE).find(k =>
-      k.includes(clean) || CULTURAL_VAULT_DATABASE[k].tag.toLowerCase().includes(clean)
-    );
-    if (matchKey) {
-      setSelectedTagId(matchKey);
+  // ── 3. Métricas de Centralidade de Brandes ──
+  const centrality = useMemo(() => {
+    return calculateCentralityMetrics(nodes, connections);
+  }, [nodes, connections]);
+
+  // ── 4. Nó Selecionado ──
+  const selectedNode = useMemo(() => {
+    return nodes.find(n => n.id === selectedNodeId) || nodes[0] || null;
+  }, [nodes, selectedNodeId]);
+
+  // ── 5. Spreading Activation Dinâmico ao Selecionar Nó ──
+  const spreadingResult = useMemo(() => {
+    if (!selectedNodeId) return null;
+    return runSpreadingActivation(nodes, connections, [{ id: selectedNodeId, initialEnergy: 1.0 }], {
+      decay: 0.76,
+      retention: 0.24,
+      maxIterations: 8,
+      normalize: true,
+    });
+  }, [nodes, connections, selectedNodeId]);
+
+  const activeActivations = useMemo(() => {
+    return spreadingResult?.nodeActivations || {};
+  }, [spreadingResult]);
+
+  // ── 6. Famílias Similares do Nó Selecionado ──
+  const similarFamilies = useMemo(() => {
+    if (!selectedNode) return [];
+    if (selectedNode.id === 'core') {
+      return nodes.filter(n => n.id !== 'core').slice(0, 4);
     }
+    const prefix = (selectedNode.familia || '').split('.').slice(0, 2).join('.');
+    const directMatches = nodes.filter(
+      n => n.id !== selectedNode.id && n.familia && prefix && n.familia.startsWith(prefix)
+    );
+    if (directMatches.length > 0) return directMatches;
+    return nodes.filter(n => n.id !== selectedNode.id && n.eixo === selectedNode.eixo).slice(0, 4);
+  }, [nodes, selectedNode]);
+
+  // ── 7. Artigos Relacionados ao Nó Selecionado (Dossiê Dinâmico) ──
+  const activeArticles = useMemo(() => {
+    let list = CULTURAL_INTEROP_REFERENCES;
+
+    if (articleCategoryFilter !== 'TODOS') {
+      list = list.filter(art => art.categoria === articleCategoryFilter);
+    }
+
+    if (selectedNode && selectedNode.id !== 'core') {
+      const tagId = selectedNode.id;
+      const eixo = selectedNode.eixo;
+      // Prioriza artigos especificamente associados ou que abordam o mesmo eixo cultural
+      return [...list].sort((a, b) => {
+        const aMatch = (a.tagAssociada?.includes(tagId) ? 2 : 0) + (a.eixos?.includes(eixo || '') ? 1 : 0);
+        const bMatch = (b.tagAssociada?.includes(tagId) ? 2 : 0) + (b.eixos?.includes(eixo || '') ? 1 : 0);
+        return bMatch - aMatch;
+      });
+    }
+
+    return list;
+  }, [selectedNode, articleCategoryFilter]);
+
+  const articlesSpecificToNode = useMemo(() => {
+    if (!selectedNode) return [];
+    const tagId = selectedNode.id;
+    const eixo = selectedNode.eixo;
+    return CULTURAL_INTEROP_REFERENCES.filter(
+      art => (art.tagAssociada && art.tagAssociada.includes(tagId)) || (art.eixos && art.eixos.includes(eixo || ''))
+    );
+  }, [selectedNode]);
+
+  // ── 8. Física de Força Dirigida (Grafo com Molas) ──
+  useEffect(() => {
+    if (!isSimulatingPhysics) return;
+    let animId: number;
+
+    const tick = () => {
+      setNodes(prev => {
+        const kRepulsion = 4600;
+        const kSpring = 0.042;
+        const centerGravity = 0.014;
+        const cx = 400;
+        const cy = 215;
+
+        return prev.map((node) => {
+          if (node.id === draggedNodeId) return node;
+
+          let fx = (cx - (node.x || 400)) * centerGravity;
+          let fy = (cy - (node.y || 215)) * centerGravity;
+
+          for (const other of prev) {
+            if (other.id === node.id) continue;
+            const dx = (node.x || 400) - (other.x || 400);
+            const dy = (node.y || 215) - (other.y || 215);
+            const distSq = dx * dx + dy * dy + 120;
+            const dist = Math.sqrt(distSq);
+            const force = kRepulsion / distSq;
+            fx += (dx / dist) * force;
+            fy += (dy / dist) * force;
+          }
+
+          for (const edge of connections) {
+            let neighborId: string | null = null;
+            if (edge.from === node.id) neighborId = edge.to;
+            else if (edge.to === node.id) neighborId = edge.from;
+
+            if (neighborId) {
+              const neighbor = prev.find(n => n.id === neighborId);
+              if (neighbor) {
+                const dx = (neighbor.x || 400) - (node.x || 400);
+                const dy = (neighbor.y || 215) - (node.y || 215);
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const targetDist = 135;
+                const springForce = (dist - targetDist) * kSpring * (edge.weight || 0.6);
+                fx += (dx / dist) * springForce;
+                fy += (dy / dist) * springForce;
+              }
+            }
+          }
+
+          const damping = 0.80;
+          const vx = ((node.vx || 0) + fx) * damping;
+          const vy = ((node.vy || 0) + fy) * damping;
+
+          const newX = Math.max(50, Math.min(750, (node.x || 400) + vx));
+          const newY = Math.max(45, Math.min(385, (node.y || 215) + vy));
+
+          return { ...node, x: newX, y: newY, vx, vy };
+        });
+      });
+
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [isSimulatingPhysics, draggedNodeId, connections]);
+
+  // ── 9. Arraste de Nós no SVG ──
+  const handleMouseDown = (nodeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDraggedNodeId(nodeId);
+    setSelectedNodeId(nodeId);
   };
 
-  // ── Pacote JSON-LD Gerado para o Teste de Transferência ──
-  const jsonLdPayload = useMemo(() => {
-    return {
-      "@context": {
-        "skos": "http://www.w3.org/2004/02/skos/core#",
-        "schema": "http://schema.org/",
-        "prov": "http://www.w3.org/ns/prov#",
-        "wd": "http://www.wikidata.org/entity/"
-      },
-      "@id": `https://folksonomia-digital.cultura.gov.br/tag/${currentDossier.id}`,
-      "@type": "skos:Concept",
-      "skos:prefLabel": {
-        "@value": currentDossier.tag,
-        "@language": "pt-BR"
-      },
-      "schema:description": currentDossier.descricao,
-      "prov:wasAttributedTo": {
-        "@id": `https://folksonomia-digital.cultura.gov.br/user/${currentDossier.uuid.substring(0, 8)}`,
-        "@type": "prov:Person",
-        "schema:name": currentDossier.autor
-      },
-      "skos:broadMatch": {
-        "@id": `wd:Q5046049`,
-        "@type": "skos:Concept",
-        "skos:prefLabel": {
-          "@value": currentDossier.tag,
-          "@language": "en"
-        }
-      },
-      "schema:subjectOf": [
-        {
-          "@id": currentDossier.artigo.url,
-          "@type": "schema:ScholarlyArticle",
-          "schema:name": currentDossier.artigo.titulo,
-          "schema:publisher": currentDossier.artigo.veiculo
-        }
-      ]
-    };
-  }, [currentDossier]);
+  const handleMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    if (!draggedNodeId || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 800;
+    const y = ((e.clientY - rect.top) / rect.height) * 430;
+    setNodes(prev => prev.map(n => n.id === draggedNodeId ? { ...n, x, y, vx: 0, vy: 0 } : n));
+  }, [draggedNodeId]);
+
+  const handleMouseUp = () => {
+    setDraggedNodeId(null);
+  };
+
+  // ── Eixos Semânticos & Cores ──
+  const EIXO_COLORS: Record<string, { color: string; label: string }> = {
+    'NUCLEO':     { color: '#E8490A', label: 'Núcleo do Acervo' },
+    'FESTA':      { color: '#1E3A8A', label: 'Festas & Rituais' },
+    'MUSICA':     { color: '#0891B2', label: 'Música & Expressão' },
+    'SABERES':    { color: '#1A6B3A', label: 'Saberes & Ofícios' },
+    'CRENCAS':    { color: '#6D28D9', label: 'Crenças & Religiosidade' },
+    'PATRIMONIO': { color: '#E8A920', label: 'Dossiês & Tombamentos' },
+  };
+
+  // ── Nós filtrados pela busca ou pelo eixo ──
+  const filteredNodes = useMemo(() => {
+    return nodes.filter(node => {
+      if (filterEixo !== 'TODOS' && node.eixo !== filterEixo && node.id !== 'core') {
+        return false;
+      }
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        return node.label.toLowerCase().includes(term) || (node.familia || '').toLowerCase().includes(term);
+      }
+      return true;
+    });
+  }, [nodes, filterEixo, searchTerm]);
 
   return (
-    <div className="space-y-5 text-[#1A1A1A]">
+    <div className="space-y-6 text-[#1A1A1A]">
 
-      {/* ── CABEÇALHO DO COFRE VIVO ── */}
+      {/* ── HEADER PRINCIPAL COM AS 3 ABAS & STATUS DO COFRE ── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-black/10 pb-4">
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal flex items-center gap-2.5">
-              <FolderLock size={24} className="text-[#E8490A]" />
-              Cofre Vivo &amp; Interoperabilidade Cultural
+              <Brain size={24} className="text-[#E8490A]" />
+              Grafo Semântico & Tráfego de Informação
             </h2>
             <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-700 border border-green-500/20 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
-              TRÁFEGO ATIVO
+              <Radio size={10} className="animate-pulse text-green-600" /> Rede Viva
             </span>
           </div>
-          <p className="text-xs text-[#1A1A1A]/50 mt-1 font-medium">
-            Tags geradas pelo público são preservadas, compactadas, interligadas automaticamente e transferíveis.
+          <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold">
+            Cofre Semântico Vivo • Aprendizado Deep Learning Hebbiano • SKOS W3C • CIDOC-CRM ISO 21127
           </p>
         </div>
 
-        {/* CAMPO DE BUSCA + BOTÃO ACIONAR FLUXO VIVO */}
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
-          <div className="relative w-full md:w-56">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Localizar tag..."
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8490A]/30"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              const allKeys = Object.keys(CULTURAL_VAULT_DATABASE);
-              const nextKey = allKeys[(allKeys.indexOf(selectedTagId) + 1) % allKeys.length];
-              setSelectedTagId(nextKey);
-            }}
-            className="px-3.5 py-1.5 bg-[#E8490A] hover:bg-[#c44000] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs whitespace-nowrap"
-          >
-            <Zap size={14} />
-            <span>Acionar Fluxo Vivo</span>
-          </button>
-        </form>
-      </div>
-
-      {/* ── CARD HORIZONTAL: FLUXO DO COFRE VIVO — DA TAG DO USUÁRIO À REDE INTEIRA ── */}
-      <div className="glass-card p-4 border border-black/07 space-y-3 bg-white/70">
-        <div className="flex items-center gap-2">
-          <Activity size={14} className="text-[#E8490A]" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
-            FLUXO DO COFRE VIVO — DA TAG DO USUÁRIO À REDE INTEIRA
-          </h3>
-        </div>
-
-        {/* OS 6 CARDS SEQUENCIAIS DO FLUXO */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
-          
-          {/* 1. Tag Gerada */}
-          <div className="p-3 bg-white border border-black/08 rounded-xl space-y-1 relative shadow-2xs hover:border-[#E8490A]/40 transition-all">
-            <div className="flex items-center justify-between text-[#E8490A]">
-              <div className="w-6 h-6 rounded-lg bg-[#E8490A]/10 flex items-center justify-center">
-                <User size={13} className="text-[#E8490A]" />
-              </div>
-              <span className="text-[10px] text-black/30 font-bold">›</span>
-            </div>
-            <h4 className="text-xs font-bold text-[#1A1A1A] pt-1">Tag Gerada</h4>
-            <p className="text-[10.5px] text-[#1A1A1A]/60 leading-tight">Usuário cria a tag e envia ao sistema</p>
-          </div>
-
-          {/* 2. Preservada */}
-          <div className="p-3 bg-white border border-black/08 rounded-xl space-y-1 relative shadow-2xs hover:border-[#E8490A]/40 transition-all">
-            <div className="flex items-center justify-between text-[#E8490A]">
-              <div className="w-6 h-6 rounded-lg bg-[#E8490A]/10 flex items-center justify-center">
-                <ShieldCheck size={13} className="text-[#E8490A]" />
-              </div>
-              <span className="text-[10px] text-black/30 font-bold">›</span>
-            </div>
-            <h4 className="text-xs font-bold text-[#1A1A1A] pt-1">Preservada</h4>
-            <p className="text-[10.5px] text-[#1A1A1A]/60 leading-tight">Autoria, contexto e origem são preservados</p>
-          </div>
-
-          {/* 3. Compactada */}
-          <div className="p-3 bg-white border border-black/08 rounded-xl space-y-1 relative shadow-2xs hover:border-[#E8490A]/40 transition-all">
-            <div className="flex items-center justify-between text-[#E8490A]">
-              <div className="w-6 h-6 rounded-lg bg-[#E8490A]/10 flex items-center justify-center">
-                <Database size={13} className="text-[#E8490A]" />
-              </div>
-              <span className="text-[10px] text-black/30 font-bold">›</span>
-            </div>
-            <h4 className="text-xs font-bold text-[#1A1A1A] pt-1">Compactada</h4>
-            <p className="text-[10.5px] text-[#1A1A1A]/60 leading-tight">Informação é concentrada no cofre vivo</p>
-          </div>
-
-          {/* 4. Interligada */}
-          <div className="p-3 bg-white border border-black/08 rounded-xl space-y-1 relative shadow-2xs hover:border-[#E8490A]/40 transition-all">
-            <div className="flex items-center justify-between text-[#E8490A]">
-              <div className="w-6 h-6 rounded-lg bg-[#E8490A]/10 flex items-center justify-center">
-                <Share2 size={13} className="text-[#E8490A]" />
-              </div>
-              <span className="text-[10px] text-black/30 font-bold">›</span>
-            </div>
-            <h4 className="text-xs font-bold text-[#1A1A1A] pt-1">Interligada</h4>
-            <p className="text-[10.5px] text-[#1A1A1A]/60 leading-tight">Sistema encontra famílias e conceitos afins</p>
-          </div>
-
-          {/* 5. Ancorada */}
-          <div className="p-3 bg-white border border-black/08 rounded-xl space-y-1 relative shadow-2xs hover:border-[#E8490A]/40 transition-all">
-            <div className="flex items-center justify-between text-[#E8490A]">
-              <div className="w-6 h-6 rounded-lg bg-[#E8490A]/10 flex items-center justify-center">
-                <BookOpen size={13} className="text-[#E8490A]" />
-              </div>
-              <span className="text-[10px] text-black/30 font-bold">›</span>
-            </div>
-            <h4 className="text-xs font-bold text-[#1A1A1A] pt-1">Ancorada</h4>
-            <p className="text-[10.5px] text-[#1A1A1A]/60 leading-tight">Vinculada a artigos e bases verificadas</p>
-          </div>
-
-          {/* 6. Interoperável */}
-          <div className="p-3 bg-white border border-black/08 rounded-xl space-y-1 relative shadow-2xs hover:border-[#E8490A]/40 transition-all">
-            <div className="flex items-center justify-between text-[#E8490A]">
-              <div className="w-6 h-6 rounded-lg bg-[#E8490A]/10 flex items-center justify-center">
-                <Globe size={13} className="text-[#E8490A]" />
-              </div>
-            </div>
-            <h4 className="text-xs font-bold text-[#1A1A1A] pt-1">Interoperável</h4>
-            <p className="text-[10.5px] text-[#1A1A1A]/60 leading-tight">Pode ser transferida para qualquer sistema</p>
-          </div>
-
+        {/* NAVEGAÇÃO ENTRE AS 3 ABAS */}
+        <div className="flex items-center gap-1.5 bg-black/[0.04] p-1 rounded-xl border border-black/06">
+          {[
+            { id: 'grafo', label: 'Grafo Semântico', icon: Network },
+            { id: 'camadas', label: 'Camadas de Interoperabilidade', icon: Layers },
+            { id: 'artigos', label: 'Artigos', icon: BookOpen },
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = subTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setSubTab(tab.id as any)}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                  isActive
+                    ? 'bg-white text-[#E8490A] shadow-sm border border-black/05'
+                    : 'text-[#1A1A1A]/60 hover:text-[#1A1A1A] hover:bg-white/40'
+                }`}
+              >
+                <Icon size={14} className={isActive ? 'text-[#E8490A]' : 'text-current'} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* ── ÁREA PRINCIPAL: REDE VIVA DE CONEXÕES (ESQUERDA) + PAINEL DO COFRE (DIREITA) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-        {/* COLUNA ESQUERDA (6 colunas): REDE VIVA DE CONEXÕES + FLUXO DE AUTOMAÇÃO */}
-        <div className="lg:col-span-6 space-y-3">
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* ABA 1: GRAFO SEMÂNTICO (COFRE SEMÂNTICO VIVO AUTOMÁTICO)                */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {subTab === 'grafo' && (
+        <div className="space-y-6 animate-fade-in">
           
-          {/* Card da Rede Viva */}
-          <div className="glass-card p-4 border border-black/07">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Network size={15} className="text-[#E8490A]" />
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
-                  REDE VIVA DE CONEXÕES
-                </h3>
-                <span className="text-[10px] text-[#1A1A1A]/50 font-mono">
-                  (8 tags / 11 interligações automáticas)
-                </span>
+          {/* BARRA DE TELEMETRIA DA REDE VIVA & BUSCA RÁPIDA */}
+          <div className="glass-card p-4 border border-black/07 bg-gradient-to-r from-white via-white to-[#E8490A]/05 shadow-sm space-y-3">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              
+              {/* Telemetria do Deep Learning & Tráfego */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#E8490A]">
+                  <FolderLock size={16} />
+                  <span>Cofre Semântico Vivo:</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-mono">
+                  <span className="px-2 py-0.5 rounded bg-black/05 font-bold text-[#1A1A1A]">
+                    {nodes.length} nós ativos
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-black/05 font-bold text-[#1A1A1A]">
+                    {connections.length} sinapses calculadas
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-green-500/10 text-green-800 font-bold flex items-center gap-1">
+                    <Zap size={10} /> Auto-Aglomeração Contínua
+                  </span>
+                </div>
               </div>
-              <span className="text-[10px] text-[#1A1A1A]/50 font-medium">
-                Clique em um item para abrir seu cofre
+
+              {/* Controles: Busca / Filtro + Recarregar do Banco */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative flex-1 md:w-64">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Localizar tag no grafo..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs bg-white border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8490A]/30"
+                  />
+                </div>
+
+                <button
+                  onClick={fetchSemanticNetwork}
+                  disabled={isLoadingLiveNetwork}
+                  className="px-3 py-1.5 bg-black/05 hover:bg-black/10 text-[#1A1A1A] text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer flex-shrink-0"
+                  title="Sincronizar rede com as tags mais recentes do banco"
+                >
+                  <RefreshCw size={12} className={isLoadingLiveNetwork ? 'animate-spin' : ''} />
+                  <span>Sincronizar Banco</span>
+                </button>
+              </div>
+
+            </div>
+
+            {/* Banner de Tráfego & Deep Learning */}
+            <div className="pt-2 border-t border-black/05 flex flex-col sm:flex-row sm:items-center justify-between text-[10.5px] text-[#1A1A1A]/70 font-mono gap-2">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#E8490A] animate-ping" />
+                <span>O sistema captura e correlaciona automaticamente as tags adicionadas pelos visitantes via RAG e Spreading Activation.</span>
+              </span>
+              <span className="text-[9.5px] uppercase font-bold text-[#E8490A] flex items-center gap-1">
+                <Lock size={10} /> Custódia SHA3 Imutável
               </span>
             </div>
+          </div>
 
-            {/* Canvas Escuro do Grafo 3D Isométrico com Sinapses e Percentuais */}
-            <div className="relative w-full h-[380px] bg-[#0C0C0E] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-              <svg
-                className="w-full h-full select-none cursor-pointer"
-                viewBox="0 0 500 380"
-              >
-                {/* Linhas de Sinapse da Estrutura Isométrica */}
-                <g opacity="0.4">
-                  <line x1="250" y1="120" x2="160" y2="240" stroke="#0891B2" strokeWidth="1.2" />
-                  <line x1="250" y1="120" x2="340" y2="240" stroke="#0891B2" strokeWidth="1.2" />
-                  <line x1="160" y1="240" x2="340" y2="240" stroke="#0891B2" strokeWidth="1.2" />
-                  <line x1="250" y1="120" x2="250" y2="280" stroke="#1E3A8A" strokeWidth="1.2" />
-                  <line x1="160" y1="240" x2="250" y2="280" stroke="#1A6B3A" strokeWidth="1.2" />
-                  <line x1="340" y1="240" x2="250" y2="280" stroke="#1A6B3A" strokeWidth="1.2" />
-                  <line x1="200" y1="170" x2="300" y2="170" stroke="#6D28D9" strokeWidth="1.2" />
-                </g>
+          {/* ÁREA CENTRAL: GRAFO + PAINEL DO COFRE */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                {/* Linhas de Sinapse Ativas Pontilhadas (Amarelas/Laranjas) do Nó Central */}
-                <line x1="250" y1="120" x2="250" y2="280" stroke="#E8490A" strokeWidth="2.5" strokeDasharray="3,3" opacity="0.9" />
-                <line x1="250" y1="120" x2="160" y2="240" stroke="#E8A920" strokeWidth="2" strokeDasharray="3,3" opacity="0.8" />
-                <line x1="250" y1="120" x2="340" y2="240" stroke="#E8A920" strokeWidth="2" strokeDasharray="3,3" opacity="0.8" />
-                <line x1="160" y1="240" x2="250" y2="280" stroke="#22C55E" strokeWidth="2.2" opacity="0.85" />
-                <line x1="160" y1="240" x2="300" y2="170" stroke="#A855F7" strokeWidth="2.2" opacity="0.75" />
+            {/* COLUNA 1 & 2: O Grafo Semântico Interativo */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="glass-card p-4 border border-black/07">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-1.5">
+                      <Network size={14} className="text-[#E8490A]" />
+                      Tráfego Semântico & Rede de Conceitos
+                    </h3>
+                    <span className="text-[10px] text-[#1A1A1A]/40 font-mono">
+                      ({filteredNodes.length} visíveis / {connections.length} sinapses)
+                    </span>
+                  </div>
 
-                {/* Textos de Percentual das Sinapses */}
-                <text x="235" y="195" fill="#E8A920" fontSize="8" fontFamily="monospace" fontWeight="bold">95%</text>
-                <text x="200" y="170" fill="#22C55E" fontSize="8" fontFamily="monospace" fontWeight="bold">87%</text>
-                <text x="290" y="170" fill="#0891B2" fontSize="8" fontFamily="monospace" fontWeight="bold">82%</text>
-                <text x="190" y="210" fill="#E8A920" fontSize="8" fontFamily="monospace" fontWeight="bold">75%</text>
-                <text x="215" y="260" fill="#22C55E" fontSize="8" fontFamily="monospace" fontWeight="bold">84%</text>
-                <text x="285" y="260" fill="#0891B2" fontSize="8" fontFamily="monospace" fontWeight="bold">86%</text>
-                <text x="258" y="240" fill="#E8490A" fontSize="8" fontFamily="monospace" fontWeight="bold">90%</text>
+                  {/* Filtro por Eixo */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-[#1A1A1A]/40 uppercase font-semibold mr-1">Eixo:</span>
+                    <select
+                      value={filterEixo}
+                      onChange={e => setFilterEixo(e.target.value)}
+                      className="text-[10px] font-semibold bg-black/04 border border-black/10 rounded-lg px-2 py-1 focus:outline-none"
+                    >
+                      <option value="TODOS">Todos os Eixos</option>
+                      <option value="FESTA">Festas & Rituais</option>
+                      <option value="MUSICA">Música & Expressão</option>
+                      <option value="SABERES">Saberes & Ofícios</option>
+                      <option value="CRENCAS">Crenças & Religiosidade</option>
+                      <option value="PATRIMONIO">Dossiês / Documentação</option>
+                    </select>
+                  </div>
+                </div>
 
-                {/* Nós Clicáveis */}
-                {/* 1. Nó Superior (Origem Central) */}
-                <g onClick={() => setSelectedTagId('carranca')} className="cursor-pointer">
-                  <circle cx="250" cy="120" r="8" fill="#E8490A" stroke="#FFFFFF" strokeWidth="1.5" />
-                </g>
+                {/* SVG DO GRAFO SEMÂNTICO */}
+                <div className="relative w-full h-[460px] bg-[#0A0A08] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                  <svg
+                    ref={svgRef}
+                    className="w-full h-full cursor-grab active:cursor-grabbing select-none"
+                    viewBox="0 0 800 430"
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                  >
+                    <defs>
+                      <filter id="sem-glow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                      <filter id="sem-halo" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="14" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
 
-                {/* 2. Nó Mestre Vitalino (Inferior Direito) */}
-                <g onClick={() => setSelectedTagId('mestre_vitalino')} className="cursor-pointer">
-                  <circle cx="340" cy="240" r="7" fill="#1A6B3A" stroke="#FFFFFF" strokeWidth="1" />
-                </g>
+                    {/* Grade de pontos */}
+                    {Array.from({ length: 48 }).map((_, i) => (
+                      <circle
+                        key={`pt-${i}`}
+                        cx={(i % 8) * 115 + 30}
+                        cy={Math.floor(i / 8) * 72 + 30}
+                        r="1.2"
+                        fill="rgba(255,255,255,0.04)"
+                      />
+                    ))}
 
-                {/* 3. Nó Bumba-meu-boi (Superior Esquerdo) */}
-                <g onClick={() => setSelectedTagId('bumba_boi')} className="cursor-pointer">
-                  <circle cx="160" cy="240" r="7" fill="#1E3A8A" stroke="#FFFFFF" strokeWidth="1" />
-                </g>
+                    {/* SINAPSES (Arestas Ponderadas com Tráfego Semântico) */}
+                    {connections.map((conn, idx) => {
+                      const fn = nodes.find(n => n.id === conn.from);
+                      const tn = nodes.find(n => n.id === conn.to);
+                      if (!fn || !tn) return null;
 
-                {/* 4. Nó Frevo (Superior Direito) */}
-                <g onClick={() => setSelectedTagId('frevo')} className="cursor-pointer">
-                  <circle cx="300" cy="170" r="6" fill="#0891B2" stroke="#FFFFFF" strokeWidth="1" />
-                </g>
+                      if (filterEixo !== 'TODOS' && fn.eixo !== filterEixo && tn.eixo !== filterEixo && fn.id !== 'core' && tn.id !== 'core') {
+                        return null;
+                      }
 
-                {/* 5. Nó Ativo Selecionado (Destaque Verde Grande - Inferior) */}
-                <g onClick={() => setSelectedTagId('mestre_vitalino')} className="cursor-pointer">
-                  <circle cx="280" cy="320" r="14" fill="#1A6B3A" stroke="#22C55E" strokeWidth="2" opacity="0.9" />
-                  <text x="280" y="344" fill="#FFFFFF" fontSize="8.5" fontFamily="sans-serif" textAnchor="middle" fontWeight="bold">
-                    Mestre Vitalino
-                  </text>
-                </g>
-              </svg>
+                      const isHighlighted =
+                        selectedNodeId && (fn.id === selectedNodeId || tn.id === selectedNodeId);
+                      const w = conn.weight || 0.5;
+                      const color = fn.fill || '#E8490A';
 
-              {/* Legenda do Rodapé */}
-              <div className="absolute bottom-2.5 right-3 flex items-center gap-3 text-[9px] text-white/50 font-mono pointer-events-none">
-                <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-[#E8A920]" /> Auto</span>
-                <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 bg-white/60" /> Usuário</span>
+                      return (
+                        <g key={`edge-${idx}`}>
+                          <line
+                            x1={fn.x ?? 400}
+                            y1={fn.y ?? 215}
+                            x2={tn.x ?? 400}
+                            y2={tn.y ?? 215}
+                            stroke={color}
+                            strokeWidth={isHighlighted ? w * 3.5 + 1 : w * 1.8}
+                            opacity={isHighlighted ? 0.9 : 0.22}
+                            strokeDasharray={conn.discovered ? '4,4' : undefined}
+                          />
+                          {isHighlighted && (
+                            <text
+                              x={((fn.x ?? 400) + (tn.x ?? 400)) / 2}
+                              y={((fn.y ?? 215) + (tn.y ?? 215)) / 2 - 4}
+                              textAnchor="middle"
+                              fill="#ffffff"
+                              fontSize="8"
+                              fontFamily="monospace"
+                              className="pointer-events-none opacity-90"
+                            >
+                              {(w * 100).toFixed(0)}%
+                            </text>
+                          )}
+                        </g>
+                      );
+                    })}
+
+                    {/* NÓS DO GRAFO */}
+                    {filteredNodes.map(node => {
+                      const isSel = node.id === selectedNodeId;
+                      const act = activeActivations[node.id] || node.activation || 0.5;
+                      const radius = isSel ? (node.size || 14) + 4 : node.size || 14;
+                      const nx = node.x ?? 400;
+                      const ny = node.y ?? 215;
+
+                      return (
+                        <g
+                          key={node.id}
+                          className="cursor-pointer"
+                          onMouseDown={e => handleMouseDown(node.id, e)}
+                          onClick={() => setSelectedNodeId(node.id)}
+                        >
+                          {/* Halo de Ativação / Certeza Residual */}
+                          <circle
+                            cx={nx}
+                            cy={ny}
+                            r={radius + 14 * act}
+                            fill={node.fill}
+                            opacity={isSel ? 0.38 : act * 0.16}
+                            filter="url(#sem-halo)"
+                            className="pointer-events-none transition-all duration-300"
+                          />
+
+                          {/* Núcleo do Conceito */}
+                          <circle
+                            cx={nx}
+                            cy={ny}
+                            r={radius}
+                            fill={node.fill}
+                            stroke={isSel ? '#ffffff' : 'rgba(255,255,255,0.45)'}
+                            strokeWidth={isSel ? 2.5 : 1}
+                            filter={isSel ? 'url(#sem-glow)' : undefined}
+                            className="transition-all duration-200"
+                          />
+
+                          {/* Rótulo do Conceito */}
+                          <text
+                            x={nx}
+                            y={ny + radius + 15}
+                            textAnchor="middle"
+                            fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.75)'}
+                            fontSize={isSel ? '10.5' : '8.5'}
+                            fontWeight={isSel ? '700' : '400'}
+                            className="pointer-events-none select-none transition-all"
+                          >
+                            {node.label}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+
+                  {/* Legenda rápida */}
+                  <div className="absolute bottom-3 left-3 flex flex-wrap gap-2 pointer-events-none">
+                    {Object.entries(EIXO_COLORS).map(([key, val]) => (
+                      <span key={key} className="flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider text-white/70">
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ background: val.color }} />
+                        {val.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* COLUNA 3: Painel do Cofre Semântico Vivo & Detalhes da Manifestação */}
+            <div className="space-y-4">
+              {selectedNode ? (
+                <div className="glass-card p-5 border border-black/07 space-y-4 shadow-sm">
+                  
+                  {/* Cabeçalho do Conceito */}
+                  <div className="flex items-start justify-between gap-3 border-b border-black/08 pb-3">
+                    <div>
+                      <span
+                        className="text-[8px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white inline-block mb-1"
+                        style={{ background: selectedNode.fill || '#E8490A' }}
+                      >
+                        {EIXO_COLORS[selectedNode.eixo || 'SABERES']?.label || selectedNode.eixo}
+                      </span>
+                      <h3 className="text-sm font-bold text-[#1A1A1A]">{selectedNode.label}</h3>
+                      <p className="text-[10px] text-[#1A1A1A]/50 font-mono mt-0.5">{selectedNode.type}</p>
+                    </div>
+
+                    {/* Certeza Residual da Ativação */}
+                    <div className="text-right">
+                      <span className="text-xs font-extrabold font-mono text-[#E8490A]">
+                        {Math.round((activeActivations[selectedNode.id] || selectedNode.activation || 0.8) * 100)}%
+                      </span>
+                      <p className="text-[8px] uppercase text-[#1A1A1A]/40 font-bold">Certeza Semântica</p>
+                    </div>
+                  </div>
+
+                  {/* Hash do Cofre / DNA Semântico SHA3 */}
+                  <div className="p-2.5 bg-black/[0.02] border border-black/06 rounded-xl flex items-center justify-between text-[9px] font-mono">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <Hash size={12} className="text-[#E8490A]" />
+                      <span className="text-[#1A1A1A]/70 truncate">{selectedNode.hash || 'SHA3:c8ed9901a72f'}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedNode.hash || '');
+                        setCopySuccess(true);
+                        setTimeout(() => setCopySuccess(false), 2000);
+                      }}
+                      className="text-[#E8490A] hover:underline flex items-center gap-0.5 ml-2 cursor-pointer"
+                      title="Copiar Hash de Custódia SHA3"
+                    >
+                      {copySuccess ? <Check size={10} /> : <Copy size={10} />}
+                    </button>
+                  </div>
+
+                  {/* Relações SKOS / Taxonomia */}
+                  <div className="p-2.5 bg-black/[0.02] border border-black/06 rounded-xl space-y-1.5 text-[9.5px]">
+                    <div className="flex items-center justify-between text-[#1A1A1A]/50 font-mono uppercase text-[8px] font-bold">
+                      <span>Mapeamento SKOS W3C</span>
+                      <span className="text-[#E8490A]">{selectedNode.skosType || 'Concept'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[#1A1A1A]/80 font-mono">
+                      <span className="text-[#E8490A] font-bold">skos:broader:</span>
+                      <span>{selectedNode.skosBroader?.join(', ') || 'core (Núcleo Folksonômico)'}</span>
+                    </div>
+                  </div>
+
+                  {/* Descrição Curatorial & Aglomeração */}
+                  <div>
+                    <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
+                      Aglomeração & Contexto no Cofre:
+                    </p>
+                    <p className="text-[11px] text-[#1A1A1A]/80 leading-relaxed">
+                      {selectedNode.desc}
+                    </p>
+                  </div>
+
+                  {/* Família Cultural Similar */}
+                  {selectedNode.familia && (
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1.5">
+                        Genealogia Semântica:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedNode.familia.split('.').map((part, i, arr) => (
+                          <span
+                            key={i}
+                            className="text-[9px] font-mono px-2 py-0.5 rounded bg-black/04 text-[#1A1A1A]/80 font-semibold"
+                          >
+                            {part} {i < arr.length - 1 && '›'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Famílias Similares Conectadas */}
+                  {similarFamilies.length > 0 && (
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1.5">
+                        Manifestações Conectadas (Hebbiano / ML):
+                      </p>
+                      <div className="space-y-1">
+                        {similarFamilies.map(sim => (
+                          <button
+                            key={sim.id}
+                            onClick={() => setSelectedNodeId(sim.id)}
+                            className="w-full text-left p-1.5 rounded-lg bg-black/[0.02] hover:bg-[#E8490A]/08 border border-black/04 transition-all flex items-center justify-between text-[10px] cursor-pointer"
+                          >
+                            <span className="font-semibold text-[#1A1A1A]/85">{sim.label}</span>
+                            <span className="text-[9px] text-[#E8490A] font-mono">Ver nó ↗</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Acervos Federais Custodiantes */}
+                  {selectedNode.acervos && selectedNode.acervos.length > 0 && (
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
+                        Acervos Federados Integrados:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedNode.acervos.map((acervo, i) => (
+                          <span key={i} className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#1E3A8A]/08 text-[#1E3A8A]">
+                            {acervo}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Links Reais nos Acervos Oficiais */}
+                  {selectedNode.linksReais && selectedNode.linksReais.length > 0 && (
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-wider text-[#1A1A1A]/40 mb-1">
+                        Pontos de Acesso Federados:
+                      </p>
+                      <div className="space-y-1">
+                        {selectedNode.linksReais.map((link, i) => (
+                          <a
+                            key={i}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block p-1.5 rounded-lg bg-black/[0.02] hover:bg-[#1E3A8A]/08 border border-black/04 text-[10px] font-bold text-[#1E3A8A] hover:text-[#E8490A] transition-colors truncate"
+                          >
+                            {link.label} ↗
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Atalho para Ver Artigos Desta Tag */}
+                  <div className="pt-2 border-t border-black/08">
+                    <button
+                      onClick={() => setSubTab('artigos')}
+                      className="w-full py-2 bg-black/[0.03] hover:bg-[#E8490A]/10 text-[#E8490A] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <BookOpen size={13} />
+                      <span>Ver Artigos Desta Tag ({articlesSpecificToNode.length})</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="glass-card p-8 border border-black/07 text-center">
+                  <Network size={24} className="mx-auto text-black/30 mb-2" />
+                  <p className="text-xs text-[#1A1A1A]/50">Clique em qualquer nó do grafo para abrir seu cofre semântico.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* ABA 2: CAMADAS DE INTEROPERABILIDADE (HBIM / PATRIMÔNIO DIGITAL)        */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {subTab === 'camadas' && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="glass-card p-5 border border-black/07 bg-gradient-to-r from-white via-white to-black/[0.02]">
+            <div className="max-w-3xl">
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#E8490A] bg-[#E8490A]/10 px-2 py-0.5 rounded">
+                Arquitetura de Interoperabilidade Patrimonial
+              </span>
+              <h3 className="text-lg font-bold serif-title text-[#1A1A1A] mt-2">
+                As Camadas de Preservação e Tráfego do Patrimônio Digital
+              </h3>
+              <p className="text-xs text-[#1A1A1A]/70 leading-relaxed mt-1">
+                A literatura de documentação patrimonial decompõe a interoperabilidade em camadas para garantir que uma integração não falhe em nenhuma dimensão crítica: a camada técnica evita quebras de integração, a semântica evita interpretação errada, a organizacional garante governança sustentável e a legal assegura direitos e licenças.
+              </p>
             </div>
           </div>
 
-          {/* Card: FLUXO DE AUTOMAÇÃO DO COFRE */}
-          <div className="glass-card p-4 border border-black/07 space-y-2 bg-white/80">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#E8490A]">
-              <Sparkles size={13} className="text-[#E8490A]" />
-              <span>FLUXO DE AUTOMAÇÃO DO COFRE</span>
-            </div>
-            
-            {/* Linhas de Código / Passos do Cofre */}
-            <div className="font-mono text-[10.5px] space-y-1 text-[#E8490A]/90 bg-black/[0.01] p-2.5 rounded-xl border border-black/04">
-              {currentDossier.etapasFluxo.map((linha, idx) => (
-                <div key={idx} className="leading-relaxed">
-                  {linha}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {CULTURAL_INTEROP_5_LAYERS.map(layer => (
+              <div key={layer.id} className="glass-card p-5 border border-black/07 hover:border-[#E8490A]/30 transition-all space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black font-mono w-6 h-6 rounded-full bg-[#E8490A] text-white flex items-center justify-center">
+                    {layer.numero}
+                  </span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-green-700 bg-green-500/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle2 size={10} /> Operacional
+                  </span>
                 </div>
+
+                <div>
+                  <h4 className="text-sm font-bold text-[#1A1A1A]">{layer.nome}</h4>
+                  <p className="text-[10px] text-[#E8490A] font-semibold mt-0.5">{layer.subtitulo}</p>
+                </div>
+
+                <p className="text-xs text-[#1A1A1A]/75 leading-relaxed">
+                  {layer.descricao}
+                </p>
+
+                <div className="p-2.5 bg-black/[0.02] border border-black/05 rounded-xl text-[10px] text-[#1A1A1A]/70">
+                  <span className="font-bold text-[#1A1A1A]">Aplicação no SFD:</span> {layer.exemploSFD}
+                </div>
+
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {layer.protocolos.map((proto, i) => (
+                    <span key={i} className="text-[8.5px] font-mono px-2 py-0.5 rounded bg-black/04 text-[#1A1A1A]/60 font-bold">
+                      {proto}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {/* ABA 3: ARTIGOS & BIBLIOGRAFIA CIENTÍFICA (CORRELACIONADOS POR TAG)       */}
+      {/* ═══════════════════════════════════════════════════════════════════════ */}
+      {subTab === 'artigos' && (
+        <div className="space-y-6 animate-fade-in">
+          
+          {/* Header da Aba de Artigos */}
+          <div className="glass-card p-5 border border-black/07 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#1E3A8A] bg-[#1E3A8A]/10 px-2 py-0.5 rounded">
+                Produção Científica & Normativa
+              </span>
+              <h3 className="text-lg font-bold serif-title text-[#1A1A1A] mt-1.5">
+                Artigos e Padrões da Documentação Patrimonial
+              </h3>
+              <p className="text-xs text-[#1A1A1A]/60 mt-0.5">
+                {selectedNode && selectedNode.id !== 'core' ? (
+                  <span>Exibindo artigos científicos e normativos específicos da manifestação cultural <strong className="text-[#E8490A]">"{selectedNode.label}"</strong> ({EIXO_COLORS[selectedNode.eixo || 'SABERES']?.label}).</span>
+                ) : (
+                  <span>Bibliografia completa em CIDOC-CRM ISO 21127, Europeana EDM, SKOS W3C, Tesauro CNFCP e RAG Multi-Hop.</span>
+                )}
+              </p>
+            </div>
+
+            {/* Filtro por Categoria */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {['TODOS', 'Padrões de Interoperabilidade (CIDOC-CRM / EDM)', 'Camada Semântica & SKOS', 'Spreading Activation & RAG', 'Preservação & Custódia Digital'].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setArticleCategoryFilter(cat)}
+                  className={`text-[9px] uppercase font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    articleCategoryFilter === cat
+                      ? 'bg-[#1E3A8A] text-white shadow-xs'
+                      : 'bg-black/04 text-[#1A1A1A]/60 hover:bg-black/08'
+                  }`}
+                >
+                  {cat === 'TODOS' ? 'Todos os Artigos' : cat.split(' ')[0] + '...'}
+                </button>
               ))}
             </div>
           </div>
 
-        </div>
+          {/* LISTA DE ARTIGOS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeArticles.map(art => {
+              const isDirectlyAssociated = selectedNode && selectedNode.id !== 'core' && (
+                art.tagAssociada?.includes(selectedNode.id) || art.eixos?.includes(selectedNode.eixo || '')
+              );
 
-        {/* COLUNA DIREITA (6 colunas): PAINEL COMPLETO DO COFRE DA TAG SELECIONADA */}
-        <div className="lg:col-span-6 space-y-3">
-          
-          <div className="glass-card p-5 border border-black/07 space-y-3.5 shadow-sm bg-white">
-            
-            {/* Header da Tag Preservada */}
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[8.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-white bg-green-700">
-                  TAG PRESERVADA
-                </span>
-                <span className="text-[9px] text-black/45 font-medium">Tag do Público</span>
-              </div>
-              <h3 className="text-xl font-bold text-[#1A1A1A]">{currentDossier.tag}</h3>
-              <p className="text-xs text-[#1A1A1A]/70 mt-1 leading-relaxed">{currentDossier.descricao}</p>
-            </div>
-
-            {/* Card ORIGEM DA TAG */}
-            <div className="p-3 bg-black/[0.02] border border-black/06 rounded-xl space-y-1 text-xs">
-              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
-                <span className="flex items-center gap-1"><User size={11} className="text-[#E8490A]" /> ORIGEM DA TAG</span>
-                <span className="font-mono text-green-700 font-bold">PRESERVADA</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="font-semibold text-[#1A1A1A] text-[11px]">{currentDossier.autor}</p>
-                <div className="text-[10px] text-right">
-                  <span className="text-black/40 mr-1">Conceito central:</span>
-                  <span className="font-bold text-[#E8490A]">{currentDossier.conceitoCentral}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card ARTIGO CIENTÍFICO VINCULADO */}
-            <div className="p-3.5 bg-gradient-to-br from-white via-white to-[#E8490A]/04 border border-[#E8490A]/20 rounded-xl space-y-2">
-              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-[#E8490A]">
-                <span className="flex items-center gap-1"><BookOpen size={12} /> ARTIGO CIENTÍFICO VINCULADO</span>
-                <span className="font-mono">REFERÊNCIA REAL</span>
-              </div>
-
-              <div>
-                <h4 className="text-xs font-bold text-[#1A1A1A] leading-snug">
-                  {currentDossier.artigo.titulo}
-                </h4>
-                <p className="text-[10px] text-[#1A1A1A]/60 mt-0.5 font-medium">
-                  {currentDossier.artigo.autor} • <span className="italic">{currentDossier.artigo.veiculo}</span> ({currentDossier.artigo.ano})
-                </p>
-              </div>
-
-              <p className="text-[11px] text-[#1A1A1A]/80 leading-relaxed border-t border-black/05 pt-1.5">
-                {currentDossier.artigo.resumo}
-              </p>
-
-              <div className="flex items-center justify-between pt-1 text-[10px]">
-                <span className="font-mono text-[#1A1A1A]/50">DOI: {currentDossier.artigo.doi}</span>
-                <a
-                  href={currentDossier.artigo.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-bold text-[#E8490A] hover:underline"
+              return (
+                <div
+                  key={art.id}
+                  className={`glass-card p-5 border transition-all space-y-3.5 flex flex-col justify-between ${
+                    isDirectlyAssociated ? 'border-[#E8490A]/50 bg-[#E8490A]/03 shadow-md' : 'border-black/07'
+                  }`}
                 >
-                  <span>Abrir Fonte</span>
-                  <ArrowUpRight size={11} />
-                </a>
-              </div>
-            </div>
-
-            {/* Seção INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS */}
-            <div className="space-y-2 pt-1">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
-                INTERLIGAÇÕES AUTOMÁTICAS &amp; FAMÍLIAS CULTURAIS:
-              </p>
-              
-              <div className="grid grid-cols-2 gap-2">
-                {currentDossier.interligacoes.map((item, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      if (item.targetId && CULTURAL_VAULT_DATABASE[item.targetId]) {
-                        setSelectedTagId(item.targetId);
-                      }
-                    }}
-                    className="p-2.5 rounded-xl bg-black/[0.02] hover:bg-[#E8490A]/08 border border-black/05 text-left transition-all flex items-center justify-between cursor-pointer"
-                  >
-                    <div>
-                      <h5 className="text-[10.5px] font-bold text-[#1A1A1A] leading-tight truncate">{item.nome}</h5>
-                      <span className="text-[9px] text-[#1A1A1A]/45">{item.tipo}</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[8.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-[#1E3A8A]/10 text-[#1E3A8A]">
+                        {art.categoria}
+                      </span>
+                      <span className="text-[9px] font-mono text-[#1A1A1A]/40 font-bold">{art.ano}</span>
                     </div>
-                    <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
-                      item.badge === 'AUTO' 
-                        ? 'bg-amber-500/15 text-amber-800' 
-                        : 'bg-green-500/15 text-green-800'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* Botão de Teste de Transferência de Dados */}
-            <div className="pt-2">
-              <button
-                onClick={() => setShowTransferModal(true)}
-                className="w-full py-2.5 bg-black hover:bg-[#1A1A1A] text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
-              >
-                <Send size={13} />
-                <span>Executar Teste de Transferência de Dados (JSON-LD)</span>
-              </button>
-            </div>
+                    <h4 className="text-xs md:text-sm font-bold text-[#1A1A1A] leading-snug">
+                      {art.titulo}
+                    </h4>
 
-          </div>
+                    <p className="text-[10px] font-semibold text-[#1A1A1A]/60">
+                      {art.autores} • <span className="italic">{art.veiculo}</span>
+                    </p>
 
-        </div>
+                    <p className="text-xs text-[#1A1A1A]/75 leading-relaxed pt-1">
+                      {art.resumo}
+                    </p>
+                  </div>
 
-      </div>
+                  <div className="space-y-2.5 pt-2 border-t border-black/06">
+                    <div className="text-[10px] text-[#1A1A1A]/65">
+                      <strong className="text-[#1A1A1A]">Aplicação no SFD:</strong> {art.aplicacaoNoSFD}
+                    </div>
 
-      {/* ── MODAL: PACOTE DE TRANSFERÊNCIA DE DADOS (JSON-LD 1.1) ── */}
-      {showTransferModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[#121214] border border-white/10 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[85vh]">
-            
-            {/* Header do Modal */}
-            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">
-              <div className="flex items-center gap-2">
-                <FileCode2 size={18} className="text-[#E8490A]" />
-                <div>
-                  <h3 className="text-sm font-bold text-white">
-                    Pacote de Transferência de Dados Interoperável — "{currentDossier.tag}"
-                  </h3>
-                  <p className="text-[10px] text-white/50 font-mono">
-                    Padrão JSON-LD 1.1 • W3C SKOS • PROV-O • Schema.org
-                  </p>
+                    <a
+                      href={art.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[#1E3A8A] hover:text-[#E8490A] transition-colors"
+                    >
+                      <span>Acessar Publicação / Norma Oficial</span>
+                      <ArrowUpRight size={12} />
+                    </a>
+                  </div>
                 </div>
-              </div>
-              <button
-                onClick={() => setShowTransferModal(false)}
-                className="text-white/50 hover:text-white text-xs px-2.5 py-1 rounded bg-white/05 cursor-pointer"
-              >
-                Fechar ✕
-              </button>
-            </div>
-
-            {/* Informações da Consulta */}
-            <div className="p-3 bg-black/30 border-b border-white/05 text-[10.5px] font-mono text-white/70 flex flex-wrap items-center justify-between gap-2">
-              <span>Endpoint: <code>/api/interop/jsonld?tag={currentDossier.id}</code></span>
-              <span className="text-green-400 font-bold">Status: 200 OK (Content Negotiation)</span>
-            </div>
-
-            {/* Código JSON-LD Formatado */}
-            <div className="p-4 overflow-auto flex-1 font-mono text-[11px] text-green-400 bg-black/60">
-              <pre className="whitespace-pre-wrap break-all">
-                {JSON.stringify(jsonLdPayload, null, 2)}
-              </pre>
-            </div>
-
-            {/* Footer do Modal */}
-            <div className="p-3.5 border-t border-white/10 flex items-center justify-between bg-black/40">
-              <span className="text-[10px] text-white/50 font-mono">
-                A tag original permanece preservada e associada à sua proveniência e artigo verificado.
-              </span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(JSON.stringify(jsonLdPayload, null, 2));
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="px-4 py-1.5 bg-[#E8490A] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 hover:bg-[#c44000] cursor-pointer"
-              >
-                {copied ? <Check size={13} /> : <Copy size={13} />}
-                <span>{copied ? 'Copiado!' : 'Copiar Pacote JSON-LD'}</span>
-              </button>
-            </div>
-
+              );
+            })}
           </div>
         </div>
       )}
