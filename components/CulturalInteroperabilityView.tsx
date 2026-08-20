@@ -732,7 +732,7 @@ export default function CulturalInteroperabilityView({
                       <span className="text-[#E8490A]">{selectedNode.skosType || 'Concept'}</span>
                     </div>
                     <div className="text-[#1A1A1A]/80 font-mono text-[9px] leading-relaxed">
-                      <code>&lt;{selectedNode.id}&gt; skos:broadMatch &lt;Wikidata/EDM&gt; .</code>
+                      <code>{`<${selectedNode.id}> skos:broadMatch <Wikidata/EDM> .`}</code>
                     </div>
                   </div>
 
@@ -813,7 +813,7 @@ export default function CulturalInteroperabilityView({
                 Arquitetura Matemática e Técnica do Cofre Semântico Vivo
               </h3>
               <p className="text-xs text-[#1A1A1A]/75 leading-relaxed">
-                O sistema é modelado formalmente como um grafo direcionado rotulado \(G = (V, E, R)\), onde cada manifestação é compactada como coordenada densa no espaço \(\mathbb{R}^d\), preservando a proveniência do usuário, validada via SHACL e transmitida em JSON-LD 1.1 compatível com CIDOC-CRM e SKOS.
+                {"O sistema é modelado formalmente como um grafo direcionado rotulado G = (V, E, R), onde cada manifestação é compactada como coordenada densa no espaço R^d, preservando a proveniência do usuário, validada via SHACL e transmitida em JSON-LD 1.1 compatível com CIDOC-CRM e SKOS."}
               </p>
             </div>
 
@@ -821,20 +821,20 @@ export default function CulturalInteroperabilityView({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
               <div className="p-3.5 bg-black/[0.03] border border-black/06 rounded-xl space-y-1.5">
                 <span className="text-[9px] uppercase font-bold text-[#E8490A] font-mono">1. Triplas Semânticas</span>
-                <p className="text-xs font-mono font-bold text-[#1A1A1A]">\(T = (e_h, r, e_t) \in V \times R \times V\)</p>
-                <p className="text-[10px] text-[#1A1A1A]/60">Ex: (Carranca, temOrigemCultural, Rio São Francisco)</p>
+                <p className="text-xs font-mono font-bold text-[#1A1A1A]">{"T = (e_h, r, e_t) ∈ V × R × V"}</p>
+                <p className="text-[10px] text-[#1A1A1A]/60">{"Ex: (Carranca, temOrigemCultural, Rio São Francisco)"}</p>
               </div>
 
               <div className="p-3.5 bg-black/[0.03] border border-black/06 rounded-xl space-y-1.5">
                 <span className="text-[9px] uppercase font-bold text-[#0891B2] font-mono">2. Similaridade de Cosseno</span>
-                <p className="text-xs font-mono font-bold text-[#1A1A1A]">\(\text{Sim}(v_1, v_2) = \frac{v_1 \cdot v_2}{\|v_1\| \|v_2\|}\)</p>
-                <p className="text-[10px] text-[#1A1A1A]/60">Correlação semântica entre tags de usuários e artigos</p>
+                <p className="text-xs font-mono font-bold text-[#1A1A1A]">{"Sim(v_1, v_2) = (v_1 · v_2) / (||v_1|| ||v_2||)"}</p>
+                <p className="text-[10px] text-[#1A1A1A]/60">{"Correlação semântica entre tags de usuários e artigos"}</p>
               </div>
 
               <div className="p-3.5 bg-black/[0.03] border border-black/06 rounded-xl space-y-1.5">
                 <span className="text-[9px] uppercase font-bold text-[#1A6B3A] font-mono">3. GNN Message Passing</span>
-                <p className="text-xs font-mono font-bold text-[#1A1A1A]">\(h_v^{(k)} = \text{UPDATE}^{(k)}(h_v^{(k-1)}, \text{AGG}(\mathcal{N}(v)))\)</p>
-                <p className="text-[10px] text-[#1A1A1A]/60">Aprendizado contínuo agregando vizinhos culturais</p>
+                <p className="text-xs font-mono font-bold text-[#1A1A1A]">{"h_v^(k) = UPDATE(h_v^(k-1), AGG({h_u^(k-1) | u ∈ N(v)}))"}</p>
+                <p className="text-[10px] text-[#1A1A1A]/60">{"Aprendizado contínuo agregando vizinhos culturais"}</p>
               </div>
             </div>
           </div>
