@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Brain, Network, Cpu, Activity, Share2, Layers, BookOpen, ExternalLink,
   Search, ShieldCheck, Download, Save, RefreshCw, ChevronRight, CheckCircle2,
