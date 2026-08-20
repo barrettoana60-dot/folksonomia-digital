@@ -5,6 +5,7 @@ import {
   propagateChain,
   hebbianReinforce,
   CulturalNetworkEdge,
+  CulturalNetworkNode,
 } from '@/lib/ml/cultural-network';
 import {
   runSpreadingActivation,
@@ -13,18 +14,45 @@ import {
   CULTURAL_INTEROP_5_LAYERS,
   CULTURAL_INTEROP_REFERENCES
 } from '@/lib/ml/graph-math';
+import {
+  discoverLiveConnections,
+  pulseLiveNetwork,
+  getModelStatuses,
+  liveToEdge,
+} from '@/lib/ml/live-network-engine';
 import { getLearningMetrics, processTrainingBatch } from '@/lib/ml/training-loop';
+import { supabaseAdmin } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 
+async function persistLiveEdges(edges: (CulturalNetworkEdge & { model?: string; relation?: string; insight?: string })[]) {
+  try {
+    for (const edge of edges) {
+      const edgeId = [edge.from, edge.to].sort().join('__');
+      await supabaseAdmin.from('cultural_network_edges').upsert({
+        edge_id: edgeId,
+        from_node: edge.from,
+        to_node: edge.to,
+        weight: edge.weight,
+        mechanism: edge.mechanism || 'inferred',
+        chain_depth: edge.chainDepth || 1,
+        discovered: edge.discovered ?? true,
+        metadata: { model: edge.model, relation: edge.relation, insight: edge.insight, live: true },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'edge_id' });
+    }
+  } catch { /* tabela pode não existir */ }
+}
+
 /**
- * GET — Carrega estado da rede + métricas de aprendizado progressivo + camadas de interoperabilidade
+ * GET — Carrega estado da rede + métricas + status dos modelos ML/DL + camadas de interoperabilidade
  */
 export async function GET() {
   try {
-    const [network, metrics] = await Promise.all([
+    const [network, metrics, models] = await Promise.all([
       loadNetworkState(),
       getLearningMetrics(),
+      getModelStatuses(),
     ]);
 
     const centrality = calculateCentralityMetrics(network.nodes as any, network.edges as any);
@@ -38,6 +66,7 @@ export async function GET() {
         centrality,
         layers: CULTURAL_INTEROP_5_LAYERS,
         references: CULTURAL_INTEROP_REFERENCES,
+        models,
       },
     });
   } catch (error: any) {
@@ -46,7 +75,7 @@ export async function GET() {
 }
 
 /**
- * POST — Sincroniza RAG, Spreading Activation, reforço Hebbiano ou snapshots
+ * POST — Ações da rede: sync, spreading, centrality, snapshot, pulse, infer-live, hebbian, propagate, train
  */
 export async function POST(req: NextRequest) {
   try {
@@ -89,6 +118,31 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (action === 'pulse') {
+      const { nodes = [], edges = [], sourceId } = body;
+      const result = await pulseLiveNetwork(
+        nodes as CulturalNetworkNode[],
+        edges as CulturalNetworkEdge[],
+        sourceId
+      );
+      if (result.connections.length > 0) {
+        await persistLiveEdges(result.connections.map(liveToEdge));
+      }
+      return NextResponse.json({ success: true, data: result });
+    }
+
+    if (action === 'infer-live') {
+      const { nodes = [] } = body;
+      if (!nodes.length) {
+        return NextResponse.json({ success: false, error: 'Nós obrigatórios' }, { status: 400 });
+      }
+      const result = await discoverLiveConnections(nodes, body.maxPairs || 12);
+      if (result.connections.length > 0) {
+        await persistLiveEdges(result.connections.map(liveToEdge));
+      }
+      return NextResponse.json({ success: true, data: result });
+    }
+
     if (action === 'hebbian') {
       const { nodeA, nodeB, edges = [] } = body;
       if (!nodeA || !nodeB) {
@@ -108,7 +162,13 @@ export async function POST(req: NextRequest) {
       const limit = body.limit || 2;
       const results = await processTrainingBatch(limit);
       const metrics = await getLearningMetrics();
-      return NextResponse.json({ success: true, data: { results, metrics } });
+      const models = await getModelStatuses();
+      return NextResponse.json({ success: true, data: { results, metrics, models } });
+    }
+
+    if (action === 'model-status') {
+      const models = await getModelStatuses();
+      return NextResponse.json({ success: true, data: { models } });
     }
 
     return NextResponse.json({ success: false, error: 'Ação desconhecida' }, { status: 400 });

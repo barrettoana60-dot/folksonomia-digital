@@ -18,6 +18,9 @@ import { runBrainAnalysis } from './brain';
 import { expandQuery, enrichWithThesaurus, findTerm } from './thesaurus';
 import { hybridSemanticSimilarity } from './similarity';
 import { mlClient } from './ml-client';
+import { collectEvidence, getCachedEvidence } from './evidence-collector';
+import { IbramConnector } from '@/lib/connectors/ibram';
+import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
 
 export interface LearningMetrics {
   queuePending: number;
@@ -39,7 +42,80 @@ export interface ProgressiveTrainingResult {
   improvement: number;
   chainsDiscovered: number;
   academicSources: number;
+  acervoEvidencias: number;
   status: 'completed' | 'learning' | 'failed';
+}
+
+async function persistAcervoFindings(
+  tag: string,
+  ibramItems: { title: string; description?: string; museum?: string }[],
+  brasilianaItems: { title: string; description?: string }[]
+): Promise<number> {
+  const tagNorm = tag.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  let persisted = 0;
+
+  const findings = [
+    ...ibramItems.slice(0, 4).map(i => ({
+      termo: i.title,
+      significado: i.description || `Registro IBRAM — ${i.museum || 'acervo federal'}`,
+      categoria: 'ACERVO',
+    })),
+    ...brasilianaItems.slice(0, 4).map(i => ({
+      termo: i.title,
+      significado: i.description || 'Registro Brasiliana Museus',
+      categoria: 'ACERVO',
+    })),
+  ];
+
+  for (const f of findings) {
+    if (!f.termo || f.termo.length < 3) continue;
+    try {
+      const termoNorm = f.termo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 120);
+      const { data: existente } = await supabaseAdmin
+        .from('semantic_memory')
+        .select('id, total_ocorrencias')
+        .eq('termo_normalizado', termoNorm)
+        .maybeSingle();
+
+      if (existente) {
+        await supabaseAdmin
+          .from('semantic_memory')
+          .update({
+            total_ocorrencias: (existente.total_ocorrencias || 1) + 1,
+            confianca: Math.min(0.99, 0.6 + (existente.total_ocorrencias || 1) * 0.05),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existente.id);
+      } else {
+        await supabaseAdmin.from('semantic_memory').insert({
+          termo: f.termo.slice(0, 200),
+          termo_normalizado: termoNorm,
+          significado: f.significado.slice(0, 500),
+          categoria: f.categoria,
+          contextos: [tag],
+          confianca: 0.65,
+          status: 'inferido',
+          total_ocorrencias: 1,
+          modelo_versao: 'acervo_rag',
+        });
+      }
+      persisted++;
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  if (persisted > 0) {
+    try {
+      await supabaseAdmin.from('tag_learning_history').insert({
+        tag_normalizada: tagNorm,
+        event_type: 'acervo_rag_ingest',
+        event_details: { tag, registros: persisted, timestamp: new Date().toISOString() },
+      });
+    } catch { /* silent */ }
+  }
+
+  return persisted;
 }
 
 /**
@@ -146,37 +222,83 @@ export async function runProgressiveTrainingCycle(
     improvement: 0,
     chainsDiscovered: 0,
     academicSources: 0,
+    acervoEvidencias: 0,
     status: 'learning',
   };
 
   try {
     const thesaurusExpansion = expandQuery(tag);
     const thesaurusContext = enrichWithThesaurus(tag);
+    const ibramConnector = new IbramConnector();
+    const brasilianaConnector = new BrasilianaConnector();
 
-    const [academicSources, mlOnline] = await Promise.all([
-      searchAcademicLiterature(tag, { maxResults: 6 }),
-      mlClient.isOnline().catch(() => false),
-    ]);
+    const [academicSources, mlOnline, ibramRecords, brasilianaMatches, evidenceReport, cachedEvidence] =
+      await Promise.all([
+        searchAcademicLiterature(tag, { maxResults: 8, incluirBrasiliana: true }),
+        mlClient.isOnline().catch(() => false),
+        ibramConnector.searchAllMuseums(tag, 4),
+        brasilianaConnector.searchExternalSource(tag),
+        collectEvidence(tag).catch(() => null),
+        getCachedEvidence(tag),
+      ]);
+
+    // Busca expandida com termos do tesauro
+    if (thesaurusExpansion.expanded.length > 0 && ibramRecords.length + brasilianaMatches.length < 3) {
+      const extraTerm = thesaurusExpansion.expanded[0];
+      const [extraIbram, extraBrasiliana] = await Promise.all([
+        ibramConnector.searchAllMuseums(extraTerm, 2),
+        brasilianaConnector.searchExternalSource(extraTerm),
+      ]);
+      ibramRecords.push(...extraIbram);
+      brasilianaMatches.push(...extraBrasiliana);
+    }
 
     result.academicSources = academicSources.length;
+    result.acervoEvidencias =
+      (evidenceReport?.total_evidencias || 0) +
+      ibramRecords.length +
+      brasilianaMatches.length +
+      cachedEvidence.length;
 
-    // Calcular certeza progressiva
-    let certeza = 20;
+    await persistAcervoFindings(
+      tag,
+      ibramRecords.map(r => ({ title: r.title, description: r.description, museum: r.museum })),
+      brasilianaMatches.map(r => ({ title: r.title, description: r.description }))
+    );
+
+    // Calcular certeza progressiva com evidências reais de acervo
+    let certeza = 15;
     const termoTesauro = findTerm(tag);
     if (termoTesauro) certeza += 35;
-    else if (thesaurusContext && !thesaurusContext.includes('não possui')) certeza += 20;
+    else if (thesaurusContext && !thesaurusContext.includes('não possui')) certeza += 18;
+
+    const acervoCount = ibramRecords.length + brasilianaMatches.length;
+    if (acervoCount > 0) {
+      const sims = [
+        ...ibramRecords.map(r => hybridSemanticSimilarity(tag, `${r.title} ${r.description || ''}`)),
+        ...brasilianaMatches.map(r => hybridSemanticSimilarity(tag, `${r.title} ${r.description || ''}`)),
+      ];
+      const avgSim = sims.reduce((a, b) => a + b, 0) / sims.length;
+      certeza += Math.min(30, avgSim * 35 + acervoCount * 2);
+    } else if (cachedEvidence.length > 0) {
+      certeza += Math.min(15, cachedEvidence.length * 3);
+    }
 
     if (academicSources.length > 0) {
       const sims = academicSources.map(a =>
         hybridSemanticSimilarity(tag, `${a.titulo} ${a.descricao}`)
       );
-      certeza += (sims.reduce((a, b) => a + b, 0) / sims.length) * 25;
+      certeza += (sims.reduce((a, b) => a + b, 0) / sims.length) * 22;
+    }
+
+    if (evidenceReport && evidenceReport.consenso_confianca > 0) {
+      certeza += evidenceReport.consenso_confianca * 12;
     }
 
     if (mlOnline) {
       try {
         const ctx = await mlClient.predictContext(tag);
-        if (ctx?.confidence) certeza += ctx.confidence * 10;
+        if (ctx?.confidence) certeza += ctx.confidence * 8;
       } catch { /* silent */ }
     }
 
@@ -201,23 +323,45 @@ export async function runProgressiveTrainingCycle(
 
     result.chainsDiscovered = networkSync.chains.length;
 
-    // Treino MLP online com fatores reais
+    // Treino MLP online — múltiplos passos com evidências reais
     await cognitiveNN.ensureLoaded();
-    const factors = {
-      modelProbability: mlOnline ? 0.7 : 0.3,
-      vectorSimilarity: result.improvement / 100,
-      externalSourceCount: academicSources.length,
-      externalSourceQuality: academicSources.length > 0 ? 0.85 : 0.3,
+    const avgAcervoSim =
+      acervoCount > 0
+        ? [
+            ...ibramRecords.map(r => hybridSemanticSimilarity(tag, `${r.title} ${r.description || ''}`)),
+            ...brasilianaMatches.map(r => hybridSemanticSimilarity(tag, `${r.title} ${r.description || ''}`)),
+          ].reduce((a, b) => a + b, 0) / acervoCount
+        : 0;
+
+    const baseFactors = {
+      modelProbability: mlOnline ? 0.7 : 0.35,
+      vectorSimilarity: avgAcervoSim || result.improvement / 100,
+      externalSourceCount: result.acervoEvidencias,
+      externalSourceQuality: acervoCount > 0 ? 0.85 : academicSources.length > 0 ? 0.7 : 0.3,
       humanValidations: 0,
       humanRejections: 0,
-      obraCoherence: certeza / 100,
+      obraCoherence: avgAcervoSim,
       categoryAccuracy: termoTesauro ? 0.95 : 0.5,
-      memoryMatches: brainState.totalConnections,
+      memoryMatches: brainState.totalConnections + cachedEvidence.length,
       termLength: tag.length,
       isMultiWord: tag.includes(' '),
     };
-    const inputVec = cognitiveNN.factorsToVector(factors);
+
+    const inputVec = cognitiveNN.factorsToVector(baseFactors);
     await cognitiveNN.trainStep(inputVec, certeza / 100);
+
+    if (brainState.neuralMap.length >= 2) {
+      const sibling = brainState.neuralMap[0];
+      const siblingFactors = {
+        ...baseFactors,
+        vectorSimilarity: sibling.strength,
+        obraCoherence: sibling.strength,
+      };
+      await cognitiveNN.trainStep(
+        cognitiveNN.factorsToVector(siblingFactors),
+        Math.min(0.99, (certeza + sibling.strength * 100) / 200)
+      );
+    }
 
     // Replay parcial de memória semântica
     try {
@@ -230,7 +374,7 @@ export async function runProgressiveTrainingCycle(
       .update({
         status: certeza >= 95 ? 'completed' : 'pending',
         certeza_atual: certeza,
-        ultimo_pensamento: `Ciclo progressivo: +${result.improvement}% | ${result.chainsDiscovered} cadeias | ${result.academicSources} fontes acadêmicas`,
+        ultimo_pensamento: `Ciclo: +${result.improvement}% | ${result.chainsDiscovered} conexões | ${result.academicSources} refs. acadêmicas | ${result.acervoEvidencias} evid. de acervo`,
         updated_at: new Date().toISOString(),
       })
       .eq('tag', tag);
@@ -244,6 +388,7 @@ export async function runProgressiveTrainingCycle(
         improvement: result.improvement,
         chainsDiscovered: result.chainsDiscovered,
         academicSources: result.academicSources,
+        acervoEvidencias: result.acervoEvidencias,
         propagatedInsights: brainState.propagatedInsights.slice(0, 3),
         timestamp: new Date().toISOString(),
       },

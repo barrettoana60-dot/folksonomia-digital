@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS cultural_network_edges (
   mechanism TEXT DEFAULT 'inferred',
   chain_depth INT DEFAULT 1,
   discovered BOOLEAN DEFAULT FALSE,
+  metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
