@@ -1903,7 +1903,21 @@ export default function AdminPage() {
       <text x="288" y="16" font-size="11" fill="${certColor}" font-weight="700">${certeza}%</text>
     </svg>`;
 
-    // ─── monta o HTML completo ─────────────────────────────────────
+    // ─── seções opcionais pré-renderizadas sem aninhamento de template literals ───
+    let tesauroHtml = '';
+    if (tesauro) {
+      const termosHtml = termosExp.length > 0
+        ? `<div class="termos">${termosExp.map(t => `<span class="termo">${t}</span>`).join('')}</div>`
+        : '';
+      tesauroHtml = `<p class="sec-title">📖 Tesauro CNFCP / IPHAN — Definição Normativa</p>
+<div class="bq">${tesauro.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+${termosHtml}`;
+    }
+
+    const internasHtml = internas.length > 0
+      ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema</p><div class="termos">${internas.slice(0, 30).map(t => `<span class="termo">${t.tag_original}</span>`).join('')}</div>`
+      : '';
+
     const fullReport = analise || (estruturado?.camadas
       ? Object.values(estruturado.camadas).join('\n\n')
       : estruturado?.deducao || '');
@@ -1927,10 +1941,10 @@ export default function AdminPage() {
   .tag-block { background:#fff5f0; border-left:4px solid #c44000; padding:18px 22px; margin-bottom:22px; border-radius:0 6px 6px 0; }
   .tag-label { font-size:9px; text-transform:uppercase; letter-spacing:.2em; color:#999; font-weight:700; margin-bottom:4px; }
   .tag-value { font-family:'DM Serif Display',serif; font-size:34px; color:#c44000; }
-  .certeza-row { display:flex; align-items:center; gap:16px; padding:14px 18px; background:${aguardando?'#fffbea':'#f0fdf4'}; border:1px solid ${aguardando?'#fde68a':'#86efac'}; border-radius:8px; margin-bottom:22px; }
+  .certeza-row { display:flex; align-items:center; gap:16px; padding:14px 18px; background:${aguardando ? '#fffbea' : '#f0fdf4'}; border:1px solid ${aguardando ? '#fde68a' : '#86efac'}; border-radius:8px; margin-bottom:22px; }
   .certeza-num { font-size:40px; font-weight:900; color:${certColor}; }
   .certeza-info { }
-  .certeza-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:${aguardando?'#92400e':'#166534'}; }
+  .certeza-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:${aguardando ? '#92400e' : '#166534'}; }
   .certeza-desc { font-size:10px; color:#666; margin-top:3px; }
   .stats-row { display:flex; gap:20px; margin-bottom:22px; }
   .stat-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px 16px; flex:1; text-align:center; }
@@ -1994,15 +2008,12 @@ export default function AdminPage() {
 <p class="sec-title">📊 Distribuição por Base de Dados</p>
 ${svgChart}
 
-${tesauro ? `<p class="sec-title">📖 Tesauro CNFCP / IPHAN — Definição Normativa</p>
-<div class="bq">${tesauro.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-${termosExp.length > 0 ? `<div class="termos">${termosExp.map((t: string) => `<span class="termo">${t}</span>`).join('')}</div>` : ''}` : ''}
+${tesauroHtml}
 
 <p class="sec-title">📋 Parecer Semântico Completo</p>
 ${md2html(fullReport)}
 
-${internas.length > 0 ? `<p class="sec-title">🏷️ Tags Correlatas no Sistema</p>
-<div class="termos">${internas.slice(0,30).map((t: any) => `<span class="termo">${t.tag_original}</span>`).join('')}</div>` : ''}
+${internasHtml}
 
 <div class="footer">
   <span>Sistema de Folksonomia Digital 2.0 — NUGEP</span>
