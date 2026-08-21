@@ -45,8 +45,8 @@ export class EuropeanaConnector implements OpenDataConnector {
    */
   async searchRecords(query: string, rows: number = 20): Promise<EuropeanaRecord[]> {
     if (!this.apiKey) {
-      console.warn('[Europeana] API Key not configured, returning mock data');
-      return this.getMockRecords(query);
+      console.warn('[Europeana] API Key not configured; no public records returned');
+      return [];
     }
 
     try {
@@ -65,7 +65,7 @@ export class EuropeanaConnector implements OpenDataConnector {
       return (data.items || []).map((item: any) => this.parseRecord(item));
     } catch (err) {
       console.error('[Europeana] Fetch error:', err);
-      return this.getMockRecords(query);
+      return [];
     }
   }
 
