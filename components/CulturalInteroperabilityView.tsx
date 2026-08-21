@@ -107,15 +107,19 @@ export default function CulturalInteroperabilityView({
         const seen = new Set(CANONICAL_INITIAL_NODES.map(c => normalizeForComparison(c.label)));
         
         const extraNodes: GraphMathNode[] = [];
+        const extraEdges: GraphMathEdge[] = [];
+
         allFetched.forEach((n, idx) => {
           const norm = normalizeForComparison(n.label);
           if (!seen.has(norm)) {
             seen.add(norm);
             const angle = (idx * 0.45) + Math.PI;
-            const r = 230 + (idx % 4) * 25;
+            const r = 210 + (idx % 4) * 35;
             const eixo = n.eixo || 'SABERES';
+            const cleanId = n.id || norm.replace(/\s+/g, '_');
+            
             extraNodes.push({
-              id: n.id,
+              id: cleanId,
               label: n.label,
               x: 400 + Math.cos(angle) * r,
               y: 215 + Math.sin(angle) * r,
@@ -124,14 +128,26 @@ export default function CulturalInteroperabilityView({
               eixo,
               desc: n.description || `Tag do público: ${n.label}`,
               type: 'Tag do Público',
-              familia: n.familia || `${eixo.toLowerCase()}.${n.id}`,
-              activation: 0.45
+              familia: n.familia || `${eixo.toLowerCase()}.${cleanId}`,
+              activation: 0.5
+            });
+
+            // Conexão inicial com nó mais afim
+            const targetCanon = CANONICAL_INITIAL_NODES[idx % CANONICAL_INITIAL_NODES.length];
+            extraEdges.push({
+              from: cleanId,
+              to: targetCanon.id,
+              weight: 0.65,
+              skosRelation: 'skos:related',
+              mechanism: 'inferred',
+              eixoRel: eixo
             });
           }
         });
 
         if (extraNodes.length > 0) {
           setNodes(prev => [...prev, ...extraNodes]);
+          setConnections(prev => [...prev, ...extraEdges]);
         }
       })
       .catch(() => { /* silencioso */ });
@@ -171,16 +187,16 @@ export default function CulturalInteroperabilityView({
   }, [dossierCache]);
 
   const selectedNode = useMemo(() =>
-    nodes.find(n => n.id === selectedNodeId) || nodes[0],
-    [nodes, selectedNodeId]);
+    nodes.find(n => n.id === selectedNodeId || normalizeForComparison(n.label) === normalizeForComparison(selectedTagLabel)) || nodes[0],
+    [nodes, selectedNodeId, selectedTagLabel]);
 
   // ─── SPREADING ACTIVATION ──────────────────────────────────────────────────
   const spreadingResult = useMemo(() => {
-    if (!selectedNodeId) return null;
-    return runSpreadingActivation(nodes, connections, [{ id: selectedNodeId, initialEnergy: 1.0 }], {
+    if (!selectedNode?.id) return null;
+    return runSpreadingActivation(nodes, connections, [{ id: selectedNode.id, initialEnergy: 1.0 }], {
       decay: 0.78, retention: 0.22, maxIterations: 6, normalize: true
     });
-  }, [nodes, connections, selectedNodeId]);
+  }, [nodes, connections, selectedNode]);
   const nodeActivations = useMemo(() => spreadingResult?.nodeActivations || {}, [spreadingResult]);
 
   // ─── PULSO SINÁPTICO AUTÔNOMO CONTÍNUO ────────────────────────────────────
@@ -266,21 +282,50 @@ export default function CulturalInteroperabilityView({
 
   // ─── ACIONAR FLUXO VIVO: MOTOR DE DEEP LEARNING + RAG REAL ─────────────────
   const handleTriggerLiveFlow = useCallback(async () => {
-    if (isThinking || !selectedNode) return;
+    if (isThinking) return;
+    
+    // Se o usuário digitou no campo de busca, usar o termo buscado!
+    const targetTag = (searchTerm.trim() || selectedTagLabel || 'Carranca').trim();
+    const targetId = normalizeForComparison(targetTag).replace(/\s+/g, '_');
+
     setIsThinking(true);
     setThinkingSteps([]);
     setDiscoveredConnections([]);
+    setSelectedTagLabel(targetTag);
+    setSelectedNodeId(targetId);
 
     const addStep = (s: string) => setThinkingSteps(p => [...p, s]);
 
-    // Animação sequencial e fluida das 6 etapas do cofre vivo
+    // Garantir que a tag alvo existe no grafo visualmente
+    setNodes(prev => {
+      if (!prev.find(n => n.id === targetId || normalizeForComparison(n.label) === normalizeForComparison(targetTag))) {
+        return [
+          {
+            id: targetId,
+            label: targetTag,
+            x: 400,
+            y: 215,
+            size: 20,
+            fill: '#E8490A',
+            eixo: 'PATRIMONIO',
+            desc: `Tag consultada: ${targetTag}`,
+            type: 'Tag do Público',
+            activation: 1.0
+          },
+          ...prev
+        ];
+      }
+      return prev;
+    });
+
+    // Animação sequencial das 6 etapas do cofre vivo
     for (let i = 0; i < VAULT_FLOW_STEPS.length; i++) {
       setActiveFlowStep(i);
-      await new Promise(r => setTimeout(r, 480));
+      await new Promise(r => setTimeout(r, 450));
     }
     setActiveFlowStep(-1);
 
-    addStep(`1. Compactando DNA semântico da tag "${selectedNode.label}" em vetor de 768 dimensões...`);
+    addStep(`1. Compactando DNA semântico da tag "${targetTag}" em vetor de 768 dimensões...`);
     addStep(`2. RAG multi-fonte buscando artigos no IPHAN, SciELO, OpenAlex e Brasiliana...`);
     addStep(`3. RotatE & ModernBERT avaliando inferências e predição de relações na malha...`);
 
@@ -289,8 +334,8 @@ export default function CulturalInteroperabilityView({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sourceTag: selectedNode.label,
-          sourceId: selectedNode.id,
+          sourceTag: targetTag,
+          sourceId: targetId,
           action: 'pulse',
           allNodes: nodes.map(n => ({ id: n.id, label: n.label }))
         })
@@ -303,7 +348,7 @@ export default function CulturalInteroperabilityView({
         const dynamicDossier = json.data?.dossier || json.data?.canonical;
 
         if (dynamicDossier) {
-          const normKey = normalizeForComparison(selectedNode.label).replace(/\s+/g, '_');
+          const normKey = normalizeForComparison(targetTag).replace(/\s+/g, '_');
           setCurrentDossier(dynamicDossier);
           setDossierCache(prev => ({ ...prev, [normKey]: dynamicDossier }));
         }
@@ -314,7 +359,7 @@ export default function CulturalInteroperabilityView({
           weight: p.intensity || 0.8,
           skosRelation: 'skos:related',
           mechanism: 'inferred' as const,
-          eixoRel: selectedNode.eixo || 'SABERES',
+          eixoRel: dynamicDossier?.eixo || 'SABERES',
           discovered: true
         })) || [];
 
@@ -349,7 +394,7 @@ export default function CulturalInteroperabilityView({
     } finally {
       setIsThinking(false);
     }
-  }, [isThinking, selectedNode, nodes]);
+  }, [isThinking, searchTerm, selectedTagLabel, nodes]);
 
   // ─── JSON-LD 1.1 DINÂMICO ──────────────────────────────────────────────────
   const currentJsonLd = useMemo(() => {
@@ -439,6 +484,7 @@ export default function CulturalInteroperabilityView({
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleTriggerLiveFlow(); }}
                 placeholder="Buscar em todas as tags..."
                 className="w-full pl-8 pr-3 py-2 text-xs bg-white border border-black/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8490A]/30 font-medium"
               />
@@ -584,7 +630,9 @@ export default function CulturalInteroperabilityView({
                   const tn = nodes.find(n => n.id === conn.to);
                   if (!fn || !tn) return null;
                   
-                  const isSource = fn.id === selectedNodeId || tn.id === selectedNodeId;
+                  const isSource = fn.id === selectedNodeId || tn.id === selectedNodeId ||
+                                   normalizeForComparison(fn.label) === normalizeForComparison(selectedTagLabel) ||
+                                   normalizeForComparison(tn.label) === normalizeForComparison(selectedTagLabel);
                   const isPulsing = activePulseKey === `${conn.from}__${conn.to}` || activePulseKey === `${conn.to}__${conn.from}`;
                   const isNew = conn.discovered;
                   const strokeColor = isPulsing ? '#a855f7' : isNew ? '#22c55e' : isSource ? '#f59e0b' : 'rgba(255,255,255,0.15)';
