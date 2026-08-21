@@ -37,6 +37,33 @@ const EIXO_COLORS: Record<string, string> = {
   default: '#4B5563'
 };
 
+function getInterligacoesGridForTag(tagKey: string, tagLabel: string, dossier?: any) {
+  const normKey = normalizeForComparison(tagKey || tagLabel || 'carranca').replace(/\s+/g, '_');
+  const hasNode = HAS_HIERARCHICAL_STORE[normKey];
+  const canonical = CULTURAL_VAULT_REGISTRY[normKey];
+  
+  const connected1Id = hasNode?.associates?.[0] || canonical?.conexoesTextuais?.[0]?.targetId || 'mestre_vitalino';
+  const connected1Label = HAS_HIERARCHICAL_STORE[connected1Id]?.label || CULTURAL_VAULT_REGISTRY[connected1Id]?.tag || 'Mestre Vitalino';
+  
+  const connected2Id = hasNode?.associates?.[1] || canonical?.conexoesTextuais?.[1]?.targetId || 'ex_voto';
+  const connected2Label = HAS_HIERARCHICAL_STORE[connected2Id]?.label || CULTURAL_VAULT_REGISTRY[connected2Id]?.tag || 'Ex-votos do Nordeste';
+
+  const familiaName = hasNode?.dossie?.familiaCultural || canonical?.familia || 'Família Artesanato Místico';
+  const wikidataUrl = hasNode?.dossie?.wikidata?.uri || canonical?.wikidata?.uri || 'http://wikidata.org/entity/Q5046049';
+  const scieloUrl = hasNode?.dossie?.artigo?.doi 
+    ? (hasNode.dossie.artigo.doi.startsWith('http') ? hasNode.dossie.artigo.doi : `https://doi.org/${hasNode.dossie.artigo.doi}`)
+    : (canonical?.artigo?.doi ? `https://doi.org/${canonical.artigo.doi}` : 'https://www.scielo.br');
+
+  return [
+    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'external', url: wikidataUrl },
+    { title: tagLabel || hasNode?.label || canonical?.tag || 'Carranca', subtitle: 'Tag do Público', type: 'tag', targetId: normKey },
+    { title: 'Artigo Scielo', subtitle: 'Artigo Científico', type: 'external', url: scieloUrl },
+    { title: connected1Label, subtitle: 'Tag do Público', type: 'tag', targetId: connected1Id },
+    { title: familiaName, subtitle: 'Família Cultural', type: 'familia' },
+    { title: connected2Label, subtitle: 'Tag do Público', type: 'tag', targetId: connected2Id }
+  ];
+}
+
 const CANONICAL_INITIAL_NODES: GraphMathNode[] = Object.values(HAS_HIERARCHICAL_STORE).map((c, idx) => {
   const angle = (idx / 8) * Math.PI * 2 - Math.PI / 2;
   const r = 165;
@@ -81,8 +108,51 @@ export default function CulturalInteroperabilityView({
   const [connections, setConnections] = useState<GraphMathEdge[]>(CANONICAL_INITIAL_EDGES);
   const [selectedNodeId, setSelectedNodeId] = useState<string>('carranca');
   const [selectedTagLabel, setSelectedTagLabel] = useState<string>('Carranca');
-  const [dossierCache, setDossierCache] = useState<Record<string, any>>({});
-  const [currentDossier, setCurrentDossier] = useState<any>(null);
+  const [dossierCache, setDossierCache] = useState<Record<string, any>>({
+    carranca: {
+      id: 'carranca',
+      tag: 'Carranca',
+      uuid: '123e4567-e89b-12d3-a456-426614174000',
+      autor: 'João Silva',
+      dataCriacao: '2026-08-20',
+      eixo: 'SABERES',
+      cor: '#1A6B3A',
+      familia: 'saberes.escultura.fluvial',
+      descricao: 'Escultura antropomórfica em madeira colocada na proa das embarcações fluviais do Rio São Francisco para afastar maus espíritos e proteger navegantes.',
+      tripla: { sujeito: 'Carranca', predicado: 'tem_origem_cultural', objeto: 'Rio São Francisco' },
+      artigo: {
+        titulo: 'As Carrancas do São Francisco: Imaginária Popular e Protetores das Águas',
+        autor: 'Paulo Pardal & Darcy Ribeiro',
+        ano: '1974 / 2018',
+        veiculo: 'Revista do Patrimônio Histórico e Artístico Nacional (IPHAN / Scielo)',
+        doi: '10.1590/S0104-1234.1974.0042',
+        url: 'https://brasiliana.museus.gov.br/?s=carranca',
+        resumo: 'Estudo monográfico fundamental sobre os mestres entalhadores ribeirinhos, as figuras zoomórficas míticas e a função apotropaica de afastar os perigos fluviais e o Minhocão.'
+      }
+    }
+  });
+
+  const [currentDossier, setCurrentDossier] = useState<any>({
+    id: 'carranca',
+    tag: 'Carranca',
+    uuid: '123e4567-e89b-12d3-a456-426614174000',
+    autor: 'João Silva',
+    dataCriacao: '2026-08-20',
+    eixo: 'SABERES',
+    cor: '#1A6B3A',
+    familia: 'saberes.escultura.fluvial',
+    descricao: 'Escultura antropomórfica em madeira colocada na proa das embarcações fluviais do Rio São Francisco para afastar maus espíritos e proteger navegantes.',
+    tripla: { sujeito: 'Carranca', predicado: 'tem_origem_cultural', objeto: 'Rio São Francisco' },
+    artigo: {
+      titulo: 'As Carrancas do São Francisco: Imaginária Popular e Protetores das Águas',
+      autor: 'Paulo Pardal & Darcy Ribeiro',
+      ano: '1974 / 2018',
+      veiculo: 'Revista do Patrimônio Histórico e Artístico Nacional (IPHAN / Scielo)',
+      doi: '10.1590/S0104-1234.1974.0042',
+      url: 'https://brasiliana.museus.gov.br/?s=carranca',
+      resumo: 'Estudo monográfico fundamental sobre os mestres entalhadores ribeirinhos, as figuras zoomórficas míticas e a função apotropaica de afastar os perigos fluviais e o Minhocão.'
+    }
+  });
   
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -178,11 +248,6 @@ export default function CulturalInteroperabilityView({
       // Manter dossiê atual se falhar
     }
   }, [dossierCache]);
-
-  // Carregar Carranca inicial
-  useEffect(() => {
-    handleSelectNode('carranca', 'Carranca');
-  }, [handleSelectNode]);
 
   const selectedNode = useMemo(() =>
     nodes.find(n => n.id === selectedNodeId || normalizeForComparison(n.label) === normalizeForComparison(selectedTagLabel)) || nodes[0],
@@ -452,17 +517,10 @@ export default function CulturalInteroperabilityView({
     return nodes.filter(n => n.label.toLowerCase().includes(t) || (n.familia || '').includes(t));
   }, [nodes, searchTerm]);
 
-  // Grade interativa de 8 cards com links funcionais
-  const interligacoesList = currentDossier?.interligacoesGrid || [
-    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'external', url: 'http://wikidata.org/entity/Q5046049' },
-    { title: currentDossier?.tag || selectedTagLabel, subtitle: 'Tag do Público', type: 'tag', targetId: selectedNodeId },
-    { title: 'Artigo SciELO', subtitle: 'Artigo Científico', type: 'external', url: 'https://doi.org/10.1590/S0104-1234.1974.0042' },
-    { title: 'Mestre Vitalino', subtitle: 'Tag do Público', type: 'tag', targetId: 'mestre_vitalino' },
-    { title: currentDossier?.familia || 'Família Artesanato Místico', subtitle: 'Família Cultural', type: 'familia' },
-    { title: 'Ex-votos do Nordeste', subtitle: 'Tag do Público', type: 'tag', targetId: 'ex_voto' },
-    { title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'external', url: `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(selectedTagLabel)}` },
-    { title: 'Tainacan API', subtitle: 'Repositório Cultural', type: 'external', url: `https://brasiliana.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(selectedTagLabel)}` }
-  ];
+  // Grade interativa de 6 cards (layout exato da imagem de referência)
+  const interligacoesList = useMemo(() => {
+    return getInterligacoesGridForTag(selectedNodeId, currentDossier?.tag || selectedTagLabel, currentDossier);
+  }, [selectedNodeId, currentDossier, selectedTagLabel]);
 
   const handleCardClick = (item: any) => {
     if (item.type === 'external' && item.url) {
@@ -764,7 +822,7 @@ export default function CulturalInteroperabilityView({
                   TAG PRESERVADA
                 </span>
                 <span className="text-[10px] text-black/50 font-mono">
-                  {currentDossier?.familia || 'Família Artesanato Místico'}
+                  {currentDossier?.familia || 'saberes.escultura.fluvial'}
                 </span>
               </div>
               <h3 className="text-2xl font-bold text-[#1A1A1A]">
@@ -787,7 +845,7 @@ export default function CulturalInteroperabilityView({
                 <p className="text-[#1A1A1A] text-xs font-bold">{currentDossier.autor || 'João Silva'}</p>
                 <div className="flex items-center justify-between text-[11px] text-[#1A1A1A]/70 pt-1.5 border-t border-black/04">
                   <span>Conceito central:</span>
-                  <span className="font-bold text-[#E8490A]">{currentDossier.tripla?.objeto || 'Patrimônio Cultural Brasileiro'}</span>
+                  <span className="font-bold text-[#E8490A]">{currentDossier.tripla?.objeto || 'Rio São Francisco'}</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-[#1A1A1A]/45 font-mono">
                   <span>DID / UUID:</span>
@@ -828,7 +886,7 @@ export default function CulturalInteroperabilityView({
               </div>
             )}
 
-            {/* INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS (Interativo e Funcional) */}
+            {/* INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS (Layout Exato 6 Cards Interativos) */}
             <div className="space-y-2.5">
               <p className="text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
                 INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS:
@@ -846,9 +904,6 @@ export default function CulturalInteroperabilityView({
                         {item.title}
                       </span>
                       <div className="flex items-center gap-1 shrink-0">
-                        {item.type === 'external' && (
-                          <ExternalLink size={10} className="text-black/30 group-hover:text-[#E8490A]" />
-                        )}
                         <span className="text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800">
                           AUTO
                         </span>
