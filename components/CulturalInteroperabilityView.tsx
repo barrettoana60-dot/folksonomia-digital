@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   Brain, Network, Search, Check, Copy, ArrowUpRight, FolderLock,
   FileCode2, Send, BookOpen, User, Link2, ArrowRight, Tag,
-  Database, Layers, Globe, ShieldCheck, Zap, RefreshCw, Sparkles
+  Database, Layers, Globe, ShieldCheck, Zap, RefreshCw, Sparkles, ExternalLink
 } from 'lucide-react';
 import { runSpreadingActivation, GraphMathNode, GraphMathEdge } from '@/lib/ml/graph-math';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
+import { HAS_HIERARCHICAL_STORE, HASNode } from '@/lib/ml/has-engine';
 import { CULTURAL_VAULT_REGISTRY, ConceptVaultItem } from '@/app/api/interop/live-vault/registry';
 
 interface CulturalInteroperabilityViewProps {
@@ -36,35 +37,37 @@ const EIXO_COLORS: Record<string, string> = {
   default: '#4B5563'
 };
 
-const CANONICAL_INITIAL_NODES: GraphMathNode[] = Object.values(CULTURAL_VAULT_REGISTRY).map((c, idx) => {
+const CANONICAL_INITIAL_NODES: GraphMathNode[] = Object.values(HAS_HIERARCHICAL_STORE).map((c, idx) => {
   const angle = (idx / 8) * Math.PI * 2 - Math.PI / 2;
   const r = 165;
   return {
     id: c.id,
-    label: c.tag,
+    label: c.label,
     x: 400 + Math.cos(angle) * r,
     y: 215 + Math.sin(angle) * r,
     size: 16,
-    fill: c.cor || EIXO_COLORS[c.eixo] || EIXO_COLORS.default,
+    fill: EIXO_COLORS[c.eixo] || EIXO_COLORS.default,
     eixo: c.eixo,
-    desc: c.descricao,
+    desc: c.dossie?.artigo.resumo || `Tag cultural: ${c.label}`,
     type: 'Tag Preservada',
-    familia: c.familia,
+    familia: c.dossie?.familiaCultural || `Família ${c.eixo}`,
     activation: 0.75
   };
 });
 
 const CANONICAL_INITIAL_EDGES: GraphMathEdge[] = [
-  { from: 'carranca', to: 'mestre_vitalino', weight: 0.86, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
-  { from: 'carranca', to: 'ex_voto', weight: 0.82, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
-  { from: 'carranca', to: 'cordel', weight: 0.75, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
-  { from: 'frevo', to: 'capoeira', weight: 0.89, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
-  { from: 'frevo', to: 'maracatu', weight: 0.81, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
-  { from: 'capoeira', to: 'maracatu', weight: 0.83, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
-  { from: 'bumba_boi', to: 'maracatu', weight: 0.85, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'FESTA' },
-  { from: 'bumba_boi', to: 'cordel', weight: 0.72, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'FESTA' },
-  { from: 'mestre_vitalino', to: 'cordel', weight: 0.79, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
-  { from: 'mestre_vitalino', to: 'ex_voto', weight: 0.76, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'carranca', to: 'mestre_vitalino', weight: 0.88, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'carranca', to: 'ex_voto', weight: 0.84, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'carranca', to: 'barroco', weight: 0.86, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'carranca', to: 'cordel', weight: 0.78, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'barroco', to: 'ex_voto', weight: 0.89, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'CRENCAS' },
+  { from: 'frevo', to: 'capoeira', weight: 0.92, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'frevo', to: 'maracatu', weight: 0.85, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'capoeira', to: 'maracatu', weight: 0.87, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'MUSICA' },
+  { from: 'bumba_boi', to: 'maracatu', weight: 0.86, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'FESTA' },
+  { from: 'bumba_boi', to: 'cordel', weight: 0.76, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'FESTA' },
+  { from: 'mestre_vitalino', to: 'cordel', weight: 0.82, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
+  { from: 'mestre_vitalino', to: 'ex_voto', weight: 0.79, skosRelation: 'skos:related', mechanism: 'hebbian', eixoRel: 'SABERES' },
 ];
 
 export default function CulturalInteroperabilityView({
@@ -78,8 +81,8 @@ export default function CulturalInteroperabilityView({
   const [connections, setConnections] = useState<GraphMathEdge[]>(CANONICAL_INITIAL_EDGES);
   const [selectedNodeId, setSelectedNodeId] = useState<string>('carranca');
   const [selectedTagLabel, setSelectedTagLabel] = useState<string>('Carranca');
-  const [dossierCache, setDossierCache] = useState<Record<string, any>>(CULTURAL_VAULT_REGISTRY);
-  const [currentDossier, setCurrentDossier] = useState<any>(CULTURAL_VAULT_REGISTRY['carranca']);
+  const [dossierCache, setDossierCache] = useState<Record<string, any>>({});
+  const [currentDossier, setCurrentDossier] = useState<any>(null);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -128,16 +131,15 @@ export default function CulturalInteroperabilityView({
               eixo,
               desc: n.description || `Tag do público: ${n.label}`,
               type: 'Tag do Público',
-              familia: n.familia || `${eixo.toLowerCase()}.${cleanId}`,
+              familia: n.familia || `Família ${eixo.toLowerCase()}.${cleanId}`,
               activation: 0.5
             });
 
-            // Conexão inicial com nó mais afim
             const targetCanon = CANONICAL_INITIAL_NODES[idx % CANONICAL_INITIAL_NODES.length];
             extraEdges.push({
               from: cleanId,
               to: targetCanon.id,
-              weight: 0.65,
+              weight: 0.68,
               skosRelation: 'skos:related',
               mechanism: 'inferred',
               eixoRel: eixo
@@ -177,6 +179,11 @@ export default function CulturalInteroperabilityView({
     }
   }, [dossierCache]);
 
+  // Carregar Carranca inicial
+  useEffect(() => {
+    handleSelectNode('carranca', 'Carranca');
+  }, [handleSelectNode]);
+
   const selectedNode = useMemo(() =>
     nodes.find(n => n.id === selectedNodeId || normalizeForComparison(n.label) === normalizeForComparison(selectedTagLabel)) || nodes[0],
     [nodes, selectedNodeId, selectedTagLabel]);
@@ -190,14 +197,14 @@ export default function CulturalInteroperabilityView({
   }, [nodes, connections, selectedNode]);
   const nodeActivations = useMemo(() => spreadingResult?.nodeActivations || {}, [spreadingResult]);
 
-  // ─── PULSO SINÁPTICO AUTÔNOMO CONTÍNUO ────────────────────────────────────
+  // ─── PULSO SINÁPTICO AUTÔNOMO CONTÍNUO (CRIAÇÃO E REFORÇO DE SINAPSES) ──────
   useEffect(() => {
     const interval = setInterval(() => {
       if (connections.length === 0) return;
       const edge = connections[Math.floor(Math.random() * connections.length)];
       setActivePulseKey(`${edge.from}__${edge.to}`);
       setTimeout(() => setActivePulseKey(null), 1400);
-    }, 3200);
+    }, 2800);
     return () => clearInterval(interval);
   }, [connections]);
 
@@ -271,7 +278,7 @@ export default function CulturalInteroperabilityView({
 
   const handleMouseUp = () => setDraggedNodeId(null);
 
-  // ─── ACIONAR FLUXO VIVO: MOTOR DE DEEP LEARNING + RAG REAL ─────────────────
+  // ─── ACIONAR FLUXO VIVO: MOTOR DE DEEP LEARNING + HAS + RAG REAL ────────────
   const handleTriggerLiveFlow = useCallback(async () => {
     if (isThinking) return;
     
@@ -286,7 +293,7 @@ export default function CulturalInteroperabilityView({
 
     const addStep = (s: string) => setThinkingSteps(p => [...p, s]);
 
-    // Inserir nó no grafo caso não exista
+    // Garantir nó no grafo
     setNodes(prev => {
       if (!prev.find(n => n.id === targetId || normalizeForComparison(n.label) === normalizeForComparison(targetTag))) {
         return [
@@ -297,9 +304,9 @@ export default function CulturalInteroperabilityView({
             y: 215,
             size: 20,
             fill: '#E8490A',
-            eixo: 'PATRIMONIO',
+            eixo: 'SABERES',
             desc: `Tag consultada: ${targetTag}`,
-            type: 'Tag do Público',
+            type: 'Tag Preservada',
             activation: 1.0
           },
           ...prev
@@ -308,7 +315,7 @@ export default function CulturalInteroperabilityView({
       return prev;
     });
 
-    // Animação sequencial do fluxo de 6 etapas
+    // Animação sequencial das 6 etapas do cofre vivo
     for (let i = 0; i < VAULT_FLOW_STEPS.length; i++) {
       setActiveFlowStep(i);
       await new Promise(r => setTimeout(r, 450));
@@ -316,8 +323,8 @@ export default function CulturalInteroperabilityView({
     setActiveFlowStep(-1);
 
     addStep(`1. Compactando DNA semântico da tag "${targetTag}" em vetor de 768 dimensões...`);
-    addStep(`2. RAG multi-fonte consultando Tainacan, Brasiliana, IPHAN e SciELO...`);
-    addStep(`3. RotatE & ModernBERT avaliando inferências e predição de relações ontológicas...`);
+    addStep(`2. RAG multi-fonte consultando Tainacan API, Brasiliana Museus, IPHAN e SciELO...`);
+    addStep(`3. RotatE & ModernBERT avaliando inferências e predição de relações no HAS...`);
 
     try {
       const res = await fetch('/api/interop/live-vault', {
@@ -388,7 +395,7 @@ export default function CulturalInteroperabilityView({
 
   // ─── JSON-LD 1.1 DINÂMICO ──────────────────────────────────────────────────
   const currentJsonLd = useMemo(() => {
-    const item = currentDossier || CULTURAL_VAULT_REGISTRY['carranca'];
+    const item = currentDossier || HAS_HIERARCHICAL_STORE['carranca'];
     return {
       "@context": {
         "skos": "http://www.w3.org/2004/02/skos/core#",
@@ -398,26 +405,26 @@ export default function CulturalInteroperabilityView({
       },
       "@id": `https://folksonomia-digital.cultura.gov.br/tag/${item.id}`,
       "@type": "skos:Concept",
-      "skos:prefLabel": { "@value": item.tag, "@language": "pt-BR" },
-      "schema:description": item.descricao,
+      "skos:prefLabel": { "@value": item.tag || item.label, "@language": "pt-BR" },
+      "schema:description": item.descricao || item.dossie?.artigo?.resumo,
       "prov:wasAttributedTo": {
         "@id": `https://folksonomia-digital.cultura.gov.br/user/${item.uuid?.substring(0, 8) || '00000000'}`,
         "@type": "prov:Person",
-        "schema:name": item.autor || 'Visitante'
+        "schema:name": item.autor || 'João Silva'
       },
       "skos:broadMatch": {
-        "@id": item.wikidata?.id || 'Q_CULTURAL',
+        "@id": item.wikidata?.id || item.dossie?.wikidata?.id || 'Q_CULTURAL',
         "@type": "skos:Concept",
-        "skos:prefLabel": { "@value": item.wikidata?.enLabel || item.tag, "@language": "en" }
+        "skos:prefLabel": { "@value": item.wikidata?.enLabel || item.tag || item.label, "@language": "en" }
       },
       "schema:subjectOf": [
         {
-          "@id": item.artigo?.url || 'https://brasiliana.museus.gov.br',
+          "@id": item.artigo?.url || item.dossie?.artigo?.url || 'https://brasiliana.museus.gov.br',
           "@type": "schema:ScholarlyArticle",
-          "name": item.artigo?.titulo || 'Dossiê Cultural',
-          "author": item.artigo?.autor || 'IPHAN',
-          "datePublished": item.artigo?.ano || '2024',
-          "publisher": item.artigo?.veiculo || 'SciELO / IPHAN'
+          "name": item.artigo?.titulo || item.dossie?.artigo?.titulo || 'Dossiê Cultural',
+          "author": item.artigo?.autor || item.dossie?.artigo?.autor || 'IPHAN',
+          "datePublished": item.artigo?.ano || item.dossie?.artigo?.ano || '2024',
+          "publisher": item.artigo?.veiculo || item.dossie?.artigo?.veiculo || 'SciELO / IPHAN'
         }
       ]
     };
@@ -445,19 +452,27 @@ export default function CulturalInteroperabilityView({
     return nodes.filter(n => n.label.toLowerCase().includes(t) || (n.familia || '').includes(t));
   }, [nodes, searchTerm]);
 
-  // Grade de Interligações Automáticas (conforme imagem exata do usuário)
-  const defaultInterligacoes = [
-    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'wikidata' },
-    { title: currentDossier?.tag || selectedTagLabel, subtitle: 'Tag do Público', type: 'tag' },
-    { title: 'Artigo SciELO', subtitle: 'Artigo Científico', type: 'scielo' },
-    { title: currentDossier?.conexoesTextuais?.[0]?.targetTag || 'Mestre Vitalino', subtitle: 'Tag do Público', type: 'tag', targetId: currentDossier?.conexoesTextuais?.[0]?.targetId || 'mestre_vitalino' },
+  // Grade interativa de 8 cards com links funcionais
+  const interligacoesList = currentDossier?.interligacoesGrid || [
+    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'external', url: 'http://wikidata.org/entity/Q5046049' },
+    { title: currentDossier?.tag || selectedTagLabel, subtitle: 'Tag do Público', type: 'tag', targetId: selectedNodeId },
+    { title: 'Artigo SciELO', subtitle: 'Artigo Científico', type: 'external', url: 'https://doi.org/10.1590/S0104-1234.1974.0042' },
+    { title: 'Mestre Vitalino', subtitle: 'Tag do Público', type: 'tag', targetId: 'mestre_vitalino' },
     { title: currentDossier?.familia || 'Família Artesanato Místico', subtitle: 'Família Cultural', type: 'familia' },
-    { title: currentDossier?.conexoesTextuais?.[1]?.targetTag || 'Ex-votos do Nordeste', subtitle: 'Tag do Público', type: 'tag', targetId: currentDossier?.conexoesTextuais?.[1]?.targetId || 'ex_voto' },
-    { title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'brasiliana' },
-    { title: 'Tainacan API', subtitle: 'Repositório Cultural', type: 'tainacan' }
+    { title: 'Ex-votos do Nordeste', subtitle: 'Tag do Público', type: 'tag', targetId: 'ex_voto' },
+    { title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'external', url: `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(selectedTagLabel)}` },
+    { title: 'Tainacan API', subtitle: 'Repositório Cultural', type: 'external', url: `https://brasiliana.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(selectedTagLabel)}` }
   ];
 
-  const interligacoesList = currentDossier?.interligacoesGrid || defaultInterligacoes;
+  const handleCardClick = (item: any) => {
+    if (item.type === 'external' && item.url) {
+      window.open(item.url, '_blank', 'noopener,noreferrer');
+    } else if (item.type === 'tag' && item.targetId) {
+      handleSelectNode(item.targetId, item.title);
+    } else if (item.type === 'familia') {
+      setSearchTerm(item.title.replace('Família ', ''));
+    }
+  };
 
   return (
     <div className="space-y-6 text-[#1A1A1A]">
@@ -749,14 +764,14 @@ export default function CulturalInteroperabilityView({
                   TAG PRESERVADA
                 </span>
                 <span className="text-[10px] text-black/50 font-mono">
-                  {currentDossier?.familia || 'saberes.escultura.fluvial'}
+                  {currentDossier?.familia || 'Família Artesanato Místico'}
                 </span>
               </div>
               <h3 className="text-2xl font-bold text-[#1A1A1A]">
-                {currentDossier?.tag || selectedTagLabel}
+                {currentDossier?.tag || currentDossier?.label || selectedTagLabel}
               </h3>
               <p className="text-xs text-[#1A1A1A]/70 mt-1.5 leading-relaxed">
-                {currentDossier?.descricao || selectedNode?.desc}
+                {currentDossier?.descricao || currentDossier?.dossie?.artigo?.resumo || selectedNode?.desc}
               </p>
             </div>
 
@@ -772,7 +787,7 @@ export default function CulturalInteroperabilityView({
                 <p className="text-[#1A1A1A] text-xs font-bold">{currentDossier.autor || 'João Silva'}</p>
                 <div className="flex items-center justify-between text-[11px] text-[#1A1A1A]/70 pt-1.5 border-t border-black/04">
                   <span>Conceito central:</span>
-                  <span className="font-bold text-[#E8490A]">{currentDossier.tripla?.objeto || 'Rio São Francisco'}</span>
+                  <span className="font-bold text-[#E8490A]">{currentDossier.tripla?.objeto || 'Patrimônio Cultural Brasileiro'}</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-[#1A1A1A]/45 font-mono">
                   <span>DID / UUID:</span>
@@ -782,7 +797,7 @@ export default function CulturalInteroperabilityView({
             )}
 
             {/* Artigo Científico Real Vinculado via RAG */}
-            {currentDossier?.artigo && (
+            {(currentDossier?.artigo || currentDossier?.dossie?.artigo) && (
               <div className="p-4 bg-gradient-to-br from-white via-white to-orange-50/30 border border-orange-200/60 rounded-2xl space-y-2.5 shadow-xs">
                 <div className="flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider text-[#E8490A]">
                   <span className="flex items-center gap-1.5">
@@ -791,18 +806,18 @@ export default function CulturalInteroperabilityView({
                   <span className="text-[9px] text-[#1A1A1A]/50 font-mono">FUNDAMENTAÇÃO REAL</span>
                 </div>
                 <h4 className="text-xs font-bold text-[#1A1A1A] leading-snug">
-                  {currentDossier.artigo.titulo}
+                  {currentDossier.artigo?.titulo || currentDossier.dossie?.artigo?.titulo}
                 </h4>
                 <p className="text-[10.5px] text-[#1A1A1A]/60 font-medium">
-                  {currentDossier.artigo.autor} • <span className="italic">{currentDossier.artigo.veiculo}</span> ({currentDossier.artigo.ano})
+                  {currentDossier.artigo?.autor || currentDossier.dossie?.artigo?.autor} • <span className="italic">{currentDossier.artigo?.veiculo || currentDossier.dossie?.artigo?.veiculo}</span> ({currentDossier.artigo?.ano || currentDossier.dossie?.artigo?.ano})
                 </p>
                 <p className="text-[11px] text-[#1A1A1A]/80 leading-relaxed border-t border-black/05 pt-2">
-                  {currentDossier.artigo.resumo}
+                  {currentDossier.artigo?.resumo || currentDossier.dossie?.artigo?.resumo}
                 </p>
                 <div className="flex items-center justify-between pt-1 text-[10.5px]">
-                  <span className="font-mono text-[#1A1A1A]/50">DOI: {currentDossier.artigo.doi}</span>
+                  <span className="font-mono text-[#1A1A1A]/50">DOI: {currentDossier.artigo?.doi || currentDossier.dossie?.artigo?.doi}</span>
                   <a
-                    href={currentDossier.artigo.url}
+                    href={currentDossier.artigo?.url || currentDossier.dossie?.artigo?.url || 'https://brasiliana.museus.gov.br'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 font-bold text-[#E8490A] hover:underline"
@@ -813,7 +828,7 @@ export default function CulturalInteroperabilityView({
               </div>
             )}
 
-            {/* INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS (Layout idêntico à imagem de referência) */}
+            {/* INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS (Interativo e Funcional) */}
             <div className="space-y-2.5">
               <p className="text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
                 INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS:
@@ -823,22 +838,23 @@ export default function CulturalInteroperabilityView({
                 {interligacoesList.map((item: any, i: number) => (
                   <div
                     key={i}
-                    onClick={() => {
-                      if (item.targetId) {
-                        handleSelectNode(item.targetId, item.title);
-                      }
-                    }}
-                    className={`p-3 rounded-2xl bg-gradient-to-br from-amber-50/60 to-orange-50/40 border border-amber-200/50 flex flex-col justify-between space-y-1 transition-all ${
-                      item.targetId ? 'cursor-pointer hover:border-[#E8490A] hover:shadow-xs' : ''
-                    }`}
+                    onClick={() => handleCardClick(item)}
+                    className="p-3 rounded-2xl bg-gradient-to-br from-amber-50/70 to-orange-50/50 hover:from-amber-100/80 hover:to-orange-100/60 border border-amber-200/60 hover:border-[#E8490A] flex flex-col justify-between space-y-1 transition-all cursor-pointer shadow-xs hover:shadow-sm active:scale-98 group"
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-[#1A1A1A] truncate">{item.title}</span>
-                      <span className="text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 shrink-0">
-                        AUTO
+                      <span className="text-xs font-bold text-[#1A1A1A] truncate group-hover:text-[#E8490A] transition-colors">
+                        {item.title}
                       </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {item.type === 'external' && (
+                          <ExternalLink size={10} className="text-black/30 group-hover:text-[#E8490A]" />
+                        )}
+                        <span className="text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800">
+                          AUTO
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-[10px] text-[#1A1A1A]/50 font-medium">
+                    <span className="text-[10px] text-[#1A1A1A]/55 font-medium">
                       {item.subtitle}
                     </span>
                   </div>
@@ -873,7 +889,7 @@ export default function CulturalInteroperabilityView({
                 <FileCode2 size={18} className="text-[#E8490A]" />
                 <div>
                   <h3 className="text-sm font-bold text-white">
-                    Pacote de Transferência — "{currentDossier?.tag || selectedTagLabel}"
+                    Pacote de Transferência — "{currentDossier?.tag || currentDossier?.label || selectedTagLabel}"
                   </h3>
                   <p className="text-[10px] text-white/50 font-mono">JSON-LD 1.1 • W3C SKOS • PROV-O • Schema.org</p>
                 </div>

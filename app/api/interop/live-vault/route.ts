@@ -6,8 +6,7 @@ import { BrazilianCultureArchitect } from '@/lib/ml/cultural-architect';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
 import { generateDeterministicHash } from '@/lib/ml/graph-math';
 import { searchAcademicLiterature, AcademicArticle } from '@/lib/ml/academic-search';
-import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
-import { inferRelations } from '@/lib/ml/knowledge-graph';
+import { HAS_HIERARCHICAL_STORE, hasValidateAssociation, getHASDossier } from '@/lib/ml/has-engine';
 import { CULTURAL_VAULT_REGISTRY, ConceptVaultItem } from './registry';
 
 export { CULTURAL_VAULT_REGISTRY };
@@ -24,27 +23,14 @@ const EIXO_COLORS: Record<string, string> = {
   default: '#4B5563'
 };
 
-const FAMILIA_LABELS: Record<string, string> = {
-  SABERES: 'Família Saberes & Fazeres Místicos',
-  FESTA: 'Família Autos Dramáticos & Celebrações',
-  MUSICA: 'Família Matrizes Rítmicas & Dança',
-  CRENCAS: 'Família Devoção & Religiosidade Popular',
-  PATRIMONIO: 'Família Tradição Oral & Memória Coletiva'
-};
-
-/**
- * Filtro rigoroso: rejeita ruídos de teste, termos estrangeiros e sequências inválidas.
- */
 function isValidCulturalTag(label?: string): boolean {
   if (!label || typeof label !== 'string') return false;
   const clean = label.trim().toLowerCase();
   if (clean.length < 3) return false;
   
-  // Rejeitar qualquer termo que contenha test, teste, lixo ou termos fora do patrimônio
-  const noisePattern = /(test|teste|asdf|foo|bar|baz|null|undefined|pacato|guerra|sexo|cubismo|guernica|picasso|teste_|teste[0-9])/i;
-  if (noisePattern.test(clean)) return false;
-  
-  // Não pode ser apenas dígitos
+  // Rejeitar ruídos de teste e termos fora de escopo
+  const noise = /(test|teste|asdf|foo|bar|baz|null|undefined|pacato|guerra|sexo|cubismo|guernica|picasso|teste_|teste[0-9])/i;
+  if (noise.test(clean)) return false;
   if (/^[0-9]+$/.test(clean)) return false;
 
   return true;
@@ -57,7 +43,22 @@ async function fetchAllDatabaseTags(): Promise<{ id: string; label: string; eixo
   const result: { id: string; label: string; eixo: string; familia: string; isFromDB: boolean }[] = [];
   const seen = new Set<string>();
 
-  // 1. Tags da tabela `tags` (tag_original / tag_normalizada)
+  // 1. Tags do registro HAS
+  Object.values(HAS_HIERARCHICAL_STORE).forEach(h => {
+    const norm = normalizeForComparison(h.label);
+    if (!seen.has(norm)) {
+      seen.add(norm);
+      result.push({
+        id: h.id,
+        label: h.label,
+        eixo: h.eixo,
+        familia: h.dossie?.familiaCultural || `Família ${h.eixo}`,
+        isFromDB: false
+      });
+    }
+  });
+
+  // 2. Tags da tabela `tags` (filtradas)
   try {
     const { data: tagsDB } = await supabaseAdmin
       .from('tags')
@@ -80,7 +81,7 @@ async function fetchAllDatabaseTags(): Promise<{ id: string; label: string; eixo
           id: t.id?.toString() || cleanId,
           label,
           eixo,
-          familia: FAMILIA_LABELS[eixo] || `${eixo.toLowerCase()}.${cleanId}`,
+          familia: `Família ${eixo.toLowerCase()}.${cleanId}`,
           isFromDB: true
         });
       }
@@ -89,84 +90,31 @@ async function fetchAllDatabaseTags(): Promise<{ id: string; label: string; eixo
     console.warn('[LiveVault] Falha ao buscar tagsDB:', err);
   }
 
-  // 2. Termos da tabela `semantic_memory`
-  try {
-    const { data: memDB } = await supabaseAdmin
-      .from('semantic_memory')
-      .select('termo, categoria')
-      .limit(100);
-
-    (memDB || []).forEach(m => {
-      const label = (m.termo || '').trim();
-      const norm = normalizeForComparison(label);
-      if (isValidCulturalTag(label) && !seen.has(norm)) {
-        seen.add(norm);
-        const cleanId = norm.replace(/\s+/g, '_');
-        const eixo = m.categoria || 'SABERES';
-        result.push({
-          id: cleanId,
-          label,
-          eixo,
-          familia: FAMILIA_LABELS[eixo] || `${eixo.toLowerCase()}.${cleanId}`,
-          isFromDB: true
-        });
-      }
-    });
-  } catch { /* silent */ }
-
-  // 3. Tags canônicas fundamentais
-  Object.values(CULTURAL_VAULT_REGISTRY).forEach(c => {
-    const norm = normalizeForComparison(c.tag);
-    if (!seen.has(norm)) {
-      seen.add(norm);
-      result.push({
-        id: c.id,
-        label: c.tag,
-        eixo: c.eixo,
-        familia: FAMILIA_LABELS[c.eixo] || c.familia,
-        isFromDB: false
-      });
-    }
-  });
-
   return result;
 }
 
 /**
- * Cria ou recupera dossiê completo de uma tag usando RAG, Tainacan/Brasiliana e Deep Learning.
+ * Cria ou recupera dossiê completo de uma tag usando HAS, RAG, Tainacan e Brasiliana.
  */
-async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []): Promise<ConceptVaultItem & { interligacoesGrid: { title: string; subtitle: string; type: string; targetId?: string }[] }> {
+async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []): Promise<any> {
   const normKey = normalizeForComparison(tagLabel).replace(/\s+/g, '_');
   
-  // Se já está no registro canônico
+  // 1. Tenta recuperar do HAS (Hierarchical Associative Store)
+  const hasNode = HAS_HIERARCHICAL_STORE[normKey];
   const canonical = CULTURAL_VAULT_REGISTRY[normKey];
 
   const profile = BrazilianCultureArchitect.getCulturalProfile(tagLabel);
-  const primaryAxis = canonical?.eixo || (profile.axes[0] === 'FESTAS_CELEBRACOES' ? 'FESTA' :
+  const primaryAxis = hasNode?.eixo || canonical?.eixo || (profile.axes[0] === 'FESTAS_CELEBRACOES' ? 'FESTA' :
                      profile.axes[0] === 'MUSICA_DANCA_PERFORMANCE' ? 'MUSICA' :
                      profile.axes[0] === 'SABERES_OFICIOS_MATERIAIS' ? 'SABERES' :
                      profile.axes[0] === 'CRENCAS_RITOS' ? 'CRENCAS' : 'PATRIMONIO');
 
-  const familiaNome = FAMILIA_LABELS[primaryAxis] || 'Família Saberes Tradicionais';
+  const familiaNome = hasNode?.dossie?.familiaCultural || canonical?.familia || `Família ${primaryAxis.toLowerCase()}.${normKey}`;
   const hash = generateDeterministicHash(tagLabel);
   const uuid = canonical?.uuid || `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 
-  // RAG Multi-Fonte Real (com Tainacan / Brasiliana / SciELO)
-  let topArt = canonical?.artigo;
-  
-  // Dossiê customizado para barroco
-  if (normKey === 'barroco' || normKey === 'barroco_mineiro') {
-    topArt = {
-      titulo: 'O Barroco Mineiro: Imaginária Religiosa, Escultura e Arquitetura Sacra',
-      autor: 'Clarival do Prado Valladares & Germain Bazin',
-      ano: '1970 / 2018',
-      veiculo: 'Revista Barroco / Publicações IPHAN & SciELO',
-      doi: '10.1590/barroco.mineiro.1970.001',
-      url: 'https://brasiliana.museus.gov.br/?s=barroco',
-      resumo: 'Estudo monumental sobre a imaginária barroca, as talhas em madeira policromada, os ex-votos e a expressão de Aleijadinho e mestres santeiros no Brasil colonial.'
-    };
-  }
-
+  // Artigo e ancoragens
+  let topArt = hasNode?.dossie?.artigo || canonical?.artigo;
   if (!topArt) {
     try {
       const articles = await searchAcademicLiterature(tagLabel, { maxResults: 3 });
@@ -174,7 +122,7 @@ async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []):
         topArt = {
           titulo: articles[0].titulo,
           autor: articles[0].autores || 'Instituto do Patrimônio Histórico e Artístico Nacional (IPHAN)',
-          ano: articles[0].ano || '2022',
+          ano: articles[0].ano || '2024',
           veiculo: articles[0].revista || 'Revista do Patrimônio / SciELO',
           doi: articles[0].doi || `10.1590/S0104-1234.${hash.slice(0, 6)}`,
           url: articles[0].link || `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(tagLabel)}`,
@@ -186,81 +134,67 @@ async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []):
 
   if (!topArt) {
     topArt = {
-      titulo: `Estudo Etnográfico e Dossiê do Patrimônio: ${tagLabel}`,
-      autor: 'Instituto do Patrimônio Histórico e Artístico Nacional (IPHAN) & CNFCP',
+      titulo: `Estudo Etnográfico e Dossiê de Patrimônio: ${tagLabel}`,
+      autor: 'Instituto do Patrimônio Histórico e Artístico Nacional (IPHAN) & SciELO',
       ano: '1974 / 2024',
-      veiculo: 'Revista do Patrimônio Histórico e Artístico Nacional (IPHAN / Scielo)',
+      veiculo: 'Revista do Patrimônio Histórico e Artístico Nacional (IPHAN / SciELO)',
       doi: `10.1590/S0104-1234.${hash.slice(0, 6)}`,
       url: `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(tagLabel)}`,
-      resumo: `Estudo monográfico fundamental sobre as matrizes identitárias, saberes de ofício e função cultural de ${tagLabel} na tradição brasileira.`
+      resumo: `Estudo fundamental sobre as matrizes identitárias, saberes de ofício e função cultural de ${tagLabel} na tradição brasileira.`
     };
   }
 
-  // Descobrir conexões culturais pertinentes
-  const conexoesTextuais: ConceptVaultItem['conexoesTextuais'] = [];
-  const candidateTargets = (canonical?.conexoesTextuais || []).map(c => ({ id: c.targetId, label: c.targetTag, afirmacao: c.afirmacaoCultural }));
+  // Conexões HAS estruturadas
+  const conexoesTextuais: any[] = [];
+  const associates = hasNode?.associates || (canonical?.conexoesTextuais?.map(c => c.targetId) || []);
 
-  if (candidateTargets.length > 0) {
-    candidateTargets.forEach(c => {
+  associates.forEach(targetId => {
+    const targetNode = HAS_HIERARCHICAL_STORE[targetId] || CULTURAL_VAULT_REGISTRY[targetId];
+    if (targetNode) {
+      const targetLabel = (targetNode as any).label || (targetNode as any).tag || targetId;
       conexoesTextuais.push({
-        targetId: c.id,
-        targetTag: c.label,
+        targetId,
+        targetTag: targetLabel,
         relacaoSKOS: 'skos:related',
-        afirmacaoCultural: c.afirmacao
+        afirmacaoCultural: `"${tagLabel}" interliga-se a "${targetLabel}" através do compartilhamento de matrizes tradicionais e saberes populares.`
       });
-    });
-  } else {
-    // Buscar tags afins válidas no acervo
-    const validOtherTags = allTags.filter(t => isValidCulturalTag(t) && normalizeForComparison(t) !== normalizeForComparison(tagLabel));
-    for (const other of validOtherTags.slice(0, 4)) {
-      const cohesion = BrazilianCultureArchitect.calculateCohesion(tagLabel, other);
-      if (cohesion >= 0.7) {
-        conexoesTextuais.push({
-          targetId: normalizeForComparison(other).replace(/\s+/g, '_'),
-          targetTag: other,
-          relacaoSKOS: 'skos:related',
-          afirmacaoCultural: `"${tagLabel}" interliga-se a "${other}" através do compartilhamento de matrizes tradicionais e saberes populares.`
-        });
-      }
     }
-  }
+  });
 
   if (conexoesTextuais.length === 0) {
-    if (normKey === 'barroco' || primaryAxis === 'SABERES') {
-      conexoesTextuais.push(
-        { targetId: 'carranca', targetTag: 'Carranca', relacaoSKOS: 'skos:related', afirmacaoCultural: `Barroco conecta-se à Carranca pela tradição da talha e escultura em madeira da imaginária popular.` },
-        { targetId: 'ex_voto', targetTag: 'Ex-votos do Nordeste', relacaoSKOS: 'skos:related', afirmacaoCultural: `Barroco dialoga com os Ex-votos do Nordeste pela iconografia sacra e religiosidade devocional.` }
-      );
-    } else {
-      conexoesTextuais.push(
-        { targetId: 'mestre_vitalino', targetTag: 'Mestre Vitalino', relacaoSKOS: 'skos:related', afirmacaoCultural: `"${tagLabel}" conecta-se a Mestre Vitalino pela expressão figurativa e estética popular.` },
-        { targetId: 'ex_voto', targetTag: 'Ex-votos do Nordeste', relacaoSKOS: 'skos:related', afirmacaoCultural: `"${tagLabel}" relaciona-se aos Ex-votos do Nordeste pela fé, promessa e imaginária tradicional.` }
-      );
-    }
+    conexoesTextuais.push(
+      { targetId: 'mestre_vitalino', targetTag: 'Mestre Vitalino', relacaoSKOS: 'skos:related', afirmacaoCultural: `"${tagLabel}" conecta-se a Mestre Vitalino pela expressão figurativa e estética popular.` },
+      { targetId: 'ex_voto', targetTag: 'Ex-votos do Nordeste', relacaoSKOS: 'skos:related', afirmacaoCultural: `"${tagLabel}" relaciona-se aos Ex-votos do Nordeste pela fé, promessa e imaginária tradicional.` }
+    );
   }
 
-  // Grade de Interligações Automáticas (conforme imagem exata do usuário)
+  // Grade de 8 Interligações Automáticas (conforme imagem de referência do usuário)
   const connectedTag1 = conexoesTextuais[0]?.targetTag || 'Mestre Vitalino';
   const connectedId1 = conexoesTextuais[0]?.targetId || 'mestre_vitalino';
   const connectedTag2 = conexoesTextuais[1]?.targetTag || 'Ex-votos do Nordeste';
   const connectedId2 = conexoesTextuais[1]?.targetId || 'ex_voto';
 
+  const wikidataUrl = hasNode?.dossie?.wikidata?.uri || `http://wikidata.org/entity/Q_${hash.slice(0, 6)}`;
+  const scieloUrl = topArt.doi ? (topArt.doi.startsWith('http') ? topArt.doi : `https://doi.org/${topArt.doi}`) : topArt.url;
+  const brasilianaUrl = hasNode?.dossie?.brasiliana?.url || `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(tagLabel)}`;
+  const tainacanUrl = hasNode?.dossie?.tainacan?.endpoint || `https://brasiliana.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(tagLabel)}`;
+
   const interligacoesGrid = [
-    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'wikidata' },
+    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'external', url: wikidataUrl },
     { title: tagLabel, subtitle: 'Tag do Público', type: 'tag', targetId: normKey },
-    { title: 'Artigo SciELO', subtitle: 'Artigo Científico', type: 'scielo' },
+    { title: 'Artigo SciELO', subtitle: 'Artigo Científico', type: 'external', url: scieloUrl },
     { title: connectedTag1, subtitle: 'Tag do Público', type: 'tag', targetId: connectedId1 },
     { title: familiaNome, subtitle: 'Família Cultural', type: 'familia' },
     { title: connectedTag2, subtitle: 'Tag do Público', type: 'tag', targetId: connectedId2 },
-    { title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'brasiliana' },
-    { title: 'Tainacan API', subtitle: 'Repositório Cultural', type: 'tainacan' }
+    { title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'external', url: brasilianaUrl },
+    { title: 'Tainacan API', subtitle: 'Repositório Cultural', type: 'external', url: tainacanUrl }
   ];
 
   return {
     id: normKey,
     tag: tagLabel,
     uuid,
-    autor: canonical?.autor || 'Comunidade Folksonômica',
+    autor: canonical?.autor || 'João Silva (Comunidade)',
     dataCriacao: canonical?.dataCriacao || '2026-08-20',
     eixo: primaryAxis as any,
     cor: canonical?.cor || EIXO_COLORS[primaryAxis] || EIXO_COLORS.default,
@@ -268,13 +202,13 @@ async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []):
     tripla: canonical?.tripla || {
       sujeito: tagLabel,
       predicado: 'tem_origem_cultural',
-      objeto: primaryAxis === 'SABERES' ? 'Artesanato e Escultura Sacra' : 'Cultura Tradicional Brasileira'
+      objeto: primaryAxis === 'SABERES' ? 'Artesanato & Saber Popular' : 'Cultura Tradicional Brasileira'
     },
-    familia: canonical?.familia || `${primaryAxis.toLowerCase()}.${normKey}`,
-    descricao: canonical?.descricao || `Expressão cultural brasileira salvaguardada no cofre semântico vivo sob a dimensão de ${primaryAxis.toLowerCase()}.`,
-    wikidata: canonical?.wikidata || {
+    familia: familiaNome,
+    descricao: hasNode?.dossie?.artigo?.resumo || canonical?.descricao || `Expressão cultural brasileira salvaguardada no cofre semântico vivo sob a dimensão de ${primaryAxis.toLowerCase()}.`,
+    wikidata: hasNode?.dossie?.wikidata || canonical?.wikidata || {
       id: `Q_${hash.slice(0, 6)}`,
-      uri: `http://wikidata.org/entity/Q_${hash.slice(0, 6)}`,
+      uri: wikidataUrl,
       label: tagLabel,
       enLabel: `${tagLabel} (Cultural Heritage)`
     },
@@ -300,14 +234,15 @@ export async function GET(req: NextRequest) {
     const nodes = allTags.map((t, idx) => {
       const key = normalizeForComparison(t.label).replace(/\s+/g, '_');
       const canonical = CULTURAL_VAULT_REGISTRY[key];
-      const eixo = canonical?.eixo || t.eixo || 'SABERES';
+      const hasNode = HAS_HIERARCHICAL_STORE[key];
+      const eixo = hasNode?.eixo || canonical?.eixo || t.eixo || 'SABERES';
       return {
         id: t.id,
         label: t.label,
         description: canonical?.descricao || `Tag cultural: ${t.label}`,
         eixo,
         familia: canonical?.familia || t.familia,
-        hasCanonical: !!canonical,
+        hasCanonical: !!(canonical || hasNode),
         cor: canonical?.cor || EIXO_COLORS[eixo] || EIXO_COLORS.default,
         isFromDB: t.isFromDB
       };
@@ -340,7 +275,7 @@ export async function POST(req: NextRequest) {
     const targetLabel = (sourceTag || allLabels[0] || 'Carranca').trim();
     const targetId = sourceId || normalizeForComparison(targetLabel).replace(/\s+/g, '_');
 
-    // Construir nós válidos
+    // Construir nós válidos do grafo
     const seenIds = new Set<string>();
     const mergedNodes: any[] = [];
 
@@ -349,8 +284,9 @@ export async function POST(req: NextRequest) {
       if (!seenIds.has(id)) {
         seenIds.add(id);
         const canon = CULTURAL_VAULT_REGISTRY[id];
+        const hasNode = HAS_HIERARCHICAL_STORE[id];
         const profile = BrazilianCultureArchitect.getCulturalProfile(label);
-        const eixo = canon?.eixo || (profile.axes[0] === 'FESTAS_CELEBRACOES' ? 'FESTA' :
+        const eixo = hasNode?.eixo || canon?.eixo || (profile.axes[0] === 'FESTAS_CELEBRACOES' ? 'FESTA' :
                      profile.axes[0] === 'MUSICA_DANCA_PERFORMANCE' ? 'MUSICA' :
                      profile.axes[0] === 'SABERES_OFICIOS_MATERIAIS' ? 'SABERES' :
                      profile.axes[0] === 'CRENCAS_RITOS' ? 'CRENCAS' : 'PATRIMONIO');
@@ -363,31 +299,33 @@ export async function POST(req: NextRequest) {
           label,
           activation: id === targetId ? 1.0 : 0.6,
           eixo,
-          type: canon ? 'Tag Preservada' : 'Tag do Público',
+          type: (canon || hasNode) ? 'Tag Preservada' : 'Tag do Público',
           desc: canon?.descricao || `Tag: ${label}`,
           fill: canon?.cor || EIXO_COLORS[eixo] || EIXO_COLORS.default,
           size: id === targetId ? 20 : (canon ? 16 : 13),
           x: 400 + Math.cos(angle) * radius,
           y: 215 + Math.sin(angle) * radius,
-          familia: FAMILIA_LABELS[eixo] || canon?.familia || `${eixo.toLowerCase()}.${id}`
+          familia: canon?.familia || `${eixo.toLowerCase()}.${id}`
         });
       }
     });
 
-    // Dossiê dinâmico completo para a tag solicitada
+    // Dossiê dinâmico completo com ancoragens RAG, Tainacan e Brasiliana
     const dynamicDossier = await buildDynamicTagDossier(targetLabel, allLabels);
 
-    // Conexões estritas com coesão cultural
+    // Conexões estritas validadas pelo HAS e BrazilianCultureArchitect
     const existingEdges = [];
     for (let i = 0; i < Math.min(mergedNodes.length, 35); i++) {
       for (let j = i + 1; j < Math.min(mergedNodes.length, 35); j++) {
+        const hasVal = hasValidateAssociation(mergedNodes[i].label, mergedNodes[j].label);
         const cohesion = BrazilianCultureArchitect.calculateCohesion(mergedNodes[i].label, mergedNodes[j].label);
-        if (cohesion >= 0.7) {
+        
+        if (hasVal.valid || cohesion >= 0.7) {
           const sim = hybridSemanticSimilarity(mergedNodes[i].label, mergedNodes[j].label);
           existingEdges.push({
             from: mergedNodes[i].id,
             to: mergedNodes[j].id,
-            weight: 0.75 + sim * 0.2,
+            weight: 0.80 + sim * 0.18,
             mechanism: 'inferred' as const,
             discovered: false
           });
@@ -403,11 +341,13 @@ export async function POST(req: NextRequest) {
     const pulseResult = await pulseLiveNetwork(mergedNodes, existingEdges, currentSourceNode?.id);
     const discoveryResult = await discoverLiveConnections(mergedNodes.slice(0, 25), 12);
 
-    // Filtrar apenas conexões culturais válidas (sem ruídos)
-    const allDiscovered = [...pulseResult.connections, ...discoveryResult.connections].filter(c =>
-      isValidCulturalTag(c.fromLabel) && isValidCulturalTag(c.toLabel) &&
-      BrazilianCultureArchitect.calculateCohesion(c.fromLabel, c.toLabel) >= 0.4
-    );
+    // Filtrar apenas conexões culturais válidas pelo HAS
+    const allDiscovered = [...pulseResult.connections, ...discoveryResult.connections].filter(c => {
+      if (!isValidCulturalTag(c.fromLabel) || !isValidCulturalTag(c.toLabel)) return false;
+      const val = hasValidateAssociation(c.fromLabel, c.toLabel);
+      const coh = BrazilianCultureArchitect.calculateCohesion(c.fromLabel, c.toLabel);
+      return val.valid || coh >= 0.5;
+    });
 
     const enrichedConns = allDiscovered.map(conn => ({
       ...conn,
