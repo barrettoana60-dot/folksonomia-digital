@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin, supabaseClient } from '@/lib/supabase/client';
+import { supabaseAdmin } from '@/lib/supabase/client';
 import { discoverLiveConnections, pulseLiveNetwork } from '@/lib/ml/live-network-engine';
 import { hybridSemanticSimilarity } from '@/lib/ml/similarity';
 import { BrazilianCultureArchitect } from '@/lib/ml/cultural-architect';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
 import { generateDeterministicHash } from '@/lib/ml/graph-math';
-import { searchAcademicLiterature, AcademicArticle } from '@/lib/ml/academic-search';
-import { HAS_HIERARCHICAL_STORE, hasValidateAssociation, getHASDossier } from '@/lib/ml/has-engine';
+import { searchAcademicLiterature } from '@/lib/ml/academic-search';
+import { HAS_HIERARCHICAL_STORE, hasValidateAssociation } from '@/lib/ml/has-engine';
 import { CULTURAL_VAULT_REGISTRY, ConceptVaultItem } from './registry';
 
 export { CULTURAL_VAULT_REGISTRY };
@@ -29,7 +29,7 @@ function isValidCulturalTag(label?: string): boolean {
   if (clean.length < 3) return false;
   
   // Rejeitar ruídos de teste e termos fora de escopo
-  const noise = /(test|teste|asdf|foo|bar|baz|null|undefined|pacato|guerra|sexo|cubismo|guernica|picasso|teste_|teste[0-9])/i;
+  const noise = /(^|\s)(oi|eu|m|o|test|teste|asdf|foo|bar|baz|null|undefined)(\s|$)|test|teste|asdf|lorem|ipsum/i;
   if (noise.test(clean)) return false;
   if (/^[0-9]+$/.test(clean)) return false;
 
@@ -45,6 +45,7 @@ async function fetchAllDatabaseTags(): Promise<{ id: string; label: string; eixo
 
   // 1. Tags do registro HAS
   Object.values(HAS_HIERARCHICAL_STORE).forEach(h => {
+    if (!isValidCulturalTag(h.label)) return;
     const norm = normalizeForComparison(h.label);
     if (!seen.has(norm)) {
       seen.add(norm);
@@ -63,8 +64,7 @@ async function fetchAllDatabaseTags(): Promise<{ id: string; label: string; eixo
     const { data: tagsDB } = await supabaseAdmin
       .from('tags')
       .select('id, tag_original, tag_normalizada, grupo_tematico, criado_em')
-      .order('criado_em', { ascending: false })
-      .limit(300);
+      .order('criado_em', { ascending: false });
 
     (tagsDB || []).forEach(t => {
       const label = (t.tag_original || t.tag_normalizada || '').trim();
@@ -113,35 +113,26 @@ async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []):
   const hash = generateDeterministicHash(tagLabel);
   const uuid = canonical?.uuid || `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 
-  // Artigo e ancoragens
+  // Artigo e ancoragens. Uma fonte sem DOI verificável nunca recebe DOI inventado.
   let topArt = hasNode?.dossie?.artigo || canonical?.artigo;
+  let artigoStatus: 'ilustrativo' | 'pendente_verificacao' | 'sem_fonte' = topArt ? 'ilustrativo' : 'sem_fonte';
   if (!topArt) {
     try {
       const articles = await searchAcademicLiterature(tagLabel, { maxResults: 3 });
       if (articles.length > 0) {
+        const article = articles[0];
         topArt = {
-          titulo: articles[0].titulo,
-          autor: articles[0].autores || 'Instituto do Patrimônio Histórico e Artístico Nacional (IPHAN)',
-          ano: articles[0].ano || '2024',
-          veiculo: articles[0].revista || 'Revista do Patrimônio / SciELO',
-          doi: articles[0].doi || `10.1590/S0104-1234.${hash.slice(0, 6)}`,
-          url: articles[0].link || `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(tagLabel)}`,
-          resumo: articles[0].descricao
+          titulo: article.titulo,
+          autor: article.autores || 'Autoria não informada',
+          ano: article.ano || 'Data não informada',
+          veiculo: article.revista || 'Veículo não informado',
+          doi: article.doi || '',
+          url: article.link || '',
+          resumo: article.descricao || 'Resumo não disponibilizado pela fonte.'
         };
+        artigoStatus = article.doi ? 'pendente_verificacao' : 'sem_fonte';
       }
     } catch { /* fallback */ }
-  }
-
-  if (!topArt) {
-    topArt = {
-      titulo: `Estudo Etnográfico e Dossiê de Patrimônio: ${tagLabel}`,
-      autor: 'Instituto do Patrimônio Histórico e Artístico Nacional (IPHAN) & SciELO',
-      ano: '1974 / 2024',
-      veiculo: 'Revista do Patrimônio Histórico e Artístico Nacional (IPHAN / SciELO)',
-      doi: `10.1590/S0104-1234.${hash.slice(0, 6)}`,
-      url: `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(tagLabel)}`,
-      resumo: `Estudo fundamental sobre as matrizes identitárias, saberes de ofício e função cultural de ${tagLabel} na tradição brasileira.`
-    };
   }
 
   // Conexões HAS estruturadas
@@ -162,40 +153,41 @@ async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []):
   });
 
   if (conexoesTextuais.length === 0) {
-    conexoesTextuais.push(
-      { targetId: 'mestre_vitalino', targetTag: 'Mestre Vitalino', relacaoSKOS: 'skos:related', afirmacaoCultural: `"${tagLabel}" conecta-se a Mestre Vitalino pela expressão figurativa e estética popular.` },
-      { targetId: 'ex_voto', targetTag: 'Ex-votos do Nordeste', relacaoSKOS: 'skos:related', afirmacaoCultural: `"${tagLabel}" relaciona-se aos Ex-votos do Nordeste pela fé, promessa e imaginária tradicional.` }
-    );
+    allTags.filter(candidate => candidate !== tagLabel && isValidCulturalTag(candidate)).forEach(candidate => {
+      const validation = hasValidateAssociation(tagLabel, candidate);
+      const cohesion = BrazilianCultureArchitect.calculateCohesion(tagLabel, candidate);
+      if ((validation.valid || cohesion >= 0.7) && conexoesTextuais.length < 4) {
+        conexoesTextuais.push({
+          targetId: normalizeForComparison(candidate).replace(/\s+/g, '_'),
+          targetTag: candidate,
+          relacaoSKOS: 'skos:related',
+          afirmacaoCultural: `"${tagLabel}" está relacionada a "${candidate}" por referências culturais compatíveis na rede.`
+        });
+      }
+    });
   }
 
-  // Grade de 8 Interligações Automáticas (conforme imagem de referência do usuário)
-  const connectedTag1 = conexoesTextuais[0]?.targetTag || 'Mestre Vitalino';
-  const connectedId1 = conexoesTextuais[0]?.targetId || 'mestre_vitalino';
-  const connectedTag2 = conexoesTextuais[1]?.targetTag || 'Ex-votos do Nordeste';
-  const connectedId2 = conexoesTextuais[1]?.targetId || 'ex_voto';
-
-  const wikidataUrl = hasNode?.dossie?.wikidata?.uri || `http://wikidata.org/entity/Q_${hash.slice(0, 6)}`;
-  const scieloUrl = topArt.doi ? (topArt.doi.startsWith('http') ? topArt.doi : `https://doi.org/${topArt.doi}`) : topArt.url;
-  const brasilianaUrl = hasNode?.dossie?.brasiliana?.url || `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(tagLabel)}`;
-  const tainacanUrl = hasNode?.dossie?.tainacan?.endpoint || `https://brasiliana.museus.gov.br/wp-json/tainacan/v2/items?search=${encodeURIComponent(tagLabel)}`;
+  const wikidataUrl = hasNode?.dossie?.wikidata?.uri || canonical?.wikidata?.uri;
+  const scieloUrl = topArt?.doi ? (topArt.doi.startsWith('http') ? topArt.doi : `https://doi.org/${topArt.doi}`) : topArt?.url;
+  const brasilianaUrl = hasNode?.dossie?.brasiliana?.url;
+  const tainacanUrl = hasNode?.dossie?.tainacan?.endpoint;
 
   const interligacoesGrid = [
-    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'external', url: wikidataUrl },
+    ...(wikidataUrl ? [{ title: 'Wikidata', subtitle: 'Base de Dados', type: 'external', url: wikidataUrl }] : []),
     { title: tagLabel, subtitle: 'Tag do Público', type: 'tag', targetId: normKey },
-    { title: 'Artigo SciELO', subtitle: 'Artigo Científico', type: 'external', url: scieloUrl },
-    { title: connectedTag1, subtitle: 'Tag do Público', type: 'tag', targetId: connectedId1 },
+    ...(scieloUrl ? [{ title: 'Artigo vinculado', subtitle: 'Artigo Científico', type: 'external', url: scieloUrl }] : []),
     { title: familiaNome, subtitle: 'Família Cultural', type: 'familia' },
-    { title: connectedTag2, subtitle: 'Tag do Público', type: 'tag', targetId: connectedId2 },
-    { title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'external', url: brasilianaUrl },
-    { title: 'Tainacan API', subtitle: 'Repositório Cultural', type: 'external', url: tainacanUrl }
+    ...conexoesTextuais.slice(0, 4).map(connection => ({ title: connection.targetTag, subtitle: 'Tag relacionada', type: 'tag', targetId: connection.targetId })),
+    ...(brasilianaUrl ? [{ title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'external', url: brasilianaUrl }] : []),
+    ...(tainacanUrl ? [{ title: 'Tainacan', subtitle: 'Repositório Cultural', type: 'external', url: tainacanUrl }] : [])
   ];
 
   return {
     id: normKey,
     tag: tagLabel,
     uuid,
-    autor: canonical?.autor || 'João Silva (Comunidade)',
-    dataCriacao: canonical?.dataCriacao || '2026-08-20',
+    autor: canonical?.autor || 'Autoria não informada',
+    dataCriacao: canonical?.dataCriacao || 'Data preservada',
     eixo: primaryAxis as any,
     cor: canonical?.cor || EIXO_COLORS[primaryAxis] || EIXO_COLORS.default,
     triplaFrase: canonical?.triplaFrase || `"${tagLabel}" tem origem cultural no patrimônio imaterial brasileiro.`,
@@ -206,16 +198,47 @@ async function buildDynamicTagDossier(tagLabel: string, allTags: string[] = []):
     },
     familia: familiaNome,
     descricao: hasNode?.dossie?.artigo?.resumo || canonical?.descricao || `Expressão cultural brasileira salvaguardada no cofre semântico vivo sob a dimensão de ${primaryAxis.toLowerCase()}.`,
-    wikidata: hasNode?.dossie?.wikidata || canonical?.wikidata || {
-      id: `Q_${hash.slice(0, 6)}`,
-      uri: wikidataUrl,
-      label: tagLabel,
-      enLabel: `${tagLabel} (Cultural Heritage)`
-    },
+    wikidata: hasNode?.dossie?.wikidata || canonical?.wikidata,
     artigo: topArt,
+    artigoStatus,
     conexoesTextuais,
     interligacoesGrid
   };
+}
+
+function buildJsonLd(dossier: any) {
+  const article = dossier.artigoStatus === 'verificado' && dossier.artigo ? [{
+    '@id': dossier.artigo.url || `https://doi.org/${dossier.artigo.doi}`,
+    '@type': 'schema:ScholarlyArticle',
+    'schema:name': dossier.artigo.titulo,
+    'schema:publisher': dossier.artigo.veiculo
+  }] : [];
+  const payload: Record<string, any> = {
+    '@context': {
+      skos: 'http://www.w3.org/2004/02/skos/core#',
+      schema: 'http://schema.org/',
+      prov: 'http://www.w3.org/ns/prov#',
+      wd: 'http://www.wikidata.org/entity/'
+    },
+    '@id': `https://folksonomia-digital.cultura.gov.br/tag/${dossier.id}`,
+    '@type': 'skos:Concept',
+    'skos:prefLabel': { '@value': dossier.tag, '@language': 'pt-BR' },
+    'schema:description': dossier.descricao,
+    'prov:wasAttributedTo': {
+      '@id': `https://folksonomia-digital.cultura.gov.br/user/${dossier.uuid?.substring(0, 8) || 'preservado'}`,
+      '@type': 'prov:Person',
+      'schema:name': dossier.autor || 'Autoria não informada'
+    },
+    'schema:subjectOf': article
+  };
+  if (dossier.wikidata?.id || dossier.wikidata?.uri) {
+    payload['skos:broadMatch'] = {
+      '@id': dossier.wikidata.uri || `wd:${dossier.wikidata.id}`,
+      '@type': 'skos:Concept',
+      'skos:prefLabel': { '@value': dossier.wikidata.enLabel || dossier.wikidata.label, '@language': 'en' }
+    };
+  }
+  return payload;
 }
 
 export async function GET(req: NextRequest) {
@@ -227,7 +250,19 @@ export async function GET(req: NextRequest) {
     const allLabels = allTags.map(t => t.label);
 
     if (tagParam) {
+      if (!isValidCulturalTag(tagParam)) {
+        return NextResponse.json({ success: false, error: 'Tag indisponível para exibição pública.' }, { status: 404 });
+      }
       const dossier = await buildDynamicTagDossier(tagParam, allLabels);
+      if (req.headers.get('accept')?.includes('application/ld+json')) {
+        return NextResponse.json(buildJsonLd(dossier), {
+          headers: {
+            'Content-Type': 'application/ld+json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'public, max-age=60'
+          }
+        });
+      }
       return NextResponse.json({ success: true, data: dossier });
     }
 
@@ -272,7 +307,7 @@ export async function POST(req: NextRequest) {
       sourceTag || ''
     ])).filter(isValidCulturalTag);
 
-    const targetLabel = (sourceTag || allLabels[0] || 'Carranca').trim();
+    const targetLabel = (isValidCulturalTag(sourceTag) ? sourceTag : allLabels[0] || 'Carranca').trim();
     const targetId = sourceId || normalizeForComparison(targetLabel).replace(/\s+/g, '_');
 
     // Construir nós válidos do grafo
@@ -315,8 +350,8 @@ export async function POST(req: NextRequest) {
 
     // Conexões estritas validadas pelo HAS e BrazilianCultureArchitect
     const existingEdges = [];
-    for (let i = 0; i < Math.min(mergedNodes.length, 35); i++) {
-      for (let j = i + 1; j < Math.min(mergedNodes.length, 35); j++) {
+    for (let i = 0; i < mergedNodes.length; i++) {
+      for (let j = i + 1; j < mergedNodes.length; j++) {
         const hasVal = hasValidateAssociation(mergedNodes[i].label, mergedNodes[j].label);
         const cohesion = BrazilianCultureArchitect.calculateCohesion(mergedNodes[i].label, mergedNodes[j].label);
         
@@ -339,7 +374,7 @@ export async function POST(req: NextRequest) {
     ) || mergedNodes[0];
 
     const pulseResult = await pulseLiveNetwork(mergedNodes, existingEdges, currentSourceNode?.id);
-    const discoveryResult = await discoverLiveConnections(mergedNodes.slice(0, 25), 12);
+    const discoveryResult = await discoverLiveConnections(mergedNodes, 12);
 
     // Filtrar apenas conexões culturais válidas pelo HAS
     const allDiscovered = [...pulseResult.connections, ...discoveryResult.connections].filter(c => {
