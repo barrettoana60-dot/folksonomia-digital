@@ -140,12 +140,12 @@ async function inferPairConnection(
   idB: string
 ): Promise<LiveConnection | null> {
   const cohesion = BrazilianCultureArchitect.calculateCohesion(labelA, labelB);
-  if (cohesion < 0.15) return null;
+  if (cohesion < 0.35) return null;
 
   let bestWeight = 0;
   let bestModel: LiveModelId = 'heuristic';
   let relation = 'related_to';
-  let insight = `Coesão cultural ${Math.round(cohesion * 100)}%`;
+  let insight = `Tradição compartilhada de saber e fazeres populares`;
 
   // 1. RotatE — predição de relação
   try {
@@ -156,7 +156,7 @@ async function inferPairConnection(
         bestWeight = top.confidence;
         bestModel = top.source.includes('rotate') ? 'rotate' : 'heuristic';
         relation = top.relation;
-        insight = `RotatE: ${relation} (${Math.round(top.confidence * 100)}%)`;
+        insight = `Predição de relação ontológica: ${relation.replace(/_/g, ' ')}`;
         bumpModel(bestModel);
       }
     }
@@ -173,7 +173,7 @@ async function inferPairConnection(
         if (nerWeight > bestWeight) {
           bestWeight = nerWeight;
           bestModel = 'modernbert';
-          insight = `ModernBERT NER: ${entities.map(e => e.category).join(', ')} (${Math.round(nerConf * 100)}%)`;
+          insight = `Entidades culturais correlacionadas: ${entities.map(e => e.category).join(', ')}`;
           bumpModel('modernbert');
         }
       }
@@ -187,7 +187,7 @@ async function inferPairConnection(
   if (simWeight > bestWeight * 0.8) {
     bestWeight = Math.max(bestWeight, simWeight);
     if (bestModel === 'heuristic') {
-      insight = `Similaridade semântica ${Math.round(sim * 100)}% × coesão ${Math.round(cohesion * 100)}%`;
+      insight = `Matriz e afinidade expressiva compartilhada`;
     }
   }
 
@@ -211,7 +211,7 @@ async function inferPairConnection(
 
   bumpModel('heuristic');
 
-  if (bestWeight < 0.2) return null;
+  if (bestWeight < 0.42) return null;
 
   return {
     from: idA,

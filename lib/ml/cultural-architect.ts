@@ -144,45 +144,50 @@ export class BrazilianCultureArchitect {
     const normA = normalizeForComparison(tagA);
     const normB = normalizeForComparison(tagB);
 
-    // Se as palavras compartilham alguma raiz/palavra significativa comum, são coesas
+    if (normA === normB) return 1.0;
+
+    // Se as palavras compartilham raiz comum cultural
     const wordsA = normA.split(' ').filter(w => w.length > 3);
     const wordsB = normB.split(' ').filter(w => w.length > 3);
     const sharedWords = wordsA.filter(w => wordsB.includes(w));
-    if (sharedWords.length > 0) return 1.0;
+    if (sharedWords.length > 0) return 0.9;
 
     const profileA = this.getCulturalProfile(tagA);
     const profileB = this.getCulturalProfile(tagB);
 
-    // Se uma das tags não está mapeada nos eixos específicos (é um conceito geral como "cultura" ou "arte"),
-    // não podemos restringir a ligação
+    // Se qualquer um dos termos for ruído ou arte europeia fora do escopo sem perfil
     if (profileA.axes.length === 0 || profileB.axes.length === 0) {
-      return 1.0;
+      // Conectar apenas se ambos forem explicitamente afins
+      return 0.08;
     }
 
     // Verificar interseção de eixos
     const sharedAxes = profileA.axes.filter(a => profileB.axes.includes(a));
-    if (sharedAxes.length > 0) return 1.0;
+    if (sharedAxes.length > 0) return 0.95;
 
     // Verificar interseção de matrizes
     const sharedMatrices = profileA.matrices.filter(m => profileB.matrices.includes(m));
-    if (sharedMatrices.length > 0) return 0.85; // Alta coesão por afinidade de matriz cultural
+    if (sharedMatrices.length > 0) return 0.85;
 
-    // Conexões de exceção legítimas (Ex: Ex-voto [Saberes/Ofícios] com Romaria [Crenças/Ritos])
+    // Conexões de exceção legítimas entre manifestações brasileiras
     const exceptionPairs = [
       ['ex voto', 'romaria'], ['ex-voto', 'romaria'],
       ['ex voto', 'procissao'], ['ex voto', 'procissão'],
       ['carranca', 'lenda'], ['carranca', 'mito'],
       ['cordel', 'repente'], ['cordel', 'cantoria'],
-      ['xilogravura', 'cordel'], ['capoeira', 'berimbau']
+      ['xilogravura', 'cordel'], ['capoeira', 'berimbau'],
+      ['capoeira', 'frevo'], ['capoeira', 'maracatu'],
+      ['frevo', 'maracatu'], ['carranca', 'mestre vitalino'],
+      ['carranca', 'ex voto'], ['bumba meu boi', 'maracatu']
     ];
 
     for (const [excA, excB] of exceptionPairs) {
       if ((normA.includes(excA) && normB.includes(excB)) || (normB.includes(excA) && normA.includes(excB))) {
-        return 1.0;
+        return 0.9;
       }
     }
 
-    // Penalidade pesada por incompatibilidade estrutural de eixos
-    return 0.15;
+    // Penalidade por incompatibilidade estrutural de eixos
+    return 0.05;
   }
 }

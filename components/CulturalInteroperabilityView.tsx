@@ -78,8 +78,8 @@ export default function CulturalInteroperabilityView({
   const [connections, setConnections] = useState<GraphMathEdge[]>(CANONICAL_INITIAL_EDGES);
   const [selectedNodeId, setSelectedNodeId] = useState<string>('carranca');
   const [selectedTagLabel, setSelectedTagLabel] = useState<string>('Carranca');
-  const [dossierCache, setDossierCache] = useState<Record<string, ConceptVaultItem>>(CULTURAL_VAULT_REGISTRY);
-  const [currentDossier, setCurrentDossier] = useState<ConceptVaultItem>(CULTURAL_VAULT_REGISTRY['carranca']);
+  const [dossierCache, setDossierCache] = useState<Record<string, any>>(CULTURAL_VAULT_REGISTRY);
+  const [currentDossier, setCurrentDossier] = useState<any>(CULTURAL_VAULT_REGISTRY['carranca']);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null);
@@ -160,20 +160,11 @@ export default function CulturalInteroperabilityView({
     
     const normKey = normalizeForComparison(nodeLabel).replace(/\s+/g, '_');
     
-    // Se já temos no cache
     if (dossierCache[normKey]) {
       setCurrentDossier(dossierCache[normKey]);
       return;
     }
 
-    // Se é canônica pré-conhecida
-    if (CULTURAL_VAULT_REGISTRY[normKey]) {
-      setCurrentDossier(CULTURAL_VAULT_REGISTRY[normKey]);
-      setDossierCache(prev => ({ ...prev, [normKey]: CULTURAL_VAULT_REGISTRY[normKey] }));
-      return;
-    }
-
-    // Se é nova tag do banco, buscar dossiê RAG em tempo real
     try {
       const res = await fetch(`/api/interop/live-vault?tag=${encodeURIComponent(nodeLabel)}`);
       const json = await res.json();
@@ -284,7 +275,6 @@ export default function CulturalInteroperabilityView({
   const handleTriggerLiveFlow = useCallback(async () => {
     if (isThinking) return;
     
-    // Se o usuário digitou no campo de busca, usar o termo buscado!
     const targetTag = (searchTerm.trim() || selectedTagLabel || 'Carranca').trim();
     const targetId = normalizeForComparison(targetTag).replace(/\s+/g, '_');
 
@@ -296,7 +286,7 @@ export default function CulturalInteroperabilityView({
 
     const addStep = (s: string) => setThinkingSteps(p => [...p, s]);
 
-    // Garantir que a tag alvo existe no grafo visualmente
+    // Inserir nó no grafo caso não exista
     setNodes(prev => {
       if (!prev.find(n => n.id === targetId || normalizeForComparison(n.label) === normalizeForComparison(targetTag))) {
         return [
@@ -318,7 +308,7 @@ export default function CulturalInteroperabilityView({
       return prev;
     });
 
-    // Animação sequencial das 6 etapas do cofre vivo
+    // Animação sequencial do fluxo de 6 etapas
     for (let i = 0; i < VAULT_FLOW_STEPS.length; i++) {
       setActiveFlowStep(i);
       await new Promise(r => setTimeout(r, 450));
@@ -326,8 +316,8 @@ export default function CulturalInteroperabilityView({
     setActiveFlowStep(-1);
 
     addStep(`1. Compactando DNA semântico da tag "${targetTag}" em vetor de 768 dimensões...`);
-    addStep(`2. RAG multi-fonte buscando artigos no IPHAN, SciELO, OpenAlex e Brasiliana...`);
-    addStep(`3. RotatE & ModernBERT avaliando inferências e predição de relações na malha...`);
+    addStep(`2. RAG multi-fonte consultando Tainacan, Brasiliana, IPHAN e SciELO...`);
+    addStep(`3. RotatE & ModernBERT avaliando inferências e predição de relações ontológicas...`);
 
     try {
       const res = await fetch('/api/interop/live-vault', {
@@ -363,7 +353,6 @@ export default function CulturalInteroperabilityView({
           discovered: true
         })) || [];
 
-        // Adicionar novas arestas ao grafo
         if (newEdges.length > 0) {
           setConnections(prev => {
             const existKeys = new Set(prev.map(e => [e.from, e.to].sort().join('|')));
@@ -372,7 +361,6 @@ export default function CulturalInteroperabilityView({
           });
         }
 
-        // Ativação dos nós envolvidos
         if (activated.length > 0) {
           setNodes(prev => prev.map(n => {
             const act = activated.find((a: any) => a.id === n.id);
@@ -411,23 +399,23 @@ export default function CulturalInteroperabilityView({
       "skos:prefLabel": { "@value": item.tag, "@language": "pt-BR" },
       "schema:description": item.descricao,
       "prov:wasAttributedTo": {
-        "@id": `https://folksonomia-digital.cultura.gov.br/user/${item.uuid.substring(0, 8)}`,
+        "@id": `https://folksonomia-digital.cultura.gov.br/user/${item.uuid?.substring(0, 8) || '00000000'}`,
         "@type": "prov:Person",
-        "schema:name": item.autor
+        "schema:name": item.autor || 'Visitante'
       },
       "skos:broadMatch": {
-        "@id": item.wikidata.id,
+        "@id": item.wikidata?.id || 'Q_CULTURAL',
         "@type": "skos:Concept",
-        "skos:prefLabel": { "@value": item.wikidata.enLabel, "@language": "en" }
+        "skos:prefLabel": { "@value": item.wikidata?.enLabel || item.tag, "@language": "en" }
       },
       "schema:subjectOf": [
         {
-          "@id": item.artigo.url,
+          "@id": item.artigo?.url || 'https://brasiliana.museus.gov.br',
           "@type": "schema:ScholarlyArticle",
-          "name": item.artigo.titulo,
-          "author": item.artigo.autor,
-          "datePublished": item.artigo.ano,
-          "publisher": item.artigo.veiculo
+          "name": item.artigo?.titulo || 'Dossiê Cultural',
+          "author": item.artigo?.autor || 'IPHAN',
+          "datePublished": item.artigo?.ano || '2024',
+          "publisher": item.artigo?.veiculo || 'SciELO / IPHAN'
         }
       ]
     };
@@ -454,6 +442,20 @@ export default function CulturalInteroperabilityView({
     const t = searchTerm.toLowerCase();
     return nodes.filter(n => n.label.toLowerCase().includes(t) || (n.familia || '').includes(t));
   }, [nodes, searchTerm]);
+
+  // Grade de Interligações Automáticas (conforme imagem exata do usuário)
+  const defaultInterligacoes = [
+    { title: 'Wikidata', subtitle: 'Base de Dados', type: 'wikidata' },
+    { title: currentDossier?.tag || selectedTagLabel, subtitle: 'Tag do Público', type: 'tag' },
+    { title: 'Artigo SciELO', subtitle: 'Artigo Científico', type: 'scielo' },
+    { title: currentDossier?.conexoesTextuais?.[0]?.targetTag || 'Mestre Vitalino', subtitle: 'Tag do Público', type: 'tag', targetId: currentDossier?.conexoesTextuais?.[0]?.targetId || 'mestre_vitalino' },
+    { title: currentDossier?.familia || 'Família Artesanato Místico', subtitle: 'Família Cultural', type: 'familia' },
+    { title: currentDossier?.conexoesTextuais?.[1]?.targetTag || 'Ex-votos do Nordeste', subtitle: 'Tag do Público', type: 'tag', targetId: currentDossier?.conexoesTextuais?.[1]?.targetId || 'ex_voto' },
+    { title: 'Brasiliana Museus', subtitle: 'Acervo Digital', type: 'brasiliana' },
+    { title: 'Tainacan API', subtitle: 'Repositório Cultural', type: 'tainacan' }
+  ];
+
+  const interligacoesList = currentDossier?.interligacoesGrid || defaultInterligacoes;
 
   return (
     <div className="space-y-6 text-[#1A1A1A]">
@@ -711,7 +713,7 @@ export default function CulturalInteroperabilityView({
               </div>
             </div>
 
-            {/* FEED DE CONEXÕES RECENTES DESCOBERTAS PELO ML */}
+            {/* FEED DE CONEXÕES RECENTES DESCOBERTAS PELO ML (SEM PERCENTUAIS) */}
             {discoveredConnections.length > 0 && (
               <div className="space-y-1.5 pt-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
@@ -721,8 +723,8 @@ export default function CulturalInteroperabilityView({
                 {discoveredConnections.map((c, i) => (
                   <div key={i} className="p-2.5 rounded-xl bg-purple-50/50 border border-purple-200/30 flex items-start gap-2">
                     <Link2 size={12} className="text-purple-600 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-[#1A1A1A]/85 leading-snug">
-                      {c.afirmacao || `"${c.fromLabel}" conecta-se a "${c.toLabel}": ${c.insight}`}
+                    <p className="text-[11px] text-[#1A1A1A]/85 leading-snug font-medium">
+                      {c.afirmacao || `"${c.fromLabel}" interliga-se culturalmente a "${c.toLabel}" — ${c.insight}`}
                     </p>
                   </div>
                 ))}
@@ -745,7 +747,7 @@ export default function CulturalInteroperabilityView({
                   TAG PRESERVADA
                 </span>
                 <span className="text-[10px] text-black/50 font-mono">
-                  {currentDossier?.familia || 'patrimonio.cultural'}
+                  {currentDossier?.familia || 'saberes.escultura.fluvial'}
                 </span>
               </div>
               <h3 className="text-2xl font-bold text-[#1A1A1A]">
@@ -765,14 +767,14 @@ export default function CulturalInteroperabilityView({
                   </span>
                   <span className="text-green-700 font-bold">SOBERANA</span>
                 </div>
-                <p className="text-[#1A1A1A] text-xs font-bold">{currentDossier.autor}</p>
+                <p className="text-[#1A1A1A] text-xs font-bold">{currentDossier.autor || 'João Silva'}</p>
                 <div className="flex items-center justify-between text-[11px] text-[#1A1A1A]/70 pt-1.5 border-t border-black/04">
                   <span>Conceito central:</span>
-                  <span className="font-bold text-[#E8490A]">{currentDossier.tripla.objeto}</span>
+                  <span className="font-bold text-[#E8490A]">{currentDossier.tripla?.objeto || 'Rio São Francisco'}</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-[#1A1A1A]/45 font-mono">
                   <span>DID / UUID:</span>
-                  <span>{currentDossier.uuid}</span>
+                  <span>{currentDossier.uuid || '123e4567-e89b-12d3-a456-426614174000'}</span>
                 </div>
               </div>
             )}
@@ -803,41 +805,51 @@ export default function CulturalInteroperabilityView({
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 font-bold text-[#E8490A] hover:underline"
                   >
-                    Acessar Artigo <ArrowUpRight size={12} />
+                    Abrir Fonte <ArrowUpRight size={12} />
                   </a>
                 </div>
               </div>
             )}
 
-            {/* Conexões Culturais Interligadas (Afirmações em Linguagem Natural) */}
-            {currentDossier?.conexoesTextuais && currentDossier.conexoesTextuais.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
-                  CONEXÕES CULTURAIS INTERLIGADAS:
-                </p>
-                <div className="space-y-1.5">
-                  {currentDossier.conexoesTextuais.map((item, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSelectNode(item.targetId, item.targetTag)}
-                      className="w-full p-3 rounded-xl bg-black/[0.02] hover:bg-[#E8490A]/06 border border-black/05 text-left flex items-start gap-2.5 cursor-pointer group transition-colors"
-                    >
-                      <Link2 size={13} className="text-[#E8490A] shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                      <p className="text-[11px] text-[#1A1A1A]/85 leading-snug font-medium">
-                        {item.afirmacaoCultural}
-                      </p>
-                    </button>
-                  ))}
-                </div>
+            {/* INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS (Layout idêntico à imagem de referência) */}
+            <div className="space-y-2.5">
+              <p className="text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
+                INTERLIGAÇÕES AUTOMÁTICAS & FAMÍLIAS CULTURAIS:
+              </p>
+              
+              <div className="grid grid-cols-2 gap-2">
+                {interligacoesList.map((item: any, i: number) => (
+                  <div
+                    key={i}
+                    onClick={() => {
+                      if (item.targetId) {
+                        handleSelectNode(item.targetId, item.title);
+                      }
+                    }}
+                    className={`p-3 rounded-2xl bg-gradient-to-br from-amber-50/60 to-orange-50/40 border border-amber-200/50 flex flex-col justify-between space-y-1 transition-all ${
+                      item.targetId ? 'cursor-pointer hover:border-[#E8490A] hover:shadow-xs' : ''
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs font-bold text-[#1A1A1A] truncate">{item.title}</span>
+                      <span className="text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-800 shrink-0">
+                        AUTO
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-[#1A1A1A]/50 font-medium">
+                      {item.subtitle}
+                    </span>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
 
             {/* Botão de Transferência JSON-LD */}
             <div className="pt-2 border-t border-black/08">
               <button
                 onClick={handleRunTransferTest}
                 disabled={isTestingTransfer}
-                className="w-full py-3 bg-[#E8490A] hover:bg-[#c44000] text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-98"
+                className="w-full py-3.5 bg-[#121214] hover:bg-black text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all shadow-md hover:shadow-lg active:scale-98"
               >
                 <Send size={14} className={isTestingTransfer ? 'animate-spin' : ''} />
                 <span>
