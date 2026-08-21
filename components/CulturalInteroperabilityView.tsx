@@ -338,7 +338,9 @@ export default function CulturalInteroperabilityView({
         const dynamicDossier = json.data?.dossier || json.data?.canonical;
 
         if (dynamicDossier) {
-          const normKey = normalizeForComparison(targetTag).replace(/\s+/g, '_');
+          const normKey = normalizeForComparison(dynamicDossier.tag || targetTag).replace(/\s+/g, '_');
+          setSelectedTagLabel(dynamicDossier.tag || targetTag);
+          setSelectedNodeId(dynamicDossier.id || targetId);
           setCurrentDossier(dynamicDossier);
           setDossierCache(prev => ({ ...prev, [normKey]: dynamicDossier }));
         }
