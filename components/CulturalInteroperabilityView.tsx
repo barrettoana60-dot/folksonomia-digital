@@ -1,203 +1,232 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, BookOpen, Check, Copy, FileCode2, FolderLock, Globe, Link2, Network, RefreshCw, Search, Send, ShieldCheck, Sparkles, Tag, User } from 'lucide-react';
-import { normalizeForComparison } from '@/lib/ml/tag-correlator';
-import { CULTURAL_VAULT_REGISTRY } from '@/app/api/interop/live-vault/registry';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Activity, ArrowUpRight, BookOpen, Check, Copy, Database, FileCode2,
+  Fingerprint, Globe2, Layers3, Link2, Network, RefreshCw, Search, ShieldCheck, Sparkles, Tag,
+} from 'lucide-react';
 
 interface CulturalInteroperabilityViewProps {
+  /** Props kept for the existing admin shell; the live endpoint is the source of truth. */
   initialNodes?: any[];
   initialConnections?: any[];
   onTriggerRAG?: (nodeLabel: string) => Promise<void>;
   realMetrics?: any;
 }
 
-type VaultNode = { id: string; label: string; eixo?: string; familia?: string; cor?: string; descricao?: string; usageCount?: number; x: number; y: number };
-type VaultConnection = { from: string; to: string; afirmacao?: string; discovered?: boolean };
+type NodeKind = 'tag' | 'work' | 'document' | 'family';
+type GraphNode = {
+  id: string; kind: NodeKind; label: string; description?: string; color: string; eixo?: string; family?: string;
+  dna?: string; source?: string; url?: string; usageCount?: number; confidence?: number; metadata?: Record<string, unknown>;
+};
+type GraphEdge = {
+  id: string; from: string; to: string; relation: string; explanation: string; confidence: number;
+  layer: 'factual' | 'inferred' | 'validated'; mechanism: string; source?: string; discovered?: boolean;
+};
+type Dossier = {
+  tag: string; dna: string; aliases: string[]; family: string; axes: string[]; occurrenceCount: number;
+  provenance: { firstObservedAt?: string; tagRecords: number; works: number; nuclei: number; dataSources: string[] };
+  relations: Array<GraphEdge & { target: Pick<GraphNode, 'id' | 'kind' | 'label' | 'url' | 'source'> }>;
+  evidence: Array<Pick<GraphNode, 'id' | 'label' | 'description' | 'source' | 'url' | 'confidence'>>;
+};
+type NetworkPayload = { nodes: GraphNode[]; connections: GraphEdge[]; selectedId?: string; dossier?: Dossier; metrics?: Record<string, any> };
 
-const COLORS: Record<string, string> = { SABERES: '#1A6B3A', FESTA: '#1E3A8A', MUSICA: '#0891B2', CRENCAS: '#6D28D9', PATRIMONIO: '#E8A920', default: '#4B5563' };
-const NOISE = /(^|\s)(oi|eu|m|o|teste?|asdf|foo|bar|baz|null|undefined)(\s|$)|test|teste|asdf|lorem|ipsum/i;
-const keyOf = (value: string) => normalizeForComparison(value).replace(/\s+/g, '_');
-const isPublicTag = (value?: string) => !!value && value.trim().length >= 3 && !NOISE.test(value.trim()) && !/^\d+$/.test(value.trim());
-
-function defaultNodes(): VaultNode[] {
-  const items = Object.values(CULTURAL_VAULT_REGISTRY).filter(item => isPublicTag(item.tag));
-  return items.map((item, index) => {
-    const angle = (index / items.length) * Math.PI * 2 - Math.PI / 2;
-    return { id: item.id, label: item.tag, eixo: item.eixo, familia: item.familia, cor: item.cor, descricao: item.descricao, x: 400 + Math.cos(angle) * 165, y: 215 + Math.sin(angle) * 145 };
-  });
-}
-
-function defaultConnections(): VaultConnection[] {
-  const known = new Set(Object.values(CULTURAL_VAULT_REGISTRY).map(item => item.id));
-  const added = new Set<string>();
-  const connections: VaultConnection[] = [];
-  Object.values(CULTURAL_VAULT_REGISTRY).forEach(item => item.conexoesTextuais.forEach(connection => {
-    const pair = [item.id, connection.targetId].sort().join('|');
-    if (known.has(connection.targetId) && !added.has(pair)) {
-      added.add(pair);
-      connections.push({ from: item.id, to: connection.targetId, afirmacao: connection.afirmacaoCultural });
-    }
-  }));
-  return connections;
-}
-
+const KIND_LABEL: Record<NodeKind, string> = { tag: 'Tag', work: 'Obra', document: 'Documento', family: 'Família' };
+const KIND_COLOR: Record<NodeKind, string> = { tag: '#22c55e', work: '#E8490A', document: '#C0841A', family: '#8B5CF6' };
 const LAYERS = [
-  { icon: Tag, title: '1. Ingestão e proveniência', desc: 'A tag original, sua autoria, data e contexto são preservados.' },
-  { icon: ShieldCheck, title: '2. Cofre vivo', desc: 'Cada tag mantém uma identidade persistente e não é substituída.' },
-  { icon: Network, title: '3. Correlação cultural', desc: 'Relações culturais são atualizadas quando novas evidências entram.' },
-  { icon: Globe, title: '4. Interoperabilidade', desc: 'A identidade e os vínculos podem circular em JSON-LD com SKOS.' }
+  { icon: Tag, title: 'Todas as tags', description: 'Cada forma enviada por usuários entra na malha e conserva as variações de escrita.' },
+  { icon: Fingerprint, title: 'DNA rastreável', description: 'Cada conceito recebe um código estável, sem expor identificadores pessoais.' },
+  { icon: Network, title: 'Relações explicáveis', description: 'Toda linha informa tipo, confiança, camada e evidência que a sustenta.' },
+  { icon: Globe2, title: 'Interoperabilidade', description: 'Obras e fontes externas viram nós navegáveis e podem sair em JSON-LD/SKOS.' },
 ];
 
-export default function CulturalInteroperabilityView({ initialNodes = [], initialConnections = [] }: CulturalInteroperabilityViewProps) {
-  const [nodes, setNodes] = useState<VaultNode[]>(defaultNodes);
-  const [connections, setConnections] = useState<VaultConnection[]>([...defaultConnections(), ...initialConnections]);
-  const [selectedId, setSelectedId] = useState('carranca');
-  const [dossier, setDossier] = useState<any>({ ...CULTURAL_VAULT_REGISTRY.carranca, artigoStatus: 'ilustrativo' });
+function formatDate(value?: string) {
+  if (!value) return 'data não registrada';
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date);
+}
+
+function layerLabel(layer: GraphEdge['layer']) {
+  return layer === 'validated' ? 'validada' : layer === 'factual' ? 'factual' : 'inferida';
+}
+
+function shortText(value: string, max = 70) { return value.length > max ? `${value.slice(0, max - 1)}…` : value; }
+
+export default function CulturalInteroperabilityView({ onTriggerRAG }: CulturalInteroperabilityViewProps) {
+  const [network, setNetwork] = useState<NetworkPayload>({ nodes: [], connections: [] });
+  const [selectedId, setSelectedId] = useState<string>();
+  const [dossier, setDossier] = useState<Dossier>();
   const [search, setSearch] = useState('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activity, setActivity] = useState<string[]>([]);
-  const [activeConnection, setActiveConnection] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [view, setView] = useState<'focus' | 'all'>('focus');
+  const [loading, setLoading] = useState(true);
+  const [learning, setLearning] = useState(false);
+  const [message, setMessage] = useState<string>();
   const [showJson, setShowJson] = useState(false);
   const [jsonLd, setJsonLd] = useState('');
   const [copied, setCopied] = useState(false);
-  const refreshRef = useRef<(() => void) | null>(null);
 
-  const applyNodes = useCallback((items: any[]) => {
-    const valid = items.filter(item => isPublicTag(item.label));
-    setNodes(old => {
-      const previous = new Map(old.map(node => [keyOf(node.label), node]));
-      return valid.map((item, index) => {
-        const existing = previous.get(keyOf(item.label));
-        const angle = (index / Math.max(valid.length, 1)) * Math.PI * 2 - Math.PI / 2;
-        const radius = index < 8 ? 165 : 220 + (index % 3) * 24;
-        return { id: item.id?.toString() || keyOf(item.label), label: item.label, eixo: item.eixo, familia: item.familia, cor: item.cor || COLORS[item.eixo] || COLORS.default, descricao: item.description, usageCount: item.uses || item.usageCount, x: existing?.x ?? 400 + Math.cos(angle) * radius, y: existing?.y ?? 215 + Math.sin(angle) * radius };
-      });
-    });
-  }, []);
-
-  useEffect(() => {
-    const validParentNodes = initialNodes.filter(item => isPublicTag(item.label));
-    if (validParentNodes.length) applyNodes(validParentNodes);
-    fetch('/api/interop/live-vault').then(response => response.ok ? response.json() : null).then(payload => {
-      if (payload?.success && Array.isArray(payload.data?.nodes)) {
-        applyNodes(payload.data.nodes);
-        if (Array.isArray(payload.data.connections)) setConnections(payload.data.connections);
-      }
-    }).catch(() => setMessage('Não foi possível atualizar a rede neste momento.'));
-  }, [applyNodes, initialNodes]);
-
-  useEffect(() => {
-    if (!connections.length) return;
-    const pulse = () => {
-      const connection = connections[Math.floor(Math.random() * connections.length)];
-      setActiveConnection(`${connection.from}|${connection.to}`);
-      window.setTimeout(() => setActiveConnection(null), 1400);
-    };
-    pulse();
-    const timer = window.setInterval(pulse, 2800);
-    return () => window.clearInterval(timer);
-  }, [connections]);
-
-  const selectedNode = useMemo(() => nodes.find(node => node.id === selectedId) || nodes[0], [nodes, selectedId]);
-  const visibleNodes = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase('pt-BR');
-    return term ? nodes.filter(node => `${node.label} ${node.familia || ''}`.toLocaleLowerCase('pt-BR').includes(term)) : nodes;
-  }, [nodes, search]);
-
-  const selectNode = useCallback(async (node: VaultNode) => {
-    setSelectedId(node.id);
-    setMessage(null);
+  const loadNetwork = useCallback(async (tag?: string, preserveSelection = false) => {
+    setLoading(true);
     try {
-      const response = await fetch(`/api/interop/live-vault?tag=${encodeURIComponent(node.label)}`);
+      const url = tag ? `/api/interop/live-vault?tag=${encodeURIComponent(tag)}` : '/api/interop/live-vault';
+      const response = await fetch(url, { cache: 'no-store' });
       const payload = await response.json();
-      if (payload.success && payload.data) setDossier(payload.data);
-    } catch {
-      setMessage('O dossiê foi preservado, mas não pôde ser atualizado agora.');
-    }
-  }, []);
-
-  const refreshConnections = useCallback(async () => {
-    if (!selectedNode || isRefreshing) return;
-    setIsRefreshing(true);
-    setMessage(null);
-    setActivity(['Lendo a proveniência preservada.', 'Observando relações culturais já registradas.']);
-    try {
-      const response = await fetch('/api/interop/live-vault', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sourceTag: selectedNode.label, sourceId: selectedNode.id, allNodes: nodes.map(node => ({ id: node.id, label: node.label })) }) });
-      const payload = await response.json();
-      if (!response.ok || !payload.success) throw new Error('update failed');
-      const next: VaultConnection[] = (payload.data?.connections || []).filter((connection: any) => isPublicTag(connection.fromLabel) && isPublicTag(connection.toLabel)).map((connection: any) => ({
-        from: nodes.find(node => keyOf(node.label) === keyOf(connection.fromLabel))?.id || connection.from,
-        to: nodes.find(node => keyOf(node.label) === keyOf(connection.toLabel))?.id || connection.to,
-        afirmacao: connection.afirmacao,
-        discovered: true
-      }));
-      setConnections(old => {
-        const current = new Set(old.map(connection => [connection.from, connection.to].sort().join('|')));
-        return [...old, ...next.filter(connection => !current.has([connection.from, connection.to].sort().join('|')))];
-      });
-      if (payload.data?.dossier) setDossier(payload.data.dossier);
-      setActivity(['A proveniência da tag foi preservada.', next.length ? `${next.length} novas relações culturais foram incorporadas à rede.` : 'Nenhuma nova relação cultural validada foi encontrada agora.', 'O dossiê e a representação interoperável foram atualizados.']);
-    } catch {
-      setActivity([]);
-      setMessage('Não foi possível atualizar as conexões agora. Tente novamente em instantes.');
+      if (!response.ok || !payload.success) throw new Error(payload.error || 'Falha ao carregar a rede.');
+      const next: NetworkPayload = payload.data;
+      setNetwork(next);
+      setDossier(next.dossier);
+      setSelectedId(previous => preserveSelection && previous ? previous : next.selectedId || previous);
+    } catch (error: any) {
+      setMessage(error.message || 'Não foi possível carregar a rede cultural agora.');
     } finally {
-      setIsRefreshing(false);
+      setLoading(false);
     }
-  }, [isRefreshing, nodes, selectedNode]);
+  }, []);
 
-  useEffect(() => {
-    refreshRef.current = refreshConnections;
-  }, [refreshConnections]);
+  useEffect(() => { void loadNetwork(); }, [loadNetwork]);
 
-  // O cofre observa a rede continuamente; o botão apenas permite antecipar a atualização.
-  useEffect(() => {
-    if (!nodes.length) return;
-    const firstRun = window.setTimeout(() => refreshRef.current?.(), 3000);
-    const interval = window.setInterval(() => refreshRef.current?.(), 120000);
-    return () => {
-      window.clearTimeout(firstRun);
-      window.clearInterval(interval);
-    };
-  }, [nodes.length, selectedId]);
+  const byId = useMemo(() => new Map(network.nodes.map(node => [node.id, node])), [network.nodes]);
+  const selectedNode = selectedId ? byId.get(selectedId) : undefined;
+  const tagNodes = useMemo(() => network.nodes.filter(node => node.kind === 'tag'), [network.nodes]);
+  const searchedTags = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('pt-BR');
+    if (!query) return tagNodes;
+    return tagNodes.filter(node => `${node.label} ${node.family || ''} ${node.dna || ''}`.toLocaleLowerCase('pt-BR').includes(query));
+  }, [search, tagNodes]);
+
+  const focusIds = useMemo(() => {
+    if (view === 'all') return new Set([...searchedTags.map(node => node.id), ...network.nodes.filter(node => node.kind === 'family').map(node => node.id)]);
+    if (!selectedId) return new Set(searchedTags.slice(0, 40).map(node => node.id));
+    const incident = network.connections.filter(edge => edge.from === selectedId || edge.to === selectedId)
+      .sort((a, b) => b.confidence - a.confidence).slice(0, 28);
+    return new Set([selectedId, ...incident.flatMap(edge => [edge.from, edge.to])]);
+  }, [network.connections, network.nodes, searchedTags, selectedId, view]);
+  const visibleNodes = useMemo(() => network.nodes.filter(node => focusIds.has(node.id)), [focusIds, network.nodes]);
+  const visibleEdges = useMemo(() => network.connections.filter(edge => focusIds.has(edge.from) && focusIds.has(edge.to)), [focusIds, network.connections]);
+
+  const positions = useMemo(() => {
+    const map = new Map<string, { x: number; y: number }>();
+    if (view === 'focus' && selectedId) {
+      map.set(selectedId, { x: 500, y: 285 });
+      const others = visibleNodes.filter(node => node.id !== selectedId);
+      others.forEach((node, index) => {
+        const angle = (index / Math.max(others.length, 1)) * Math.PI * 2 - Math.PI / 2;
+        const radius = node.kind === 'family' ? 158 : node.kind === 'document' ? 215 : 190;
+        map.set(node.id, { x: 500 + Math.cos(angle) * radius, y: 285 + Math.sin(angle) * radius * 0.7 });
+      });
+      return map;
+    }
+    const families = visibleNodes.filter(node => node.kind === 'family');
+    families.forEach((node, index) => {
+      const angle = (index / Math.max(families.length, 1)) * Math.PI * 2 - Math.PI / 2;
+      map.set(node.id, { x: 500 + Math.cos(angle) * 145, y: 285 + Math.sin(angle) * 110 });
+    });
+    const tags = visibleNodes.filter(node => node.kind === 'tag');
+    tags.forEach((node, index) => {
+      const angle = (index / Math.max(tags.length, 1)) * Math.PI * 2 - Math.PI / 2;
+      const radius = 205 + (index % 4) * 40;
+      map.set(node.id, { x: 500 + Math.cos(angle) * radius, y: 285 + Math.sin(angle) * radius * 0.63 });
+    });
+    return map;
+  }, [selectedId, view, visibleNodes]);
+
+  const selectNode = useCallback((node: GraphNode) => {
+    setSelectedId(node.id);
+    setMessage(undefined);
+    if (node.kind === 'tag') {
+      setDossier(undefined);
+      void loadNetwork(node.label, true);
+    } else setDossier(undefined);
+  }, [loadNetwork]);
+
+  const refreshAcervo = useCallback(() => {
+    setMessage(undefined);
+    void loadNetwork(selectedNode?.kind === 'tag' ? selectedNode.label : undefined, true);
+  }, [loadNetwork, selectedNode]);
+
+  const learnSelectedTag = useCallback(async () => {
+    if (!selectedNode || selectedNode.kind !== 'tag' || learning) return;
+    setLearning(true); setMessage(undefined);
+    try {
+      const rag = onTriggerRAG ? onTriggerRAG(selectedNode.label).catch(() => undefined) : Promise.resolve();
+      const response = await fetch('/api/interop/live-vault', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: selectedNode.label }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.success) throw new Error(payload.error || 'Não foi possível enriquecer a tag.');
+      setNetwork(payload.data); setDossier(payload.data.dossier); setSelectedId(payload.data.selectedId || selectedNode.id);
+      await rag;
+      // The semantic report can add RAG evidence after the connector response.
+      await loadNetwork(selectedNode.label, true);
+      setMessage(payload.data.message || 'A rede incorporou as evidências encontradas.');
+    } catch (error: any) {
+      setMessage(error.message || 'A atualização das conexões falhou.');
+    } finally { setLearning(false); }
+  }, [learning, loadNetwork, onTriggerRAG, selectedNode]);
 
   const openJsonLd = useCallback(async () => {
-    const tag = dossier?.tag || selectedNode?.label || 'carranca';
+    if (!selectedNode || selectedNode.kind !== 'tag') return;
     try {
-      const response = await fetch(`/api/interop/live-vault?tag=${encodeURIComponent(tag)}`, { headers: { Accept: 'application/ld+json' } });
-      if (!response.ok) throw new Error('jsonld failed');
-      setJsonLd(JSON.stringify(await response.json(), null, 2));
-      setShowJson(true);
-    } catch {
-      setMessage('Não foi possível preparar a representação interoperável desta tag.');
-    }
-  }, [dossier?.tag, selectedNode?.label]);
+      const response = await fetch(`/api/interop/live-vault?tag=${encodeURIComponent(selectedNode.label)}`, { headers: { Accept: 'application/ld+json' }, cache: 'no-store' });
+      if (!response.ok) throw new Error('Não foi possível gerar JSON-LD.');
+      setJsonLd(JSON.stringify(await response.json(), null, 2)); setShowJson(true);
+    } catch (error: any) { setMessage(error.message || 'Não foi possível preparar a representação interoperável.'); }
+  }, [selectedNode]);
 
-  const article = dossier?.artigo;
-  const verifiedArticle = dossier?.artigoStatus === 'verificado';
-  const culturalConnections = dossier?.conexoesTextuais || [];
+  const metrics = network.metrics || {};
+  const detailsTitle = dossier?.tag || selectedNode?.label || 'Selecione uma tag';
 
   return <div className="space-y-6 text-[#1A1A1A]">
-    <section className="glass-card rounded-3xl border border-black/8 bg-gradient-to-br from-white via-white to-orange-50/40 p-6 shadow-sm">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
-        <div><div className="mb-1 flex items-center gap-2.5"><FolderLock size={24} className="text-[#E8490A]" /><h2 className="serif-title text-xl tracking-tight md:text-2xl">Cofre Vivo & Interoperabilidade Cultural</h2><span className="flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase text-green-700"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600" /> Rede ativa</span></div><p className="max-w-3xl text-xs font-medium leading-relaxed text-black/55">Cada tag é uma chave cultural viva: sua forma original é preservada e seus vínculos podem crescer com a rede.</p></div>
-        <div className="flex items-center gap-2.5"><label className="relative w-48"><Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar em todas as tags" className="w-full rounded-xl border border-black/10 bg-white py-2 pl-8 pr-3 text-xs font-medium outline-none focus:ring-2 focus:ring-[#E8490A]/30" /></label><button onClick={refreshConnections} disabled={isRefreshing || !selectedNode} className="flex items-center gap-1.5 whitespace-nowrap rounded-2xl bg-[#E8490A] px-4 py-2 text-xs font-bold text-white shadow-md transition hover:bg-[#c44000] disabled:opacity-60"><RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />{isRefreshing ? 'Atualizando…' : 'Atualizar conexões'}</button></div>
+    <section className="glass-card rounded-3xl border border-black/8 bg-gradient-to-br from-white via-white to-orange-50/40 p-5 shadow-sm md:p-6">
+      <div className="flex flex-col justify-between gap-4 xl:flex-row xl:items-start">
+        <div>
+          <div className="mb-2 flex flex-wrap items-center gap-2.5"><Network size={24} className="text-[#E8490A]" /><h2 className="serif-title text-xl tracking-tight md:text-2xl">Rede de Interoperabilidade Cultural</h2><span className="flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase text-green-700"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-600" /> leitura ao vivo</span></div>
+          <p className="max-w-3xl text-xs font-medium leading-relaxed text-black/60">A malha é calculada diretamente das tags do acervo. Uma tag vira chave para suas obras, documentos, fontes e relações — sempre com proveniência e nível de confiança visíveis.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2"><label className="relative min-w-[190px] flex-1"><Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-black/40" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Localizar em todas as tags" className="w-full rounded-xl border border-black/10 bg-white py-2 pl-8 pr-3 text-xs font-medium outline-none focus:ring-2 focus:ring-[#E8490A]/30" /></label><button onClick={refreshAcervo} disabled={loading} className="flex items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 py-2 text-xs font-bold transition hover:border-[#E8490A]/40 disabled:opacity-60"><RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Atualizar acervo</button></div>
       </div>
-      <div className="mt-5"><p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-[#E8490A]">DNA vivo da tag — quatro camadas</p><div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">{LAYERS.map((layer, index) => { const Icon = layer.icon; return <div key={layer.title} className="relative rounded-2xl border border-black/7 bg-white p-3 shadow-xs"><Icon size={16} className="mb-2 text-[#E8490A]" /><h3 className="text-[11px] font-bold">{layer.title}</h3><p className="mt-1 text-[10px] leading-snug text-black/55">{layer.desc}</p>{index < LAYERS.length - 1 && <span className="absolute right-3 top-3 hidden text-black/20 xl:block">→</span>}</div>; })}</div></div>
-      {activity.length > 0 && <div className="mt-4 rounded-2xl border border-[#E8490A]/15 bg-orange-50/60 p-3"><p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#b93b00]"><Sparkles size={12} /> Movimento do cofre</p><div className="space-y-1 text-[11px] text-black/70">{activity.map(item => <p key={item}>• {item}</p>)}</div></div>}
-      {message && <p className="mt-3 text-xs font-medium text-[#b93b00]">{message}</p>}
+      <div className="mt-5 grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6">
+        {[
+          ['Tags únicas', metrics.distinctTags || 0], ['Ocorrências', metrics.tagOccurrences || 0], ['Obras ligadas', metrics.works || 0],
+          ['Documentos', metrics.documents || 0], ['Famílias', metrics.families || 0], ['Relações', metrics.relations || 0],
+        ].map(([label, value]) => <div key={String(label)} className="rounded-2xl border border-black/6 bg-white px-3 py-2.5"><p className="text-[9px] font-bold uppercase tracking-wider text-black/45">{label}</p><p className="mt-1 text-lg font-bold tabular-nums">{value}</p></div>)}
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">{LAYERS.map(item => { const Icon = item.icon; return <div key={item.title} className="rounded-2xl border border-black/6 bg-white/80 p-3"><Icon size={15} className="mb-1.5 text-[#E8490A]" /><p className="text-[11px] font-bold">{item.title}</p><p className="mt-1 text-[10px] leading-snug text-black/55">{item.description}</p></div>; })}</div>
+      <p className="mt-3 text-[10px] text-black/45">Identidade da rede: {metrics.dnaMode === 'hmac' ? 'DNA opaco protegido por HMAC.' : 'Impressão determinística ativa — configure INTEROP_DNA_KEY para DNA HMAC opaco.'}</p>
+      {message && <p className="mt-4 rounded-xl border border-[#E8490A]/15 bg-orange-50 px-3 py-2 text-xs font-medium text-[#9A3600]">{message}</p>}
     </section>
 
-    <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-      <div className="lg:col-span-7"><div className="glass-card rounded-3xl border border-black/7 bg-white p-4 shadow-sm"><div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><Network size={15} className="text-[#E8490A]" /><span className="text-xs font-bold uppercase tracking-wider">Rede viva de conexões</span><span className="text-[10px] text-black/40">{nodes.length} tags preservadas</span></div><span className="text-[10px] font-medium text-black/50">Selecione uma tag para abrir seu dossiê</span></div><div className="relative h-[480px] overflow-hidden rounded-2xl border border-white/10 bg-[#0A0A0C] shadow-2xl"><svg className="h-full w-full select-none" viewBox="0 0 800 430" aria-label="Rede de relações culturais"><defs><filter id="vault-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>{Array.from({ length: 48 }).map((_, index) => <circle key={index} cx={(index % 8) * 115 + 30} cy={Math.floor(index / 8) * 72 + 30} r="1.1" fill="rgba(255,255,255,0.035)" />)}{connections.map((connection, index) => { const from = nodes.find(node => node.id === connection.from); const to = nodes.find(node => node.id === connection.to); if (!from || !to) return null; const selected = from.id === selectedId || to.id === selectedId; const pulsing = activeConnection === `${connection.from}|${connection.to}`; return <line key={`${connection.from}-${connection.to}-${index}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={pulsing ? '#f59e0b' : selected ? '#22c55e' : 'rgba(255,255,255,0.18)'} strokeWidth={pulsing ? 3 : selected ? 2 : 1.1} opacity={pulsing ? 1 : selected ? .9 : .35} strokeDasharray={connection.discovered ? '5 4' : undefined} className={pulsing ? 'animate-pulse' : ''} />; })}{visibleNodes.map(node => { const selected = node.id === selectedId; const radius = selected ? 20 : 14; const color = selected ? '#22c55e' : node.cor || COLORS.default; return <g key={node.id} className="cursor-pointer" onClick={() => selectNode(node)}><circle cx={node.x} cy={node.y} r={radius + 9} fill={color} opacity={selected ? .32 : .14} filter="url(#vault-glow)" /><circle cx={node.x} cy={node.y} r={radius} fill={color} stroke={selected ? '#fff' : 'rgba(255,255,255,.4)'} strokeWidth={selected ? 2.5 : 1} /><text x={node.x} y={node.y + radius + 14} textAnchor="middle" fill={selected ? '#fff' : 'rgba(255,255,255,.85)'} fontSize={selected ? '11' : '9'} fontWeight={selected ? '700' : '500'}>{node.label}</text></g>; })}</svg><div className="pointer-events-none absolute bottom-3 left-4 right-4 flex justify-between text-[9px] text-white/45"><span>Linhas mostram relações culturais; o pulso acompanha o fluxo vivo.</span><span className="font-bold text-[#E8490A]">DNA cultural</span></div></div></div></div>
-      <aside className="lg:col-span-5"><div className="glass-card space-y-5 rounded-3xl border border-black/7 bg-white p-6 shadow-sm"><div className="border-b border-black/8 pb-4"><div className="mb-1.5 flex flex-wrap items-center gap-2"><span className="rounded-md px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white" style={{ background: dossier?.cor || '#1A6B3A' }}>Tag preservada</span><span className="text-[10px] text-black/45">{dossier?.familia}</span></div><h3 className="text-2xl font-bold">{dossier?.tag || selectedNode?.label}</h3><p className="mt-1.5 text-xs leading-relaxed text-black/70">{dossier?.descricao || selectedNode?.descricao}</p></div>
-        <div className="space-y-2 rounded-2xl border border-black/6 bg-black/[.02] p-4 text-xs"><div className="flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider text-black/50"><span className="flex items-center gap-1.5"><User size={12} className="text-[#E8490A]" /> Origem da tag</span><span className="text-green-700">Preservada</span></div><p className="font-bold">Criada por {dossier?.autor || 'Comunidade'}</p><p className="border-t border-black/5 pt-2 text-black/65">Em {dossier?.dataCriacao || 'data preservada'}, a tag foi registrada como: {dossier?.triplaFrase || `${dossier?.tag} relaciona-se culturalmente a ${dossier?.tripla?.objeto}.`}</p><p className="text-[10px] text-black/45">Identificador persistente: {dossier?.uuid || 'em preservação'}</p></div>
-        {article ? <div className="space-y-2.5 rounded-2xl border border-orange-200/60 bg-gradient-to-br from-white to-orange-50/40 p-4"><div className="flex items-center justify-between gap-2 text-[9.5px] font-bold uppercase tracking-wider text-[#E8490A]"><span className="flex items-center gap-1.5"><BookOpen size={13} /> Artigo vinculado</span><span className={verifiedArticle ? 'text-green-700' : 'text-amber-700'}>{verifiedArticle ? 'Fonte verificada' : 'Dado ilustrativo — verificar'}</span></div><h4 className="text-xs font-bold leading-snug">{article.titulo}</h4><p className="text-[10.5px] font-medium text-black/60">{article.autor} • <span className="italic">{article.veiculo}</span> ({article.ano})</p><p className="border-t border-black/5 pt-2 text-[11px] leading-relaxed text-black/80">{article.resumo}</p><div className="flex items-center justify-between gap-3 pt-1 text-[10.5px]"><span className="font-mono text-black/50">{article.doi ? `DOI: ${article.doi}` : 'Sem DOI confirmado'}</span>{article.url && <a href={article.url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 font-bold text-[#E8490A] hover:underline">Abrir fonte <ArrowUpRight size={12} /></a>}</div></div> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">Ainda não há artigo verificável vinculado a esta tag.</div>}
-        <div><p className="mb-2.5 text-[9.5px] font-bold uppercase tracking-wider text-black/50">Conexões culturais descobertas</p><div className="space-y-2">{culturalConnections.length ? culturalConnections.map((connection: any) => <button key={`${connection.targetId}-${connection.afirmacaoCultural}`} onClick={() => { const node = nodes.find(item => item.id === connection.targetId); if (node) selectNode(node); }} className="flex w-full items-start gap-2 rounded-xl border border-black/6 bg-black/[.02] p-3 text-left transition hover:border-[#E8490A]/40 hover:bg-orange-50/40"><Link2 size={13} className="mt-0.5 shrink-0 text-[#E8490A]" /><span className="text-[11px] leading-relaxed text-black/80">{connection.afirmacaoCultural}</span></button>) : <p className="rounded-xl bg-black/[.02] p-3 text-[11px] text-black/60">Esta tag ainda aguarda relações culturais validadas.</p>}</div></div>
-        <button onClick={openJsonLd} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#121214] py-3.5 text-xs font-bold text-white transition hover:bg-black"><Send size={14} /> Ver representação interoperável</button>
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+      <div className="xl:col-span-7">
+        <div className="glass-card rounded-3xl border border-black/7 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><Activity size={15} className="text-[#E8490A]" /><span className="text-xs font-bold uppercase tracking-wider">Mapa de relações</span><span className="text-[10px] text-black/45">{view === 'all' ? `${searchedTags.length} tags mostradas` : `${visibleNodes.length} nós no foco`}</span></div><div className="flex rounded-lg border border-black/10 p-0.5 text-[10px] font-bold"><button onClick={() => setView('focus')} className={`rounded-md px-2 py-1 ${view === 'focus' ? 'bg-[#121214] text-white' : 'text-black/55'}`}>Foco</button><button onClick={() => setView('all')} className={`rounded-md px-2 py-1 ${view === 'all' ? 'bg-[#121214] text-white' : 'text-black/55'}`}>Todas</button></div></div>
+          <div className="relative h-[500px] overflow-hidden rounded-2xl border border-white/10 bg-[#0B0C10] shadow-2xl">
+            {loading ? <div className="flex h-full items-center justify-center text-xs font-bold text-white/60"><RefreshCw size={16} className="mr-2 animate-spin" /> Lendo todas as tags do acervo…</div> : visibleNodes.length === 0 ? <div className="flex h-full items-center justify-center px-8 text-center text-xs leading-relaxed text-white/60">Ainda não há tags válidas no acervo para formar a rede.</div> : <svg className="h-full w-full select-none" viewBox="0 0 1000 570" aria-label="Grafo de interoperabilidade cultural">
+              <defs><filter id="network-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+              {Array.from({ length: 80 }).map((_, index) => <circle key={index} cx={(index % 10) * 105 + 25} cy={Math.floor(index / 10) * 75 + 24} r="1" fill="rgba(255,255,255,.035)" />)}
+              {visibleEdges.map(edge => { const from = positions.get(edge.from); const to = positions.get(edge.to); if (!from || !to) return null; const related = edge.from === selectedId || edge.to === selectedId; return <line key={edge.id} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={edge.layer === 'validated' ? '#22c55e' : edge.layer === 'factual' ? '#E8490A' : '#A78BFA'} strokeWidth={related ? 2.2 : 1} opacity={related ? .9 : .3} strokeDasharray={edge.layer === 'inferred' ? '5 4' : undefined} />; })}
+              {visibleNodes.map(node => { const position = positions.get(node.id); if (!position) return null; const selected = node.id === selectedId; const radius = node.kind === 'family' ? 19 : selected ? 17 : node.kind === 'tag' ? 10 : 12; const color = node.kind === 'tag' ? node.color : KIND_COLOR[node.kind]; const showLabel = selected || view === 'focus' || visibleNodes.length <= 20; return <g key={node.id} className="cursor-pointer" onClick={() => selectNode(node)}><circle cx={position.x} cy={position.y} r={radius + 7} fill={color} opacity={selected ? .35 : .12} filter="url(#network-glow)" /><circle cx={position.x} cy={position.y} r={radius} fill={color} stroke={selected ? '#fff' : 'rgba(255,255,255,.45)'} strokeWidth={selected ? 2.5 : 1} />{showLabel && <text x={position.x} y={position.y + radius + 13} textAnchor="middle" fill={selected ? '#fff' : 'rgba(255,255,255,.78)'} fontSize={selected ? '10' : '8.5'} fontWeight={selected ? '700' : '500'}>{shortText(node.label, 28)}</text>}</g>; })}
+            </svg>}
+            <div className="pointer-events-none absolute bottom-3 left-4 right-4 flex justify-between text-[9px] text-white/50"><span>Linha contínua: dado factual/validado · tracejada: inferência explicável.</span><span className="font-bold text-[#E8490A]">DNA cultural</span></div>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-black/55">{(Object.keys(KIND_LABEL) as NodeKind[]).map(kind => <span key={kind} className="flex items-center gap-1.5"><i className="h-2 w-2 rounded-full" style={{ background: KIND_COLOR[kind] }} />{KIND_LABEL[kind]}</span>)}</div>
+        </div>
+      </div>
+
+      <aside className="xl:col-span-5"><div className="glass-card space-y-4 rounded-3xl border border-black/7 bg-white p-5 shadow-sm md:p-6">
+        <div className="border-b border-black/8 pb-4"><div className="mb-2 flex flex-wrap items-center gap-2"><span className="rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white" style={{ background: selectedNode?.kind === 'tag' ? selectedNode.color : KIND_COLOR[selectedNode?.kind || 'tag'] }}>{selectedNode ? KIND_LABEL[selectedNode.kind] : 'Aguardando'}</span>{dossier?.family && <span className="text-[10px] text-black/50">{dossier.family}</span>}</div><h3 className="text-2xl font-bold">{detailsTitle}</h3><p className="mt-1.5 text-xs leading-relaxed text-black/65">{dossier ? `${dossier.occurrenceCount} ocorrência(s) da tag preservadas em uma identidade cultural única.` : selectedNode?.description || 'Escolha um nó do grafo ou pesquise uma tag para abrir seu percurso.'}</p></div>
+        {dossier ? <>
+          <div className="rounded-2xl border border-black/6 bg-black/[.025] p-4"><div className="mb-2 flex items-center justify-between gap-2"><span className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider text-black/50"><Fingerprint size={12} className="text-[#E8490A]" /> DNA da tag</span><span className="text-[9px] font-bold text-green-700">rastreável</span></div><p className="break-all font-mono text-[11px] font-bold text-[#9A3600]">{dossier.dna}</p><p className="mt-2 text-[10.5px] leading-relaxed text-black/60">Primeira ocorrência: {formatDate(dossier.provenance.firstObservedAt)} · {dossier.provenance.works} obra(s) · {dossier.provenance.nuclei} núcleo(s).</p></div>
+          <div><p className="mb-2 text-[9.5px] font-bold uppercase tracking-wider text-black/50">Formas preservadas</p><div className="flex flex-wrap gap-1.5">{dossier.aliases.map(alias => <span key={alias} className="rounded-lg border border-black/8 bg-white px-2 py-1 text-[10px] font-medium">{alias}</span>)}</div></div>
+          <div className="flex gap-2"><button onClick={learnSelectedTag} disabled={learning} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[#E8490A] px-3 py-2.5 text-xs font-bold text-white transition hover:bg-[#C53E00] disabled:opacity-60"><Sparkles size={13} className={learning ? 'animate-pulse' : ''} />{learning ? 'Consultando fontes…' : 'Aprender conexões'}</button><button onClick={openJsonLd} className="flex items-center justify-center gap-1.5 rounded-xl border border-black/10 px-3 py-2.5 text-xs font-bold transition hover:border-[#E8490A]/40"><FileCode2 size={13} /> JSON-LD</button></div>
+          <div><p className="mb-2 flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider text-black/50"><Link2 size={12} /> Conexões ({dossier.relations.length})</p><div className="max-h-56 space-y-2 overflow-auto pr-1">{dossier.relations.length ? dossier.relations.map(relation => <button key={relation.id} onClick={() => { const target = byId.get(relation.target.id); if (target) selectNode(target); }} className="w-full rounded-xl border border-black/6 bg-black/[.02] p-3 text-left transition hover:border-[#E8490A]/35 hover:bg-orange-50/50"><div className="flex items-start justify-between gap-2"><span className="text-[11px] font-bold">{relation.target.label}</span><span className="shrink-0 rounded bg-white px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-black/50">{layerLabel(relation.layer)} · {Math.round(relation.confidence * 100)}%</span></div><p className="mt-1 text-[10.5px] leading-relaxed text-black/65">{relation.explanation}</p><p className="mt-1 text-[9px] font-medium uppercase tracking-wide text-[#B84000]">{relation.relation.replaceAll('_', ' ')}</p></button>) : <p className="rounded-xl bg-black/[.02] p-3 text-[11px] text-black/60">A rede ainda não possui relações verificáveis para esta tag.</p>}</div></div>
+          <div><p className="mb-2 flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider text-black/50"><BookOpen size={12} /> Documentos e acervos ({dossier.evidence.length})</p><div className="space-y-2">{dossier.evidence.slice(0, 4).map(item => <div key={item.id} className="rounded-xl border border-amber-200/60 bg-amber-50/40 p-3"><div className="flex items-start justify-between gap-2"><div><p className="text-[11px] font-bold leading-snug">{item.label}</p><p className="mt-1 text-[9.5px] font-medium text-[#9A6300]">{item.source} · {Math.round((item.confidence || 0) * 100)}% de pertinência</p></div>{item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`Abrir ${item.label}`} className="text-[#B84000]"><ArrowUpRight size={14} /></a>}</div>{item.description && <p className="mt-1.5 text-[10px] leading-relaxed text-black/60">{shortText(item.description, 150)}</p>}</div>)}</div></div>
+        </> : selectedNode ? <div className="rounded-2xl border border-black/6 bg-black/[.025] p-4"><p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-black/50"><Database size={12} /> Nó conectado</p><p className="mt-2 text-xs leading-relaxed text-black/70">{selectedNode.description || 'Este nó compõe o percurso da tag selecionada.'}</p>{selectedNode.url && <a href={selectedNode.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#B84000] hover:underline">Abrir registro <ArrowUpRight size={13} /></a>}</div> : <div className="rounded-2xl border border-dashed border-black/15 p-5 text-center text-xs text-black/55">O dossiê aparece aqui quando você seleciona uma tag.</div>}
       </div></aside>
     </section>
-    {showJson && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#121214] shadow-2xl"><div className="flex items-center justify-between border-b border-white/10 bg-black/40 p-4"><div className="flex items-center gap-2"><FileCode2 size={18} className="text-[#E8490A]" /><div><h3 className="text-sm font-bold text-white">Representação da tag</h3><p className="text-[10px] text-white/50">JSON-LD · SKOS · proveniência preservada</p></div></div><button onClick={() => setShowJson(false)} className="rounded bg-white/5 px-2.5 py-1 text-xs text-white/60 hover:text-white">Fechar ×</button></div><div className="border-b border-white/5 bg-black/30 p-3 text-[10.5px] font-mono text-white/70">Accept: application/ld+json <span className="ml-3 font-bold text-green-400">200 OK</span></div><pre className="flex-1 overflow-auto bg-black/60 p-4 text-[11px] text-green-400">{jsonLd}</pre><div className="flex items-center justify-end border-t border-white/10 bg-black/40 p-3.5"><button onClick={() => { navigator.clipboard.writeText(jsonLd); setCopied(true); window.setTimeout(() => setCopied(false), 2000); }} className="flex items-center gap-1.5 rounded-xl bg-[#E8490A] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#c44000]">{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copiado!' : 'Copiar JSON-LD'}</button></div></div></div>}
+
+    <section className="glass-card rounded-3xl border border-black/7 bg-white p-5 shadow-sm"><div className="mb-4 flex items-center justify-between gap-3"><div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"><Layers3 size={14} className="text-[#E8490A]" /> Índice completo de tags</p><p className="mt-1 text-[11px] text-black/55">Exibindo {searchedTags.length} de {tagNodes.length} tags. A busca e a rolagem alcançam a totalidade carregada.</p></div><ShieldCheck size={18} className="text-green-700" /></div><div className="max-h-[560px] overflow-auto pr-1"><div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{searchedTags.map(node => <button key={node.id} onClick={() => selectNode(node)} className={`flex items-center justify-between gap-3 rounded-xl border p-3 text-left transition ${node.id === selectedId ? 'border-[#E8490A]/50 bg-orange-50/60' : 'border-black/7 hover:border-black/20'}`}><span className="min-w-0"><span className="block truncate text-xs font-bold">{node.label}</span><span className="mt-0.5 block truncate font-mono text-[9px] text-black/45">{node.dna}</span></span><span className="shrink-0 rounded-md px-1.5 py-1 text-[9px] font-bold text-white" style={{ background: node.color }}>{node.usageCount}</span></button>)}</div></div></section>
+
+    {showJson && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"><div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#121214] shadow-2xl"><div className="flex items-center justify-between border-b border-white/10 bg-black/40 p-4"><div className="flex items-center gap-2"><FileCode2 size={18} className="text-[#E8490A]" /><div><h3 className="text-sm font-bold text-white">Representação interoperável</h3><p className="text-[10px] text-white/50">JSON-LD · SKOS · proveniência e confiança</p></div></div><button onClick={() => setShowJson(false)} className="rounded bg-white/5 px-2.5 py-1 text-xs text-white/60 hover:text-white">Fechar ×</button></div><pre className="flex-1 overflow-auto bg-black/60 p-4 text-[11px] text-green-400">{jsonLd}</pre><div className="flex justify-end border-t border-white/10 bg-black/40 p-3.5"><button onClick={() => { navigator.clipboard.writeText(jsonLd); setCopied(true); window.setTimeout(() => setCopied(false), 1800); }} className="flex items-center gap-1.5 rounded-xl bg-[#E8490A] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#C53E00]">{copied ? <Check size={13} /> : <Copy size={13} />}{copied ? 'Copiado!' : 'Copiar JSON-LD'}</button></div></div></div>}
   </div>;
 }
