@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDeterministicHash } from '@/lib/ml/graph-math';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
-import { CULTURAL_VAULT_REGISTRY } from '../live-vault/route';
+import { CULTURAL_VAULT_REGISTRY } from '../live-vault/registry';
 
 export const dynamic = 'force-dynamic';
 

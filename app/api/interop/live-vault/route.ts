@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseClient as supabase } from '@/lib/supabase/client';
 import { discoverLiveConnections, pulseLiveNetwork } from '@/lib/ml/live-network-engine';
 import { hybridSemanticSimilarity } from '@/lib/ml/similarity';
 import { BrazilianCultureArchitect } from '@/lib/ml/cultural-architect';
@@ -10,11 +10,6 @@ export { CULTURAL_VAULT_REGISTRY };
 export type { ConceptVaultItem } from './registry';
 
 export const dynamic = 'force-dynamic';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 // ─── FILTRO DE TAGS VÁLIDAS (sem lixo de testes) ──────────────────────────
 function isValidCulturalTag(label: string): boolean {
