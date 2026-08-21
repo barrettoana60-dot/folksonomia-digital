@@ -10,6 +10,7 @@ import crypto from 'crypto';
 import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
 import { EuropeanaConnector } from '@/lib/connectors/europeana';
 import { IbramConnector } from '@/lib/connectors/ibram';
+import { searchAcademicLiterature } from './academic-search';
 import type { ExternalMatch } from '@/lib/connectors/types';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { BrazilianCultureArchitect } from './cultural-architect';
@@ -93,7 +94,7 @@ export function makeTagDna(normalizedTag: string): string {
 }
 function workNodeId(workId: string): string { return `WORK${crypto.createHash('sha256').update(workId).digest('hex').slice(0, 16).toUpperCase()}`; }
 function documentNodeId(source: string, externalId: string): string { return `DOC${crypto.createHash('sha256').update(`${source}:${externalId}`).digest('hex').slice(0, 16).toUpperCase()}`; }
-function familyNodeId(eixo: string): string { return `FAMILY${eixo}`; }
+function familyNodeId(family: string): string { return `FAMILY${crypto.createHash('sha256').update(family).digest('hex').slice(0, 16).toUpperCase()}`; }
 
 function profileFor(label: string, themes: Set<string>) {
   const profile = BrazilianCultureArchitect.getCulturalProfile(label);
@@ -101,7 +102,8 @@ function profileFor(label: string, themes: Set<string>) {
     : profile.axes.includes('MUSICA_DANCA_PERFORMANCE') ? 'MUSICA'
       : profile.axes.includes('CRENCAS_RITOS') ? 'CRENCAS'
         : profile.axes.includes('SABERES_OFICIOS_MATERIAIS') ? 'SABERES' : 'PATRIMONIO';
-  return { eixo, family: [...themes].find(Boolean) || AXIS_LABELS[eixo], color: COLORS[eixo], axes: profile.axes };
+  const theme = [...themes].find(Boolean);
+  return { eixo, family: theme ? `${AXIS_LABELS[eixo]} · ${theme}` : AXIS_LABELS[eixo], color: COLORS[eixo], axes: profile.axes };
 }
 
 async function selectAll(table: string, fields: string): Promise<any[]> {
@@ -204,6 +206,12 @@ function addInferredTagLinks(aggregates: TagAggregate[], edges: Map<string, Inte
     const key = normalizeTag(theme);
     if (key) themeIndex.set(key, [...(themeIndex.get(key) || []), aggregate]);
   }
+  for (const aggregate of aggregates) {
+    const peers = aggregates.filter(peer => peer.id !== aggregate.id && peer.family === aggregate.family).slice(0, 8);
+    for (const peer of peers) {
+      record(aggregate, peer, 0.68, `Pertencem à mesma família cultural: ${aggregate.family}.`);
+    }
+  }
   for (const [theme, members] of themeIndex) {
     const sorted = [...members].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
     for (let index = 0; index < sorted.length; index += 1) for (const peer of sorted.slice(index + 1, index + 4)) {
@@ -276,12 +284,12 @@ export class IntelligenceOrchestrator {
     const byWork = new Map(source.works.map((work: any) => [String(work.id), work]));
 
     for (const aggregate of aggregates) {
-      const familyId = familyNodeId(aggregate.eixo);
+      const familyId = familyNodeId(aggregate.family);
       if (!nodeById.has(familyId)) {
-        const familyNode: InteropNode = { id: familyId, kind: 'family', label: AXIS_LABELS[aggregate.eixo], color: aggregate.color, eixo: aggregate.eixo, description: 'Família cultural inferida a partir do vocabulário e das classificações do acervo.' };
+        const familyNode: InteropNode = { id: familyId, kind: 'family', label: aggregate.family, color: aggregate.color, eixo: aggregate.eixo, family: aggregate.family, description: `Família cultural formada pelas tags que compartilham este tema e eixo: ${aggregate.family}.` };
         nodes.push(familyNode); nodeById.set(familyId, familyNode);
       }
-      addEdge(edges, { from: aggregate.id, to: familyId, relation: 'classified_in', explanation: `A tag integra a família “${AXIS_LABELS[aggregate.eixo]}”.`, confidence: 0.72, layer: 'inferred', mechanism: 'cultural-profile', source: 'tag-text', discovered: true });
+      addEdge(edges, { from: aggregate.id, to: familyId, relation: 'classified_in', explanation: `A tag integra a família temática “${aggregate.family}”.`, confidence: 0.86, layer: 'inferred', mechanism: 'cultural-profile', source: 'tag-text', discovered: true });
       for (const nucleoId of aggregate.nucleoIds) byNucleo.set(nucleoId, aggregate);
       for (const workId of aggregate.workIds) {
         const work = byWork.get(workId); const publicId = workNodeId(workId);
@@ -316,6 +324,18 @@ export class IntelligenceOrchestrator {
       const retrieval = Array.isArray(correlation.correlation_reasons)
         ? correlation.correlation_reasons.find((reason: any) => reason?.type === 'retrieval') : undefined;
       addDocument(aggregate, { source: correlation.source, externalId: correlation.external_id, title: correlation.external_title, description: retrieval?.external_description, url: retrieval?.url, score: Number(correlation.correlation_score || 0.6), layer: correlation.layer === 'validated' ? 'validated' : correlation.layer === 'factual' ? 'factual' : 'inferred' });
+    }
+    const selectedForRetrieval = tagLabel ? aggregateMap.get(normalizeTag(tagLabel)) : undefined;
+    if (selectedForRetrieval) {
+      const [academic, brasiliana, ibram, europeana] = await Promise.allSettled([
+        searchAcademicLiterature(selectedForRetrieval.label, { maxResults: 5 }),
+        new BrasilianaConnector().searchExternalSource(selectedForRetrieval.label),
+        new IbramConnector().searchExternalSource(selectedForRetrieval.label),
+        new EuropeanaConnector().searchExternalSource(selectedForRetrieval.label),
+      ]);
+      const academicItems = academic.status === 'fulfilled' ? academic.value.map(item => ({ source: 'Literatura acadêmica', externalId: item.doi || item.link || item.titulo, title: item.titulo, description: item.descricao, url: item.link, score: 0.82, relation: 'supported_by', layer: 'factual' as const })) : [];
+      const externalItems = [brasiliana, ibram, europeana].flatMap(result => result.status === 'fulfilled' ? result.value.map(item => ({ source: item.source, externalId: item.external_id, title: item.title, description: item.description, url: item.url, score: item.match_score, relation: item.relation_type === 'sameAs' ? 'same_as' : 'documented_by', layer: 'inferred' as const })) : []);
+      [...academicItems, ...externalItems].forEach(item => addDocument(selectedForRetrieval, item));
     }
     for (const relation of source.relations) {
       const from = byNucleo.get(String(relation.origem_id)); const to = byNucleo.get(String(relation.destino_id));
