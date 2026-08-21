@@ -72,7 +72,7 @@ export default function CulturalInteroperabilityView({ initialNodes = [], initia
         const existing = previous.get(keyOf(item.label));
         const angle = (index / Math.max(valid.length, 1)) * Math.PI * 2 - Math.PI / 2;
         const radius = index < 8 ? 165 : 220 + (index % 3) * 24;
-        return { id: item.id?.toString() || keyOf(item.label), label: item.label, eixo: item.eixo, familia: item.familia, cor: item.cor || COLORS[item.eixo] || COLORS.default, descricao: item.description, usageCount: item.usageCount, x: existing?.x ?? 400 + Math.cos(angle) * radius, y: existing?.y ?? 215 + Math.sin(angle) * radius };
+        return { id: item.id?.toString() || keyOf(item.label), label: item.label, eixo: item.eixo, familia: item.familia, cor: item.cor || COLORS[item.eixo] || COLORS.default, descricao: item.description, usageCount: item.uses || item.usageCount, x: existing?.x ?? 400 + Math.cos(angle) * radius, y: existing?.y ?? 215 + Math.sin(angle) * radius };
       });
     });
   }, []);
@@ -83,26 +83,7 @@ export default function CulturalInteroperabilityView({ initialNodes = [], initia
     fetch('/api/interop/live-vault').then(response => response.ok ? response.json() : null).then(payload => {
       if (payload?.success && Array.isArray(payload.data?.nodes)) {
         applyNodes(payload.data.nodes);
-        if (Array.isArray(payload.data.connections)) {
-          setConnections(current => {
-            const known = new Set(current.map(connection => [connection.from, connection.to].sort().join('|')));
-            const incoming = payload.data.connections
-              .filter((connection: any) => connection.from && connection.to)
-              .map((connection: any) => ({
-                from: connection.from,
-                to: connection.to,
-                afirmacao: connection.afirmacao,
-                discovered: connection.discovered
-              }))
-              .filter((connection: VaultConnection) => {
-                const key = [connection.from, connection.to].sort().join('|');
-                if (known.has(key)) return false;
-                known.add(key);
-                return true;
-              });
-            return [...current, ...incoming];
-          });
-        }
+        if (Array.isArray(payload.data.connections)) setConnections(payload.data.connections);
       }
     }).catch(() => setMessage('Não foi possível atualizar a rede neste momento.'));
   }, [applyNodes, initialNodes]);
@@ -196,7 +177,6 @@ export default function CulturalInteroperabilityView({ initialNodes = [], initia
   const article = dossier?.artigo;
   const verifiedArticle = dossier?.artigoStatus === 'verificado';
   const culturalConnections = dossier?.conexoesTextuais || [];
-  const externalEvidence = dossier?.externalEvidence || [];
 
   return <div className="space-y-6 text-[#1A1A1A]">
     <section className="glass-card rounded-3xl border border-black/8 bg-gradient-to-br from-white via-white to-orange-50/40 p-6 shadow-sm">
@@ -214,7 +194,6 @@ export default function CulturalInteroperabilityView({ initialNodes = [], initia
       <aside className="lg:col-span-5"><div className="glass-card space-y-5 rounded-3xl border border-black/7 bg-white p-6 shadow-sm"><div className="border-b border-black/8 pb-4"><div className="mb-1.5 flex flex-wrap items-center gap-2"><span className="rounded-md px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white" style={{ background: dossier?.cor || '#1A6B3A' }}>Tag preservada</span><span className="text-[10px] text-black/45">{dossier?.familia}</span></div><h3 className="text-2xl font-bold">{dossier?.tag || selectedNode?.label}</h3><p className="mt-1.5 text-xs leading-relaxed text-black/70">{dossier?.descricao || selectedNode?.descricao}</p></div>
         <div className="space-y-2 rounded-2xl border border-black/6 bg-black/[.02] p-4 text-xs"><div className="flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider text-black/50"><span className="flex items-center gap-1.5"><User size={12} className="text-[#E8490A]" /> Origem da tag</span><span className="text-green-700">Preservada</span></div><p className="font-bold">Criada por {dossier?.autor || 'Comunidade'}</p><p className="border-t border-black/5 pt-2 text-black/65">Em {dossier?.dataCriacao || 'data preservada'}, a tag foi registrada como: {dossier?.triplaFrase || `${dossier?.tag} relaciona-se culturalmente a ${dossier?.tripla?.objeto}.`}</p><p className="text-[10px] text-black/45">Identificador persistente: {dossier?.uuid || 'em preservação'}</p></div>
         {article ? <div className="space-y-2.5 rounded-2xl border border-orange-200/60 bg-gradient-to-br from-white to-orange-50/40 p-4"><div className="flex items-center justify-between gap-2 text-[9.5px] font-bold uppercase tracking-wider text-[#E8490A]"><span className="flex items-center gap-1.5"><BookOpen size={13} /> Artigo vinculado</span><span className={verifiedArticle ? 'text-green-700' : 'text-amber-700'}>{verifiedArticle ? 'Fonte verificada' : 'Dado ilustrativo — verificar'}</span></div><h4 className="text-xs font-bold leading-snug">{article.titulo}</h4><p className="text-[10.5px] font-medium text-black/60">{article.autor} • <span className="italic">{article.veiculo}</span> ({article.ano})</p><p className="border-t border-black/5 pt-2 text-[11px] leading-relaxed text-black/80">{article.resumo}</p><div className="flex items-center justify-between gap-3 pt-1 text-[10.5px]"><span className="font-mono text-black/50">{article.doi ? `DOI: ${article.doi}` : 'Sem DOI confirmado'}</span>{article.url && <a href={article.url} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 font-bold text-[#E8490A] hover:underline">Abrir fonte <ArrowUpRight size={12} /></a>}</div></div> : <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">Ainda não há artigo verificável vinculado a esta tag.</div>}
-        {externalEvidence.length > 0 && <div className="space-y-2 rounded-2xl border border-cyan-200/60 bg-cyan-50/40 p-4"><div className="flex items-center justify-between text-[9.5px] font-bold uppercase tracking-wider text-cyan-800"><span className="flex items-center gap-1.5"><Globe size={13} /> Anexos interoperáveis</span><span>{externalEvidence.length} registros reais</span></div><div className="space-y-1.5">{externalEvidence.slice(0, 6).map((item: any) => <a key={item.external_id} href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-2 rounded-lg border border-cyan-900/10 bg-white/70 p-2 text-[10.5px] hover:border-cyan-700/40"><span className="min-w-0"><strong className="mr-1 text-cyan-800">{item.source}</strong><span className="text-black/75">{item.title}</span></span><ArrowUpRight size={12} className="shrink-0 text-cyan-800" /></a>)}</div></div>}
         <div><p className="mb-2.5 text-[9.5px] font-bold uppercase tracking-wider text-black/50">Conexões culturais descobertas</p><div className="space-y-2">{culturalConnections.length ? culturalConnections.map((connection: any) => <button key={`${connection.targetId}-${connection.afirmacaoCultural}`} onClick={() => { const node = nodes.find(item => item.id === connection.targetId); if (node) selectNode(node); }} className="flex w-full items-start gap-2 rounded-xl border border-black/6 bg-black/[.02] p-3 text-left transition hover:border-[#E8490A]/40 hover:bg-orange-50/40"><Link2 size={13} className="mt-0.5 shrink-0 text-[#E8490A]" /><span className="text-[11px] leading-relaxed text-black/80">{connection.afirmacaoCultural}</span></button>) : <p className="rounded-xl bg-black/[.02] p-3 text-[11px] text-black/60">Esta tag ainda aguarda relações culturais validadas.</p>}</div></div>
         <button onClick={openJsonLd} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#121214] py-3.5 text-xs font-bold text-white transition hover:bg-black"><Send size={14} /> Ver representação interoperável</button>
       </div></aside>
