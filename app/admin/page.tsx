@@ -1320,15 +1320,17 @@ export default function AdminPage() {
     finally { setIsModelScanning(false); }
   }, []);
 
-  const handleSemanticSearch = async () => {
-    if (!searchTag.trim()) return;
+  const handleSemanticSearch = async (overrideTag?: string) => {
+    const targetQuery = (overrideTag || searchTag).trim();
+    if (!targetQuery) return;
+    if (overrideTag) setSearchTag(overrideTag);
     setIsAnalyzing(true);
     setSemanticResult(null);
     try {
       const res = await fetch('/api/admin/relatorio-semantico', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag: searchTag, parametros: analysisParams })
+        body: JSON.stringify({ tag: targetQuery, parametros: analysisParams })
       });
       const json = await res.json();
       if (json.success) {
@@ -2556,26 +2558,141 @@ ${internasHtml}
                   </div>
                 </div>
  
-                {/* GRÁFICO TEMPORAL RESTAURADO */}
-                <div className="glass-card p-8 md:p-12 space-y-8 print:hidden">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                    <TrendingUp className="text-[#E85002]" size={18} /> Fluxo Temporal de Tags (Últimos 7 dias)
-                  </h3>
-                  <div className="h-48 w-full flex items-end gap-3 border-b border-black/10 pb-2">
-                    {dashboardData?.relatorioSemantico?.fluxoTemporal?.map((val: number, i: number) => {
-                      const maxVal = Math.max(...(dashboardData?.relatorioSemantico?.fluxoTemporal || [1]), 1);
-                      const percent = (val / maxVal) * 100;
-                      return (
-                        <div key={i} className="flex-1 bg-gradient-to-t from-[#E85002] to-[#F16001] rounded-t-lg relative group transition-all duration-500" style={{ height: `${percent}%` }}>
-                          <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">{val}</span>
-                        </div>
-                      )
-                    }) || (
-                      <div className="w-full h-full flex items-center justify-center text-[#1A1A1A]/38 text-xs font-semibold uppercase tracking-wider">Carregando dados temporais...</div>
+                {/* FLUXO TEMPORAL DE TAGS — CONTAGEM REAL DE DIAS E TAGS POR DIA */}
+                <div className="glass-card p-8 md:p-10 space-y-6 print:hidden">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h3 className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                        <TrendingUp className="text-[#E85002]" size={18} /> Fluxo Temporal de Contribuições (Últimos 7 Dias)
+                      </h3>
+                      <p className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/40 mt-0.5">Contagem diária de tags inseridas no ecossistema de folksonomia</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-[#1A1A1A]/50 bg-white/40 px-3 py-1.5 rounded-lg border border-black/05">
+                      <Clock size={12} className="text-[#E85002]" />
+                      <span>{dashboardData?.relatorioSemantico?.totalDiasAtivos || 1} {dashboardData?.relatorioSemantico?.totalDiasAtivos === 1 ? 'dia ativo' : 'dias ativos'}</span>
+                    </div>
+                  </div>
+
+                  {/* CARDS DE MÉTRICAS DO FLUXO TEMPORAL */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 bg-white/50 rounded-xl border border-black/07">
+                      <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Total de Dias Ativos</p>
+                      <p className="text-xl font-bold text-[#E85002] mt-0.5">{dashboardData?.relatorioSemantico?.totalDiasAtivos || 1}</p>
+                    </div>
+                    <div className="p-3.5 bg-white/50 rounded-xl border border-black/07">
+                      <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Tags Adicionadas Hoje</p>
+                      <p className="text-xl font-bold text-blue-600 mt-0.5">{dashboardData?.relatorioSemantico?.tagsHoje || 0}</p>
+                    </div>
+                    <div className="p-3.5 bg-white/50 rounded-xl border border-black/07">
+                      <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Média Diária</p>
+                      <p className="text-xl font-bold text-amber-600 mt-0.5">{dashboardData?.relatorioSemantico?.mediaTagsPorDia || '0'} <span className="text-[10px] font-normal text-[#1A1A1A]/50">tags/dia</span></p>
+                    </div>
+                    <div className="p-3.5 bg-white/50 rounded-xl border border-black/07">
+                      <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Pico de Tags / Dia</p>
+                      <p className="text-xl font-bold text-green-600 mt-0.5">{dashboardData?.relatorioSemantico?.picoDia?.count || 0} <span className="text-[10px] font-normal text-[#1A1A1A]/40">({dashboardData?.relatorioSemantico?.picoDia?.data || 'N/A'})</span></p>
+                    </div>
+                  </div>
+
+                  {/* GRÁFICO DE BARRAS TEMPORAL */}
+                  <div className="h-52 w-full flex items-end gap-2.5 sm:gap-4 border-b border-black/10 pb-3 pt-6">
+                    {dashboardData?.relatorioSemantico?.diasDetalhados ? (
+                      dashboardData.relatorioSemantico.diasDetalhados.map((item: any, i: number) => {
+                        const counts = dashboardData.relatorioSemantico.diasDetalhados.map((x: any) => x.tagsCount);
+                        const maxVal = Math.max(...counts, 1);
+                        const percent = item.tagsCount > 0 ? Math.max((item.tagsCount / maxVal) * 100, 14) : 8;
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                            {/* Tooltip hover */}
+                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/85 text-white text-[10px] font-bold py-1 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-20 shadow-md">
+                              {item.tagsCount} {item.tagsCount === 1 ? 'tag' : 'tags'} ({item.diaSemanaCompleto || item.diaSemana}, {item.dataFmt})
+                            </div>
+
+                            {/* Valor numérico visível acima da barra */}
+                            <span className={`text-[10px] font-bold mb-1 transition-opacity ${item.isHoje ? 'text-[#E85002]' : 'text-[#1A1A1A]/60'}`}>
+                              {item.tagsCount}
+                            </span>
+
+                            {/* Barra animada */}
+                            <div
+                              className={`w-full rounded-t-lg transition-all duration-500 shadow-sm ${
+                                item.isHoje
+                                  ? 'bg-gradient-to-t from-[#E85002] to-[#ff7a29] border-t-2 border-white/60'
+                                  : item.tagsCount > 0
+                                  ? 'bg-gradient-to-t from-[#E85002]/80 to-[#F16001]/70 hover:brightness-110'
+                                  : 'bg-black/05 hover:bg-black/10'
+                              }`}
+                              style={{ height: `${percent}%` }}
+                            />
+
+                            {/* Legenda de dia e data */}
+                            <div className="mt-2 text-center">
+                              <span className={`block text-[10px] font-bold ${item.isHoje ? 'text-[#E85002]' : 'text-[#1A1A1A]/70'}`}>
+                                {item.diaSemana}
+                              </span>
+                              <span className="block text-[9px] text-[#1A1A1A]/40 font-mono">
+                                {item.dataFmt}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : dashboardData?.relatorioSemantico?.fluxoTemporal ? (
+                      dashboardData.relatorioSemantico.fluxoTemporal.map((val: number, i: number) => {
+                        const maxVal = Math.max(...(dashboardData?.relatorioSemantico?.fluxoTemporal || [1]), 1);
+                        const percent = val > 0 ? Math.max((val / maxVal) * 100, 14) : 8;
+                        const dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                        return (
+                          <div key={i} className="flex-1 flex flex-col items-center h-full justify-end group relative">
+                            <span className="text-[10px] font-bold mb-1 text-[#1A1A1A]/60">{val}</span>
+                            <div
+                              className="w-full bg-gradient-to-t from-[#E85002] to-[#F16001] rounded-t-lg transition-all duration-500"
+                              style={{ height: `${percent}%` }}
+                            />
+                            <span className="mt-2 text-[10px] font-bold text-[#1A1A1A]/70">{dias[i]}</span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-[#1A1A1A]/38 text-xs font-semibold uppercase tracking-wider">
+                        Carregando dados temporais...
+                      </div>
                     )}
                   </div>
-                  <div className="flex justify-between text-[10px] font-black text-[#1A1A1A]/35 uppercase tracking-widest">
-                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                </div>
+
+                {/* TAGS FIXAS E SOBERANAS DO SISTEMA (ATALHO RÁPIDO PARA ANÁLISE) */}
+                <div className="glass-card p-6 space-y-4 print:hidden !bg-white/50 border border-black/07">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-[#1A1A1A]">
+                      <TagIcon className="text-[#E85002]" size={15} />
+                      Tags Soberanas & Conceitos do Ecossistema
+                    </h4>
+                    <span className="text-[10px] uppercase font-semibold text-[#1A1A1A]/40">Clique para analisar imediatamente</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { name: 'Carranca', grupo: 'Saberes Fluviais' },
+                      { name: 'Barroco', grupo: 'Arte Sacra' },
+                      { name: 'Mestre Vitalino', grupo: 'Cerâmica do Agreste' },
+                      { name: 'Roda de Capoeira', grupo: 'Patrimônio Imaterial' },
+                      { name: 'Frevo', grupo: 'Música & Dança' },
+                      { name: 'Bumba-meu-boi', grupo: 'Auto Junino' },
+                      { name: 'Maracatu Nação', grupo: 'Baque Virado' },
+                      { name: 'Literatura de Cordel', grupo: 'Poética Popular' },
+                      { name: 'Ex-votos do Nordeste', grupo: 'Devoção Popular' },
+                      { name: 'Renda de Bilro', grupo: 'Ofício Têxtil' },
+                      { name: 'Samba de Roda', grupo: 'Matrizes do Samba' },
+                      { name: 'Fandango Caiçara', grupo: 'Tradição Litorânea' },
+                    ].map(st => (
+                      <button
+                        key={st.name}
+                        onClick={() => handleSemanticSearch(st.name)}
+                        className="px-3 py-1.5 rounded-xl border border-black/08 bg-white/70 hover:bg-[#E85002]/10 hover:border-[#E85002]/40 transition-all text-left flex items-center gap-2 group hover:scale-105 active:scale-95 shadow-sm"
+                      >
+                        <span className="font-serif italic text-sm text-[#1A1A1A] group-hover:text-[#E85002] font-semibold">{st.name}</span>
+                        <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-black/05 text-[#1A1A1A]/50 group-hover:bg-[#E85002]/20 group-hover:text-[#E85002]">{st.grupo}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -2601,7 +2718,7 @@ ${internasHtml}
                       placeholder="Buscar tag para análise semântica profunda (ex: capoeira, frevo, barroco...)"
                       className="liquid-input flex-1 !p-3.5 text-sm"
                     />
-                    <button onClick={handleSemanticSearch} disabled={isAnalyzing} className="liquid-button !bg-[#E8490A] !text-white !px-8 hover:!bg-[#c73d08] shadow-[0_4px_12px_rgba(232,73,10,0.15)]">
+                    <button onClick={() => handleSemanticSearch()} disabled={isAnalyzing} className="liquid-button !bg-[#E8490A] !text-white !px-8 hover:!bg-[#c73d08] shadow-[0_4px_12px_rgba(232,73,10,0.15)]">
                       {isAnalyzing ? 'Analisando...' : 'Analisar'}
                     </button>
                   </div>

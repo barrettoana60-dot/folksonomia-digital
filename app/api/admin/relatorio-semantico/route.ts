@@ -17,6 +17,7 @@ import { calculateCalibratedConfidence } from '@/lib/ml/scoring';
 import { syncFromRAG } from '@/lib/ml/cultural-network';
 import { enqueueForProgressiveLearning } from '@/lib/ml/training-loop';
 import { collectEvidence, getCachedEvidence } from '@/lib/ml/evidence-collector';
+import { getHASDossier, hasValidateAssociation } from '@/lib/ml/has-engine';
 
 export const dynamic = 'force-dynamic';
 
@@ -704,9 +705,23 @@ async function generateAIAnalysis(
   const precisaTreinamento = certezaCalculada < 95;
 
   // === SEÇÃO 1: Definição e Contextualização do Conceito ===
+  const hasDossier = getHASDossier(tag);
   let ancoraNormativa = `### Definição e Contextualização — "${tag}"\n\n`;
 
-  if (temTesauro && termoTesauro) {
+  if (hasDossier?.dossie) {
+    ancoraNormativa += `**Família Cultural Epistêmica:** ${hasDossier.dossie.familiaCultural} (Eixo: ${hasDossier.eixo} | Matriz: ${hasDossier.matrix})\n\n`;
+    if (hasDossier.dossie.artigo) {
+      ancoraNormativa += `> "${hasDossier.dossie.artigo.resumo}"\n\n`;
+      ancoraNormativa += `*Ancoragem Epistêmica:* **${hasDossier.dossie.artigo.autor}** (${hasDossier.dossie.artigo.ano}) — *${hasDossier.dossie.artigo.veiculo}*\n\n`;
+    }
+    if (hasDossier.dossie.wikidata) {
+      ancoraNormativa += `**Entidade Ontológica Internacional (Wikidata):** [${hasDossier.dossie.wikidata.label} (${hasDossier.dossie.wikidata.id}) ↗](${hasDossier.dossie.wikidata.uri})\n\n`;
+    }
+    if (hasDossier.associates && hasDossier.associates.length > 0) {
+      const assocLabels = hasDossier.associates.map((a: string) => `**${a.replace(/_/g, ' ')}**`).join(', ');
+      ancoraNormativa += `**Conexões Soberanas Autorizadas:** ${assocLabels}.\n\n`;
+    }
+  } else if (temTesauro && termoTesauro) {
     ancoraNormativa += `O **Tesauro de Folclore e Cultura Popular Brasileira**, mantido pelo Centro Nacional de Folclore e Cultura Popular (CNFCP/IPHAN), registra este conceito com a seguinte definição normativa:\n\n`;
     ancoraNormativa += `> "${(termoTesauro.na || thesaurusContext).replace(/\n/g, ' ')}"\n\n`;
 

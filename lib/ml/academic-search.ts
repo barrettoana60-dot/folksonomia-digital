@@ -6,6 +6,7 @@
  */
 
 import { BrasilianaConnector } from '@/lib/connectors/brasiliana';
+import { getHASDossier } from '@/lib/ml/has-engine';
 
 export interface AcademicArticle {
   titulo: string;
@@ -23,6 +24,7 @@ export interface AcademicArticle {
 
 export interface AcademicSearchOptions {
   maxResults?: number;
+  incluirHAS?: boolean;
   incluirCorpus?: boolean;
   incluirOpenAlex?: boolean;
   incluirCrossRef?: boolean;
@@ -34,6 +36,7 @@ export interface AcademicSearchOptions {
 
 const DEFAULT_OPTIONS: Required<AcademicSearchOptions> = {
   maxResults: 8,
+  incluirHAS: true,
   incluirCorpus: true,
   incluirOpenAlex: true,
   incluirCrossRef: true,
@@ -297,13 +300,35 @@ export async function searchAcademicLiterature(
   const seenTitles = new Set<string>();
 
   const addResult = (item: AcademicArticle) => {
-    const normTitle = (item.titulo || '').toLowerCase().substring(0, 50);
+    const normTitle = (item.titulo || '').toLowerCase().substring(0, 45);
     if (normTitle && !seenTitles.has(normTitle)) {
       seenTitles.add(normTitle);
       results.push(item);
     }
   };
 
+  // 1. PRIORIDADE MÁXIMA: HAS Epistemic Store (Dossiê Científico Soberano SciELO / IPHAN)
+  if (opts.incluirHAS) {
+    const hasDossier = getHASDossier(query);
+    if (hasDossier?.dossie?.artigo) {
+      const art = hasDossier.dossie.artigo;
+      const article: AcademicArticle = {
+        titulo: `${art.titulo} (${art.ano})`,
+        descricao: art.resumo,
+        link: art.url || `https://brasiliana.museus.gov.br/?s=${encodeURIComponent(query)}`,
+        autores: art.autor,
+        ano: art.ano,
+        revista: art.veiculo,
+        doi: art.doi,
+        fonte: 'Dossiê Epistêmico SciELO / IPHAN',
+        tipo: 'artigo',
+      };
+      article.citacaoAbnt = formatAcademicCitation(article);
+      addResult(article);
+    }
+  }
+
+  // 2. Corpus de Cultura Brasileira Curado
   if (opts.incluirCorpus) {
     searchCorpus(query, queryNorm, queryTokens).forEach(addResult);
   }
