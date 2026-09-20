@@ -5,7 +5,7 @@ import {
   Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieIcon, 
   CheckCircle2, Settings, ChevronRight, ShieldCheck, Network, Globe, 
-  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen, ArrowRight, Fingerprint, Layers
+  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen, ArrowRight, Fingerprint, Layers, Users
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Logo from '@/components/Logo';
@@ -1703,10 +1703,12 @@ export default function AdminPage() {
   };
 
   const stats = [
+    { label: 'Usuários', value: dashboardData?.visaoGeral?.usuarios ?? 0, icon: Users, color: '#0D3A85' },
     { label: 'Volume de Dados', value: dashboardData?.visaoGeral?.totalDados || 0, icon: Database, color: '#E85002' },
     { label: 'Tags Criadas', value: dashboardData?.visaoGeral?.tags || 0, icon: TagIcon, color: '#E85002' },
     { label: 'Registros Validados', value: dashboardData?.visaoGeral?.validados || 0, icon: ShieldCheck, color: '#00FF00' },
   ];
+
 
   // Estado do modal do grafo
   const [graphNodeSelected, setGraphNodeSelected] = useState<any>(null);
@@ -2079,7 +2081,7 @@ ${internasHtml}
                       <s.icon size={20} className="md:size-[28px]" style={{ color: s.color }} />
                     </div>
                     <div className="space-y-1 md:space-y-2">
-                      <p className="text-2xl md:text-4xl font-normal serif-title text-white tracking-tight">{s.value}</p>
+                      <p className="text-2xl md:text-4xl font-normal serif-title text-[#1A1A1A] tracking-tight">{s.value}</p>
                       <p className="text-[8px] md:text-[11px] uppercase tracking-[0.12em] text-[#1A1A1A]/45 font-semibold">{s.label}</p>
                     </div>
                   </div>
