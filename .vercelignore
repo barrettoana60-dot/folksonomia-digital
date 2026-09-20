@@ -1,0 +1,14 @@
+ml-service/
+scratch/
+ml-service/**
+scratch/**
+scripts/*.py
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+generate_mock_dataset.py
+render.yaml
+Dockerfile
+*.Dockerfile
