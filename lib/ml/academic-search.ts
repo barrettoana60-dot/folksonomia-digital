@@ -373,6 +373,11 @@ export async function searchAcademicLiterature(
     searchCorpus(query, queryNorm, queryTokens).forEach(addResult);
   }
 
+  // Se já encontrou artigos suficientes no corpus acadêmico ou HAS, retorna imediatamente
+  if (results.length >= (opts.maxResults || 1)) {
+    return results.slice(0, opts.maxResults);
+  }
+
   const searchTasks: Promise<AcademicArticle[]>[] = [];
   if (opts.incluirOpenAlex) searchTasks.push(searchOpenAlexAcademic(query));
   if (opts.incluirCrossRef) searchTasks.push(searchCrossRefAcademic(query));

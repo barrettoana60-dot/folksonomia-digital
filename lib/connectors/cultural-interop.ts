@@ -68,7 +68,7 @@ export interface DiscoveryResult {
   summary: Record<string, number>;
 }
 
-const SEARCH_TIMEOUT_MS = 8000;
+const SEARCH_TIMEOUT_MS = 2000;
 const PER_SOURCE_LIMIT = 3;
 const TOTAL_LIMIT = 15;
 

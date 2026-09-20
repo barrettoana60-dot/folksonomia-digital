@@ -13,7 +13,8 @@ export type CulturalAxis =
   | 'MUSICA_DANCA_PERFORMANCE' 
   | 'SABERES_OFICIOS_MATERIAIS' 
   | 'CRENCAS_RITOS' 
-  | 'TRADICAO_ORAL_COSMOLOGIAS';
+  | 'TRADICAO_ORAL_COSMOLOGIAS'
+  | 'VANGUARDA_MODERNISMO';
 
 export type CulturalMatrix = 
   | 'AFRO_BRASILEIRA' 
@@ -47,7 +48,7 @@ const AXIS_KEYWORDS: Record<CulturalAxis, string[]> = {
     'rendeira', 'renda de bilro', 'labirinto', 'tecelagem', 'cestaria', 'trancado',
     'trançado', 'palha', 'fibra', 'artesao', 'artesão', 'mestre de oficio', 'madeira',
     'barroco', 'talha dourada', 'mestre vitalino', 'vitalino', 'arte popular', 'artesanato',
-    'arte', 'cubismo', 'guernica', 'picasso', 'pablo picasso', 'guerra civil espanhola', 'preto e branco'
+    'arte'
   ],
   CRENCAS_RITOS: [
     'sincretismo', 'catolicismo popular', 'romaria', 'procissao', 'procissão', 'candomble',
@@ -60,7 +61,11 @@ const AXIS_KEYWORDS: Record<CulturalAxis, string[]> = {
     'lenda', 'causo', 'mito', 'saci', 'curupira', 'iara', 'mula sem cabeca', 'mula sem cabeça',
     'boitata', 'boitatá', 'lobisomem', 'boto cor de rosa', 'boto cor-de-rosa', 'negrinho',
     'assombracao', 'assombração', 'proverbio', 'provérbio', 'parlenda', 'adivinha', 'conto popular',
-    'machado', 'machado de assis', 'dor'
+    'machado', 'machado de assis'
+  ],
+  VANGUARDA_MODERNISMO: [
+    'cubismo', 'guernica', 'picasso', 'pablo picasso', 'guerra civil espanhola', 'preto e branco',
+    'vanguarda', 'arte cubista', 'dor'
   ]
 };
 
