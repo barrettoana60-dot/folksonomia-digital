@@ -365,10 +365,10 @@ export default function ValidacaoPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-3">
             <Network className="text-[#E8490A]" size={30} />
-            Intercâmbio Internacional de DNA Cultural
+            Sistema de Auditoria
           </h1>
           <p className="text-xs text-[#1A1A1A]/50 mt-1 uppercase tracking-widest font-semibold flex items-center gap-1.5">
-            <Lock size={12} className="text-orange-600" /> Rede global de informações criptografadas Delta & Alfa para intercâmbio cultural auditável
+            <Lock size={12} className="text-orange-600" /> Registro auditavel do ciclo de vida de cada metadado — do termo bruto a publicacao validada
           </p>
         </div>
 
@@ -400,7 +400,7 @@ export default function ValidacaoPage() {
                 : 'border-transparent text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70'
             }`}
           >
-            Fragmentos de Intercâmbio Cultural ({pendingNucleos.length})
+            Registros para Auditoria ({pendingNucleos.length})
           </button>
           <button
             onClick={() => setActiveTab('ligacoes')}
@@ -410,7 +410,7 @@ export default function ValidacaoPage() {
                 : 'border-transparent text-[#1A1A1A]/40 hover:text-[#1A1A1A]/70'
             }`}
           >
-            Rede Global de Interoperabilidade ({relations.length})
+            Conexoes Auditadas ({relations.length})
           </button>
         </div>
 
@@ -418,7 +418,7 @@ export default function ValidacaoPage() {
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-8 h-8 rounded-full border-2 border-[#E8490A] border-t-transparent animate-spin" />
             <p className="text-xs uppercase tracking-wider text-[#1A1A1A]/40 font-semibold animate-pulse">
-              Decodificando chaves de consenso cultural...
+              Carregando registros de auditoria...
             </p>
           </div>
         ) : (
@@ -509,26 +509,21 @@ export default function ValidacaoPage() {
                                   <h3 className="text-lg font-normal serif-title">{item.conteudo_original}</h3>
                                 </div>
                                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded text-[9px] text-green-700 font-semibold uppercase tracking-wider">
-                                  <Globe size={10} /> {isNacional ? 'Nacional / Artigos' : 'Intercâmbio Internacional'}
+                                  <Globe size={10} /> {isNacional ? 'Acervo Nacional' : 'Acervo Internacional'}
                                 </div>
                               </div>
 
-                              <div className="grid grid-cols-4 gap-2 text-center">
-                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
-                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Confiança</span>
-                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.confianca, 0) * 100)}%</p>
-                                </div>
-                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
-                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Novidade</span>
-                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.novidade, 0))}%</p>
-                                </div>
-                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
-                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Tensão</span>
-                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.tensao, 0))}%</p>
-                                </div>
-                                <div className="p-2 bg-white/40 border border-black/07 rounded-lg">
-                                  <span className="text-[8px] uppercase font-bold text-[#1A1A1A]/40">Ressonância</span>
-                                  <p className="text-sm font-semibold">{Math.round(asNumber(item.ressonancia, 0))}%</p>
+                              {/* Trajeto do Metadado */}
+                              <div className="space-y-2">
+                                <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/50 flex items-center gap-1">
+                                  <Database size={10} /> Trajeto do Metadado
+                                </span>
+                                <div className="space-y-1 font-mono text-[9px] text-[#1A1A1A]/70 border-l-2 border-[#E8490A]/30 pl-3">
+                                  <div className="flex gap-2"><span className="text-[#E8490A] font-bold">1.</span> <span><span className="font-semibold">Entrada:</span> {item.conteudo_original}</span></div>
+                                  <div className="flex gap-2"><span className="text-[#E8490A] font-bold">2.</span> <span><span className="font-semibold">Normalizado:</span> {item.conteudo_normalizado}</span></div>
+                                  <div className="flex gap-2"><span className="text-[#E8490A] font-bold">3.</span> <span><span className="font-semibold">Origem:</span> {item.origem || 'Interface publica'}</span></div>
+                                  <div className="flex gap-2"><span className="text-[#E8490A] font-bold">4.</span> <span><span className="font-semibold">Status:</span> {item.status_validacao}</span></div>
+                                  <div className="flex gap-2"><span className="text-[#E8490A] font-bold">5.</span> <span><span className="font-semibold">Obra:</span> {item.obra?.titulo || 'Sem obra vinculada'}</span></div>
                                 </div>
                               </div>
                             </div>
@@ -633,7 +628,7 @@ export default function ValidacaoPage() {
                   {/* Tabela de conexões */}
                   <div className="lg:col-span-2 space-y-4">
                     <h3 className="text-xs uppercase tracking-widest font-bold text-[#1A1A1A]/50">
-                      Relações de Intercâmbio Mapeadas
+                      Conexoes Documentadas e Auditadas
                     </h3>
 
                     <div className="glass-card overflow-hidden border border-black/07">
@@ -709,9 +704,9 @@ export default function ValidacaoPage() {
                           </div>
 
                           <div>
-                            <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Intercâmbio Cultural Regulado</span>
+                            <span className="text-[9px] uppercase font-bold text-[#1A1A1A]/40 block">Proveniencia e Integracao Cultural</span>
                             <p className="text-[#1A1A1A]/65 mt-1 leading-relaxed text-[10px]">
-                              Esta ligação cruza dados de indexação e normalização com fontes curatoriais, preservando proveniência, integridade e contexto cultural.
+                              Esta ligacao cruza dados de indexacao e normalizacao com fontes curatoriais, preservando proveniencia, integridade e contexto cultural.
                             </p>
                           </div>
                         </div>

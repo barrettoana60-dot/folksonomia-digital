@@ -31,7 +31,8 @@ const AXIS_KEYWORDS: Record<CulturalAxis, string[]> = {
     'bumba meu boi', 'bumba-meu-boi', 'boi bumba', 'boi-bumba', 'boi de mamao', 'boi de reis',
     'maracatu', 'congada', 'congado', 'congo', 'reisado', 'folia de reis', 'cavalhada',
     'pastoril', 'folguedo', 'sao joao', 'são joão', 'quadrilha', 'festa junina', 'bumba',
-    'maracatu rural', 'maracatu nação', 'caboclinho', 'afoxe', 'afoxé', 'carnaval'
+    'maracatu rural', 'maracatu nação', 'caboclinho', 'afoxe', 'afoxé', 'carnaval',
+    'cultura popular', 'cultura'
   ],
   MUSICA_DANCA_PERFORMANCE: [
     'capoeira', 'berimbau', 'atabaque', 'pandeiro', 'agogo', 'agogô', 'caxixi', 'luta',
@@ -44,7 +45,9 @@ const AXIS_KEYWORDS: Record<CulturalAxis, string[]> = {
     'entalhe', 'carranca', 'ex voto', 'ex-voto', 'promessa', 'oratorio', 'oratório',
     'santo de roca', 'santo de vestir', 'xilogravura', 'cordel', 'folheto', 'renda',
     'rendeira', 'renda de bilro', 'labirinto', 'tecelagem', 'cestaria', 'trancado',
-    'trançado', 'palha', 'fibra', 'artesao', 'artesão', 'mestre de oficio', 'madeira'
+    'trançado', 'palha', 'fibra', 'artesao', 'artesão', 'mestre de oficio', 'madeira',
+    'barroco', 'talha dourada', 'mestre vitalino', 'vitalino', 'arte popular', 'artesanato',
+    'arte', 'cubismo', 'guernica', 'picasso', 'pablo picasso', 'guerra civil espanhola', 'preto e branco'
   ],
   CRENCAS_RITOS: [
     'sincretismo', 'catolicismo popular', 'romaria', 'procissao', 'procissão', 'candomble',
@@ -56,7 +59,8 @@ const AXIS_KEYWORDS: Record<CulturalAxis, string[]> = {
   TRADICAO_ORAL_COSMOLOGIAS: [
     'lenda', 'causo', 'mito', 'saci', 'curupira', 'iara', 'mula sem cabeca', 'mula sem cabeça',
     'boitata', 'boitatá', 'lobisomem', 'boto cor de rosa', 'boto cor-de-rosa', 'negrinho',
-    'assombracao', 'assombração', 'proverbio', 'provérbio', 'parlenda', 'adivinha', 'conto popular'
+    'assombracao', 'assombração', 'proverbio', 'provérbio', 'parlenda', 'adivinha', 'conto popular',
+    'machado', 'machado de assis', 'dor'
   ]
 };
 
@@ -178,7 +182,27 @@ export class BrazilianCultureArchitect {
       ['xilogravura', 'cordel'], ['capoeira', 'berimbau'],
       ['capoeira', 'frevo'], ['capoeira', 'maracatu'],
       ['frevo', 'maracatu'], ['carranca', 'mestre vitalino'],
-      ['carranca', 'ex voto'], ['bumba meu boi', 'maracatu']
+      ['carranca', 'ex voto'], ['bumba meu boi', 'maracatu'],
+      // Eixo Cultura Popular / Barroco / Mestre Vitalino
+      ['cultura popular', 'barroco'], ['cultura popular', 'arte popular'],
+      ['cultura popular', 'cultura'], ['cultura popular', 'arte'],
+      ['cultura popular', 'mestre vitalino'], ['cultura popular', 'capoeira'],
+      ['arte popular', 'barroco'], ['arte popular', 'cultura'],
+      ['arte popular', 'arte'], ['arte popular', 'mestre vitalino'],
+      ['barroco', 'talha dourada'], ['barroco', 'arte'], ['barroco', 'cultura'],
+      ['cultura', 'arte'], ['machado', 'cultura'], ['machado', 'arte'],
+      ['machado de assis', 'literatura'],
+      // Eixo Cubismo / Guerra Civil / Picasso / Guernica
+      ['cubismo', 'guerra civil espanhola'], ['cubismo', 'guernica'],
+      ['cubismo', 'picasso'], ['cubismo', 'pablo picasso'],
+      ['cubismo', 'preto e branco'], ['cubismo', 'arte'],
+      ['guernica', 'guerra civil espanhola'], ['guernica', 'picasso'],
+      ['guernica', 'pablo picasso'], ['guernica', 'preto e branco'],
+      ['guernica', 'arte'], ['guernica', 'dor'],
+      ['picasso', 'pablo picasso'], ['picasso', 'guerra civil espanhola'],
+      ['picasso', 'preto e branco'], ['picasso', 'arte'],
+      ['pablo picasso', 'guerra civil espanhola'], ['pablo picasso', 'preto e branco'],
+      ['pablo picasso', 'arte']
     ];
 
     for (const [excA, excB] of exceptionPairs) {

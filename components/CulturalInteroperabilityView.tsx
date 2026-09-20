@@ -841,7 +841,7 @@ export default function CulturalInteroperabilityView() {
               href={humanAudit.path}
               className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-emerald-800 hover:underline"
             >
-              Abrir curadoria
+              Abrir auditoria
             </a>
           </div>
         )}

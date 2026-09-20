@@ -22,8 +22,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 });
     }
 
-    // 1. Carregar núcleos pendentes
-    const { data: pending, error: errorPending } = await supabaseAdmin
+    // 1. Carregar núcleos pendentes com fallback de coluna de ordenação
+    let pending: any[] = [];
+    const res1 = await supabaseAdmin
       .from('nucleos')
       .select(`
         *,
@@ -32,7 +33,31 @@ export async function GET(req: Request) {
       .in('status_validacao', ['bruto', 'em_analise'])
       .order('criado_em', { ascending: false });
 
-    if (errorPending) throw errorPending;
+    if (!res1.error && res1.data) {
+      pending = res1.data;
+    } else {
+      const res2 = await supabaseAdmin
+        .from('nucleos')
+        .select(`
+          *,
+          obra:obras(titulo)
+        `)
+        .in('status_validacao', ['bruto', 'em_analise'])
+        .order('created_at', { ascending: false });
+
+      if (!res2.error && res2.data) {
+        pending = res2.data;
+      } else {
+        const res3 = await supabaseAdmin
+          .from('nucleos')
+          .select(`
+            *,
+            obra:obras(titulo)
+          `)
+          .in('status_validacao', ['bruto', 'em_analise']);
+        pending = res3.data || [];
+      }
+    }
 
     // 2. Carregar todos os núcleos validados/ativos para permitir ligações semânticas e referências
     const { data: all, error: errorAll } = await supabaseAdmin
