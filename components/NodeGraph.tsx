@@ -292,7 +292,8 @@ export default function NodeGraph({ initialNodes, initialLinks, interactive = tr
     if (!selectedNodeId || !targetNodeId) return;
 
     setSubmittingRelation(true);
-    setActionStatus('Computando DNA Semântico...');
+    setActionStatus('Computando Identidade da Ligacao...');
+
     try {
       const res = await fetch('/api/admin/relacoes', {
         method: 'POST',
@@ -651,11 +652,11 @@ export default function NodeGraph({ initialNodes, initialLinks, interactive = tr
               )}
             </div>
 
-            {/* DNA Semântico (Proveniência Imutável) */}
+            {/* Identidade das Ligacoes (Proveniencia Imutavel) */}
             {selectedNodeLinks.length > 0 && selectedNodeLinks.some(l => l.hash_dna) && (
               <div className="space-y-3 pt-4 border-t border-white/5">
                 <label className="text-[10px] uppercase font-bold tracking-wider text-purple-300/60 flex items-center gap-1.5">
-                  <Hash size={12} /> DNA Semântico das Ligações
+                  <Hash size={12} /> Identidade das Ligacoes
                 </label>
                 <div className="space-y-2 max-h-40 overflow-y-auto no-scrollbar">
                   {selectedNodeLinks.filter(l => l.hash_dna).map(link => (

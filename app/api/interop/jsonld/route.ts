@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
-import { getEncryptionStatus } from '@/lib/core/crypto';
 import { createSemanticVaultFingerprint } from '@/lib/core/semantic-vault';
+import { searchCulturalDerivatives } from '@/lib/connectors/cultural-interop';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
     if (!contribution) {
       return NextResponse.json(
-        { error: 'A contribuição não foi encontrada no cofre de usuários.' },
+        { error: 'A contribuição não foi encontrada na rede de interoperabilidade.' },
         { status: 404 },
       );
     }
@@ -85,32 +85,58 @@ export async function GET(req: NextRequest) {
     const crossHash = sealedAudit?.cross_hash || fingerprint.crossHash;
     const geneticCode = sealedAudit?.genetic_code || fingerprint.geneticCode;
 
+    const derivatives = await searchCulturalDerivatives(label);
+
+    const { generateTagId } = await import('@/lib/core/tag-identity');
+    const tagId = generateTagId(normalizedLabel);
+    let tagIdentity: { tag_id: string; version: number; digest: string } | null = null;
+    try {
+      const { data: idData } = await supabaseAdmin
+        .from('tag_identities')
+        .select('tag_id, version, digest')
+        .eq('tag_id', tagId)
+        .maybeSingle();
+      tagIdentity = idData;
+    } catch {}
+
     const jsonLdPayload = {
       '@context': {
         skos: 'http://www.w3.org/2004/02/skos/core#',
         schema: 'https://schema.org/',
         prov: 'http://www.w3.org/ns/prov#',
-        vault: 'https://folksonomia-digital.cultura.gov.br/vocab/semantic-vault#',
+        edm: 'http://www.europeana.eu/schemas/edm/',
+        crm: 'http://www.cidoc-crm.org/cidoc-crm/',
+        interop: 'https://folksonomia-digital.cultura.gov.br/vocab/interoperabilidade#',
       },
       '@id': `https://folksonomia-digital.cultura.gov.br/contribuicao/${encodeURIComponent(normalizedLabel)}`,
-      '@type': 'skos:Concept',
+      '@type': ['skos:Concept', 'edm:ProvidedCHO', 'crm:E28_Conceptual_Object'],
       'skos:prefLabel': { '@value': label, '@language': 'pt-BR' },
-      'schema:description': 'Contribuição cultural preservada no Cofre Semântico Vivo.',
+      'schema:description': 'Tag como identidade computacional persistente da Folksonomia Digital: repositório de interoperabilidade cultural auditável, rastreável e interconectado.',
       'schema:category': contribution.grupo_tematico || 'Cultura',
       'prov:wasGeneratedBy': {
-        '@type': 'vault:UserContribution',
+        '@type': 'interop:UserContribution',
         'prov:generatedAtTime': contribution.criado_em || undefined,
       },
-      'vault:semanticTriple': semanticTriple,
-      'vault:payloadHash': payloadHash,
-      'vault:crossHash': crossHash,
-      'vault:geneticCode': geneticCode,
+      'interop:tagId': tagIdentity?.tag_id || tagId,
+      'interop:version': tagIdentity?.version || 1,
+      'interop:digest': tagIdentity?.digest || `sha256:${payloadHash}`,
+      'interop:culturalTriple': semanticTriple,
+      'interop:livingCode': geneticCode,
+      'interop:payloadHash': payloadHash,
+      'interop:crossHash': crossHash,
+      'skos:relatedMatch': derivatives.map(item => ({
+        '@id': item.url || `urn:acervo:${item.source}:${item.externalId}`,
+        '@type': 'edm:ProvidedCHO',
+        'skos:prefLabel': item.title,
+        'schema:provider': item.source,
+        'edm:dataProvider': item.provider || item.source,
+        'interop:relation': item.relation,
+      })),
       ...(sealedAudit ? {
-        'vault:auditChainHash': sealedAudit.chain_hash,
-        'vault:auditSequence': sealedAudit.chain_position,
-        'vault:sealedAt': sealedAudit.created_at,
+        'interop:auditChainHash': sealedAudit.chain_hash,
+        'interop:auditSequence': sealedAudit.chain_position,
+        'interop:sealedAt': sealedAudit.created_at,
       } : {}),
-      'vault:security': getEncryptionStatus(),
     };
 
     return NextResponse.json(jsonLdPayload, {

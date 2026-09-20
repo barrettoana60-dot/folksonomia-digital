@@ -23,6 +23,8 @@ import {
   SemanticVaultRelation,
   SemanticVaultSource,
 } from '@/lib/core/semantic-vault';
+import { searchCulturalDerivatives, discoverCulturalRelations } from '@/lib/connectors/cultural-interop';
+import { generateTagId, toDisplayFormat } from '@/lib/core/tag-identity';
 
 export const dynamic = 'force-dynamic';
 
@@ -183,6 +185,41 @@ async function fetchUserContributions(): Promise<UserContribution[]> {
   }
 }
 
+async function fetchHumanAuditPending(): Promise<number> {
+  try {
+    const { count, error } = await supabaseAdmin
+      .from('nucleos')
+      .select('id', { count: 'exact', head: true })
+      .in('status_validacao', ['bruto', 'em_analise']);
+    if (error) return 0;
+    return count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function buildContributionEdges(contributions: UserContribution[]) {
+  const sample = contributions.slice(0, 80);
+  const edges: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }> = [];
+  for (let i = 0; i < sample.length; i++) {
+    for (let j = i + 1; j < sample.length; j++) {
+      const cohesion = BrazilianCultureArchitect.calculateCohesion(sample[i].label, sample[j].label);
+      const similarity = hybridSemanticSimilarity(sample[i].label, sample[j].label);
+      const weight = Math.min(0.98, Math.max(0, (cohesion + similarity) / 2));
+      if (cohesion >= 0.42 || similarity >= 0.42) {
+        edges.push({
+          from: sample[i].id,
+          to: sample[j].id,
+          weight,
+          skosRelation: cohesion >= 0.7 ? 'skos:closeMatch' : 'skos:related',
+          discovered: false,
+        });
+      }
+    }
+  }
+  return edges.slice(0, 160);
+}
+
 function connectionCandidates(source: UserContribution, allContributions: UserContribution[]): SemanticVaultRelation[] {
   return allContributions
     .filter(item => item.id !== source.id)
@@ -241,7 +278,10 @@ async function buildDynamicTagDossier(
   if (!contribution) return null;
 
   const relations = connectionCandidates(contribution, allContributions);
-  const article = await findAcademicSource(contribution.label);
+  const [article, acervos] = await Promise.all([
+    findAcademicSource(contribution.label),
+    searchCulturalDerivatives(contribution.label),
+  ]);
   const sources = [
     {
       id: contribution.id,
@@ -249,6 +289,12 @@ async function buildDynamicTagDossier(
       type: 'user_contribution',
     },
     ...(articleToSource(article) ? [articleToSource(article)!] : []),
+    ...acervos.slice(0, 6).map(item => ({
+      id: item.externalId || item.url || item.title,
+      label: `${item.source}: ${item.title}`,
+      url: item.url,
+      type: 'institutional_acervo',
+    })),
   ];
   const tripla = {
     sujeito: contribution.label,
@@ -280,6 +326,52 @@ async function buildDynamicTagDossier(
     heartbeat,
   });
 
+  // Buscar identidade da tag no novo sistema (se existir)
+  const tagId = generateTagId(contribution.normalizedLabel);
+  let tagIdentityData: any = null;
+  try {
+    const { data: identityRow } = await supabaseAdmin
+      .from('tag_identities')
+      .select('tag_id, version, digest, eixo, created_at, updated_at')
+      .eq('tag_id', tagId)
+      .maybeSingle();
+
+    if (identityRow) {
+      const { data: versionChain } = await supabaseAdmin
+        .from('tag_version_chain')
+        .select('version, event_type, actor, previous_digest, current_digest, occurred_at, description')
+        .eq('tag_id', tagId)
+        .order('version', { ascending: false })
+        .limit(5);
+
+      const { data: tagSources } = await supabaseAdmin
+        .from('tag_sources')
+        .select('label, url, source_type, connector, match_score, skos_relation')
+        .eq('tag_id', tagId)
+        .order('match_score', { ascending: false })
+        .limit(10);
+
+      tagIdentityData = {
+        tagId: identityRow.tag_id,
+        version: identityRow.version,
+        digest: identityRow.digest,
+        eixo: identityRow.eixo,
+        updatedAt: identityRow.updated_at,
+        versionChain: versionChain || [],
+        identitySources: (tagSources || []).map(s => ({
+          label: s.label,
+          url: s.url,
+          type: s.source_type,
+          connector: s.connector,
+          matchScore: s.match_score,
+          skosRelation: s.skos_relation,
+        })),
+      };
+    }
+  } catch {
+    // identidade ainda não criada — sistema retrocompatível
+  }
+
   return {
     id: contribution.id,
     tag: contribution.label,
@@ -287,14 +379,17 @@ async function buildDynamicTagDossier(
     eixo: contribution.eixo,
     cor: EIXO_COLORS[contribution.eixo] || EIXO_COLORS.default,
     familia: contribution.familia,
-    descricao: 'Contribuição cultural registrada por um usuário e preservada no cofre semântico.',
+    descricao: 'Tag registrada na rede de interoperabilidade cultural: rastreável, auditável e conectada a acervos e outras contribuições.',
     tripla,
     autor: 'Usuário da comunidade',
     artigo,
+    acervos,
     conexoesTextuais: relations,
     heartbeat,
+    // Identidade computacional da tag (novo sistema)
+    tagIdentity: tagIdentityData,
     vault: {
-      version: 'semantic-vault/v2',
+      version: 'vault/v2',
       payloadHash: fingerprint.payloadHash,
       payloadHashWide: fingerprint.payloadHashWide,
       crossHash: fingerprint.crossHash,
@@ -309,6 +404,7 @@ async function buildDynamicTagDossier(
     },
   };
 }
+
 
 async function persistAudit(
   input: Parameters<typeof createSemanticVaultAuditRecord>[0],
@@ -454,7 +550,10 @@ export async function GET(req: NextRequest) {
     const tagParam = searchParams.get('tag');
     const verifyParam = searchParams.get('verify');
     const selftestParam = searchParams.get('selftest');
-    const contributions = await fetchUserContributions();
+    const [contributions, pendingHumanAudit] = await Promise.all([
+      fetchUserContributions(),
+      fetchHumanAuditPending(),
+    ]);
 
     if (selftestParam === '1' || verifyParam === 'crypto') {
       return NextResponse.json({
@@ -469,7 +568,7 @@ export async function GET(req: NextRequest) {
       const dossier = await buildDynamicTagDossier(tagParam, contributions);
       if (!dossier) {
         return NextResponse.json(
-          { success: false, error: 'A contribuição solicitada não foi encontrada no cofre de usuários.' },
+          { success: false, error: 'A contribuição solicitada não foi encontrada na rede de interoperabilidade.' },
           { status: 404 },
         );
       }
@@ -516,13 +615,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: dossier });
     }
 
+    const edges = buildContributionEdges(contributions);
+
     return NextResponse.json({
       success: true,
       data: {
         nodes: contributions.map(contribution => ({
           id: contribution.id,
           label: contribution.label,
-          description: 'Contribuição cultural registrada por usuário.',
+          description: 'Tag-código registrada por usuário na rede cultural.',
           eixo: contribution.eixo,
           familia: contribution.familia,
           cor: EIXO_COLORS[contribution.eixo] || EIXO_COLORS.default,
@@ -531,7 +632,13 @@ export async function GET(req: NextRequest) {
           heartbeat: contribution.heartbeat || null,
           auditState: contribution.auditState || null,
         })),
+        edges,
         total: contributions.length,
+        humanAudit: {
+          required: true,
+          pending: pendingHumanAudit,
+          path: '/admin/validacao',
+        },
         security: getEncryptionStatusWithSelfTest(),
       },
     });
@@ -558,7 +665,7 @@ export async function POST(req: NextRequest) {
     const source = contributions.find(item => item.id === targetId);
     if (!source) {
       return NextResponse.json(
-        { success: false, error: 'Somente contribuições já registradas por usuários podem entrar no cofre.' },
+        { success: false, error: 'Somente contribuições já registradas por usuários entram na rede de interoperabilidade.' },
         { status: 404 },
       );
     }
@@ -617,7 +724,7 @@ export async function POST(req: NextRequest) {
       .filter(connection => isValidCulturalTag(connection.fromLabel) && isValidCulturalTag(connection.toLabel));
     const enrichedConnections = discovered.map(connection => ({
       ...connection,
-      afirmacao: `"${connection.fromLabel}" cruza-se semanticamente com "${connection.toLabel}" — ${connection.insight}`,
+      afirmacao: `"${connection.fromLabel}" cruza-se culturalmente com "${connection.toLabel}" — ${connection.insight}`,
     }));
 
     const auditedRelations: SemanticVaultRelation[] = enrichedConnections.slice(0, 8).map(connection => ({
@@ -631,6 +738,12 @@ export async function POST(req: NextRequest) {
     const auditSources: SemanticVaultSource[] = [
       { id: source.id, label: 'Contribuição registrada no Folksonomia Digital', type: 'user_contribution' },
       ...(articleToSource(dynamicDossier.artigo) ? [articleToSource(dynamicDossier.artigo)!] : []),
+      ...((dynamicDossier.acervos || []).slice(0, 6).map((item: any) => ({
+        id: item.externalId || item.url || item.title,
+        label: `${item.source}: ${item.title}`,
+        url: item.url,
+        type: 'institutional_acervo',
+      }))),
     ];
     const occurredAt = new Date().toISOString();
     const audit = await persistAudit({
@@ -715,13 +828,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Cofre bloqueado: configure ENCRYPTION_KEY no ambiente antes de selar contribuições.',
+          error: 'Rede bloqueada: configure a chave de preservação no ambiente antes de cruzar contribuições.',
           security: getEncryptionStatusWithSelfTest(),
         },
         { status: 503 },
       );
     }
-    console.error('[LiveVault] Falha ao processar cofre:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Falha no cofre semântico.' }, { status: 500 });
+    console.error('[LiveVault] Falha ao processar a rede de interoperabilidade:', error);
+    return NextResponse.json({ success: false, error: error.message || 'Falha na interoperabilidade cultural.' }, { status: 500 });
   }
 }

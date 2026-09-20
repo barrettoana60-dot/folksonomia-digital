@@ -67,7 +67,8 @@ export default function ObraCard({ obra }: ObraCardProps) {
         setTagsSentCount(prev => prev + 1);
         setTagInput('');
         setIsTagging(false);
-        alert('Sua percepção foi integrada ao núcleo semântico com sucesso!');
+        alert('Sua percepcao foi registrada na rede de interoperabilidade cultural com sucesso!');
+
       } else {
         const errorData = await res.json().catch(() => ({}));
         alert(`Erro: ${errorData.error || 'Falha na conexão com o banco'}.`);
@@ -163,7 +164,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
             </div>
             <div className="space-y-0.5">
               <h4 className="text-base font-normal serif-title text-[#1A1A1A]">
-                Registro Semântico
+                Registro Cultural
               </h4>
               <p className="text-[10px] text-[#1A1A1A]/40 uppercase tracking-[0.12em] font-semibold">
                 Sua percepção sobre a obra.
