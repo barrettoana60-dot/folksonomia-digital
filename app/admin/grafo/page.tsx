@@ -109,7 +109,7 @@ export default function GrafoPage() {
   }, []);
 
   return (
-    <main className="min-h-screen pt-24 pb-20 px-6 bg-[#000000] text-white">
+    <main className="min-h-screen pt-32 md:pt-36 pb-20 px-6 bg-[#000000] text-white">
       <div className="max-w-[1400px] mx-auto space-y-10">
         
         {/* Header */}
@@ -117,7 +117,7 @@ export default function GrafoPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-tight flex items-center gap-3">
               <Network className="text-[#E85002]" size={30} />
-              Grafo Semântico de Fluxo
+              Grafo de Fluxo Cultural
             </h1>
             <p className="text-white/35 text-[11px] uppercase tracking-wider mt-2 font-semibold">
               Mapa conceitual e proveniência modelados em nó-editor

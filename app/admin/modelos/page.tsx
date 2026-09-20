@@ -85,7 +85,7 @@ export default async function ModelosPage() {
   }, {});
 
   return (
-    <main className="min-h-screen bg-[#000000] text-white p-10 pt-24">
+    <main className="min-h-screen bg-[#000000] text-white px-6 pb-12 pt-32 md:px-10 md:pb-16 md:pt-36">
       <div className="max-w-[95%] mx-auto">
         
         <div className="flex justify-between items-end mb-10">

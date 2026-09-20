@@ -260,7 +260,7 @@ export default function ValidacaoPage() {
     setCreateSuccess('');
 
     if (!newOrigemId || !newDestinoId) {
-      setCreateError('Defina a Origem e o Destino da conexão semântica.');
+      setCreateError('Defina a Origem e o Destino da conexão cultural.');
       return;
     }
 
@@ -283,7 +283,7 @@ export default function ValidacaoPage() {
 
       const data = await res.json().catch(() => null);
       if (res.ok && data?.success) {
-        setCreateSuccess('Ligação semântica baseada em DNA cultural estabelecida com sucesso!');
+        setCreateSuccess('Ligação cultural estabelecida com sucesso!');
         setNewOrigemId('');
         setNewDestinoId('');
         fetchData();
@@ -323,7 +323,7 @@ export default function ValidacaoPage() {
 
   const handleDeleteRelation = async (id: string) => {
     if (!token || !id) return;
-    if (!confirm('Deseja realmente remover esta ligação semântica?')) return;
+    if (!confirm('Deseja realmente remover esta ligação cultural?')) return;
 
     try {
       const res = await fetch(`/api/admin/relacoes?id=${encodeURIComponent(id)}`, {
@@ -360,7 +360,7 @@ export default function ValidacaoPage() {
   };
 
   return (
-    <main className="min-h-screen p-6 md:p-10 pt-24 text-[#1A1A1A]">
+    <main className="min-h-screen px-6 pb-12 pt-32 md:px-10 md:pb-16 md:pt-36 text-[#1A1A1A]">
       <div className="max-w-[95%] mx-auto mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b border-black/10">
         <div>
           <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-normal flex items-center gap-3">
@@ -453,7 +453,7 @@ export default function ValidacaoPage() {
                                 />
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-[#1A1A1A]/40">Normalização Semântica</label>
+                                <label className="text-[10px] uppercase font-bold text-[#1A1A1A]/40">Normalização Cultural</label>
                                 <input
                                   type="text"
                                   value={editNormalizado}
@@ -580,7 +580,7 @@ export default function ValidacaoPage() {
                 {/* Estabelecer Conexão */}
                 <div className="glass-card p-6 md:p-8 border border-black/07">
                   <h3 className="text-base font-normal serif-title text-[#E8490A] mb-4 flex items-center gap-2">
-                    <Plus size={18} /> Estabelecer Nova Conexão no Cofre Semântico
+                    <Plus size={18} /> Estabelecer Nova Conexão na Rede Cultural
                   </h3>
 
                   <form onSubmit={handleCreateRelation} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
@@ -684,7 +684,7 @@ export default function ValidacaoPage() {
                         <div className="flex items-center gap-2 pb-4 border-b border-black/10">
                           <Cpu className="text-[#E8490A]" size={20} />
                           <div>
-                            <h4 className="text-sm font-semibold serif-title">DNA da Ligação Semântica</h4>
+                            <h4 className="text-sm font-semibold serif-title">Identidade da Ligação Cultural</h4>
                             <span className="text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 block">Cadeia de auditoria verificável</span>
                           </div>
                         </div>

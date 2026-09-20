@@ -91,7 +91,7 @@ export default function FontesPage() {
   ];
 
   return (
-    <main className="min-h-screen px-6 py-24 bg-[#000000] text-white">
+    <main className="min-h-screen px-6 pb-24 pt-32 md:pt-36 bg-[#000000] text-white">
       <div className="max-w-[1400px] mx-auto space-y-10">
         
         {/* Header */}

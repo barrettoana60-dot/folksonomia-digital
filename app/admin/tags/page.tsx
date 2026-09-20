@@ -56,7 +56,7 @@ export default async function AdminTagsPage() {
   const mlOnline = !!ML_SERVICE_URL;
 
   return (
-    <div className="p-10 bg-[#000000] min-h-screen text-white pt-24">
+    <div className="min-h-screen bg-[#000000] text-white px-6 pb-12 pt-32 md:px-10 md:pb-16 md:pt-36">
       <div className="max-w-[95%] mx-auto">
         <div className="flex justify-between items-end mb-8">
           <div>
