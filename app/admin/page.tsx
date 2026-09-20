@@ -17,6 +17,7 @@ const tabs = [
   { id: 'visao', label: 'Visão Geral' },
   { id: 'obras', label: 'Gestão de Obras' },
   { id: 'tags', label: 'Análise de Tags' },
+  { id: 'relatorios', label: 'Relatório Semântico' },
   { id: 'interoperabilidade', label: 'Interoperabilidade Cultural' },
   { id: 'ontologia', label: 'Ontologias' },
 ];

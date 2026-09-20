@@ -556,6 +556,13 @@ export default function Header() {
                         Painel Gestão
                       </Link>
                     )}
+                    <Link
+                      href="/admin/relatorios"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#1A1A1A]/75 hover:bg-black/5 hover:text-[#0D3A85] transition-all text-left font-semibold"
+                    >
+                      Relatório Semântico
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#C62228] hover:bg-red-50 transition-all text-left font-semibold"
@@ -566,7 +573,13 @@ export default function Header() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
+                <Link
+                  href="/questionario"
+                  className="liquid-button !bg-white/40 !border-white/50 !text-[#1A1A1A] !py-2.5 !px-5 !rounded-full !text-[11px] !font-bold hover:scale-105 active:scale-95 transition-transform"
+                >
+                  Questionário
+                </Link>
                 <Link
                   href="/login"
                   className="liquid-button !bg-white/40 !border-white/50 !text-[#1A1A1A] !py-2.5 !px-6 !rounded-full !text-[11px] !font-bold hover:scale-105 active:scale-95 transition-transform"
@@ -637,6 +650,12 @@ export default function Header() {
                     Painel Gestão
                   </Link>
                 )}
+                <Link
+                  href="/admin/relatorios"
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-[#0D3A85] hover:bg-[#0D3A85]/5 transition-all uppercase tracking-wider"
+                >
+                  Relatório Semântico
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-[#C62228] hover:bg-red-50 transition-all uppercase tracking-wider text-left"

@@ -95,7 +95,9 @@ export async function POST(req: NextRequest) {
       tag_original: tag,
       tag_normalizada: dna.normalized,
       grupo_tematico: semantics.themeGroup || 'Outros',
-      status: 'em análise'
+      status: 'em análise',
+      visitante_hash: visitante_hash || null,
+      visitante_nome: visitante_nome || null,
     };
 
     // Só incluir obra_id se existir e não for teste

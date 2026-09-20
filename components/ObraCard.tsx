@@ -56,7 +56,8 @@ export default function ObraCard({ obra }: ObraCardProps) {
         body: JSON.stringify({
           tag: tagInput.trim(),
           obra_id: obra.id,
-          visitante_hash: localStorage.getItem('visitante_hash')
+          visitante_hash: localStorage.getItem('visitante_hash'),
+          visitante_nome: localStorage.getItem('visitante_nome')
         }),
         signal: controller.signal
       });
