@@ -4,12 +4,6 @@
   "buildCommand": "next build",
   "installCommand": "npm install --no-audit --no-fund --legacy-peer-deps --omit=optional --prefer-offline",
   "outputDirectory": ".next",
-  "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 300,
-      "includeFiles": "lib/**, public/**"
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/ml-training",
