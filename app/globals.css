@@ -1,0 +1,468 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   VARIÁVEIS GLOBAIS
+   ============================================================ */
+:root {
+  --primary:    #E8490A;
+  --blue:       #1E3A8A;
+  --green:      #1A6B3A;
+  --red:        #C0252B;
+  --yellow:     #E8A920;
+  --text:       #1A1A1A;
+  --glass-bg:   rgba(255, 255, 255, 0.58);
+  --glass-brd:  rgba(0, 0, 0, 0.09);
+
+  /* Variáveis de tema — alteradas dinamicamente pelo painel de acessibilidade */
+  --bg-page:    #EEEBE3;
+  --text-page:  #1A1A1A;
+  --card-bg:    rgba(255,255,255,0.55);
+  --border:     rgba(0,0,0,0.09);
+
+  /* Fontes padrão seguras — previne Times New Roman fallback */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'DM Serif Display', Georgia, Cambria, serif;
+}
+
+/* Alto Contraste — preto/amarelo WCAG AAA */
+[data-theme="contraste"] {
+  --bg-page:    #000000;
+  --text-page:  #FFD600;
+  --card-bg:    #111111;
+  --border:     #FFD600;
+  color-scheme: dark;
+}
+[data-theme="contraste"] body {
+  background-color: #000 !important;
+  color: #FFD600 !important;
+}
+[data-theme="contraste"] body::before { opacity: 0.04; }
+
+/* Escuro */
+[data-theme="escuro"] {
+  --bg-page:    #181818;
+  --text-page:  #ECECEC;
+  --card-bg:    #242424;
+  --border:     #3A3A3A;
+  color-scheme: dark;
+}
+[data-theme="escuro"] body {
+  background-color: #181818 !important;
+  color: #ECECEC !important;
+}
+[data-theme="escuro"] body::before { opacity: 0.06; }
+
+/* Branco / Claro */
+[data-theme="claro"] {
+  --bg-page:    #FFFFFF;
+  --text-page:  #111111;
+  --card-bg:    #F8F8F8;
+  --border:     #DDDDDD;
+}
+[data-theme="claro"] body {
+  background-color: #FFFFFF !important;
+  color: #111111 !important;
+}
+[data-theme="claro"] body::before { opacity: 0.08; }
+
+/* ============================================================
+   BASE — fundo decorativo via pseudo-elemento fixo
+   Funciona em iOS Safari, Android Chrome e todos os browsers
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+html {
+  background-color: #EEEBE3;
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  width: 100%;
+  color: #1A1A1A;
+  background-color: transparent;
+  min-height: 100vh;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/bg.svg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  body::before {
+    background-size: 100% 100%;
+  }
+}
+
+/* Sobrescrever QUALQUER classe Tailwind que force texto branco */
+.text-white   { color: #1A1A1A !important; }
+.text-white\/90 { color: rgba(26,26,26,0.90) !important; }
+.text-white\/80 { color: rgba(26,26,26,0.80) !important; }
+.text-white\/70 { color: rgba(26,26,26,0.70) !important; }
+.text-white\/60 { color: rgba(26,26,26,0.65) !important; }
+.text-white\/55 { color: rgba(26,26,26,0.60) !important; }
+.text-white\/50 { color: rgba(26,26,26,0.55) !important; }
+.text-white\/45 { color: rgba(26,26,26,0.50) !important; }
+.text-white\/40 { color: rgba(26,26,26,0.45) !important; }
+.text-white\/35 { color: rgba(26,26,26,0.40) !important; }
+.text-white\/30 { color: rgba(26,26,26,0.35) !important; }
+.text-white\/25 { color: rgba(26,26,26,0.30) !important; }
+.text-white\/20 { color: rgba(26,26,26,0.25) !important; }
+.text-white\/15 { color: rgba(26,26,26,0.20) !important; }
+.text-white\/10 { color: rgba(26,26,26,0.15) !important; }
+
+/* ============================================================
+   CORREÇÃO DE TEXTOS ESCUROS / INVISÍVEIS NOS TEMAS ESCURO/CONTRASTE
+   ============================================================ */
+/* Tema Escuro: Converte textos pretos/escuros para cinza claro (#ECECEC) */
+[data-theme="escuro"] .text-black,
+[data-theme="escuro"] .text-\[\#1A1A1A\],
+[data-theme="escuro"] .text-neutral-900,
+[data-theme="escuro"] .text-slate-900,
+[data-theme="escuro"] .text-gray-900,
+[data-theme="escuro"] body {
+  color: #ECECEC !important;
+}
+
+[data-theme="escuro"] .text-\[\#1A1A1A\]\/70,
+[data-theme="escuro"] .text-\[\#1A1A1A\]\/65,
+[data-theme="escuro"] .text-\[\#1A1A1A\]\/50,
+[data-theme="escuro"] .text-\[\#1A1A1A\]\/40,
+[data-theme="escuro"] .text-\[\#1A1A1A\]\/35 {
+  color: rgba(236, 236, 236, 0.70) !important;
+}
+
+/* Restaura classes de texto branco no tema escuro */
+[data-theme="escuro"] .text-white   { color: #FFFFFF !important; }
+[data-theme="escuro"] .text-white\/90 { color: rgba(255,255,255,0.90) !important; }
+[data-theme="escuro"] .text-white\/80 { color: rgba(255,255,255,0.80) !important; }
+[data-theme="escuro"] .text-white\/70 { color: rgba(255,255,255,0.70) !important; }
+[data-theme="escuro"] .text-white\/60 { color: rgba(255,255,255,0.65) !important; }
+[data-theme="escuro"] .text-white\/50 { color: rgba(255,255,255,0.55) !important; }
+[data-theme="escuro"] .text-white\/45 { color: rgba(255,255,255,0.50) !important; }
+[data-theme="escuro"] .text-white\/40 { color: rgba(255,255,255,0.45) !important; }
+[data-theme="escuro"] .text-white\/35 { color: rgba(255,255,255,0.40) !important; }
+[data-theme="escuro"] .text-white\/30 { color: rgba(255,255,255,0.35) !important; }
+[data-theme="escuro"] .text-white\/25 { color: rgba(255,255,255,0.30) !important; }
+[data-theme="escuro"] .text-white\/20 { color: rgba(255,255,255,0.25) !important; }
+[data-theme="escuro"] .text-white\/15 { color: rgba(255,255,255,0.20) !important; }
+[data-theme="escuro"] .text-white\/10 { color: rgba(255,255,255,0.15) !important; }
+
+/* Tema Alto Contraste: Converte todos os textos para Amarelo (#FFD600) */
+[data-theme="contraste"] .text-black,
+[data-theme="contraste"] .text-\[\#1A1A1A\],
+[data-theme="contraste"] .text-neutral-900,
+[data-theme="contraste"] .text-slate-900,
+[data-theme="contraste"] .text-gray-900,
+[data-theme="contraste"] body {
+  color: #FFD600 !important;
+}
+
+[data-theme="contraste"] .text-white,
+[data-theme="contraste"] .text-white\/90,
+[data-theme="contraste"] .text-white\/80,
+[data-theme="contraste"] .text-white\/70,
+[data-theme="contraste"] .text-white\/60,
+[data-theme="contraste"] .text-white\/50,
+[data-theme="contraste"] .text-white\/45,
+[data-theme="contraste"] .text-white\/40,
+[data-theme="contraste"] .text-white\/35,
+[data-theme="contraste"] .text-white\/30,
+[data-theme="contraste"] .text-white\/25,
+[data-theme="contraste"] .text-white\/20,
+[data-theme="contraste"] .text-white\/15,
+[data-theme="contraste"] .text-white\/10 {
+  color: #FFD600 !important;
+}
+
+/* Fundos escuros que aparecem em cards -->  glass claro */
+.bg-black,
+.bg-black\/40,
+.bg-black\/50,
+.bg-black\/60,
+.bg-black\/80,
+.bg-black\/90,
+.bg-\[\#0f0f11\],
+.bg-\[\#040f0c\],
+.bg-\[\#1a1a1a\],
+.bg-\[\#111\] {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+/* ============================================================
+   TIPOGRAFIA — EXATAMENTE DUAS FAMÍLIAS SEM TIMES NEW ROMAN
+   ============================================================ */
+/* Fatores de escala para textos de acessibilidade */
+:root {
+  --text-scale-factor: 1;
+  --font-current: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  font-size: calc(1rem * var(--text-scale-factor));
+}
+
+/* Redefinições das classes de fonte do Tailwind para aplicar o fator de escala de texto */
+.text-xs   { font-size: calc(0.75rem * var(--text-scale-factor)) !important; }
+.text-sm   { font-size: calc(0.875rem * var(--text-scale-factor)) !important; }
+.text-base { font-size: calc(1rem * var(--text-scale-factor)) !important; }
+.text-lg   { font-size: calc(1.125rem * var(--text-scale-factor)) !important; }
+.text-xl   { font-size: calc(1.25rem * var(--text-scale-factor)) !important; }
+.text-2xl  { font-size: calc(1.5rem * var(--text-scale-factor)) !important; }
+.text-3xl  { font-size: calc(1.875rem * var(--text-scale-factor)) !important; }
+.text-4xl  { font-size: calc(2.25rem * var(--text-scale-factor)) !important; }
+.text-5xl  { font-size: calc(3rem * var(--text-scale-factor)) !important; }
+.text-6xl  { font-size: calc(3.75rem * var(--text-scale-factor)) !important; }
+.text-7xl  { font-size: calc(4.5rem * var(--text-scale-factor)) !important; }
+
+/* VLibras Widget — deixar visível para o plugin inicializar corretamente */
+/* O widget aparece como botão flutuante no canto da tela */
+
+.serif-title, .font-serif, [class*="font-serif"] {
+  font-family: var(--font-serif), Georgia, serif !important;
+  font-weight: 400;
+}
+
+body, .font-sans, [class*="font-sans"] {
+  font-family: var(--font-current) !important;
+}
+
+.label-sm {
+  font-size: calc(0.68rem * var(--text-scale-factor)) !important;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(26, 26, 26, 0.45);
+}
+
+/* ============================================================
+   LIQUID GLASS CARD / ELEMENTOS
+   ============================================================ */
+.glass-card, .liquid-glass {
+  background: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(25px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+/* ============================================================
+   LIQUID GLASS BUTTON — premium
+   ============================================================ */
+.liquid-button {
+  background: rgba(255, 255, 255, 0.68) !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  color: #1A1A1A !important;
+  padding: 0.55rem 1.4rem;
+  border-radius: 0.85rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.85) !important;
+}
+
+.liquid-button:hover {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-color: rgba(255, 255, 255, 0.7) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.95) !important;
+  transform: translateY(-1px);
+}
+
+.liquid-button:active {
+  transform: translateY(0);
+}
+
+/* ============================================================
+   LIQUID INPUT
+   ============================================================ */
+.liquid-input {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  color: #1A1A1A !important;
+  padding: 0.9rem 1.4rem;
+  border-radius: 1rem;
+  font-size: 0.9rem;
+  outline: none;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: all 0.25s;
+  width: 100%;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.02) !important;
+}
+
+.liquid-input::placeholder { color: rgba(26,26,26,0.38) !important; }
+
+.liquid-input:focus {
+  background: rgba(255,255,255,0.92) !important;
+  border-color: rgba(232,73,10,0.6) !important;
+  box-shadow: 0 0 0 3px rgba(232,73,10,0.15) !important;
+}
+
+/* ============================================================
+   ALTO CONTRASTE
+   ============================================================ */
+[data-theme="contraste"] body {
+  background: #000 !important;
+  background-image: none !important;
+}
+[data-theme="contraste"] * {
+  color: #FFFF00 !important;
+  border-color: #FFFF00 !important;
+}
+[data-theme="contraste"] .liquid-button,
+[data-theme="contraste"] .glass-card {
+  background: #000 !important;
+  border: 2px solid #FFFF00 !important;
+}
+/* Anular os overrides de text-white no modo contraste */
+[data-theme="contraste"] .text-white,
+[data-theme="contraste"] .text-white\/80,
+[data-theme="contraste"] .text-white\/60 {
+  color: #FFFF00 !important;
+}
+
+/* ============================================================
+   ANIMAÇÕES
+   ============================================================ */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-up 0.45s ease-out forwards; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+.organic-hover { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+.organic-hover:hover {
+  transform: scale(1.015);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.12);
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: rgba(30,58,138,0.25); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(30,58,138,0.45); }
+
+/* Fonte escalável para acessibilidade */
+.text-\[8px\]  { font-size: 0.5rem !important; }
+.text-\[9px\]  { font-size: 0.5625rem !important; }
+.text-\[10px\] { font-size: 0.625rem !important; }
+.text-\[11px\] { font-size: 0.6875rem !important; }
+.text-\[12px\] { font-size: 0.75rem !important; }
+.text-\[14px\] { font-size: 0.875rem !important; }
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+  body { background: white !important; background-image: none !important; }
+  .liquid-button, .print-hidden, nav, header { display: none !important; }
+}
+
+/* ============================================================
+   RESPONSIVIDADE MOBILE
+   ============================================================ */
+
+/* Previne overflow horizontal em toda a app */
+html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Touch targets maiores no mobile */
+@media (max-width: 768px) {
+  .liquid-button {
+    min-height: 42px;
+    padding: 0.6rem 1rem;
+  }
+
+  .glass-card {
+    border-radius: 1.25rem;
+  }
+
+  /* Cards do admin empilham em coluna no mobile */
+  .admin-grid-mobile {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Texto mais legível no mobile */
+  body {
+    font-size: 15px;
+  }
+
+  /* Tabelas rolam horizontalmente */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* SVG do grafo neural é scrollável */
+  svg.interop-graph {
+    touch-action: pan-x pan-y;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-grid-mobile {
+    grid-template-columns: 1fr !important;
+  }
+
+  .glass-card {
+    border-radius: 1rem;
+    padding: 1rem !important;
+  }
+}
+
+/* Trigger de compilacao pos-rate limit: Mobile Deploy */
