@@ -43,6 +43,14 @@ export default function ObraCard({ obra }: ObraCardProps) {
 
   const handleSubmitTag = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (typeof window !== 'undefined') {
+      const quizFeito = localStorage.getItem('visitante_quiz_completado');
+      if (quizFeito !== 'true') {
+        alert('Para registrar sua percepção cultural, por favor responda primeiro ao questionário de primeiro acesso.');
+        window.location.href = '/questionario';
+        return;
+      }
+    }
     if (!tagInput.trim() || submitting) return;
 
     setSubmitting(true);
@@ -134,7 +142,17 @@ export default function ObraCard({ obra }: ObraCardProps) {
 
           <div className="pt-2">
             <button
-              onClick={() => setIsTagging(!isTagging)}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  const quizFeito = localStorage.getItem('visitante_quiz_completado');
+                  if (quizFeito !== 'true') {
+                    alert('Para liberar a inserção de tags e registrar sua percepção na rede cultural, responda primeiro ao questionário de primeiro acesso.');
+                    window.location.href = '/questionario';
+                    return;
+                  }
+                }
+                setIsTagging(!isTagging);
+              }}
               className="liquid-button w-full !rounded-full !text-[9px] !py-2 !font-semibold"
             >
               {isTagging ? 'CANCELAR' : 'ADICIONAR TAG'}

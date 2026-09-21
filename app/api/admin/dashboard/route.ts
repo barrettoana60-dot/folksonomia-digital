@@ -30,7 +30,16 @@ export async function GET(req: NextRequest) {
   // SEM auth guard — a página admin já é protegida pelo login localStorage
   try {
     // 1. Contar dados reais
-    const [obrasCount, tagsCount, nucleosCount, validadosCount, fontesCount, questionariosCount, visitantesCount] = await Promise.all([
+    const [
+      obrasCount,
+      tagsCount,
+      nucleosCount,
+      validadosCount,
+      fontesCount,
+      questionariosCount,
+      visitantesCount,
+      questionariosEventosCount,
+    ] = await Promise.all([
       safeCount('obras'),
       safeCount('tags'),
       safeCount('nucleos'),
@@ -38,10 +47,21 @@ export async function GET(req: NextRequest) {
       safeCount('resultados_externos'),
       safeCount('questionarios'),
       safeCount('visitantes'),
+      safeCount('eventos', { col: 'tipo_evento', val: 'questionario_completado' }),
     ]);
 
-    // Usuários contados através das respostas do questionário quando entram pela primeira vez
-    const usuariosCount = Math.max(questionariosCount, visitantesCount);
+    // Visitantes únicos que interagiram e colocaram tags
+    const tagsVisitors = await safeSelect('tags', 'visitante_hash');
+    const distinctTagVisitors = new Set(tagsVisitors.map((t: any) => t.visitante_hash).filter(Boolean)).size;
+
+    // Usuários contados através das respostas do questionário e visitantes registrados no acervo
+    const usuariosCount = Math.max(
+      questionariosEventosCount,
+      distinctTagVisitors,
+      questionariosCount,
+      visitantesCount,
+      1
+    );
     const totalDados = (obrasCount) + (tagsCount) + (nucleosCount) + (fontesCount);
 
     // 2. Fluxo Temporal Real — Contar os dias e o número de tags colocadas por dia

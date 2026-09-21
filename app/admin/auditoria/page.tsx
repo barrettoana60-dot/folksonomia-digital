@@ -194,7 +194,7 @@ export default function AuditoriaPage() {
   const loadEvents = useCallback(async () => {
     setLoadingEvents(true);
     try {
-      const res = await fetch('/api/admin/auditoria/eventos');
+      const res = await fetch('/api/admin/auditoria/eventos?limit=1000');
       const data = await res.json();
       if (data && Array.isArray(data.events)) {
         setEvents(data.events);
@@ -288,12 +288,28 @@ export default function AuditoriaPage() {
     }
   }, []);
 
-  // Carregar linha do tempo de tag
-  const loadTagTimeline = useCallback(async (tagId: string) => {
+  // Carregar linha do tempo de tag com fallback client-side imediato
+  const loadTagTimeline = useCallback(async (tagId: string, currentEvents?: AuditEvent[]) => {
     setLoadingTimeline(true);
     try {
       const res = await fetch(`/api/admin/auditoria/entidade/${encodeURIComponent(tagId)}`);
-      const data = await res.json();
+      let data = await res.json();
+      
+      // Fallback robusto se a API retornar vazia
+      if ((!data || !data.events || data.events.length === 0) && currentEvents && currentEvents.length > 0) {
+        const matching = currentEvents
+          .filter(e => e.entity_id.toLowerCase() === tagId.toLowerCase())
+          .sort((a, b) => a.new_version - b.new_version);
+        if (matching.length > 0) {
+          data = {
+            entityId: tagId,
+            events: matching,
+            currentVersion: matching[matching.length - 1].new_version,
+            currentDigest: matching[matching.length - 1].new_digest,
+          };
+        }
+      }
+
       setTagTimeline(data);
       if (data && data.events && data.events.length > 0) {
         const sorted = [...data.events].sort((a: any, b: any) => a.new_version - b.new_version);
@@ -302,6 +318,23 @@ export default function AuditoriaPage() {
       }
     } catch (err) {
       console.error('Falha ao carregar timeline da tag:', err);
+      // Fallback em caso de erro de rede
+      if (currentEvents && currentEvents.length > 0) {
+        const matching = currentEvents
+          .filter(e => e.entity_id.toLowerCase() === tagId.toLowerCase())
+          .sort((a, b) => a.new_version - b.new_version);
+        if (matching.length > 0) {
+          const fallbackData = {
+            entityId: tagId,
+            events: matching,
+            currentVersion: matching[matching.length - 1].new_version,
+            currentDigest: matching[matching.length - 1].new_digest,
+          };
+          setTagTimeline(fallbackData);
+          setVersionA(matching[0].new_version);
+          setVersionB(matching[matching.length - 1].new_version);
+        }
+      }
     } finally {
       setLoadingTimeline(false);
     }
@@ -315,9 +348,13 @@ export default function AuditoriaPage() {
     loadSecurityLogs();
     loadMerkle();
     loadTagOptions();
-    loadTagTimeline(selectedTagId);
     verifyIntegrity();
-  }, [loadEvents, loadContributions, loadRelationsAndSources, loadSecurityLogs, loadMerkle, loadTagOptions, loadTagTimeline, verifyIntegrity, selectedTagId]);
+  }, [loadEvents, loadContributions, loadRelationsAndSources, loadSecurityLogs, loadMerkle, loadTagOptions, verifyIntegrity]);
+
+  // Carrega a linha do tempo sempre que a tag selecionada mudar ou os eventos forem recebidos
+  useEffect(() => {
+    loadTagTimeline(selectedTagId, events);
+  }, [selectedTagId, events, loadTagTimeline]);
 
   // Lista de tags únicas disponíveis para a timeline
   const uniqueEntities = useMemo(() => {

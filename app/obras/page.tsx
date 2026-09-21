@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase/client';
 import ObraCard from '@/components/ObraCard';
+import QuestionarioGate from '@/components/QuestionarioGate';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export default async function ObrasPage() {
 
   return (
     <main className="min-h-screen pt-28 pb-20 px-8">
+      <QuestionarioGate />
       <div className="max-w-[1400px] mx-auto space-y-16">
 
         {/* Cabeçalho */}

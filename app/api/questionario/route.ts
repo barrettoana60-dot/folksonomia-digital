@@ -100,24 +100,21 @@ export async function POST(req: NextRequest) {
       console.warn('[Questionario] Falha ao operar tabela questionarios:', qCatch);
     }
 
-    // 3. Registrar evento de proveniência
+    // 3. Registrar evento de proveniência garantindo contagem institucional
     try {
-      await supabaseAdmin.from('eventos').insert({
+      const { error: evtErr } = await supabaseAdmin.from('eventos').insert({
         entidade_tipo: 'visitante',
         entidade_id: visitanteId,
         tipo_evento: 'questionario_completado',
-        resumo: `Novo visitante "${pseudonimo}" registrado via questionário de primeiro acesso`,
-        payload: {
-          visitante_hash: vHash,
-          pseudonimo,
-          familiaridade,
-          documentacao,
-        },
+        resumo: `Questionário de primeiro acesso respondido por ${pseudonimo} (${vHash}) - Familiaridade: ${familiaridade || 'Registrado'}`,
         hash_evento: crypto.createHash('sha256').update(`${vHash}:${Date.now()}`).digest('hex'),
         criado_em: new Date().toISOString(),
       });
-    } catch {
-      // evento opcional
+      if (evtErr) {
+        console.warn('[Questionario] Erro ao registrar em eventos:', evtErr.message);
+      }
+    } catch (eCatch) {
+      console.warn('[Questionario] Falha ao registrar evento:', eCatch);
     }
 
     return NextResponse.json({

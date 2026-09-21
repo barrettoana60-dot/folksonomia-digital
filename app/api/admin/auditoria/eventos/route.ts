@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const source = searchParams.get('source') || undefined;
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : 100;
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : 1000;
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!, 10) : 0;
 
     const result = await getAuditEvents({
