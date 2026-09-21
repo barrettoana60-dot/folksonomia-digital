@@ -277,6 +277,7 @@ export default function AdminPage() {
   // Form State for Nova Obra
   const [obraForm, setObraForm] = useState({ titulo: '', descricao: '', imagem_url: '', artista: '', ano: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [obraError, setObraError] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -1644,6 +1645,7 @@ export default function AdminPage() {
   const handleAddObra = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setObraError('');
     try {
       const res = await fetch('/api/admin/obras', {
         method: 'POST',
@@ -1660,14 +1662,15 @@ export default function AdminPage() {
           setImagePreview(null);
           alert('Obra adicionada com sucesso!');
         } else {
-          alert('Erro ao adicionar obra: ' + json.error);
+          setObraError(json.error || 'Não foi possível salvar a obra.');
         }
       } else {
-        alert('Erro ao adicionar obra.');
+        const errorBody = await res.json().catch(() => ({}));
+        setObraError(errorBody.error || `Não foi possível salvar a obra (HTTP ${res.status}).`);
       }
     } catch (error) {
       console.error(error);
-      alert('Erro na requisição.');
+      setObraError('Não foi possível conectar ao servidor. Tente novamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -2105,8 +2108,8 @@ ${internasHtml}
                  </div>
                  
                  {showAddForm && (
-                   <div className="fixed inset-0 z-50 bg-white/80 flex items-center justify-center p-4">
-                     <div className="glass-card p-8 w-full max-w-2xl relative animate-fade-in">
+                   <div className="fixed inset-0 z-50 bg-white/80 flex items-start justify-center overflow-y-auto p-4 md:p-8">
+                     <div className="glass-card p-6 md:p-8 w-full max-w-2xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-4rem)] overflow-y-auto relative animate-fade-in my-auto">
                        <button onClick={() => setShowAddForm(false)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
                        </button>
@@ -2170,7 +2173,12 @@ ${internasHtml}
                               )}
                             </div>
                           </div>
-                         <button disabled={isSubmitting} type="submit" className="w-full liquid-button !bg-[#E85002] mt-4">
+                         {obraError && (
+                           <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
+                             {obraError}
+                           </p>
+                         )}
+                         <button disabled={isSubmitting} type="submit" className="w-full liquid-button !bg-[#E85002] mt-4 sticky bottom-0 z-10 shadow-lg">
                            {isSubmitting ? 'Salvando...' : 'Salvar Obra no Supabase'}
                          </button>
                        </form>
