@@ -15,9 +15,10 @@ async function safeCount(table: string, filter?: { col: string; val: string }): 
   } catch { return 0; }
 }
 
-async function safeSelect(table: string, select: string, opts?: { order?: string; limit?: number }) {
+async function safeSelect(table: string, select: string, opts?: { order?: string; limit?: number; filter?: { col: string; val: string } }) {
   try {
     let q = supabaseAdmin.from(table).select(select);
+    if (opts?.filter) q = q.eq(opts.filter.col, opts.filter.val);
     if (opts?.order) q = q.order(opts.order, { ascending: false });
     if (opts?.limit) q = q.limit(opts.limit);
     const { data, error } = await q;
@@ -50,14 +51,39 @@ export async function GET(req: NextRequest) {
       safeCount('eventos', { col: 'tipo_evento', val: 'questionario_completado' }),
     ]);
 
+    // Consolidar todos os usuários únicos (respondentes de questionário + visitantes que criaram tags)
+    const allUsersSet = new Set<string>();
+
     // Visitantes únicos que interagiram e colocaram tags
-    const tagsVisitors = await safeSelect('tags', 'visitante_hash');
-    const distinctTagVisitors = new Set(tagsVisitors.map((t: any) => t.visitante_hash).filter(Boolean)).size;
+    const tagsVisitors = await safeSelect('tags', 'visitante_hash', { limit: 10000 });
+    tagsVisitors.forEach((t: any) => {
+      const h = t.visitante_hash?.trim();
+      if (h) allUsersSet.add(h);
+    });
+
+    // Respondentes que completaram o questionário de primeiro acesso
+    const questionarioEventos = await safeSelect('eventos', 'resumo, entidade_id, hash_evento', {
+      filter: { col: 'tipo_evento', val: 'questionario_completado' },
+      limit: 10000,
+    });
+
+    questionarioEventos.forEach((e: any) => {
+      const resumo = e.resumo || '';
+      const match = resumo.match(/\(([^)]+)\)/);
+      if (match && match[1]?.trim()) {
+        allUsersSet.add(match[1].trim());
+      } else if (e.entidade_id) {
+        allUsersSet.add(e.entidade_id);
+      } else if (e.hash_evento) {
+        allUsersSet.add(e.hash_evento);
+      }
+    });
 
     // Usuários contados através das respostas do questionário e visitantes registrados no acervo
+    const distinctTagVisitors = tagsVisitors.filter((t: any) => Boolean(t.visitante_hash)).length;
     const usuariosCount = Math.max(
+      allUsersSet.size,
       questionariosEventosCount,
-      distinctTagVisitors,
       questionariosCount,
       visitantesCount,
       1

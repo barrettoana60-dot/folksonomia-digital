@@ -1481,7 +1481,13 @@ export default function AdminPage() {
 
   const fetchDashboard = async () => {
     try {
-      const res = await fetch('/api/admin/dashboard');
+      const res = await fetch(`/api/admin/dashboard?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache',
+        },
+      });
       const json = await res.json();
       if (json.success) {
         setDashboardData(json.data);

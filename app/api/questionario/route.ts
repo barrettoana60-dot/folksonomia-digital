@@ -100,11 +100,16 @@ export async function POST(req: NextRequest) {
       console.warn('[Questionario] Falha ao operar tabela questionarios:', qCatch);
     }
 
+    // Gerar UUID determinístico a partir do vHash para a coluna entidade_id (UUID) da tabela eventos
+    const vHashHex = crypto.createHash('sha256').update(vHash).digest('hex');
+    const visitorUuid = `${vHashHex.slice(0, 8)}-${vHashHex.slice(8, 12)}-4${vHashHex.slice(13, 16)}-a${vHashHex.slice(17, 20)}-${vHashHex.slice(20, 32)}`;
+    const finalVisitanteId = visitanteId || visitorUuid;
+
     // 3. Registrar evento de proveniência garantindo contagem institucional
     try {
       const { error: evtErr } = await supabaseAdmin.from('eventos').insert({
         entidade_tipo: 'visitante',
-        entidade_id: visitanteId,
+        entidade_id: finalVisitanteId,
         tipo_evento: 'questionario_completado',
         resumo: `Questionário de primeiro acesso respondido por ${pseudonimo} (${vHash}) - Familiaridade: ${familiaridade || 'Registrado'}`,
         hash_evento: crypto.createHash('sha256').update(`${vHash}:${Date.now()}`).digest('hex'),
@@ -120,7 +125,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       visitante_hash: vHash,
-      visitante_id: visitanteId,
+      visitante_id: finalVisitanteId,
       pseudonimo,
     });
   } catch (err: any) {
