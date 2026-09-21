@@ -147,7 +147,7 @@ export default function QuestionarioPage() {
                 disabled={loading}
                 className="liquid-button !px-14 !py-4 !rounded-full !text-[11px] !font-semibold !tracking-[0.15em] shadow-lg !bg-[#E8490A] !text-white hover:!bg-[#c44000] active:scale-95 transition-all cursor-pointer"
               >
-                {loading ? 'REGISTRANDO...' : 'REGISTRAR & ACESSAR PLATAFORMA'}
+                {loading ? 'REGISTRANDO...' : 'REGISTRAR'}
               </button>
             </div>
 
