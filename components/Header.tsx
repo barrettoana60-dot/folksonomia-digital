@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import Logo from '@/components/Logo';
-import { Accessibility, VolumeX, ZoomIn, Type, AlignJustify, Sun } from 'lucide-react';
+import { VolumeX, ZoomIn, Type, AlignJustify, Sun } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                               */
@@ -284,7 +284,7 @@ export default function Header() {
       {!compact && (
         <div className="flex items-center justify-between border-b border-black/5 pb-2">
           <div className="flex items-center gap-2">
-            <Accessibility size={15} className="text-[#0D3A85]" />
+            <img src="/logo-acessibilidade.svg" alt="" className="w-6 h-5 object-contain" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#0D3A85]">
               Acessibilidade
             </span>
@@ -496,7 +496,7 @@ export default function Header() {
               aria-label="Abrir menu de acessibilidade"
               aria-expanded={accessibilityOpen}
             >
-              <Accessibility size={18} />
+              <img src="/logo-acessibilidade.svg" alt="" className="w-6 h-5 object-contain" />
             </button>
 
             {accessibilityOpen && (
@@ -624,7 +624,7 @@ export default function Header() {
             <div className="border-b border-black/5 pb-4 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Accessibility size={15} className="text-[#0D3A85]" />
+                  <img src="/logo-acessibilidade.svg" alt="" className="w-6 h-5 object-contain" />
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#0D3A85]">
                     Acessibilidade
                   </span>

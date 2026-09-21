@@ -330,6 +330,16 @@ body, .font-sans, [class*="font-sans"] {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
 }
 
+/* Modal de obras: translucido, sem o painel branco imposto pelo glass-card. */
+.obra-modal-shell {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
 /* ============================================================
    LIQUID GLASS BUTTON — premium
    ============================================================ */

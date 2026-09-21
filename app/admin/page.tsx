@@ -2109,7 +2109,7 @@ ${internasHtml}
                  
                  {showAddForm && (
                    <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-md flex items-start justify-center overflow-y-auto p-4 md:p-8">
-                     <div className="glass-card !bg-white/25 !border-white/50 p-6 md:p-8 w-full max-w-2xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-4rem)] overflow-y-auto relative animate-fade-in my-auto">
+                     <div className="obra-modal-shell p-6 md:p-8 w-full max-w-2xl max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-4rem)] overflow-y-auto relative animate-fade-in my-auto">
                        <button onClick={() => setShowAddForm(false)} className="absolute top-6 right-6 text-[#1A1A1A]/55 hover:text-white">
                          <X size={24} />
                        </button>
