@@ -197,9 +197,9 @@ export default function AcessibilidadePage() {
 
   const themes = [
     { id: 'creme', label: 'Modo Editorial Padrão', desc: 'Fundo creme suave, contraste equilibrado e leitura confortável' },
-    { id: 'claro', label: 'Modo Claro Puro', desc: 'Fundo branco de alto brilho para ambientes iluminados' },
-    { id: 'contraste', label: 'Alto Contraste (WCAG AAA)', desc: 'Fundo preto absoluto e tipografia amarela ouro para máxima legibilidade' },
-    { id: 'escuro', label: 'Modo Escuro (OLED Dark)', desc: 'Fundo grafite escuro para menor emissão de luz e descanso visual noturno' },
+    { id: 'claro', label: 'Modo Branco', desc: 'Fundo branco limpo com texto preto para ambientes iluminados' },
+    { id: 'contraste', label: 'Alto Contraste', desc: 'Fundo preto e amarelo intenso para máxima legibilidade' },
+    { id: 'escuro', label: 'Modo Preto', desc: 'Fundo preto e texto claro para reduzir a emissão de luz' },
   ];
 
   const sectionTitle = "text-[11px] font-semibold uppercase tracking-[0.14em] flex items-center gap-2.5";
@@ -215,6 +215,11 @@ export default function AcessibilidadePage() {
 
         {/* Cabeçalho */}
         <div className="text-center space-y-3 animate-fade-in">
+          <img
+            src="/logo-acessibilidade.svg"
+            alt="Símbolo de acessibilidade da Folksonomia"
+            className="w-24 h-20 object-contain mx-auto mb-2"
+          />
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#E8490A]/10 border border-[#E8490A]/20 rounded-full text-[10px] uppercase font-bold text-[#E8490A] tracking-wider mb-1">
             <ShieldCheck size={14} /> Conformidade WCAG 2.1 Nível AAA
           </div>

@@ -67,6 +67,67 @@
 }
 [data-theme="claro"] body::before { opacity: 0.08; }
 
+/* Temas de acessibilidade: superfícies opacas e contraste previsível. */
+[data-theme="claro"] body,
+[data-theme="claro"] main {
+  background-color: #FFFFFF !important;
+  color: #111111 !important;
+}
+[data-theme="claro"] .glass-card,
+[data-theme="claro"] .liquid-glass {
+  background: #FFFFFF !important;
+  border: 1px solid #111111 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+[data-theme="claro"] .liquid-input,
+[data-theme="claro"] .liquid-button {
+  background: #FFFFFF !important;
+  color: #111111 !important;
+  border: 2px solid #111111 !important;
+  backdrop-filter: none !important;
+}
+
+[data-theme="escuro"] body,
+[data-theme="escuro"] main {
+  background-color: #000000 !important;
+  color: #F5F5F5 !important;
+}
+[data-theme="escuro"] .glass-card,
+[data-theme="escuro"] .liquid-glass {
+  background: #101010 !important;
+  border: 1px solid #F5F5F5 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+[data-theme="escuro"] .liquid-input,
+[data-theme="escuro"] .liquid-button {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border: 2px solid #FFFFFF !important;
+  backdrop-filter: none !important;
+}
+
+[data-theme="contraste"] body,
+[data-theme="contraste"] main,
+[data-theme="contraste"] .glass-card,
+[data-theme="contraste"] .liquid-glass,
+[data-theme="contraste"] .liquid-input,
+[data-theme="contraste"] .liquid-button {
+  background: #000000 !important;
+  color: #FFFF00 !important;
+  border-color: #FFFF00 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+[data-theme="contraste"] input::placeholder,
+[data-theme="escuro"] input::placeholder,
+[data-theme="contraste"] textarea::placeholder,
+[data-theme="escuro"] textarea::placeholder {
+  color: currentColor !important;
+  opacity: 0.85 !important;
+}
+
 /* ============================================================
    BASE — fundo decorativo via pseudo-elemento fixo
    Funciona em iOS Safari, Android Chrome e todos os browsers
