@@ -21,6 +21,7 @@ import {
   Check,
   Globe,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface AuditEvent {
@@ -110,6 +111,35 @@ interface AuditSource {
   created_at: string;
 }
 
+interface AuditTagOption {
+  id: string;
+  label: string;
+  status?: string;
+  version?: number;
+  eixo?: string;
+  updated_at?: string;
+}
+
+interface IntegrityResult {
+  status: 'INTEGRIDADE VERIFICADA' | 'INCONSISTÊNCIA DETECTADA';
+  timestamp: string;
+  totalEventsChecked: number;
+  totalEntitiesChecked: number;
+  totalSnapshotsChecked: number;
+  chainHeight: number;
+  merkleRoot: string;
+  checks: Record<string, { passed: boolean; description: string; details?: string }>;
+  inconsistencies: Array<{
+    event_id?: string;
+    entity_id?: string;
+    version?: number;
+    expected_digest?: string;
+    calculated_digest?: string;
+    previous_digest?: string;
+    message: string;
+  }>;
+}
+
 const TABS = [
   { id: 'eventos', label: 'Eventos de Auditoria', icon: Clock },
   { id: 'historia', label: 'História das Tags & Versões', icon: History },
@@ -117,6 +147,7 @@ const TABS = [
   { id: 'relacoes', label: 'Relações Ontológicas', icon: Network },
   { id: 'fontes', label: 'Fontes Externas & Acervos', icon: Globe },
   { id: 'seguranca', label: 'Log de Segurança', icon: Lock },
+  { id: 'integridade', label: 'Integridade', icon: ShieldCheck },
 ];
 
 export default function AuditoriaPage() {
@@ -129,11 +160,14 @@ export default function AuditoriaPage() {
   const [relations, setRelations] = useState<AuditRelation[]>([]);
   const [sources, setSources] = useState<AuditSource[]>([]);
   const [merkleRoot, setMerkleRoot] = useState<string>('');
+  const [tagOptions, setTagOptions] = useState<AuditTagOption[]>([]);
+  const [integrity, setIntegrity] = useState<IntegrityResult | null>(null);
 
   // Loadings
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [loadingSecurity, setLoadingSecurity] = useState(false);
+  const [loadingIntegrity, setLoadingIntegrity] = useState(false);
 
   // Filtros de Eventos
   const [searchQuery, setSearchQuery] = useState('');
@@ -231,6 +265,29 @@ export default function AuditoriaPage() {
     }
   }, []);
 
+  const loadTagOptions = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/auditoria/tags');
+      const data = await res.json();
+      if (Array.isArray(data?.tags)) setTagOptions(data.tags);
+    } catch (err) {
+      console.error('Falha ao carregar catálogo de tags:', err);
+    }
+  }, []);
+
+  const verifyIntegrity = useCallback(async () => {
+    setLoadingIntegrity(true);
+    try {
+      const res = await fetch('/api/admin/auditoria/verificar-integridade');
+      const data = await res.json();
+      if (data && data.status) setIntegrity(data);
+    } catch (err) {
+      console.error('Falha ao verificar integridade:', err);
+    } finally {
+      setLoadingIntegrity(false);
+    }
+  }, []);
+
   // Carregar linha do tempo de tag
   const loadTagTimeline = useCallback(async (tagId: string) => {
     setLoadingTimeline(true);
@@ -257,12 +314,15 @@ export default function AuditoriaPage() {
     loadRelationsAndSources();
     loadSecurityLogs();
     loadMerkle();
+    loadTagOptions();
     loadTagTimeline(selectedTagId);
-  }, [loadEvents, loadContributions, loadRelationsAndSources, loadSecurityLogs, loadMerkle, loadTagTimeline, selectedTagId]);
+    verifyIntegrity();
+  }, [loadEvents, loadContributions, loadRelationsAndSources, loadSecurityLogs, loadMerkle, loadTagOptions, loadTagTimeline, verifyIntegrity, selectedTagId]);
 
   // Lista de tags únicas disponíveis para a timeline
   const uniqueEntities = useMemo(() => {
     const map = new Map<string, string>();
+    tagOptions.forEach(tag => map.set(tag.id, tag.label));
     events.forEach(e => {
       const label = e.metadata?.label || e.entity_id;
       map.set(e.entity_id, label);
@@ -270,7 +330,11 @@ export default function AuditoriaPage() {
     return Array.from(map.entries())
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [events]);
+  }, [events, tagOptions]);
+
+  useEffect(() => {
+    if (!selectedTagId && uniqueEntities[0]) setSelectedTagId(uniqueEntities[0].id);
+  }, [selectedTagId, uniqueEntities]);
 
   // Filtro de eventos
   const filteredEvents = useMemo(() => {
@@ -333,6 +397,18 @@ export default function AuditoriaPage() {
     }
   };
 
+  const humanizeActor = (actor: string) => {
+    const labels: Record<string, string> = {
+      adm_root: 'Administração central',
+      adm_comite_cientifico: 'Comitê científico',
+      usr_comunidade_01: 'Comunidade participante',
+      usr_curador_institucional: 'Curadoria institucional',
+      usr_pesquisador_nordeste: 'Pesquisa colaborativa',
+      sys_interop_daemon: 'Sistema de interoperabilidade',
+    };
+    return labels[actor] || actor.replace(/^usr_|^adm_|^sys_/, '').replace(/_/g, ' ');
+  };
+
   return (
     <main className="min-h-screen pt-28 md:pt-32 pb-24 px-4 md:px-10 bg-[#EEEBE3] text-[#1A1A1A] antialiased">
       <div className="max-w-[1440px] mx-auto space-y-8">
@@ -370,7 +446,9 @@ export default function AuditoriaPage() {
                 loadRelationsAndSources();
                 loadSecurityLogs();
                 loadMerkle();
+                loadTagOptions();
                 loadTagTimeline(selectedTagId);
+                verifyIntegrity();
               }}
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#0D3A85] text-white hover:bg-[#0D3A85]/90 transition-all flex items-center gap-1.5 shadow-2xs"
               title="Sincronizar trilha de auditoria"
@@ -518,7 +596,7 @@ export default function AuditoriaPage() {
                   className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] focus:border-[#E8490A] focus:outline-none shadow-2xs font-medium"
                 >
                   <option value="">Todas as Tags ({uniqueEntities.length})</option>
-                  {uniqueEntities.map(ent => (
+                        {uniqueEntities.map(ent => (
                     <option key={ent.id} value={ent.id}>{ent.label}</option>
                   ))}
                 </select>
@@ -768,8 +846,8 @@ export default function AuditoriaPage() {
                             </p>
 
                             <div className="pt-2 flex flex-wrap items-center justify-between gap-1 text-[10px] text-[#1A1A1A]/55 border-t border-black/[0.05]">
-                              <span>Responsável: <strong className="text-[#1A1A1A]">{ev.actor_id}</strong> ({ev.actor_role})</span>
-                              <span>Origem: <strong className="text-[#1A1A1A]">{ev.source}</strong></span>
+                              <span>Responsável: <strong className="text-[#1A1A1A]">{humanizeActor(ev.actor_id)}</strong></span>
+                              <span>Origem: <strong className="text-[#1A1A1A]">{ev.source.replace(/_/g, ' ')}</strong></span>
                             </div>
 
                             {ev.metadata?.target_entity && (
@@ -778,8 +856,11 @@ export default function AuditoriaPage() {
                               </div>
                             )}
 
-                            <div className="text-[9px] font-mono text-[#1A1A1A]/40 truncate">
-                              Digest SHA-256: {ev.new_digest.slice(0, 24)}…
+                            <div className="flex items-center justify-between gap-2 text-[10px]">
+                              <span className="text-[#1A1A1A]/55">Situação registrada</span>
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold uppercase">
+                                {String(ev.metadata?.status || 'VALIDATED').replace(/_/g, ' ')}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1151,6 +1232,90 @@ export default function AuditoriaPage() {
                 </table>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ABA DE INTEGRIDADE */}
+        {activeTab === 'integridade' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
+                  <ShieldCheck size={17} className="text-[#059669]" /> Verificação de Integridade
+                </h2>
+                <p className="text-xs text-[#1A1A1A]/55 mt-0.5">
+                  Confere a continuidade dos eventos, versões, relações, proveniência, snapshots e Merkle Root.
+                </p>
+              </div>
+              <button
+                onClick={verifyIntegrity}
+                disabled={loadingIntegrity}
+                className="px-4 py-2 rounded-xl bg-[#059669] text-white text-xs font-bold inline-flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                <ShieldCheck size={14} /> {loadingIntegrity ? 'Verificando...' : 'Verificar integridade'}
+              </button>
+            </div>
+
+            {integrity && (
+              <>
+                <div className={`p-5 rounded-2xl border shadow-2xs ${integrity.status === 'INTEGRIDADE VERIFICADA' ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                  <div className="flex items-center gap-3">
+                    {integrity.status === 'INTEGRIDADE VERIFICADA' ? <CheckCircle2 size={24} className="text-[#059669]" /> : <AlertTriangle size={24} className="text-rose-600" />}
+                    <div>
+                      <h3 className="text-base font-bold">{integrity.status}</h3>
+                      <p className="text-xs text-[#1A1A1A]/60">Última verificação: {new Date(integrity.timestamp).toLocaleString('pt-BR')}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    ['Eventos conferidos', integrity.totalEventsChecked],
+                    ['Entidades conferidas', integrity.totalEntitiesChecked],
+                    ['Snapshots conferidos', integrity.totalSnapshotsChecked],
+                    ['Altura da cadeia', integrity.chainHeight],
+                  ].map(([label, value]) => (
+                    <div key={String(label)} className="p-4 rounded-2xl bg-white/80 border border-black/[0.08] shadow-2xs">
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-[#1A1A1A]/50">{label}</p>
+                      <p className="text-2xl serif-title mt-1 text-[#0D3A85]">{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rounded-2xl border border-black/[0.08] bg-white/90 overflow-hidden shadow-2xs">
+                  <div className="p-4 border-b border-black/[0.08]">
+                    <h3 className="text-sm font-bold">Camadas verificadas</h3>
+                  </div>
+                  <div className="divide-y divide-black/[0.05]">
+                    {Object.values(integrity.checks).map(check => (
+                      <div key={check.description} className="p-4 flex items-start gap-3">
+                        {check.passed ? <CheckCircle2 size={16} className="text-[#059669] mt-0.5 shrink-0" /> : <AlertTriangle size={16} className="text-rose-600 mt-0.5 shrink-0" />}
+                        <div>
+                          <p className="text-xs font-bold">{check.description}</p>
+                          {check.details && <p className="text-[11px] text-[#1A1A1A]/55 mt-0.5">{check.details}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {integrity.inconsistencies.length > 0 && (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 overflow-hidden">
+                    <div className="p-4 border-b border-rose-200">
+                      <h3 className="text-sm font-bold text-rose-900">Inconsistências detectadas</h3>
+                    </div>
+                    <div className="divide-y divide-rose-200">
+                      {integrity.inconsistencies.map((issue, index) => (
+                        <div key={`${issue.event_id || issue.entity_id || 'issue'}-${index}`} className="p-4 text-xs text-rose-950">
+                          <p className="font-bold">{issue.message}</p>
+                          <p className="mt-1 text-[11px]">Evento: {issue.event_id || 'não informado'} · Entidade: {issue.entity_id || 'não informada'}{issue.version ? ` · Versão ${issue.version}` : ''}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 

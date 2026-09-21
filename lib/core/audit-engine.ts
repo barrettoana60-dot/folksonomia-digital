@@ -633,6 +633,24 @@ export function initializeAuditLedger() {
       prevEventDigest = event_digest;
       prevStageDigest = stateDigest;
     });
+
+    const latestEvent = memoryAuditEvents[memoryAuditEvents.length - 1];
+    memorySnapshots.push({
+      snapshot_id: `snp_${tag.id}_v${latestEvent.new_version}`,
+      entity_id: tag.id,
+      entity_type: 'tag',
+      version: latestEvent.new_version,
+      state_snapshot: {
+        label: tag.label,
+        eixo: tag.eixo,
+        status: 'PUBLISHED',
+        relation: tag.targetRelation,
+      },
+      state_digest: latestEvent.new_digest,
+      last_event_id: latestEvent.event_id,
+      last_event_digest: latestEvent.event_digest,
+      created_at: latestEvent.timestamp,
+    });
   });
 
   const secEvents = [
@@ -880,8 +898,8 @@ export async function getEntityProvenanceTimeline(entityId: string): Promise<{
 export async function verifySystemIntegrity(): Promise<IntegrityVerificationResult> {
   initializeAuditLedger();
 
-  // Eventos em ordem cronológica estrita
-  const events = [...memoryAuditEvents].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  // A cadeia segue a ordem de registro do ledger, independentemente da data exibida.
+  const events = [...memoryAuditEvents];
   const inconsistencies: IntegrityInconsistency[] = [];
 
   // 1. Continuidade ininterrupta da Hash Chain
