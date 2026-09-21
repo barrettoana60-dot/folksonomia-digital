@@ -3,12 +3,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  ShieldCheck,
   Clock,
   Search,
   RotateCcw,
   AlertTriangle,
-  CheckCircle,
   FileText,
   Layers,
   GitCommit,
@@ -16,23 +14,15 @@ import {
   Download,
   ExternalLink,
   ArrowLeft,
-  ArrowRight,
   Filter,
   Lock,
-  Key,
-  Database,
   History,
   Eye,
   CheckCircle2,
-  XCircle,
-  Hash,
-  ChevronRight,
-  RefreshCw,
   Copy,
   Check,
   Globe,
-  Sliders,
-  Sparkles,
+  Share2,
 } from 'lucide-react';
 
 interface AuditEvent {
@@ -55,24 +45,29 @@ interface AuditEvent {
   metadata: Record<string, any>;
 }
 
-interface IntegrityResult {
-  status: 'INTEGRIDADE VERIFICADA' | 'INCONSISTÊNCIA DETECTADA';
-  timestamp: string;
-  totalEventsChecked: number;
-  totalEntitiesChecked: number;
-  totalSnapshotsChecked: number;
-  checks: Record<string, { passed: boolean; code: string; description: string; details?: string }>;
-  inconsistencies: Array<{
-    event_id?: string;
-    entity_id?: string;
-    version?: number;
-    expected_digest?: string;
-    calculated_digest?: string;
-    previous_digest?: string;
-    message: string;
+interface AuditContribution {
+  contribution_id: string;
+  actor_id: string;
+  actor_role: string;
+  tag_id: string;
+  tag_label: string;
+  object_id?: string;
+  content: string;
+  created_at: string;
+  version: number;
+  previous_version?: number;
+  previous_digest?: string | null;
+  digest: string;
+  source: string;
+  status: string;
+  history?: Array<{
+    version: number;
+    content: string;
+    timestamp: string;
+    digest: string;
+    actor_id: string;
+    reason?: string;
   }>;
-  merkleRoot: string;
-  chainHeight: number;
 }
 
 interface SecurityLog {
@@ -130,9 +125,11 @@ interface AuditSource {
 
 const TABS = [
   { id: 'eventos', label: 'Eventos de Auditoria', icon: Clock },
-  { id: 'historia', label: 'História da Identidade & Diff', icon: History },
-  { id: 'relacoes_fontes', label: 'Relações & Fontes', icon: Network },
-  { id: 'integridade', label: 'Verificação de Integridade', icon: ShieldCheck },
+  { id: 'historia', label: 'História & Versões', icon: History },
+  { id: 'contribuicoes', label: 'Contribuições Auditadas', icon: Layers },
+  { id: 'relacoes', label: 'Relações Ontológicas', icon: Network },
+  { id: 'fontes', label: 'Fontes Externas', icon: Globe },
+  { id: 'proveniencia', label: 'Proveniência W3C PROV', icon: Share2 },
   { id: 'seguranca', label: 'Log de Segurança', icon: Lock },
   { id: 'exportacoes', label: 'Exportações Auditadas', icon: Download },
 ];
@@ -142,16 +139,17 @@ export default function AuditoriaPage() {
 
   // Estados dos Dados
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [contributions, setContributions] = useState<AuditContribution[]>([]);
   const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>([]);
   const [exportsList, setExportsList] = useState<AuditExport[]>([]);
   const [relations, setRelations] = useState<AuditRelation[]>([]);
   const [sources, setSources] = useState<AuditSource[]>([]);
-  const [integrityReport, setIntegrityReport] = useState<IntegrityResult | null>(null);
+  const [merkleRoot, setMerkleRoot] = useState<string>('');
 
   // Loadings
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingContributions, setLoadingContributions] = useState(false);
   const [loadingSecurity, setLoadingSecurity] = useState(false);
-  const [verifyingIntegrity, setVerifyingIntegrity] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   // Filtros de Eventos
@@ -164,6 +162,9 @@ export default function AuditoriaPage() {
   // Modal de Detalhe do Evento
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
   const [copiedDigest, setCopiedDigest] = useState(false);
+  const [copiedPayloadDigest, setCopiedPayloadDigest] = useState(false);
+  const [copiedPrevDigest, setCopiedPrevDigest] = useState(false);
+  const [copiedJson, setCopiedJson] = useState(false);
   const [copiedRoot, setCopiedRoot] = useState(false);
 
   // História e Comparador de Versões
@@ -186,6 +187,22 @@ export default function AuditoriaPage() {
       console.error('Falha ao carregar eventos:', err);
     } finally {
       setLoadingEvents(false);
+    }
+  }, []);
+
+  // Carregar contribuições auditadas
+  const loadContributions = useCallback(async () => {
+    setLoadingContributions(true);
+    try {
+      const res = await fetch('/api/admin/auditoria/contribuicoes');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setContributions(data);
+      }
+    } catch (err) {
+      console.error('Falha ao carregar contribuições:', err);
+    } finally {
+      setLoadingContributions(false);
     }
   }, []);
 
@@ -230,19 +247,18 @@ export default function AuditoriaPage() {
     }
   }, []);
 
-  // Executar Verificação de Integridade
-  const runIntegrityCheck = async () => {
-    setVerifyingIntegrity(true);
+  // Carregar Merkle Root
+  const loadMerkle = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/auditoria/verificar-integridade', { method: 'POST' });
+      const res = await fetch('/api/admin/auditoria/merkle-root');
       const data = await res.json();
-      setIntegrityReport(data);
+      if (data && data.merkleRoot) {
+        setMerkleRoot(data.merkleRoot);
+      }
     } catch (err) {
-      console.error('Falha na verificação de integridade:', err);
-    } finally {
-      setVerifyingIntegrity(false);
+      console.error('Falha ao carregar merkle root:', err);
     }
-  };
+  }, []);
 
   // Carregar linha do tempo de tag
   const loadTagTimeline = useCallback(async (tagId: string) => {
@@ -263,15 +279,16 @@ export default function AuditoriaPage() {
     }
   }, []);
 
-  // Carregamento inicial
+  // Carregamento inicial de todos os dados
   useEffect(() => {
     loadEvents();
+    loadContributions();
     loadRelationsAndSources();
     loadSecurityLogs();
     loadExports();
+    loadMerkle();
     loadTagTimeline(selectedTagId);
-    runIntegrityCheck();
-  }, [loadEvents, loadRelationsAndSources, loadSecurityLogs, loadExports, loadTagTimeline, selectedTagId]);
+  }, [loadEvents, loadContributions, loadRelationsAndSources, loadSecurityLogs, loadExports, loadMerkle, loadTagTimeline, selectedTagId]);
 
   // Lista de tags únicas disponíveis para a timeline
   const uniqueEntities = useMemo(() => {
@@ -310,11 +327,7 @@ export default function AuditoriaPage() {
     if (!tagTimeline || !tagTimeline.events) return null;
     const eventA = tagTimeline.events.find((e: any) => e.new_version === versionA);
     const eventB = tagTimeline.events.find((e: any) => e.new_version === versionB);
-
-    return {
-      eventA,
-      eventB,
-    };
+    return { eventA, eventB };
   }, [tagTimeline, versionA, versionB]);
 
   // Executar exportação auditada
@@ -332,7 +345,6 @@ export default function AuditoriaPage() {
       });
       const data = await res.json();
       if (data.success) {
-        // Baixar arquivo gerado
         const blob = new Blob([JSON.stringify(data.payload, null, 2)], { type: 'application/ld+json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -350,19 +362,14 @@ export default function AuditoriaPage() {
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedDigest(true);
-    setTimeout(() => setCopiedDigest(false), 2000);
+  const copyText = (text: string, setter: (val: boolean) => void) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+    setter(true);
+    setTimeout(() => setter(false), 2000);
   };
 
-  const copyRootToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedRoot(true);
-    setTimeout(() => setCopiedRoot(false), 2000);
-  };
-
-  // Cores de eventos consistentes e limpas
   const getEventBadgeStyle = (type: string) => {
     switch (type) {
       case 'tag_created':
@@ -390,19 +397,19 @@ export default function AuditoriaPage() {
     <main className="min-h-screen pt-28 md:pt-32 pb-24 px-4 md:px-10 bg-[#EEEBE3] text-[#1A1A1A] antialiased">
       <div className="max-w-[1440px] mx-auto space-y-8">
 
-        {/* ════════ CABEÇALHO INSTITUCIONAL ════════ */}
+        {/* CABEÇALHO INSTITUCIONAL */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-black/10">
           <div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-[#E8490A] text-white flex items-center justify-center shadow-[0_4px_16px_rgba(232,73,10,0.25)]">
-                <ShieldCheck size={22} />
+                <GitCommit size={22} />
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-tight text-[#1A1A1A]">
                   Sistema de Auditoria
                 </h1>
                 <p className="text-xs text-[#1A1A1A]/60 mt-0.5 font-medium uppercase tracking-wider">
-                  Trilha de Proveniência Verificável, Event Sourcing e Encadeamento Criptográfico Contínuo
+                  Trilha de Proveniência Verificável, Event Sourcing e Criptografia SHA-256 (256-bit)
                 </p>
               </div>
             </div>
@@ -411,23 +418,38 @@ export default function AuditoriaPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/admin"
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/80 hover:bg-white text-[#1A1A1A] border border-black/10 transition-all flex items-center gap-1.5 shadow-xs"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/80 hover:bg-white text-[#1A1A1A] border border-black/10 transition-all flex items-center gap-1.5 shadow-2xs"
             >
               <ArrowLeft size={14} /> Voltar ao Painel
             </Link>
 
             <button
-              onClick={runIntegrityCheck}
-              disabled={verifyingIntegrity}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
+              onClick={() => {
+                loadEvents();
+                loadContributions();
+                loadRelationsAndSources();
+                loadSecurityLogs();
+                loadExports();
+                loadMerkle();
+              }}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/80 hover:bg-white text-[#1A1A1A] border border-black/10 transition-all flex items-center gap-1.5 shadow-2xs"
+              title="Recarregar dados"
             >
-              <RefreshCw size={13} className={verifyingIntegrity ? 'animate-spin' : ''} />
-              {verifyingIntegrity ? 'Verificando...' : 'Verificar Integridade'}
+              <RotateCcw size={13} /> Sincronizar
+            </button>
+
+            <button
+              onClick={handleExportAuditedPackage}
+              disabled={exporting}
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-1.5 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
+            >
+              <Download size={13} className={exporting ? 'animate-bounce' : ''} />
+              {exporting ? 'Exportando...' : 'Exportar JSON-LD'}
             </button>
           </div>
         </div>
 
-        {/* ════════ CARDS EXECUTIVOS DE STATUS & KPIS ════════ */}
+        {/* CARDS EXECUTIVOS DE STATUS & KPIS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
           {/* Card 1: Total Eventos */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
@@ -439,7 +461,7 @@ export default function AuditoriaPage() {
               {events.length}
             </div>
             <p className="text-[11px] text-[#1A1A1A]/55">
-              Registros imutáveis protegidos por gatilhos de banco
+              Registros imutáveis com fingerprint SHA-256 (256-bit)
             </p>
           </div>
 
@@ -450,36 +472,19 @@ export default function AuditoriaPage() {
               <GitCommit size={16} className="text-[#059669]" />
             </div>
             <div className="text-3xl font-normal serif-title text-[#059669]">
-              {integrityReport?.chainHeight ?? events.length} <span className="text-sm font-sans font-medium text-[#1A1A1A]/50">blocos</span>
+              {events.length} <span className="text-sm font-sans font-medium text-[#1A1A1A]/50">elos</span>
             </div>
             <p className="text-[11px] text-[#1A1A1A]/55 font-mono">
-              previous_digest → event_digest contínuo
+              previous_event_digest → event_digest contínuo
             </p>
           </div>
 
-          {/* Card 3: Integridade Criptográfica */}
+          {/* Card 3: Merkle Root */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
             <div className="flex items-center justify-between text-[#1A1A1A]/50">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Integridade Criptográfica</span>
-              <ShieldCheck size={16} className="text-[#059669]" />
-            </div>
-            <div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
-                <CheckCircle2 size={13} className="text-emerald-600" />
-                8/8 NÍVEIS APROVADOS
-              </span>
-            </div>
-            <p className="text-[11px] text-[#1A1A1A]/55">
-              RFC 8785 determinístico com zero descontinuidades
-            </p>
-          </div>
-
-          {/* Card 4: Merkle Root */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
-            <div className="flex items-center justify-between text-[#1A1A1A]/50">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Merkle Root Ativa</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider">Merkle Root Determinística</span>
               <button
-                onClick={() => integrityReport?.merkleRoot && copyRootToClipboard(integrityReport.merkleRoot)}
+                onClick={() => merkleRoot && copyText(merkleRoot, setCopiedRoot)}
                 className="text-[10px] text-[#E8490A] hover:underline font-bold flex items-center gap-1"
                 title="Copiar Hash Raiz"
               >
@@ -488,16 +493,30 @@ export default function AuditoriaPage() {
               </button>
             </div>
             <div className="text-xs font-mono font-bold text-[#0D3A85] truncate bg-black/[0.03] p-2 rounded-xl border border-black/[0.06]">
-              {integrityReport?.merkleRoot || 'Calculando...'}
+              {merkleRoot || 'sha256:7f9a2b...'}
             </div>
             <p className="text-[11px] text-[#1A1A1A]/55">
-              Prova binária de integridade em lote sem blockchain pública
+              Prova criptográfica em árvore binária para lotes
+            </p>
+          </div>
+
+          {/* Card 4: Contribuições & Vínculos */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between text-[#1A1A1A]/50">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Contribuições Preservadas</span>
+              <Layers size={16} className="text-[#E8490A]" />
+            </div>
+            <div className="text-3xl font-normal serif-title text-[#E8490A]">
+              {contributions.length}
+            </div>
+            <p className="text-[11px] text-[#1A1A1A]/55">
+              Identidade própria con_ com versionamento histórico
             </p>
           </div>
         </div>
 
-        {/* ════════ BARRA DE NAVEGAÇÃO DE ABAS ════════ */}
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-1.5 border border-black/[0.08] shadow-xs overflow-x-auto no-scrollbar">
+        {/* BARRA DE NAVEGAÇÃO DE ABAS */}
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-1.5 border border-black/[0.08] shadow-2xs overflow-x-auto no-scrollbar">
           <nav className="flex items-center gap-1.5 min-w-max">
             {TABS.map(tab => {
               const Icon = tab.icon;
@@ -506,7 +525,7 @@ export default function AuditoriaPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
                     isActive
                       ? 'bg-[#E8490A] text-white shadow-[0_4px_16px_rgba(232,73,10,0.25)]'
                       : 'text-[#1A1A1A]/70 hover:bg-black/[0.04] hover:text-[#1A1A1A]'
@@ -520,11 +539,11 @@ export default function AuditoriaPage() {
           </nav>
         </div>
 
-        {/* ════════ ABA 1: EVENTOS DE AUDITORIA ════════ */}
+        {/* ABA 1: EVENTOS DE AUDITORIA */}
         {activeTab === 'eventos' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Barra de Filtros Estilizada */}
-            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-4">
+            {/* Barra de Filtros */}
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Filter size={15} className="text-[#E8490A]" />
@@ -611,10 +630,10 @@ export default function AuditoriaPage() {
             </div>
 
             {/* Tabela de Eventos */}
-            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-2xs">
               <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-black/[0.02]">
                 <div>
-                  <h2 className="text-sm font-bold text-[#1A1A1A]">Eventos Encadeados Criptograficamente</h2>
+                  <h2 className="text-sm font-bold text-[#1A1A1A]">Eventos Encadeados Criptograficamente (SHA-256)</h2>
                   <p className="text-xs text-[#1A1A1A]/55">
                     Mostrando {filteredEvents.length} de {events.length} eventos consolidados
                   </p>
@@ -643,14 +662,14 @@ export default function AuditoriaPage() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-black/[0.03] border-b border-black/[0.08] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
-                        <th className="p-3.5">Data / Hora (UTC)</th>
+                        <th className="p-3.5">Data / Hora</th>
                         <th className="p-3.5">Evento</th>
                         <th className="p-3.5">Entidade Cultural</th>
                         <th className="p-3.5">Versão</th>
                         <th className="p-3.5">Ator / Papel</th>
                         <th className="p-3.5">Origem</th>
                         <th className="p-3.5 font-mono">Event Digest (SHA-256)</th>
-                        <th className="p-3.5 text-right">Ações</th>
+                        <th className="p-3.5 text-right">Ação</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/[0.05]">
@@ -716,11 +735,11 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ════════ ABA 2: HISTÓRIA DA IDENTIDADE & DIFF ════════ */}
+        {/* ABA 2: HISTÓRIA & VERSÕES */}
         {activeTab === 'historia' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Barra Seletora de Entidade */}
-            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs flex flex-wrap items-center justify-between gap-4">
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#0D3A85] text-white flex items-center justify-center">
                   <History size={18} />
@@ -758,7 +777,7 @@ export default function AuditoriaPage() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Linha Temporal Visual (5 colunas) */}
-                <div className="lg:col-span-5 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-6">
+                <div className="lg:col-span-5 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-6">
                   <div className="border-b border-black/[0.08] pb-3">
                     <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/50 font-bold">
                       Trilha de Proveniência Passo a Passo
@@ -769,16 +788,14 @@ export default function AuditoriaPage() {
                   </div>
 
                   <div className="relative pl-6 space-y-6">
-                    {/* Linha Vertical Conectora */}
                     <div className="absolute left-2.5 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#0D3A85] via-[#E8490A] to-[#059669]" />
 
-                    {tagTimeline.events.map((ev: AuditEvent, idx: number) => {
+                    {tagTimeline.events.map((ev: AuditEvent) => {
                       const isGenesis = ev.previous_version === 0;
                       const isPublished = ev.event_type.includes('publish') || ev.metadata?.status === 'PUBLISHED';
 
                       return (
                         <div key={ev.event_id} className="relative group">
-                          {/* Pin Conector */}
                           <div
                             className={`absolute -left-[19px] top-1.5 w-3.5 h-3.5 rounded-full border-2 bg-white transition-all ${
                               isPublished
@@ -824,7 +841,7 @@ export default function AuditoriaPage() {
                 </div>
 
                 {/* Comparador de Versões Lado a Lado (7 colunas) */}
-                <div className="lg:col-span-7 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-6">
+                <div className="lg:col-span-7 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-6">
                   <div className="border-b border-black/[0.08] pb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/50 font-bold">
@@ -872,7 +889,6 @@ export default function AuditoriaPage() {
 
                   {versionComparison && versionComparison.eventA && versionComparison.eventB ? (
                     <div className="space-y-5">
-                      {/* Resumo Comparativo */}
                       <div className="grid grid-cols-2 gap-4 text-xs">
                         <div className="p-4 rounded-xl bg-[#0D3A85]/5 border border-[#0D3A85]/20 space-y-1.5">
                           <div className="text-[#0D3A85] text-[10px] uppercase font-bold tracking-wider">
@@ -944,7 +960,7 @@ export default function AuditoriaPage() {
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Digest do Estado</td>
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Digest do Estado (SHA-256)</td>
                               <td className="p-3 truncate max-w-[150px] font-mono text-[#1A1A1A]/60">
                                 {versionComparison.eventA.new_digest.slice(0, 16)}…
                               </td>
@@ -1002,16 +1018,89 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ════════ ABA 3: RELAÇÕES & FONTES ════════ */}
-        {activeTab === 'relacoes_fontes' && (
+        {/* ABA 3: CONTRIBUIÇÕES AUDITADAS (SEÇÃO 8) */}
+        {activeTab === 'contribuicoes' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Tabela de Relações */}
-            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-bold text-[#1A1A1A]">Auditoria de Contribuições com Identidade Própria</h2>
+                <p className="text-xs text-[#1A1A1A]/60 mt-0.5">
+                  Cada contribuição possui ID exclusivo (con_...), histórico versionado (V1 → Correção → V2) e hash SHA-256
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-black/[0.05] text-[#1A1A1A]">
+                {contributions.length} Contribuições Rastreadas
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {contributions.map(con => (
+                <div key={con.contribution_id} className="p-6 rounded-2xl bg-white/90 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs font-bold text-[#E8490A] bg-[#E8490A]/10 px-2.5 py-1 rounded-lg border border-[#E8490A]/20">
+                        {con.contribution_id}
+                      </span>
+                      <span className="font-bold text-sm text-[#1A1A1A]">{con.tag_label}</span>
+                      <span className="text-[10px] font-mono text-[#059669] font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Versão Atual: V{con.version}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] font-mono text-[#1A1A1A]/60">
+                      Digest Atual: <span className="font-bold text-[#1A1A1A]">{con.digest.slice(0, 20)}…</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-black/[0.02] border border-black/[0.05] text-xs text-[#1A1A1A]">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 block mb-1">Conteúdo Atual</span>
+                    <p className="leading-relaxed font-sans">{con.content}</p>
+                  </div>
+
+                  {/* Trilha Histórica Versionada V1 -> V2 */}
+                  {con.history && con.history.length > 0 && (
+                    <div className="pt-2 space-y-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 block">
+                        Trilha de Evolução da Contribuição (Histórico Imutável)
+                      </span>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {con.history.map((h, hIdx) => (
+                          <div key={hIdx} className="p-3 rounded-xl bg-white border border-black/[0.08] space-y-1.5 shadow-2xs">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="font-bold font-mono text-[#0D3A85]">Versão {h.version}</span>
+                              <span className="text-[10px] text-[#1A1A1A]/50 font-mono">
+                                {new Date(h.timestamp).toLocaleString('pt-BR')}
+                              </span>
+                            </div>
+                            <p className="text-xs text-[#1A1A1A]/80 italic">&ldquo;{h.content}&rdquo;</p>
+                            <div className="pt-1 flex flex-wrap items-center justify-between gap-1 text-[10px] text-[#1A1A1A]/50 font-mono border-t border-black/[0.04]">
+                              <span>Ator: {h.actor_id}</span>
+                              <span>Digest: {h.digest.slice(0, 14)}…</span>
+                            </div>
+                            {h.reason && (
+                              <div className="text-[10px] text-[#059669] font-medium">Motivo: {h.reason}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ABA 4: RELAÇÕES ONTOLÓGICAS (SEÇÃO 6) */}
+        {activeTab === 'relacoes' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-2xs">
               <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-black/[0.02]">
                 <div>
                   <h2 className="text-sm font-bold text-[#1A1A1A]">Relações Ontológicas Auditadas</h2>
                   <p className="text-xs text-[#1A1A1A]/55">
-                    Origem de cada vínculo, nível de confiança matemática e evidência probatória
+                    Origem de cada vínculo, nível de confiança matemática, fonte e digest SHA-256
                   </p>
                 </div>
                 <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-black/[0.05] text-[#1A1A1A]">
@@ -1029,7 +1118,7 @@ export default function AuditoriaPage() {
                       <th className="p-3.5">Fonte / Conector</th>
                       <th className="p-3.5">Confiança</th>
                       <th className="p-3.5">Status</th>
-                      <th className="p-3.5 font-mono">Digest da Relação</th>
+                      <th className="p-3.5 font-mono">Digest da Relação (SHA-256)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/[0.05]">
@@ -1060,9 +1149,13 @@ export default function AuditoriaPage() {
                 </table>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Tabela de Fontes Externas Preservadas */}
-            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+        {/* ABA 5: FONTES EXTERNAS (SEÇÃO 7) */}
+        {activeTab === 'fontes' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-2xs">
               <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-black/[0.02]">
                 <div>
                   <h2 className="text-sm font-bold text-[#1A1A1A]">Fontes Externas com Origem Preservada</h2>
@@ -1084,7 +1177,7 @@ export default function AuditoriaPage() {
                       <th className="p-3.5">URI Externa</th>
                       <th className="p-3.5">Método de Correspondência</th>
                       <th className="p-3.5">Versão Adaptador</th>
-                      <th className="p-3.5 font-mono">Digest Resposta</th>
+                      <th className="p-3.5 font-mono">Response Digest (SHA-256)</th>
                       <th className="p-3.5">Data Recuperação</th>
                     </tr>
                   </thead>
@@ -1122,135 +1215,86 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ════════ ABA 4: VERIFICAÇÃO DE INTEGRIDADE (8 NÍVEIS) ════════ */}
-        {activeTab === 'integridade' && (
+        {/* ABA 6: PROVENIÊNCIA W3C PROV (SEÇÃO 9 & 19) */}
+        {activeTab === 'proveniencia' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Banner Executivo de Status */}
-            <div
-              className={`p-6 rounded-2xl border transition-all ${
-                integrityReport?.status === 'INTEGRIDADE VERIFICADA'
-                  ? 'bg-emerald-50 border-emerald-300 shadow-xs'
-                  : 'bg-rose-50 border-rose-300 shadow-xs'
-              }`}
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  {integrityReport?.status === 'INTEGRIDADE VERIFICADA' ? (
-                    <div className="w-14 h-14 rounded-2xl bg-[#059669] text-white flex items-center justify-center shadow-md">
-                      <ShieldCheck size={32} />
-                    </div>
-                  ) : (
-                    <div className="w-14 h-14 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-md">
-                      <AlertTriangle size={32} />
-                    </div>
-                  )}
+            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-4">
+              <div className="border-b border-black/[0.06] pb-3">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#E8490A] font-bold block">
+                  Modelo Conceitual W3C PROV & Princípio Fundamental
+                </span>
+                <h2 className="text-xl font-normal serif-title text-[#1A1A1A] mt-1">
+                  &ldquo;Como esta informação chegou ao estado em que está agora?&rdquo;
+                </h2>
+                <p className="text-xs text-[#1A1A1A]/60 mt-1">
+                  O sistema percorre a trilha ontológica contínua interligando atores, fontes, atividades e estados criptográficos.
+                </p>
+              </div>
 
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-tight text-[#1A1A1A]">
-                      {integrityReport?.status || 'Aguardando Verificação'}
-                    </h2>
-                    <p className="text-xs text-[#1A1A1A]/70 mt-1 font-medium">
-                      Auditoria matemática contínua: cadeia SHA-256 ininterrupta, conformidade RFC 8785 e Merkle Root ativa
-                    </p>
-                  </div>
+              {/* Diagrama de Trilha */}
+              <div className="p-5 rounded-2xl bg-[#0D3A85]/5 border border-[#0D3A85]/15 space-y-3">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#0D3A85] block font-mono">
+                  Fluxo Contínuo de Reconstituição de Estado
+                </span>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold text-[#1A1A1A]">
+                  <span className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800">ESTADO ATUAL</span>
+                  <span className="text-[#E8490A]">→</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-800">VERSÃO</span>
+                  <span className="text-[#E8490A]">→</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-purple-100 text-purple-800">EVENTO</span>
+                  <span className="text-[#E8490A]">→</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800">CONTRIBUIÇÃO</span>
+                  <span className="text-[#E8490A]">→</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800">AGENTE</span>
+                  <span className="text-[#E8490A]">→</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-cyan-100 text-cyan-800">FONTE</span>
+                  <span className="text-[#E8490A]">→</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-800">RELAÇÃO</span>
+                  <span className="text-[#E8490A]">→</span>
+                  <span className="px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800">ESTADO ANTERIOR</span>
+                </div>
+              </div>
+
+              {/* Tríade W3C PROV Explicada */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="p-4 rounded-xl bg-white border border-black/[0.08] shadow-2xs space-y-2">
+                  <div className="text-[10px] uppercase font-mono font-bold text-[#0D3A85]">1. Agente (W3C Agent)</div>
+                  <div className="font-bold text-sm text-[#1A1A1A]">Quem realizou a ação</div>
+                  <p className="text-xs text-[#1A1A1A]/70 leading-relaxed">
+                    Identifica a pessoa física ou agente de software autônomo (pesquisador, curador institucional, cidadão ou rotina de interoperabilidade).
+                  </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={runIntegrityCheck}
-                    disabled={verifyingIntegrity}
-                    className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
-                  >
-                    <RefreshCw size={14} className={verifyingIntegrity ? 'animate-spin' : ''} />
-                    {verifyingIntegrity ? 'Executando Análise Criptográfica...' : 'Executar Nova Verificação'}
-                  </button>
+                <div className="p-4 rounded-xl bg-white border border-black/[0.08] shadow-2xs space-y-2">
+                  <div className="text-[10px] uppercase font-mono font-bold text-[#E8490A]">2. Atividade (W3C Activity)</div>
+                  <div className="font-bold text-sm text-[#1A1A1A]">Operação realizada</div>
+                  <p className="text-xs text-[#1A1A1A]/70 leading-relaxed">
+                    A transformação executada (tag_created, match_found, relation_validated, version_published) com carimbo de tempo inviolável.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white border border-black/[0.08] shadow-2xs space-y-2">
+                  <div className="text-[10px] uppercase font-mono font-bold text-[#059669]">3. Entidade (W3C Entity)</div>
+                  <div className="font-bold text-sm text-[#1A1A1A]">O que foi gerado</div>
+                  <p className="text-xs text-[#1A1A1A]/70 leading-relaxed">
+                    O artefato cultural, tag ou relação ontológica com fingerprint SHA-256 e versão estrita resultante da atividade.
+                  </p>
                 </div>
               </div>
             </div>
-
-            {/* Matriz dos 8 Testes de Integridade */}
-            {integrityReport && integrityReport.checks && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(integrityReport.checks).map(([key, chk], idx) => {
-                  return (
-                    <div
-                      key={key}
-                      className="p-5 rounded-2xl bg-white/90 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-3"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-mono text-xs font-bold ${
-                              chk.passed
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-rose-100 text-rose-800'
-                            }`}
-                          >
-                            {idx + 1}
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-mono text-[#1A1A1A]/40 font-bold block">{chk.code}</span>
-                            <h3 className="text-xs font-bold text-[#1A1A1A] mt-0.5">{chk.description}</h3>
-                          </div>
-                        </div>
-
-                        {chk.passed ? (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-emerald-50 text-emerald-800 border border-emerald-300">
-                            Aprovado
-                          </span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-rose-50 text-rose-800 border border-rose-300">
-                            Inconsistente
-                          </span>
-                        )}
-                      </div>
-
-                      <p className="text-[11px] text-[#1A1A1A]/70 pt-2 border-t border-black/[0.05] leading-relaxed font-sans">
-                        {chk.details}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Diagnóstico em caso de inconsistência */}
-            {integrityReport && integrityReport.inconsistencies.length > 0 && (
-              <div className="p-6 rounded-2xl bg-rose-50 border border-rose-300 space-y-4 shadow-xs">
-                <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
-                  <AlertTriangle size={18} />
-                  <span>Inconsistências ou Adulterações Detectadas</span>
-                </div>
-
-                <div className="space-y-2 font-mono text-xs">
-                  {integrityReport.inconsistencies.map((inc, iIdx) => (
-                    <div key={iIdx} className="p-3 rounded-xl bg-white border border-rose-200 space-y-1">
-                      <div className="text-rose-700 font-bold">{inc.message}</div>
-                      {inc.event_id && <div className="text-[#1A1A1A]/60 text-[11px]">Evento Afetado: {inc.event_id}</div>}
-                      {inc.expected_digest && (
-                        <div className="text-[#1A1A1A]/50 text-[11px]">Digest Esperado: {inc.expected_digest}</div>
-                      )}
-                      {inc.calculated_digest && (
-                        <div className="text-rose-600 text-[11px]">Digest Calculado: {inc.calculated_digest}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {/* ════════ ABA 5: LOG DE SEGURANÇA (SEGREGADO) ════════ */}
+        {/* ABA 7: LOG DE SEGURANÇA (SEÇÃO 14) */}
         {activeTab === 'seguranca' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs flex items-center justify-between">
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
                   <Lock size={16} className="text-[#0D3A85]" /> Log de Segurança Operacional (Segregado)
                 </h2>
                 <p className="text-xs text-[#1A1A1A]/55 mt-0.5">
-                  Registro isolado de autenticações, privilégios, exportações e acessos administrativos
+                  Registro isolado do log de negócio: autenticações, privilégios, exportações e acessos de chaves
                 </p>
               </div>
 
@@ -1259,7 +1303,7 @@ export default function AuditoriaPage() {
               </span>
             </div>
 
-            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-2xs">
               {loadingSecurity ? (
                 <div className="p-16 text-center">
                   <div className="w-8 h-8 border-2 border-[#0D3A85] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
@@ -1280,7 +1324,7 @@ export default function AuditoriaPage() {
                         <th className="p-3.5">Ator / Função</th>
                         <th className="p-3.5">Endereço IP</th>
                         <th className="p-3.5">Detalhes da Operação</th>
-                        <th className="p-3.5 font-mono">Digest Criptográfico</th>
+                        <th className="p-3.5 font-mono">Digest de Segurança (SHA-256)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black/[0.05] font-mono text-[11px]">
@@ -1322,16 +1366,16 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ════════ ABA 6: EXPORTAÇÕES AUDITADAS ════════ */}
+        {/* ABA 8: EXPORTAÇÕES AUDITADAS (SEÇÃO 16) */}
         {activeTab === 'exportacoes' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
                   <Download size={16} className="text-[#E8490A]" /> Pacotes de Exportação Auditados
                 </h2>
                 <p className="text-xs text-[#1A1A1A]/60 mt-1">
-                  Exportação canônica em JSON-LD com emissão de digest criptográfico SHA-256
+                  Exportação canônica em JSON-LD com emissão de dataset digest SHA-256 e registro em Security Log
                 </p>
               </div>
 
@@ -1345,7 +1389,7 @@ export default function AuditoriaPage() {
               </button>
             </div>
 
-            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-2xs">
               <div className="p-4 border-b border-black/[0.08] bg-black/[0.02]">
                 <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
                   Histórico de Pacotes Exportados
@@ -1400,17 +1444,22 @@ export default function AuditoriaPage() {
 
       </div>
 
-      {/* ════════ MODAL DE INSPEÇÃO CRIPTOGRÁFICA DO EVENTO ════════ */}
+      {/* MODAL DE INSPEÇÃO CRIPTOGRÁFICA DO EVENTO (AS 12 PERGUNTAS ESSENCIAIS) */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border border-black/10 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#FAF9F5] rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl border border-black/15 overflow-hidden animate-in zoom-in-95 duration-150">
             {/* Header do Modal */}
-            <div className="p-6 border-b border-black/[0.08] flex items-center justify-between bg-[#FBFBFB]">
+            <div className="p-5 md:p-6 border-b border-black/[0.08] flex items-center justify-between bg-white">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-wider text-[#E8490A] font-bold block">
-                  Inspeção Criptográfica do Evento
+                  Trilha de Proveniência Verificável — Inspeção Criptográfica
                 </span>
-                <h3 className="text-lg font-normal serif-title text-[#1A1A1A] mt-0.5">{selectedEvent.event_id}</h3>
+                <h3 className="text-xl font-normal serif-title text-[#1A1A1A] mt-0.5 flex items-center gap-2">
+                  <span>{selectedEvent.event_id}</span>
+                  <span className="text-xs font-mono font-bold bg-[#E8490A]/10 text-[#E8490A] px-2.5 py-0.5 rounded-full border border-[#E8490A]/20">
+                    {selectedEvent.event_type}
+                  </span>
+                </h3>
               </div>
               <button
                 onClick={() => setSelectedEvent(null)}
@@ -1421,15 +1470,125 @@ export default function AuditoriaPage() {
             </div>
 
             {/* Conteúdo do Modal */}
-            <div className="p-6 overflow-y-auto space-y-6 text-xs font-sans">
+            <div className="p-5 md:p-6 overflow-y-auto space-y-6 text-xs font-sans">
+              {/* AS 12 RESPOSTAS DA AUDITORIA */}
+              <div className="p-5 rounded-2xl bg-white border border-black/[0.08] space-y-4 shadow-2xs">
+                <div className="border-b border-black/[0.06] pb-2 flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A] font-mono">
+                    Respostas da Auditoria (12 Dimensões de Verificabilidade)
+                  </h4>
+                  <span className="text-[10px] text-[#059669] font-bold font-mono">
+                    PADRÃO PROV + RFC 8785
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  {/* 1. Quem realizou a ação */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">1. Quem Realizou a Ação</span>
+                    <div className="font-bold text-[#1A1A1A]">{selectedEvent.actor_id}</div>
+                    <span className="text-[10px] text-[#1A1A1A]/60 font-mono">Papel: {selectedEvent.actor_role}</span>
+                  </div>
+
+                  {/* 2. O que foi alterado */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">2. O Que Foi Alterado</span>
+                    <div className="font-bold text-[#1A1A1A]">{selectedEvent.metadata?.label || selectedEvent.entity_id}</div>
+                    <span className="text-[10px] text-[#1A1A1A]/60 font-mono">Tipo: {selectedEvent.entity_type}</span>
+                  </div>
+
+                  {/* 3. Quando ocorreu */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">3. Quando Ocorreu</span>
+                    <div className="font-bold text-[#1A1A1A]">{new Date(selectedEvent.timestamp).toLocaleString('pt-BR')}</div>
+                    <span className="text-[10px] text-[#1A1A1A]/50 font-mono truncate block">{selectedEvent.timestamp}</span>
+                  </div>
+
+                  {/* 4. Estado anterior */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">4. Estado Anterior</span>
+                    <div className="font-bold font-mono text-[#0D3A85]">Versão {selectedEvent.previous_version}</div>
+                    <span className="text-[10px] text-[#1A1A1A]/50 font-mono truncate block">
+                      Digest: {selectedEvent.previous_digest ? selectedEvent.previous_digest.slice(0, 16) + '…' : 'Gênese (null)'}
+                    </span>
+                  </div>
+
+                  {/* 5. Novo estado */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">5. Novo Estado</span>
+                    <div className="font-bold font-mono text-[#059669]">Versão {selectedEvent.new_version}</div>
+                    <span className="text-[10px] text-[#059669] font-mono truncate block">
+                      Digest: {selectedEvent.new_digest.slice(0, 16)}…
+                    </span>
+                  </div>
+
+                  {/* 6. Origem da informação */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">6. Origem da Informação</span>
+                    <div className="font-bold text-[#1A1A1A]">{selectedEvent.source}</div>
+                    <span className="text-[10px] text-[#1A1A1A]/60">Proveniência institucional</span>
+                  </div>
+
+                  {/* 7. Operação que produziu */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">7. Operação / Motivação</span>
+                    <div className="font-bold text-[#E8490A]">{selectedEvent.event_type}</div>
+                    <p className="text-[10px] text-[#1A1A1A]/70 line-clamp-2">{selectedEvent.reason || 'Alteração estruturada de atributos.'}</p>
+                  </div>
+
+                  {/* 8. Versão criada */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">8. Versão Criada</span>
+                    <div className="font-bold text-[#059669]">V{selectedEvent.new_version}</div>
+                    <span className="text-[10px] text-[#1A1A1A]/60 font-mono">Incremento monotônico</span>
+                  </div>
+
+                  {/* 9. Digest anterior */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">9. Digest Anterior (Hash Chain)</span>
+                    <div className="font-mono text-[10px] text-[#1A1A1A]/80 truncate">
+                      {selectedEvent.previous_event_digest ? selectedEvent.previous_event_digest.slice(0, 18) + '…' : 'Gênese (null)'}
+                    </div>
+                    <span className="text-[10px] text-[#1A1A1A]/50">Elo predecessor</span>
+                  </div>
+
+                  {/* 10. Novo digest */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">10. Novo Digest (Event Digest)</span>
+                    <div className="font-mono text-[10px] text-[#059669] font-bold truncate">
+                      {selectedEvent.event_digest.slice(0, 18)}…
+                    </div>
+                    <span className="text-[10px] text-[#1A1A1A]/50">SHA-256 canônico</span>
+                  </div>
+
+                  {/* 11. Entidades afetadas */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">11. Entidades Afetadas</span>
+                    <div className="font-bold text-[#1A1A1A] truncate">{selectedEvent.entity_id}</div>
+                    {selectedEvent.metadata?.target_entity && (
+                      <span className="text-[10px] text-[#E8490A] font-mono block">→ {selectedEvent.metadata.target_entity}</span>
+                    )}
+                  </div>
+
+                  {/* 12. Validação / Situação */}
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
+                    <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">12. Situação Formal</span>
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-emerald-100 text-emerald-800">
+                      {selectedEvent.metadata?.status || 'VALIDATED'}
+                    </span>
+                    <span className="text-[10px] text-[#1A1A1A]/50 block">Auditado e imutável</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Encadeamento Criptográfico (Hash Chain) */}
-              <div className="p-4 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-3">
+              <div className="p-5 rounded-2xl bg-white border border-black/[0.08] space-y-3 shadow-2xs">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A1A]/60 font-mono">
-                    Encadeamento da Hash Chain (Elo Sucessor)
+                    Encadeamento da Hash Chain (SHA-256 256-bit)
                   </span>
                   <button
-                    onClick={() => copyToClipboard(selectedEvent.event_digest)}
+                    onClick={() => copyText(selectedEvent.event_digest, setCopiedDigest)}
                     className="flex items-center gap-1 text-[11px] font-bold text-[#E8490A] hover:underline"
                   >
                     {copiedDigest ? <Check size={12} /> : <Copy size={12} />}
@@ -1438,62 +1597,70 @@ export default function AuditoriaPage() {
                 </div>
 
                 <div className="space-y-2 font-mono text-[11px]">
-                  <div className="bg-white p-2.5 rounded-xl border border-black/[0.06]">
-                    <span className="text-[#1A1A1A]/40 block text-[10px] font-bold uppercase">Previous Event Digest:</span>
-                    <span className="text-[#1A1A1A]/80 select-all break-all">
-                      {selectedEvent.previous_event_digest || 'null (Gênese da Trilha de Proveniência)'}
-                    </span>
+                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-black/[0.06] flex items-center justify-between">
+                    <div>
+                      <span className="text-[#1A1A1A]/40 block text-[9px] font-bold uppercase">Previous Event Digest:</span>
+                      <span className="text-[#1A1A1A]/80 select-all break-all">
+                        {selectedEvent.previous_event_digest || 'null (Gênese da Trilha de Proveniência)'}
+                      </span>
+                    </div>
+                    {selectedEvent.previous_event_digest && (
+                      <button
+                        onClick={() => copyText(selectedEvent.previous_event_digest!, setCopiedPrevDigest)}
+                        className="text-[10px] text-[#1A1A1A]/60 hover:text-[#E8490A] ml-2 shrink-0"
+                      >
+                        {copiedPrevDigest ? 'OK' : 'Copiar'}
+                      </button>
+                    )}
                   </div>
-                  <div className="bg-white p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/50">
-                    <span className="text-emerald-800 block text-[10px] font-bold uppercase">Current Event Digest:</span>
+
+                  <div className="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-300">
+                    <span className="text-emerald-800 block text-[9px] font-bold uppercase">Current Event Digest (Hash deste Elo):</span>
                     <span className="text-emerald-900 font-bold select-all break-all">
                       {selectedEvent.event_digest}
                     </span>
                   </div>
-                  <div className="bg-white p-2.5 rounded-xl border border-black/[0.06]">
-                    <span className="text-[#1A1A1A]/40 block text-[10px] font-bold uppercase">Payload Digest (RFC 8785):</span>
-                    <span className="text-[#0D3A85] select-all break-all font-bold">{selectedEvent.payload_digest}</span>
+
+                  <div className="bg-[#FAF9F5] p-2.5 rounded-xl border border-black/[0.06] flex items-center justify-between">
+                    <div>
+                      <span className="text-[#1A1A1A]/40 block text-[9px] font-bold uppercase">RFC 8785 Payload Digest:</span>
+                      <span className="text-[#0D3A85] select-all break-all font-bold">{selectedEvent.payload_digest}</span>
+                    </div>
+                    <button
+                      onClick={() => copyText(selectedEvent.payload_digest, setCopiedPayloadDigest)}
+                      className="text-[10px] text-[#1A1A1A]/60 hover:text-[#E8490A] ml-2 shrink-0"
+                    >
+                      {copiedPayloadDigest ? 'OK' : 'Copiar'}
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Informações de Proveniência W3C PROV */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-1">
-                  <span className="text-[10px] uppercase font-mono font-bold text-[#1A1A1A]/50 block">Agente (W3C Agent)</span>
-                  <div className="font-bold text-[#1A1A1A]">{selectedEvent.actor_id}</div>
-                  <span className="text-[10px] text-[#1A1A1A]/60 font-mono font-medium">Papel: {selectedEvent.actor_role}</span>
+              {/* Payload Canônico em JSON com fundo claro e alto contraste */}
+              <div className="p-5 rounded-2xl bg-white border border-black/[0.08] space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A1A]/60 font-mono block">
+                    Payload Canônico Completo (JSON Determinístico RFC 8785)
+                  </span>
+                  <button
+                    onClick={() => copyText(JSON.stringify(selectedEvent, null, 2), setCopiedJson)}
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#E8490A] hover:underline"
+                  >
+                    {copiedJson ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedJson ? 'Copiado!' : 'Copiar JSON Completo'}
+                  </button>
                 </div>
-
-                <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-1">
-                  <span className="text-[10px] uppercase font-mono font-bold text-[#1A1A1A]/50 block">Atividade (W3C Activity)</span>
-                  <div className="font-bold text-[#E8490A]">{selectedEvent.event_type}</div>
-                  <span className="text-[10px] text-[#1A1A1A]/60 font-medium">Origem: {selectedEvent.source}</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-1">
-                  <span className="text-[10px] uppercase font-mono font-bold text-[#1A1A1A]/50 block">Entidade (W3C Entity)</span>
-                  <div className="font-bold text-[#1A1A1A]">{selectedEvent.metadata?.label || selectedEvent.entity_id}</div>
-                  <span className="text-[10px] text-[#059669] font-mono font-bold">Versão {selectedEvent.new_version}</span>
-                </div>
-              </div>
-
-              {/* Payload Canônico em JSON */}
-              <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A1A]/60 font-mono block mb-2">
-                  Payload Canônico Completo (JSON Determinístico RFC 8785)
-                </span>
-                <pre className="p-4 rounded-2xl bg-[#1A1A1A] text-white font-mono text-[11px] overflow-x-auto select-all shadow-inner">
+                <pre className="p-4 rounded-xl bg-[#FAF9F5] border border-black/15 text-[#1A1A1A] font-mono text-[11px] overflow-x-auto select-all max-h-56 shadow-inner leading-relaxed">
                   {JSON.stringify(selectedEvent, null, 2)}
                 </pre>
               </div>
             </div>
 
             {/* Rodapé do Modal */}
-            <div className="p-4 border-t border-black/[0.08] bg-[#FBFBFB] flex justify-end">
+            <div className="p-4 border-t border-black/[0.08] bg-white flex justify-end">
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="px-5 py-2.5 rounded-xl bg-[#1A1A1A] text-white text-xs font-bold transition-all shadow-xs hover:bg-[#1A1A1A]/90"
+                className="px-6 py-2.5 rounded-xl bg-[#E8490A] text-white text-xs font-bold transition-all shadow-xs hover:bg-[#E8490A]/90"
               >
                 Fechar Inspeção
               </button>

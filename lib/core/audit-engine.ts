@@ -112,6 +112,31 @@ export interface AuditExternalSource {
   created_at: string;
 }
 
+export interface AuditContribution {
+  contribution_id: string;
+  actor_id: string;
+  actor_role: string;
+  tag_id: string;
+  tag_label: string;
+  object_id?: string;
+  content: string;
+  created_at: string;
+  version: number;
+  previous_version?: number;
+  previous_digest?: string | null;
+  digest: string;
+  source: string;
+  status: AuditableState;
+  history?: Array<{
+    version: number;
+    content: string;
+    timestamp: string;
+    digest: string;
+    actor_id: string;
+    reason?: string;
+  }>;
+}
+
 export interface SecurityLogEntry {
   log_id: string;
   event_type: 
@@ -324,6 +349,7 @@ let memorySecurityLogs: SecurityLogEntry[] = [];
 let memoryExports: AuditExportRecord[] = [];
 let memoryRelations: AuditRelation[] = [];
 let memorySources: AuditExternalSource[] = [];
+let memoryContributions: AuditContribution[] = [];
 
 // Inicialização de sementes canônicas institucionais para visualização imediata
 let isInitialized = false;
@@ -669,6 +695,70 @@ export function initializeAuditLedger() {
       dataset_digest: 'sha256:exp0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       filter_criteria: { eixo: 'SABERES', status: 'VALIDATED' },
       timestamp: tMinus(50),
+    },
+  ];
+
+  // Contribuições Auditadas com Identidade Própria e Histórico Versionado V1 -> V2
+  memoryContributions = [
+    {
+      contribution_id: 'con_0001_cp_saberes',
+      actor_id: 'usr_comunidade_01',
+      actor_role: 'USER',
+      tag_id: 'tag_cultura_popular',
+      tag_label: 'Cultura Popular',
+      object_id: 'obj_cnfcp_saberes_01',
+      content: 'Manifestações tradicionais e festas comunitárias transmitidas oralmente de geração em geração.',
+      created_at: tMinus(210),
+      version: 2,
+      previous_version: 1,
+      previous_digest: 'sha256:con0001d8a1c9e3b4a2f8d071a6e5b4c3d2e1f089abcdef0123456789abcdef012',
+      digest: 'sha256:con0002f1e2d3c4b5a60718293a4b5c6d7e8f90123456789abcdef0123456789abc',
+      source: 'questionario_usuario',
+      status: 'VALIDATED',
+      history: [
+        {
+          version: 1,
+          content: 'Festas e saberes do povo brasileiro.',
+          timestamp: tMinus(240),
+          digest: 'sha256:con0001d8a1c9e3b4a2f8d071a6e5b4c3d2e1f089abcdef0123456789abcdef012',
+          actor_id: 'usr_comunidade_01',
+          reason: 'Registro inicial via questionário de primeiro acesso',
+        },
+        {
+          version: 2,
+          content: 'Manifestações tradicionais e festas comunitárias transmitidas oralmente de geração em geração.',
+          timestamp: tMinus(210),
+          digest: 'sha256:con0002f1e2d3c4b5a60718293a4b5c6d7e8f90123456789abcdef0123456789abc',
+          actor_id: 'usr_pesquisador_nordeste',
+          reason: 'Correção e expansão com termos técnicos e referências do acervo CNFCP',
+        },
+      ],
+    },
+    {
+      contribution_id: 'con_0002_guernica_reina',
+      actor_id: 'usr_historiador_arte',
+      actor_role: 'RESEARCHER',
+      tag_id: 'tag_guernica',
+      tag_label: 'Guernica',
+      object_id: 'obj_reina_sofia_guernica_1937',
+      content: 'Mural a óleo sobre tela (349 × 776 cm) produzido por Pablo Picasso em resposta ao bombardeio de Guernica na Guerra Civil Espanhola.',
+      created_at: tMinus(220),
+      version: 1,
+      previous_version: 0,
+      previous_digest: null,
+      digest: 'sha256:con1937picassoguernica00112233445566778899aabbccddeeff00112233445566',
+      source: 'catalogacao_obra',
+      status: 'VALIDATED',
+      history: [
+        {
+          version: 1,
+          content: 'Mural a óleo sobre tela (349 × 776 cm) produzido por Pablo Picasso em resposta ao bombardeio de Guernica na Guerra Civil Espanhola.',
+          timestamp: tMinus(220),
+          digest: 'sha256:con1937picassoguernica00112233445566778899aabbccddeeff00112233445566',
+          actor_id: 'usr_historiador_arte',
+          reason: 'Catalogação inicial e ancoragem ontológica com Cubismo e Guerra Civil Espanhola',
+        },
+      ],
     },
   ];
 
@@ -1215,4 +1305,97 @@ export async function getAuditRelations(): Promise<AuditRelation[]> {
 export async function getAuditExternalSources(): Promise<AuditExternalSource[]> {
   initializeAuditLedger();
   return [...memorySources];
+}
+
+export async function getAuditContributions(): Promise<AuditContribution[]> {
+  initializeAuditLedger();
+  return [...memoryContributions].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+export async function recordContributionAudit(params: {
+  actor_id: string;
+  actor_role: string;
+  tag_id: string;
+  tag_label: string;
+  object_id?: string;
+  content: string;
+  source: string;
+  reason?: string;
+  existing_id?: string;
+}): Promise<AuditContribution> {
+  initializeAuditLedger();
+  const timestamp = new Date().toISOString();
+  
+  if (params.existing_id) {
+    const existing = memoryContributions.find(c => c.contribution_id === params.existing_id);
+    if (existing) {
+      const nextVersion = existing.version + 1;
+      const canonical = canonicalStringify({
+        contribution_id: existing.contribution_id,
+        tag_id: params.tag_id,
+        content: params.content,
+        version: nextVersion,
+        actor_id: params.actor_id,
+        timestamp,
+      });
+      const digest = `sha256:${sha256Hex(canonical)}`;
+      
+      existing.history = existing.history || [];
+      existing.history.push({
+        version: nextVersion,
+        content: params.content,
+        timestamp,
+        digest,
+        actor_id: params.actor_id,
+        reason: params.reason || 'Correção auditada de contribuição existente',
+      });
+      
+      existing.previous_version = existing.version;
+      existing.previous_digest = existing.digest;
+      existing.version = nextVersion;
+      existing.content = params.content;
+      existing.digest = digest;
+      
+      return existing;
+    }
+  }
+  
+  const contribution_id = `con_${Date.now()}_${sha256Hex(params.tag_id + timestamp).slice(0, 8)}`;
+  const canonical = canonicalStringify({
+    contribution_id,
+    tag_id: params.tag_id,
+    content: params.content,
+    version: 1,
+    actor_id: params.actor_id,
+    timestamp,
+  });
+  const digest = `sha256:${sha256Hex(canonical)}`;
+  
+  const newCon: AuditContribution = {
+    contribution_id,
+    actor_id: params.actor_id,
+    actor_role: params.actor_role,
+    tag_id: params.tag_id,
+    tag_label: params.tag_label,
+    object_id: params.object_id,
+    content: params.content,
+    created_at: timestamp,
+    version: 1,
+    previous_version: 0,
+    previous_digest: null,
+    digest,
+    source: params.source,
+    status: 'SUGGESTED',
+    history: [{
+      version: 1,
+      content: params.content,
+      timestamp,
+      digest,
+      actor_id: params.actor_id,
+      reason: params.reason || 'Criação inicial da contribuição',
+    }],
+  };
+  
+  memoryContributions.push(newCon);
+  return newCon;
 }
