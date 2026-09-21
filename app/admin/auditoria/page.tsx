@@ -7,11 +7,9 @@ import {
   Search,
   RotateCcw,
   AlertTriangle,
-  FileText,
   Layers,
   GitCommit,
   Network,
-  Download,
   ExternalLink,
   ArrowLeft,
   Filter,
@@ -22,7 +20,7 @@ import {
   Copy,
   Check,
   Globe,
-  Share2,
+  X,
 } from 'lucide-react';
 
 interface AuditEvent {
@@ -82,17 +80,6 @@ interface SecurityLog {
   log_digest: string;
 }
 
-interface AuditExport {
-  export_id: string;
-  actor_id: string;
-  actor_role: string;
-  format: string;
-  record_count: number;
-  dataset_digest: string;
-  filter_criteria?: Record<string, any>;
-  timestamp: string;
-}
-
 interface AuditRelation {
   relation_id: string;
   source_entity: string;
@@ -125,13 +112,11 @@ interface AuditSource {
 
 const TABS = [
   { id: 'eventos', label: 'Eventos de Auditoria', icon: Clock },
-  { id: 'historia', label: 'História & Versões', icon: History },
-  { id: 'contribuicoes', label: 'Contribuições Auditadas', icon: Layers },
+  { id: 'historia', label: 'História das Tags & Versões', icon: History },
+  { id: 'contribuicoes', label: 'Contribuições de Usuários', icon: Layers },
   { id: 'relacoes', label: 'Relações Ontológicas', icon: Network },
-  { id: 'fontes', label: 'Fontes Externas', icon: Globe },
-  { id: 'proveniencia', label: 'Proveniência W3C PROV', icon: Share2 },
+  { id: 'fontes', label: 'Fontes Externas & Acervos', icon: Globe },
   { id: 'seguranca', label: 'Log de Segurança', icon: Lock },
-  { id: 'exportacoes', label: 'Exportações Auditadas', icon: Download },
 ];
 
 export default function AuditoriaPage() {
@@ -141,7 +126,6 @@ export default function AuditoriaPage() {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [contributions, setContributions] = useState<AuditContribution[]>([]);
   const [securityLogs, setSecurityLogs] = useState<SecurityLog[]>([]);
-  const [exportsList, setExportsList] = useState<AuditExport[]>([]);
   const [relations, setRelations] = useState<AuditRelation[]>([]);
   const [sources, setSources] = useState<AuditSource[]>([]);
   const [merkleRoot, setMerkleRoot] = useState<string>('');
@@ -150,7 +134,6 @@ export default function AuditoriaPage() {
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingContributions, setLoadingContributions] = useState(false);
   const [loadingSecurity, setLoadingSecurity] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   // Filtros de Eventos
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,7 +147,6 @@ export default function AuditoriaPage() {
   const [copiedDigest, setCopiedDigest] = useState(false);
   const [copiedPayloadDigest, setCopiedPayloadDigest] = useState(false);
   const [copiedPrevDigest, setCopiedPrevDigest] = useState(false);
-  const [copiedJson, setCopiedJson] = useState(false);
   const [copiedRoot, setCopiedRoot] = useState(false);
 
   // História e Comparador de Versões
@@ -236,17 +218,6 @@ export default function AuditoriaPage() {
     }
   }, []);
 
-  // Carregar exportações
-  const loadExports = useCallback(async () => {
-    try {
-      const res = await fetch('/api/admin/auditoria/exportar');
-      const data = await res.json();
-      if (Array.isArray(data)) setExportsList(data);
-    } catch (err) {
-      console.error('Falha ao carregar exportações:', err);
-    }
-  }, []);
-
   // Carregar Merkle Root
   const loadMerkle = useCallback(async () => {
     try {
@@ -285,10 +256,9 @@ export default function AuditoriaPage() {
     loadContributions();
     loadRelationsAndSources();
     loadSecurityLogs();
-    loadExports();
     loadMerkle();
     loadTagTimeline(selectedTagId);
-  }, [loadEvents, loadContributions, loadRelationsAndSources, loadSecurityLogs, loadExports, loadMerkle, loadTagTimeline, selectedTagId]);
+  }, [loadEvents, loadContributions, loadRelationsAndSources, loadSecurityLogs, loadMerkle, loadTagTimeline, selectedTagId]);
 
   // Lista de tags únicas disponíveis para a timeline
   const uniqueEntities = useMemo(() => {
@@ -297,7 +267,9 @@ export default function AuditoriaPage() {
       const label = e.metadata?.label || e.entity_id;
       map.set(e.entity_id, label);
     });
-    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+    return Array.from(map.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [events]);
 
   // Filtro de eventos
@@ -330,38 +302,6 @@ export default function AuditoriaPage() {
     return { eventA, eventB };
   }, [tagTimeline, versionA, versionB]);
 
-  // Executar exportação auditada
-  const handleExportAuditedPackage = async () => {
-    setExporting(true);
-    try {
-      const res = await fetch('/api/admin/auditoria/exportar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actor_id: 'adm_painel_auditoria',
-          actor_role: 'ADMIN',
-          format: 'JSON-LD',
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        const blob = new Blob([JSON.stringify(data.payload, null, 2)], { type: 'application/ld+json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `auditoria_cultural_${data.export_id}.jsonld`;
-        a.click();
-        URL.revokeObjectURL(url);
-        loadExports();
-        loadSecurityLogs();
-      }
-    } catch (err) {
-      console.error('Erro na exportação:', err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const copyText = (text: string, setter: (val: boolean) => void) => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(text);
@@ -373,23 +313,23 @@ export default function AuditoriaPage() {
   const getEventBadgeStyle = (type: string) => {
     switch (type) {
       case 'tag_created':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return 'bg-blue-50 text-[#0D3A85] border-blue-200';
       case 'contribution_added':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
+        return 'bg-purple-50 text-purple-800 border-purple-200';
       case 'match_found':
-        return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+        return 'bg-cyan-50 text-cyan-800 border-cyan-200';
       case 'relation_created':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+        return 'bg-indigo-50 text-indigo-800 border-indigo-200';
       case 'relation_validated':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        return 'bg-emerald-50 text-[#059669] border-emerald-200';
       case 'version_published':
-        return 'bg-amber-50 text-amber-800 border-amber-200';
+        return 'bg-amber-50 text-amber-900 border-amber-200';
       case 'REVOKE':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
+        return 'bg-rose-50 text-rose-800 border-rose-200';
       case 'ARCHIVE':
         return 'bg-gray-100 text-gray-700 border-gray-300';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200';
+        return 'bg-stone-50 text-stone-700 border-stone-200';
     }
   };
 
@@ -429,22 +369,13 @@ export default function AuditoriaPage() {
                 loadContributions();
                 loadRelationsAndSources();
                 loadSecurityLogs();
-                loadExports();
                 loadMerkle();
+                loadTagTimeline(selectedTagId);
               }}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/80 hover:bg-white text-[#1A1A1A] border border-black/10 transition-all flex items-center gap-1.5 shadow-2xs"
-              title="Recarregar dados"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#0D3A85] text-white hover:bg-[#0D3A85]/90 transition-all flex items-center gap-1.5 shadow-2xs"
+              title="Sincronizar trilha de auditoria"
             >
-              <RotateCcw size={13} /> Sincronizar
-            </button>
-
-            <button
-              onClick={handleExportAuditedPackage}
-              disabled={exporting}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-1.5 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
-            >
-              <Download size={13} className={exporting ? 'animate-bounce' : ''} />
-              {exporting ? 'Exportando...' : 'Exportar JSON-LD'}
+              <RotateCcw size={13} /> Sincronizar Trilha
             </button>
           </div>
         </div>
@@ -493,29 +424,29 @@ export default function AuditoriaPage() {
               </button>
             </div>
             <div className="text-xs font-mono font-bold text-[#0D3A85] truncate bg-black/[0.03] p-2 rounded-xl border border-black/[0.06]">
-              {merkleRoot || 'sha256:7f9a2b...'}
+              {merkleRoot || 'Calculando raiz SHA-256...'}
             </div>
             <p className="text-[11px] text-[#1A1A1A]/55">
               Prova criptográfica em árvore binária para lotes
             </p>
           </div>
 
-          {/* Card 4: Contribuições & Vínculos */}
+          {/* Card 4: Tags com Trilha Completa */}
           <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
             <div className="flex items-center justify-between text-[#1A1A1A]/50">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Contribuições Preservadas</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider">Tags com Trilha Completa</span>
               <Layers size={16} className="text-[#E8490A]" />
             </div>
             <div className="text-3xl font-normal serif-title text-[#E8490A]">
-              {contributions.length}
+              {uniqueEntities.length}
             </div>
             <p className="text-[11px] text-[#1A1A1A]/55">
-              Identidade própria con_ com versionamento histórico
+              Entidades culturais catalogadas com proveniência total
             </p>
           </div>
         </div>
 
-        {/* BARRA DE NAVEGAÇÃO DE ABAS */}
+        {/* BARRA DE NAVEGAÇÃO DE ABAS SÓBRIA */}
         <div className="bg-white/80 backdrop-blur-md rounded-2xl p-1.5 border border-black/[0.08] shadow-2xs overflow-x-auto no-scrollbar">
           <nav className="flex items-center gap-1.5 min-w-max">
             {TABS.map(tab => {
@@ -525,7 +456,7 @@ export default function AuditoriaPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
                     isActive
                       ? 'bg-[#E8490A] text-white shadow-[0_4px_16px_rgba(232,73,10,0.25)]'
                       : 'text-[#1A1A1A]/70 hover:bg-black/[0.04] hover:text-[#1A1A1A]'
@@ -575,18 +506,18 @@ export default function AuditoriaPage() {
                     type="text"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Pesquisar termo, hash, razão..."
+                    placeholder="Buscar termo, hash, razão..."
                     className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] placeholder:text-[#1A1A1A]/40 focus:border-[#E8490A] focus:outline-none shadow-2xs"
                   />
                 </div>
 
-                {/* Filtro de Entidade */}
+                {/* Filtro de Entidade (TODAS AS TAGS) */}
                 <select
                   value={filterEntity}
                   onChange={e => setFilterEntity(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] focus:border-[#E8490A] focus:outline-none shadow-2xs font-medium"
                 >
-                  <option value="">Todas as Entidades</option>
+                  <option value="">Todas as Tags ({uniqueEntities.length})</option>
                   {uniqueEntities.map(ent => (
                     <option key={ent.id} value={ent.id}>{ent.label}</option>
                   ))}
@@ -735,10 +666,10 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ABA 2: HISTÓRIA & VERSÕES */}
+        {/* ABA 2: HISTÓRIA DAS TAGS & VERSÕES (100% LIVRE DE CÓDIGO - COM TODAS AS 34 TAGS) */}
         {activeTab === 'historia' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Barra Seletora de Entidade */}
+            {/* Seletor de Entidade Cultural com TODAS AS 34 TAGS */}
             <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#0D3A85] text-white flex items-center justify-center">
@@ -746,19 +677,19 @@ export default function AuditoriaPage() {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-[#1A1A1A]">Linha Temporal da Identidade Cultural</h2>
-                  <p className="text-xs text-[#1A1A1A]/60">Reconstituição passo a passo da evolução e integridade</p>
+                  <p className="text-xs text-[#1A1A1A]/60">Reconstituição narrativa da evolução histórica ({uniqueEntities.length} tags catalogadas)</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="text-xs font-bold text-[#1A1A1A]/70 uppercase tracking-wider">Identidade:</label>
+                <label className="text-xs font-bold text-[#1A1A1A]/70 uppercase tracking-wider">Selecione a Tag:</label>
                 <select
                   value={selectedTagId}
                   onChange={e => setSelectedTagId(e.target.value)}
-                  className="px-3.5 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] focus:border-[#E8490A] outline-none font-bold shadow-2xs"
+                  className="px-3.5 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] focus:border-[#E8490A] outline-none font-bold shadow-2xs max-w-xs"
                 >
                   {uniqueEntities.map(ent => (
-                    <option key={ent.id} value={ent.id}>{ent.label} ({ent.id})</option>
+                    <option key={ent.id} value={ent.id}>{ent.label}</option>
                   ))}
                 </select>
               </div>
@@ -776,15 +707,18 @@ export default function AuditoriaPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Linha Temporal Visual (5 colunas) */}
+                {/* Linha Temporal Visual (5 colunas) - 100% SEM CÓDIGO */}
                 <div className="lg:col-span-5 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-6">
                   <div className="border-b border-black/[0.08] pb-3">
                     <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/50 font-bold">
                       Trilha de Proveniência Passo a Passo
                     </h3>
-                    <p className="text-base font-normal serif-title text-[#1A1A1A] mt-1">
+                    <p className="text-lg font-normal serif-title text-[#1A1A1A] mt-1">
                       {tagTimeline.events[0]?.metadata?.label || selectedTagId}
                     </p>
+                    <span className="text-[11px] text-[#1A1A1A]/60">
+                      Eixo: {tagTimeline.events[0]?.metadata?.eixo || 'Patrimônio Cultural'}
+                    </span>
                   </div>
 
                   <div className="relative pl-6 space-y-6">
@@ -794,12 +728,21 @@ export default function AuditoriaPage() {
                       const isGenesis = ev.previous_version === 0;
                       const isPublished = ev.event_type.includes('publish') || ev.metadata?.status === 'PUBLISHED';
 
+                      // Título humanizado de cada etapa
+                      let stageTitle = 'Atualização Registrada';
+                      if (ev.event_type === 'tag_created') stageTitle = '1. Tag Criada no Catálogo';
+                      else if (ev.event_type === 'contribution_added') stageTitle = '2. Contribuição Comunitária Adicionada';
+                      else if (ev.event_type === 'match_found') stageTitle = '3. Correspondência com Acervo Externo';
+                      else if (ev.event_type === 'relation_created') stageTitle = '4. Vínculo Ontológico Estabelecido';
+                      else if (ev.event_type === 'relation_validated') stageTitle = '5. Validação Colegiada do Comitê';
+                      else if (ev.event_type === 'version_published') stageTitle = '6. Publicada na Interoperabilidade';
+
                       return (
                         <div key={ev.event_id} className="relative group">
                           <div
                             className={`absolute -left-[19px] top-1.5 w-3.5 h-3.5 rounded-full border-2 bg-white transition-all ${
                               isPublished
-                                ? 'border-[#059669] bg-[#059669] shadow-[0_0_8px_rgba(5,150,105,0.4)]'
+                                ? 'border-[#059669] bg-[#059669]'
                                 : isGenesis
                                 ? 'border-[#0D3A85] bg-[#0D3A85]'
                                 : 'border-[#E8490A] bg-[#E8490A]'
@@ -811,27 +754,32 @@ export default function AuditoriaPage() {
                               <span className="font-mono font-bold text-[#059669] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                                 Versão {ev.new_version}
                               </span>
-                              <span className="text-[10px] text-[#1A1A1A]/45 font-mono">
+                              <span className="text-[10px] text-[#1A1A1A]/55 font-medium">
                                 {new Date(ev.timestamp).toLocaleString('pt-BR')}
                               </span>
                             </div>
 
-                            <div className="text-xs font-bold text-[#1A1A1A] flex items-center gap-2">
-                              <span>{ev.event_type}</span>
-                              {ev.metadata?.status && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/[0.06] text-[#1A1A1A]/70 font-mono uppercase font-bold">
-                                  {ev.metadata.status}
-                                </span>
-                              )}
+                            <div className="text-xs font-bold text-[#1A1A1A]">
+                              {stageTitle}
                             </div>
 
-                            <p className="text-[11px] text-[#1A1A1A]/70 leading-relaxed font-sans">
-                              {ev.reason || 'Atualização dos atributos estruturados da identidade.'}
+                            <p className="text-[11px] text-[#1A1A1A]/75 leading-relaxed font-sans">
+                              {ev.reason || 'Registro formal de evolução da identidade cultural.'}
                             </p>
 
-                            <div className="pt-2 flex flex-wrap items-center justify-between gap-1 text-[10px] text-[#1A1A1A]/50 font-mono border-t border-black/[0.05]">
-                              <span>Ator: {ev.actor_id} ({ev.actor_role})</span>
-                              <span>Fonte: {ev.source}</span>
+                            <div className="pt-2 flex flex-wrap items-center justify-between gap-1 text-[10px] text-[#1A1A1A]/55 border-t border-black/[0.05]">
+                              <span>Responsável: <strong className="text-[#1A1A1A]">{ev.actor_id}</strong> ({ev.actor_role})</span>
+                              <span>Origem: <strong className="text-[#1A1A1A]">{ev.source}</strong></span>
+                            </div>
+
+                            {ev.metadata?.target_entity && (
+                              <div className="text-[10px] text-[#0D3A85] font-semibold">
+                                Conectado com: {ev.metadata.target_entity.replace('tag_', '').replace(/_/g, ' ')}
+                              </div>
+                            )}
+
+                            <div className="text-[9px] font-mono text-[#1A1A1A]/40 truncate">
+                              Digest SHA-256: {ev.new_digest.slice(0, 24)}…
                             </div>
                           </div>
                         </div>
@@ -840,7 +788,7 @@ export default function AuditoriaPage() {
                   </div>
                 </div>
 
-                {/* Comparador de Versões Lado a Lado (7 colunas) */}
+                {/* Comparador de Versões Lado a Lado (7 colunas) - 100% SEM CÓDIGO */}
                 <div className="lg:col-span-7 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-6">
                   <div className="border-b border-black/[0.08] pb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -848,7 +796,7 @@ export default function AuditoriaPage() {
                         Comparador Canônico de Versões
                       </h3>
                       <p className="text-base font-normal serif-title text-[#1A1A1A] mt-0.5">
-                        Diferenças entre Versão Anterior e Versão Atual
+                        Evolução entre Versão Anterior e Versão Atual
                       </p>
                     </div>
 
@@ -898,10 +846,10 @@ export default function AuditoriaPage() {
                             {versionComparison.eventA.event_type}
                           </div>
                           <div className="text-[10px] text-[#1A1A1A]/60 font-mono truncate">
-                            Digest: {versionComparison.eventA.new_digest.slice(0, 24)}…
+                            SHA-256: {versionComparison.eventA.new_digest.slice(0, 24)}…
                           </div>
-                          <div className="text-[10px] text-[#1A1A1A]/60">
-                            Ator: {versionComparison.eventA.actor_id} ({versionComparison.eventA.actor_role})
+                          <div className="text-[10px] text-[#1A1A1A]/70">
+                            Responsável: {versionComparison.eventA.actor_id} ({versionComparison.eventA.actor_role})
                           </div>
                         </div>
 
@@ -913,15 +861,15 @@ export default function AuditoriaPage() {
                             {versionComparison.eventB.event_type}
                           </div>
                           <div className="text-[10px] text-emerald-800 font-mono truncate">
-                            Digest: {versionComparison.eventB.new_digest.slice(0, 24)}…
+                            SHA-256: {versionComparison.eventB.new_digest.slice(0, 24)}…
                           </div>
                           <div className="text-[10px] text-emerald-800">
-                            Ator: {versionComparison.eventB.actor_id} ({versionComparison.eventB.actor_role})
+                            Responsável: {versionComparison.eventB.actor_id} ({versionComparison.eventB.actor_role})
                           </div>
                         </div>
                       </div>
 
-                      {/* Tabela de Diff Detalhada */}
+                      {/* Tabela de Comparação Narrativa (sem código) */}
                       <div className="rounded-xl border border-black/[0.08] overflow-hidden text-xs bg-white shadow-2xs">
                         <table className="w-full text-left">
                           <thead className="bg-black/[0.03] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold border-b border-black/[0.08]">
@@ -929,7 +877,7 @@ export default function AuditoriaPage() {
                               <th className="p-3">Atributo</th>
                               <th className="p-3">Versão {versionA}</th>
                               <th className="p-3">Versão {versionB}</th>
-                              <th className="p-3">Status da Modificação</th>
+                              <th className="p-3">Situação da Alteração</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-black/[0.05] text-[11px]">
@@ -960,7 +908,7 @@ export default function AuditoriaPage() {
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Digest do Estado (SHA-256)</td>
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Digest do Estado</td>
                               <td className="p-3 truncate max-w-[150px] font-mono text-[#1A1A1A]/60">
                                 {versionComparison.eventA.new_digest.slice(0, 16)}…
                               </td>
@@ -974,12 +922,12 @@ export default function AuditoriaPage() {
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Entidade Relacionada</td>
-                              <td className="p-3 text-[#1A1A1A]/40 font-mono">
-                                {versionComparison.eventA.metadata?.target_entity || '—'}
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Entidade Conectada</td>
+                              <td className="p-3 text-[#1A1A1A]/40">
+                                {versionComparison.eventA.metadata?.target_entity ? versionComparison.eventA.metadata.target_entity.replace('tag_', '') : 'Nenhuma'}
                               </td>
-                              <td className="p-3 font-bold text-[#1A1A1A] font-mono">
-                                {versionComparison.eventB.metadata?.target_entity || '—'}
+                              <td className="p-3 font-bold text-[#1A1A1A]">
+                                {versionComparison.eventB.metadata?.target_entity ? versionComparison.eventB.metadata.target_entity.replace('tag_', '') : 'Nenhuma'}
                               </td>
                               <td className="p-3">
                                 {versionComparison.eventB.metadata?.target_entity && !versionComparison.eventA.metadata?.target_entity ? (
@@ -1018,7 +966,7 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ABA 3: CONTRIBUIÇÕES AUDITADAS (SEÇÃO 8) */}
+        {/* ABA 3: CONTRIBUIÇÕES DE USUÁRIOS (SEÇÃO 8) */}
         {activeTab === 'contribuicoes' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex flex-wrap items-center justify-between gap-4">
@@ -1029,58 +977,49 @@ export default function AuditoriaPage() {
                 </p>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-black/[0.05] text-[#1A1A1A]">
-                {contributions.length} Contribuições Rastreadas
+                {contributions.length} Contribuições Catalogadas
               </span>
             </div>
 
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {contributions.map(con => (
-                <div key={con.contribution_id} className="p-6 rounded-2xl bg-white/90 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-black/[0.06] pb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs font-bold text-[#E8490A] bg-[#E8490A]/10 px-2.5 py-1 rounded-lg border border-[#E8490A]/20">
+                <div key={con.contribution_id} className="p-5 rounded-2xl bg-white/90 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-3">
+                  <div className="flex items-center justify-between border-b border-black/[0.06] pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-[#E8490A] bg-[#E8490A]/10 px-2 py-0.5 rounded-lg border border-[#E8490A]/20">
                         {con.contribution_id}
                       </span>
                       <span className="font-bold text-sm text-[#1A1A1A]">{con.tag_label}</span>
-                      <span className="text-[10px] font-mono text-[#059669] font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Versão Atual: V{con.version}
-                      </span>
                     </div>
 
-                    <div className="text-[11px] font-mono text-[#1A1A1A]/60">
-                      Digest Atual: <span className="font-bold text-[#1A1A1A]">{con.digest.slice(0, 20)}…</span>
-                    </div>
+                    <span className="text-[10px] font-mono text-[#059669] font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Versão V{con.version}
+                    </span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-black/[0.02] border border-black/[0.05] text-xs text-[#1A1A1A]">
+                  <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.05] text-xs text-[#1A1A1A]">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 block mb-1">Conteúdo Atual</span>
                     <p className="leading-relaxed font-sans">{con.content}</p>
                   </div>
 
                   {/* Trilha Histórica Versionada V1 -> V2 */}
                   {con.history && con.history.length > 0 && (
-                    <div className="pt-2 space-y-2">
+                    <div className="space-y-2 pt-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 block">
-                        Trilha de Evolução da Contribuição (Histórico Imutável)
+                        Evolução Histórica da Contribuição
                       </span>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-2">
                         {con.history.map((h, hIdx) => (
-                          <div key={hIdx} className="p-3 rounded-xl bg-white border border-black/[0.08] space-y-1.5 shadow-2xs">
-                            <div className="flex items-center justify-between text-[11px]">
+                          <div key={hIdx} className="p-2.5 rounded-xl bg-white border border-black/[0.06] text-xs space-y-1">
+                            <div className="flex items-center justify-between text-[10px] text-[#1A1A1A]/60">
                               <span className="font-bold font-mono text-[#0D3A85]">Versão {h.version}</span>
-                              <span className="text-[10px] text-[#1A1A1A]/50 font-mono">
-                                {new Date(h.timestamp).toLocaleString('pt-BR')}
-                              </span>
+                              <span>{new Date(h.timestamp).toLocaleString('pt-BR')}</span>
                             </div>
-                            <p className="text-xs text-[#1A1A1A]/80 italic">&ldquo;{h.content}&rdquo;</p>
-                            <div className="pt-1 flex flex-wrap items-center justify-between gap-1 text-[10px] text-[#1A1A1A]/50 font-mono border-t border-black/[0.04]">
-                              <span>Ator: {h.actor_id}</span>
-                              <span>Digest: {h.digest.slice(0, 14)}…</span>
+                            <p className="text-[11px] text-[#1A1A1A]/80 italic">&ldquo;{h.content}&rdquo;</p>
+                            <div className="text-[9px] font-mono text-[#1A1A1A]/45 truncate pt-0.5">
+                              Autor: {h.actor_id} | SHA-256: {h.digest.slice(0, 20)}…
                             </div>
-                            {h.reason && (
-                              <div className="text-[10px] text-[#059669] font-medium">Motivo: {h.reason}</div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -1152,7 +1091,7 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ABA 5: FONTES EXTERNAS (SEÇÃO 7) */}
+        {/* ABA 5: FONTES EXTERNAS & ACERVOS (SEÇÃO 7) */}
         {activeTab === 'fontes' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-2xs">
@@ -1215,77 +1154,7 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ABA 6: PROVENIÊNCIA W3C PROV (SEÇÃO 9 & 19) */}
-        {activeTab === 'proveniencia' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs space-y-4">
-              <div className="border-b border-black/[0.06] pb-3">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#E8490A] font-bold block">
-                  Modelo Conceitual W3C PROV & Princípio Fundamental
-                </span>
-                <h2 className="text-xl font-normal serif-title text-[#1A1A1A] mt-1">
-                  &ldquo;Como esta informação chegou ao estado em que está agora?&rdquo;
-                </h2>
-                <p className="text-xs text-[#1A1A1A]/60 mt-1">
-                  O sistema percorre a trilha ontológica contínua interligando atores, fontes, atividades e estados criptográficos.
-                </p>
-              </div>
-
-              {/* Diagrama de Trilha */}
-              <div className="p-5 rounded-2xl bg-[#0D3A85]/5 border border-[#0D3A85]/15 space-y-3">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[#0D3A85] block font-mono">
-                  Fluxo Contínuo de Reconstituição de Estado
-                </span>
-                <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold text-[#1A1A1A]">
-                  <span className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-800">ESTADO ATUAL</span>
-                  <span className="text-[#E8490A]">→</span>
-                  <span className="px-3 py-1.5 rounded-lg bg-blue-100 text-blue-800">VERSÃO</span>
-                  <span className="text-[#E8490A]">→</span>
-                  <span className="px-3 py-1.5 rounded-lg bg-purple-100 text-purple-800">EVENTO</span>
-                  <span className="text-[#E8490A]">→</span>
-                  <span className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800">CONTRIBUIÇÃO</span>
-                  <span className="text-[#E8490A]">→</span>
-                  <span className="px-3 py-1.5 rounded-lg bg-slate-200 text-slate-800">AGENTE</span>
-                  <span className="text-[#E8490A]">→</span>
-                  <span className="px-3 py-1.5 rounded-lg bg-cyan-100 text-cyan-800">FONTE</span>
-                  <span className="text-[#E8490A]">→</span>
-                  <span className="px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-800">RELAÇÃO</span>
-                  <span className="text-[#E8490A]">→</span>
-                  <span className="px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800">ESTADO ANTERIOR</span>
-                </div>
-              </div>
-
-              {/* Tríade W3C PROV Explicada */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <div className="p-4 rounded-xl bg-white border border-black/[0.08] shadow-2xs space-y-2">
-                  <div className="text-[10px] uppercase font-mono font-bold text-[#0D3A85]">1. Agente (W3C Agent)</div>
-                  <div className="font-bold text-sm text-[#1A1A1A]">Quem realizou a ação</div>
-                  <p className="text-xs text-[#1A1A1A]/70 leading-relaxed">
-                    Identifica a pessoa física ou agente de software autônomo (pesquisador, curador institucional, cidadão ou rotina de interoperabilidade).
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white border border-black/[0.08] shadow-2xs space-y-2">
-                  <div className="text-[10px] uppercase font-mono font-bold text-[#E8490A]">2. Atividade (W3C Activity)</div>
-                  <div className="font-bold text-sm text-[#1A1A1A]">Operação realizada</div>
-                  <p className="text-xs text-[#1A1A1A]/70 leading-relaxed">
-                    A transformação executada (tag_created, match_found, relation_validated, version_published) com carimbo de tempo inviolável.
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-white border border-black/[0.08] shadow-2xs space-y-2">
-                  <div className="text-[10px] uppercase font-mono font-bold text-[#059669]">3. Entidade (W3C Entity)</div>
-                  <div className="font-bold text-sm text-[#1A1A1A]">O que foi gerado</div>
-                  <p className="text-xs text-[#1A1A1A]/70 leading-relaxed">
-                    O artefato cultural, tag ou relação ontológica com fingerprint SHA-256 e versão estrita resultante da atividade.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ABA 7: LOG DE SEGURANÇA (SEÇÃO 14) */}
+        {/* ABA 6: LOG DE SEGURANÇA (SEÇÃO 14) */}
         {activeTab === 'seguranca' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex items-center justify-between">
@@ -1294,7 +1163,7 @@ export default function AuditoriaPage() {
                   <Lock size={16} className="text-[#0D3A85]" /> Log de Segurança Operacional (Segregado)
                 </h2>
                 <p className="text-xs text-[#1A1A1A]/55 mt-0.5">
-                  Registro isolado do log de negócio: autenticações, privilégios, exportações e acessos de chaves
+                  Registro isolado do log de negócio: autenticações, privilégios e acessos administrativos
                 </p>
               </div>
 
@@ -1352,7 +1221,7 @@ export default function AuditoriaPage() {
                             </td>
                             <td className="p-3.5 text-[#1A1A1A]/80">{log.ip_address || '—'}</td>
                             <td className="p-3.5 font-sans text-[#1A1A1A]/70 max-w-[240px] truncate">
-                              {JSON.stringify(log.details)}
+                              {Object.entries(log.details || {}).map(([k, v]) => `${k}: ${v}`).join(' · ') || 'Operação registrada'}
                             </td>
                             <td className="p-3.5 text-[#1A1A1A]/50 truncate max-w-[150px]">{log.log_digest}</td>
                           </tr>
@@ -1366,85 +1235,9 @@ export default function AuditoriaPage() {
           </div>
         )}
 
-        {/* ABA 8: EXPORTAÇÕES AUDITADAS (SEÇÃO 16) */}
-        {activeTab === 'exportacoes' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
-                  <Download size={16} className="text-[#E8490A]" /> Pacotes de Exportação Auditados
-                </h2>
-                <p className="text-xs text-[#1A1A1A]/60 mt-1">
-                  Exportação canônica em JSON-LD com emissão de dataset digest SHA-256 e registro em Security Log
-                </p>
-              </div>
-
-              <button
-                onClick={handleExportAuditedPackage}
-                disabled={exporting}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
-              >
-                <Download size={13} className={exporting ? 'animate-bounce' : ''} />
-                {exporting ? 'Gerando Pacote...' : 'Exportar Pacote Canônico (JSON-LD)'}
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-2xs">
-              <div className="p-4 border-b border-black/[0.08] bg-black/[0.02]">
-                <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
-                  Histórico de Pacotes Exportados
-                </h3>
-              </div>
-
-              {exportsList.length === 0 ? (
-                <div className="p-16 text-center">
-                  <Download size={32} className="mx-auto text-[#1A1A1A]/20 mb-3" />
-                  <p className="text-sm text-[#1A1A1A]/50">Nenhuma exportação auditada registrada até o momento.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="bg-black/[0.03] border-b border-black/[0.08] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
-                        <th className="p-3.5">ID Exportação</th>
-                        <th className="p-3.5">Data / Hora</th>
-                        <th className="p-3.5">Ator Responsável</th>
-                        <th className="p-3.5">Formato</th>
-                        <th className="p-3.5">Qtd. Registros</th>
-                        <th className="p-3.5 font-mono">Dataset Digest (SHA-256)</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-black/[0.05] font-mono text-[11px]">
-                      {exportsList.map(exp => (
-                        <tr key={exp.export_id} className="hover:bg-black/[0.02] transition-colors">
-                          <td className="p-3.5 font-bold text-[#1A1A1A]">{exp.export_id}</td>
-                          <td className="p-3.5 text-[#1A1A1A]/80">{new Date(exp.timestamp).toLocaleString('pt-BR')}</td>
-                          <td className="p-3.5 font-sans">
-                            <span className="text-[#1A1A1A] font-bold">{exp.actor_id}</span>
-                            <span className="text-[9px] text-[#1A1A1A]/50 block font-mono font-bold">({exp.actor_role})</span>
-                          </td>
-                          <td className="p-3.5">
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-black/[0.06] text-[#1A1A1A] font-bold">
-                              {exp.format}
-                            </span>
-                          </td>
-                          <td className="p-3.5 text-[#059669] font-bold">{exp.record_count}</td>
-                          <td className="p-3.5 text-[#1A1A1A]/70 truncate max-w-[200px]" title={exp.dataset_digest}>
-                            {exp.dataset_digest}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
       </div>
 
-      {/* MODAL DE INSPEÇÃO CRIPTOGRÁFICA DO EVENTO (AS 12 PERGUNTAS ESSENCIAIS) */}
+      {/* MODAL DE INSPEÇÃO CRIPTOGRÁFICA DO EVENTO (AS 12 PERGUNTAS ESSENCIAIS - 100% LIVRE DE CÓDIGO) */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#FAF9F5] rounded-3xl w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl border border-black/15 overflow-hidden animate-in zoom-in-95 duration-150">
@@ -1465,20 +1258,19 @@ export default function AuditoriaPage() {
                 onClick={() => setSelectedEvent(null)}
                 className="w-8 h-8 rounded-full bg-black/[0.05] hover:bg-black/10 text-[#1A1A1A] flex items-center justify-center transition-colors font-bold text-sm"
               >
-                ✕
+                <X size={16} />
               </button>
             </div>
 
-            {/* Conteúdo do Modal */}
+            {/* Conteúdo do Modal - As 12 Respostas da Auditoria em Cards Estruturados */}
             <div className="p-5 md:p-6 overflow-y-auto space-y-6 text-xs font-sans">
-              {/* AS 12 RESPOSTAS DA AUDITORIA */}
               <div className="p-5 rounded-2xl bg-white border border-black/[0.08] space-y-4 shadow-2xs">
                 <div className="border-b border-black/[0.06] pb-2 flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A] font-mono">
                     Respostas da Auditoria (12 Dimensões de Verificabilidade)
                   </h4>
                   <span className="text-[10px] text-[#059669] font-bold font-mono">
-                    PADRÃO PROV + RFC 8785
+                    SHA-256 HASH CHAIN
                   </span>
                 </div>
 
@@ -1564,9 +1356,9 @@ export default function AuditoriaPage() {
                   {/* 11. Entidades afetadas */}
                   <div className="p-3 rounded-xl bg-black/[0.02] border border-black/[0.06] space-y-1">
                     <span className="text-[10px] font-bold text-[#1A1A1A]/50 uppercase font-mono block">11. Entidades Afetadas</span>
-                    <div className="font-bold text-[#1A1A1A] truncate">{selectedEvent.entity_id}</div>
+                    <div className="font-bold text-[#1A1A1A] truncate">{selectedEvent.metadata?.label || selectedEvent.entity_id}</div>
                     {selectedEvent.metadata?.target_entity && (
-                      <span className="text-[10px] text-[#E8490A] font-mono block">→ {selectedEvent.metadata.target_entity}</span>
+                      <span className="text-[10px] text-[#0D3A85] font-semibold block">→ {selectedEvent.metadata.target_entity.replace('tag_', '')}</span>
                     )}
                   </div>
 
@@ -1634,25 +1426,6 @@ export default function AuditoriaPage() {
                     </button>
                   </div>
                 </div>
-              </div>
-
-              {/* Payload Canônico em JSON com fundo claro e alto contraste */}
-              <div className="p-5 rounded-2xl bg-white border border-black/[0.08] space-y-3 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A1A]/60 font-mono block">
-                    Payload Canônico Completo (JSON Determinístico RFC 8785)
-                  </span>
-                  <button
-                    onClick={() => copyText(JSON.stringify(selectedEvent, null, 2), setCopiedJson)}
-                    className="flex items-center gap-1 text-[11px] font-bold text-[#E8490A] hover:underline"
-                  >
-                    {copiedJson ? <Check size={12} /> : <Copy size={12} />}
-                    {copiedJson ? 'Copiado!' : 'Copiar JSON Completo'}
-                  </button>
-                </div>
-                <pre className="p-4 rounded-xl bg-[#FAF9F5] border border-black/15 text-[#1A1A1A] font-mono text-[11px] overflow-x-auto select-all max-h-56 shadow-inner leading-relaxed">
-                  {JSON.stringify(selectedEvent, null, 2)}
-                </pre>
               </div>
             </div>
 

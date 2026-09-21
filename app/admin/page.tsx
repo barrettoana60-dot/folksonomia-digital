@@ -2065,13 +2065,6 @@ ${internasHtml}
               {tab.label}
             </button>
           ))}
-          <Link
-            href="/admin/auditoria"
-            className="whitespace-nowrap flex-shrink-0 px-4 md:px-7 py-2 md:py-2.5 rounded-xl text-[9px] md:text-xs font-semibold uppercase tracking-wider transition-all liquid-button !bg-[#0D3A85] !text-white border border-[#0D3A85]/30 shadow-[0_4px_16px_rgba(13,58,133,0.25)] flex items-center gap-1.5 hover:!bg-[#0D3A85]/90"
-          >
-            <ShieldCheck size={13} />
-            Auditoria
-          </Link>
           </nav>
         </div>
 

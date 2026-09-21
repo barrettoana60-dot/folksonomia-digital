@@ -360,305 +360,286 @@ export function initializeAuditLedger() {
   const now = new Date();
   const tMinus = (minutes: number) => new Date(now.getTime() - minutes * 60000).toISOString();
 
-  const initialEventsSeed: Array<Omit<AuditEvent, 'event_id' | 'payload_digest' | 'previous_event_digest' | 'event_digest'>> = [
-    {
-      entity_id: 'tag_cultura_popular',
-      entity_type: 'tag',
-      event_type: 'tag_created',
-      actor_id: 'usr_comunidade_01',
-      actor_role: 'USER',
-      timestamp: tMinus(240),
-      previous_version: 0,
-      new_version: 1,
-      previous_digest: null,
-      new_digest: 'sha256:d8a1c9e3b4a2f8d071a6e5b4c3d2e1f089abcdef0123456789abcdef01234567',
-      source: 'questionario_usuario',
-      reason: 'Registro inicial originado de contribuição de usuário no acolhimento cultural',
-      metadata: { label: 'Cultura Popular', eixo: 'SABERES', status: 'RAW' },
-    },
-    {
-      entity_id: 'tag_cultura_popular',
-      entity_type: 'tag',
-      event_type: 'contribution_added',
-      actor_id: 'usr_pesquisador_nordeste',
-      actor_role: 'RESEARCHER',
-      timestamp: tMinus(210),
-      previous_version: 1,
-      new_version: 2,
-      previous_digest: 'sha256:d8a1c9e3b4a2f8d071a6e5b4c3d2e1f089abcdef0123456789abcdef01234567',
-      new_digest: 'sha256:f1e2d3c4b5a60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0',
-      source: 'formulario_pesquisa',
-      reason: 'Adição de referências bibliográficas do acervo CNFCP e saberes tradicionais',
-      metadata: { label: 'Cultura Popular', eixo: 'SABERES', status: 'SUGGESTED' },
-    },
-    {
-      entity_id: 'tag_cultura_popular',
-      entity_type: 'tag',
-      event_type: 'match_found',
-      actor_id: 'sys_interop_daemon',
-      actor_role: 'SYSTEM',
-      timestamp: tMinus(180),
-      previous_version: 2,
-      new_version: 3,
-      previous_digest: 'sha256:f1e2d3c4b5a60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0',
-      new_digest: 'sha256:a0b1c2d3e4f5061728394a5b6c7d8e9f0123456789abcdef0123456789abcdef1',
-      source: 'Brasiliana Museus',
-      reason: 'Correspondência externa identificada via adaptador Brasiliana (IPHAN/IBRAM)',
-      metadata: {
-        label: 'Cultura Popular',
-        adapter_version: '2.1.0',
-        external_id: 'br_ibram_cp_9921',
-        matching_method: 'skos_exact_match',
-        confidence: 0.98,
-        status: 'UNDER_REVIEW',
-      },
-    },
-    {
-      entity_id: 'tag_cultura_popular',
-      entity_type: 'relation',
-      event_type: 'relation_created',
-      actor_id: 'usr_curador_institucional',
-      actor_role: 'REVIEWER',
-      timestamp: tMinus(140),
-      previous_version: 3,
-      new_version: 4,
-      previous_digest: 'sha256:a0b1c2d3e4f5061728394a5b6c7d8e9f0123456789abcdef0123456789abcdef1',
-      new_digest: 'sha256:b2c3d4e5f6a718293a4b5c6d7e8f9a0b123456789abcdef0123456789abcdef2',
-      source: 'curadoria_manual',
-      reason: 'Vinculação ontológica com a tag Barroco (skos:related, eixo comum de expressões materiais)',
-      metadata: {
-        label: 'Cultura Popular',
-        target_entity: 'tag_barroco',
-        relation_type: 'skos:related',
-        status: 'UNDER_REVIEW',
-      },
-    },
-    {
-      entity_id: 'tag_cultura_popular',
-      entity_type: 'tag',
-      event_type: 'relation_validated',
-      actor_id: 'adm_comite_cientifico',
-      actor_role: 'VALIDATOR',
-      timestamp: tMinus(90),
-      previous_version: 4,
-      new_version: 5,
-      previous_digest: 'sha256:b2c3d4e5f6a718293a4b5c6d7e8f9a0b123456789abcdef0123456789abcdef2',
-      new_digest: 'sha256:c3d4e5f6a7b8293a4b5c6d7e8f9a0b1c23456789abcdef0123456789abcdef3',
-      source: 'conselho_editorial',
-      reason: 'Validação formal da identidade computacional e cadeia de relações',
-      metadata: { label: 'Cultura Popular', status: 'VALIDATED' },
-    },
-    {
-      entity_id: 'tag_cultura_popular',
-      entity_type: 'tag',
-      event_type: 'version_published',
-      actor_id: 'adm_root',
-      actor_role: 'ADMIN',
-      timestamp: tMinus(30),
-      previous_version: 5,
-      new_version: 6,
-      previous_digest: 'sha256:c3d4e5f6a7b8293a4b5c6d7e8f9a0b1c23456789abcdef0123456789abcdef3',
-      new_digest: 'sha256:d4e5f6a7b8c93a4b5c6d7e8f9a0b1c2d3456789abcdef0123456789abcdef4',
-      source: 'publicador_oficial',
-      reason: 'Publicação no grafo aberto de Interoperabilidade Cultural',
-      metadata: { label: 'Cultura Popular', status: 'PUBLISHED' },
-    },
-    {
-      entity_id: 'tag_guernica',
-      entity_type: 'tag',
-      event_type: 'tag_created',
-      actor_id: 'usr_historiador_arte',
-      actor_role: 'RESEARCHER',
-      timestamp: tMinus(220),
-      previous_version: 0,
-      new_version: 1,
-      previous_digest: null,
-      new_digest: 'sha256:111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000',
-      source: 'catalogacao_obra',
-      reason: 'Entidade criada associada à obra de Pablo Picasso sobre a Guerra Civil Espanhola',
-      metadata: { label: 'Guernica', eixo: 'VANGUARDA_MODERNISMO', status: 'RAW' },
-    },
-    {
-      entity_id: 'tag_guernica',
-      entity_type: 'source',
-      event_type: 'match_found',
-      actor_id: 'sys_europeana_connector',
-      actor_role: 'SYSTEM',
-      timestamp: tMinus(160),
-      previous_version: 1,
-      new_version: 2,
-      previous_digest: 'sha256:111122223333444455556666777788889999aaaabbbbccccddddeeeeffff0000',
-      new_digest: 'sha256:22223333444455556666777788889999aaaabbbbccccddddeeeeffff00001111',
-      source: 'Europeana',
-      reason: 'Registro recuperado no acervo Museu Reina Sofía via Europeana Open Data',
-      metadata: {
-        label: 'Guernica',
-        adapter_version: '1.4.0',
-        external_id: 'europeana_item_reina_sofia_001',
-        matching_method: 'identifier_match',
-        confidence: 0.99,
-        status: 'UNDER_REVIEW',
-      },
-    },
-    {
-      entity_id: 'tag_guernica',
-      entity_type: 'relation',
-      event_type: 'relation_created',
-      actor_id: 'usr_curador_institucional',
-      actor_role: 'REVIEWER',
-      timestamp: tMinus(100),
-      previous_version: 2,
-      new_version: 3,
-      previous_digest: 'sha256:22223333444455556666777788889999aaaabbbbccccddddeeeeffff00001111',
-      new_digest: 'sha256:3333444455556666777788889999aaaabbbbccccddddeeeeffff000011112222',
-      source: 'curadoria_manual',
-      reason: 'Conexão ontológica com Cubismo e Pablo Picasso',
-      metadata: {
-        label: 'Guernica',
-        target_entity: 'tag_cubismo',
-        relation_type: 'skos:broader',
-        status: 'VALIDATED',
-      },
-    },
+  const CANONICAL_TAGS = [
+    { id: 'tag_cultura_popular', label: 'Cultura Popular', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_barroco', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_ibram_cp_9921', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Saberes tradicionais e expressões coletivas do povo brasileiro.', contribution: 'Manifestações tradicionais e festas comunitárias transmitidas oralmente.' },
+    { id: 'tag_barroco', label: 'Barroco', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_talha_dourada', relationType: 'skos:narrower', sourceConnector: 'Brasiliana Museus', externalId: 'br_ibram_barroco_04', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Estilo artístico e arquitetônico colonial de grande expressão sacra.', contribution: 'Talha dourada e estatuária sacra dos séculos XVII e XVIII em Minas e Bahia.' },
+    { id: 'tag_arte_popular', label: 'Arte Popular', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_cultura_popular', relationType: 'skos:broadMatch', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_artpop_12', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Produção artística espontânea oriunda de mestres tradicionais.', contribution: 'Escultura em barro, madeira e renda produzida fora do cânone acadêmico.' },
+    { id: 'tag_cultura', label: 'Cultura', eixo: 'PATRIMONIO_GLOBAL', targetRelation: 'tag_cultura_popular', relationType: 'skos:narrower', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_cult_01', creator: 'adm_root', creatorRole: 'ADMIN' as ActorRole, desc: 'Conjunto de saberes, crenças e manifestações de um povo.', contribution: 'Patrimônio material e imaterial registrado no livro de saberes e celebrações.' },
+    { id: 'tag_arte', label: 'Arte', eixo: 'PATRIMONIO_GLOBAL', targetRelation: 'tag_arte_popular', relationType: 'skos:narrower', sourceConnector: 'Europeana', externalId: 'eur_art_global_77', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Atividade humana ligada a manifestações estéticas e sensoriais.', contribution: 'Criação visual, escultórica e performática de relevância histórica e museológica.' },
+    { id: 'tag_mestre_vitalino', label: 'Mestre Vitalino', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_ceramica', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_vitalino_88', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Vitalino Pereira dos Santos, pioneiro da cerâmica figurativa de Caruaru.', contribution: 'Retratação do cotidiano sertanejo, retirantes e músicos em peças de barro policromadas.' },
+    { id: 'tag_ceramica', label: 'Cerâmica', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_cultura_popular', relationType: 'skos:broader', sourceConnector: 'Brasiliana Museus', externalId: 'br_ibram_ceramica_31', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Modelagem e cocção de artefatos de barro e argila.', contribution: 'Prática milenar de confecção de utensílios utilitários e figuras representativas da vida popular.' },
+    { id: 'tag_talha_dourada', label: 'Talha Dourada', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_barroco', relationType: 'skos:broader', sourceConnector: 'Brasiliana Museus', externalId: 'br_ibram_talha_55', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Escultura ornamental em madeira revestida por folhas de ouro.', contribution: 'Elemento característico dos retábulos, altares e forros das igrejas coloniais brasileiras.' },
+    { id: 'tag_carranca', label: 'Carranca', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_ibram_carranca_19', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Escultura antropomórfica instalada na proa das barcas do São Francisco.', contribution: 'Símbolo místico de proteção fluvial contra maus espíritos na navegação ribeirinha do Velho Chico.' },
+    { id: 'tag_cordel', label: 'Literatura de Cordel', eixo: 'TRADICAO_ORAL_COSMOLOGIAS', targetRelation: 'tag_xilogravura', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_cordel_44', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Gênero literário popular em versos rimados e metrificados.', contribution: 'Folhetos impressos e pendurados em cordões contendo narrativas épicas, causos e sátiras populares.' },
+    { id: 'tag_xilogravura', label: 'Xilogravura', eixo: 'SABERES_OFICIOS_MATERIAIS', targetRelation: 'tag_cordel', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_xilo_22', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Gravura artesanal impressa a partir de matrizes de madeira entalhada.', contribution: 'Expressão visual da capa dos folhetos de cordel talhada em madeira de umburana ou cedro.' },
+    { id: 'tag_capoeira', label: 'Capoeira', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_berimbau', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_capoeira_01', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Manifestação cultural afro-brasileira que une luta, dança e jogo.', contribution: 'Patrimônio cultural imaterial da humanidade com matriz em Salvador e no Recôncavo Baiano.' },
+    { id: 'tag_berimbau', label: 'Berimbau', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_capoeira', relationType: 'skos:broader', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_berimbau_09', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Instrumento musical de corda percutida composto por arco de madeira e cabaça.', contribution: 'Comanda o ritmo, a velocidade e o tipo de jogo dos capoeiristas dentro da roda.' },
+    { id: 'tag_samba_de_roda', label: 'Samba de Roda', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_samba_03', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Tradição musical e coreográfica do Recôncavo Baiano.', contribution: 'Origem do samba brasileiro, unindo palmas, canto de resposta, viola machete e prato-e-faca.' },
+    { id: 'tag_frevo', label: 'Frevo', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_carnaval', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_frevo_07', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Dança acrobática com sombrinha e ritmo acelerado de metais.', contribution: 'Patrimônio cultural imaterial associado à efervescência carnavalesca de Recife e Olinda.' },
+    { id: 'tag_maracatu', label: 'Maracatu', eixo: 'FESTAS_CELEBRACOES', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_maracatu_14', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Cortejo dramático e percussivo de Baque Virado e Baque Solto.', contribution: 'Celebração das nações coroadas e ancestralidade afro-indígena na zona da mata e litoral pernambucano.' },
+    { id: 'tag_bumba_meu_boi', label: 'Bumba Meu Boi', eixo: 'FESTAS_CELEBRACOES', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_boi_02', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Folguedo dramático do ciclo junino narrando a morte e ressurreição do boi.', contribution: 'Complexo cultural maranhense dividido em sotaques de matraca, zabumba, orquestra e costa de mão.' },
+    { id: 'tag_folia_de_reis', label: 'Folia de Reis', eixo: 'FESTAS_CELEBRACOES', targetRelation: 'tag_catolicismo_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_folia_18', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Cortejo devocional que celebra a visita dos Reis Magos ao Menino Jesus.', contribution: 'Grupo de músicos e mascarados com fardamento colorido percorrendo casas de devotos no ciclo natalino.' },
+    { id: 'tag_carnaval', label: 'Carnaval', eixo: 'FESTAS_CELEBRACOES', targetRelation: 'tag_frevo', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_carnaval_01', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Maior celebração popular coletiva de rua do Brasil.', contribution: 'Festa de inversão de papéis com blocos, cordões, escolas de samba e afoxés em todo o território nacional.' },
+    { id: 'tag_coco', label: 'Coco de Roda', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_coco_33', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Dança e canto comunitário com pisada forte em piso de barro batido.', contribution: 'Ritmo sincopado marcado por ganzá, surdo e estalo de dedos nas praias e sertões nordestinos.' },
+    { id: 'tag_ciranda', label: 'Ciranda', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_ciranda_12', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Dança comunitária de roda de mãos dadas típica do litoral pernambucano.', contribution: 'Guiada pelo mestre cirandeiro e instrumentistas no centro da roda formada na beira da praia.' },
+    { id: 'tag_forro', label: 'Forró', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_forro_21', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Matriz tradicional de dança e baile do ciclo junino nordestino.', contribution: 'Trio clássico de sanfona, zabumba e triângulo executando baião, xote, xaxado e arrasta-pé.' },
+    { id: 'tag_congada', label: 'Congada', eixo: 'FESTAS_CELEBRACOES', targetRelation: 'tag_sincretismo', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_congada_08', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Festa afro-católica de coroação do Rei do Congo e da Rainha Ginga.', contribution: 'Dança guerreira com bastões de madeira, tambores e louvor a Nossa Senhora do Rosário e São Benedito.' },
+    { id: 'tag_jongo', label: 'Jongo', eixo: 'MUSICA_DANCA_PERFORMANCE', targetRelation: 'tag_samba_de_roda', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_iphan_jongo_05', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Dança de roda e tambores com umbigada das comunidades quilombolas.', contribution: 'Ancestral direto do samba de terreiro e do samba de morro, preservado no Vale do Paraíba.' },
+    { id: 'tag_cubismo', label: 'Cubismo', eixo: 'VANGUARDA_MODERNISMO', targetRelation: 'tag_picasso', relationType: 'skos:related', sourceConnector: 'Europeana', externalId: 'eur_cubism_modern_01', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Vanguarda europeia que rompeu com a perspectiva renascentista clássica.', contribution: 'Decomposição das formas em planos geométricos múltiplos e simultâneos no espaço bidimensional.' },
+    { id: 'tag_guernica', label: 'Guernica', eixo: 'VANGUARDA_MODERNISMO', targetRelation: 'tag_cubismo', relationType: 'skos:broader', sourceConnector: 'Europeana', externalId: 'eur_guernica_reina_37', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Painel monumental pintado por Picasso retratando o horror da guerra.', contribution: 'Mural encomendado pelo governo republicano espanhol para a Exposição Internacional de Paris de 1937.' },
+    { id: 'tag_picasso', label: 'Picasso', eixo: 'VANGUARDA_MODERNISMO', targetRelation: 'tag_guernica', relationType: 'skos:related', sourceConnector: 'Europeana', externalId: 'eur_picasso_bio_99', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Pablo Ruiz Picasso (1881-1973), expoente máximo das vanguardas modernas.', contribution: 'Pintor e escultor espanhol revolucionário que fundou o cubismo e pintou Guernica.' },
+    { id: 'tag_guerra_civil_espanhola', label: 'Guerra Civil Espanhola', eixo: 'HISTORIA_MEMORIA', targetRelation: 'tag_guernica', relationType: 'skos:related', sourceConnector: 'Europeana', externalId: 'eur_spanish_civil_war_36', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Conflito bélico travado na Espanha entre 1936 e 1939.', contribution: 'Contexto histórico que culminou no trágico bombardeio da Legião Condor à população civil de Guernica.' },
+    { id: 'tag_preto_e_branco', label: 'Preto e Branco', eixo: 'VANGUARDA_MODERNISMO', targetRelation: 'tag_guernica', relationType: 'skos:related', sourceConnector: 'Europeana', externalId: 'eur_monochrome_palette_10', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Gama tonal monocromática empregada para evocar luto, imprensa e desolação.', contribution: 'Uso deliberado e exclusivo de cinza, preto e branco em Guernica para acentuar o impacto documental da dor.' },
+    { id: 'tag_vanguarda', label: 'Vanguarda', eixo: 'VANGUARDA_MODERNISMO', targetRelation: 'tag_cubismo', relationType: 'skos:narrower', sourceConnector: 'Europeana', externalId: 'eur_avant_garde_02', creator: 'usr_curador_institucional', creatorRole: 'REVIEWER' as ActorRole, desc: 'Movimentos estéticos de ruptura com a tradição acadêmica no início do século XX.', contribution: 'Inovações conceituais e estilísticas que redefiniram radicalmente as artes visuais no Ocidente.' },
+    { id: 'tag_machado_de_assis', label: 'Machado de Assis', eixo: 'LITERATURA_MEMORIA', targetRelation: 'tag_cultura', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_bn_machado_assis_01', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Joaquim Maria Machado de Assis (1839-1908), mestre da literatura brasileira.', contribution: 'Fundador da Academia Brasileira de Letras, contista e cronista sagaz da sociedade carioca oitocentista.' },
+    { id: 'tag_sincretismo', label: 'Sincretismo', eixo: 'CRENCAS_RITOS', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_sincretismo_17', creator: 'usr_pesquisador_nordeste', creatorRole: 'RESEARCHER' as ActorRole, desc: 'Diálogo e amálgama entre diferentes matrizes religiosas e culturais no Brasil.', contribution: 'Harmonização devocional entre orixás das religiões de matriz africana e santos do catolicismo popular.' },
+    { id: 'tag_catolicismo_popular', label: 'Catolicismo Popular', eixo: 'CRENCAS_RITOS', targetRelation: 'tag_sincretismo', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_catolicismo_pop_29', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Práticas devocionais laicas, romarias, promessas e pagamento de ex-votos.', contribution: 'Fé comunitária expressa em capelas do sertão, romarias e festas de padroeiros com autonomia leiga.' },
+    { id: 'tag_saci', label: 'Saci-Pererê', eixo: 'TRADICAO_ORAL_COSMOLOGIAS', targetRelation: 'tag_cultura_popular', relationType: 'skos:related', sourceConnector: 'Brasiliana Museus', externalId: 'br_cnfcp_saci_90', creator: 'usr_comunidade_01', creatorRole: 'USER' as ActorRole, desc: 'Figura mítica da tradição oral brasileira que habita as matas e estradas.', contribution: 'Narrativa imaterial de matriz indígena e afro-brasileira com presença viva em todo o território nacional.' },
   ];
 
-  // Construir Hash Chain estrita
   memoryAuditEvents = [];
+  memoryRelations = [];
+  memorySources = [];
+  memoryContributions = [];
+  memorySnapshots = [];
   let prevEventDigest: string | null = null;
+  let eventCounter = 1;
 
-  initialEventsSeed.forEach((seed, idx) => {
-    const event_id = `evt_${String(idx + 1).padStart(4, '0')}_${sha256Hex(seed.entity_id + seed.timestamp).slice(0, 8)}`;
-    const payload_digest = computePayloadDigest({
-      metadata: seed.metadata,
-      reason: seed.reason,
-      source: seed.source,
-      entity_id: seed.entity_id,
-      version: seed.new_version,
-    });
-
-    const eventToHash = {
-      entity_id: seed.entity_id,
-      entity_type: seed.entity_type,
-      event_type: seed.event_type,
-      actor_id: seed.actor_id,
-      actor_role: seed.actor_role,
-      timestamp: seed.timestamp,
-      previous_version: seed.previous_version,
-      new_version: seed.new_version,
-      previous_digest: seed.previous_digest,
-      new_digest: seed.new_digest,
-      payload_digest,
-      previous_event_digest: prevEventDigest,
-      source: seed.source,
-      reason: seed.reason,
-      metadata: seed.metadata,
-    };
-
-    const event_digest = computeEventDigest(eventToHash);
-
-    const fullEvent: AuditEvent = {
-      ...eventToHash,
-      event_id,
-      event_digest,
-    };
-
-    memoryAuditEvents.push(fullEvent);
-    prevEventDigest = event_digest;
-  });
-
-  // Snapshots Periódicos
-  const cpEventAtV4 = memoryAuditEvents.find(e => e.entity_id === 'tag_cultura_popular' && e.new_version === 4);
-  if (cpEventAtV4) {
-    memorySnapshots.push({
-      snapshot_id: `snp_cultura_popular_v4`,
-      entity_id: 'tag_cultura_popular',
-      entity_type: 'tag',
-      version: 4,
-      state_snapshot: {
-        tagId: 'tag_cultura_popular',
-        tag: 'Cultura Popular',
-        version: 4,
-        digest: cpEventAtV4.new_digest,
-        relations: [{ target: 'tag_barroco', type: 'skos:related' }],
-        sources: [{ name: 'Brasiliana Museus', id: 'br_ibram_cp_9921' }],
-      },
-      state_digest: cpEventAtV4.new_digest,
-      last_event_id: cpEventAtV4.event_id,
-      last_event_digest: cpEventAtV4.event_digest,
-      created_at: cpEventAtV4.timestamp,
-    });
-  }
-
-  // Relações Auditadas
-  memoryRelations = [
-    {
-      relation_id: 'rel_cp_barroco',
-      source_entity: 'tag_cultura_popular',
-      target_entity: 'tag_barroco',
-      relation_type: 'skos:related',
-      created_by: 'usr_curador_institucional',
-      status: 'VALIDATED',
-      confidence: 0.94,
-      source: 'Brasiliana Museus',
-      digest: 'sha256:rel94barrocopopular00112233445566778899aabbccddeeff0011223344556677',
-      evidence: 'Influência da talha barroca no artesanato popular do Vale do Paraíba e Minas Gerais.',
-      created_at: tMinus(140),
-      updated_at: tMinus(90),
-    },
-    {
-      relation_id: 'rel_guernica_cubismo',
-      source_entity: 'tag_guernica',
-      target_entity: 'tag_cubismo',
-      relation_type: 'skos:broader',
-      created_by: 'usr_curador_institucional',
-      status: 'VALIDATED',
-      confidence: 0.99,
-      source: 'Europeana',
-      digest: 'sha256:rel99guernicacubismo00112233445566778899aabbccddeeff0011223344556677',
-      evidence: 'Obra marco do cubismo sintético e expressionismo de Picasso em 1937.',
-      created_at: tMinus(100),
-      updated_at: tMinus(100),
-    },
-  ];
-
-  // Fontes Externas Preservadas
   memorySources = [
     {
-      id: 'src_brasiliana_01',
+      id: 'src_brasiliana_ibram',
       source: 'Brasiliana Museus',
-      source_id: 'br_ibram_cp_9921',
-      external_id: 'cp-9921',
-      external_uri: 'https://brasiliana.museus.gov.br/item/cp-9921',
-      retrieved_at: tMinus(180),
+      source_id: 'br_ibram_federacao',
+      external_id: 'ibram_portal_nacional',
+      external_uri: 'https://brasiliana.museus.gov.br',
+      retrieved_at: tMinus(300),
       adapter_version: '2.1.0',
-      response_digest: 'sha256:res987brasiliana00112233445566778899aabbccddeeff0011223344556677',
+      response_digest: `sha256:${sha256Hex('brasiliana_ibram_source')}`,
       matching_method: 'skos_exact_match',
       confidence: 0.98,
-      raw_metadata: { collection: 'CNFCP', institution: 'IBRAM', license: 'CC-BY-SA' },
-      created_at: tMinus(180),
+      raw_metadata: { institution: 'IBRAM / MinC', scope: 'Patrimônio Museológico Brasileiro' },
+      created_at: tMinus(300),
     },
     {
-      id: 'src_europeana_01',
+      id: 'src_cnfcp_iphan',
+      source: 'CNFCP / IPHAN',
+      source_id: 'br_cnfcp_folclore',
+      external_id: 'cnfcp_vocabulario_cultura_popular',
+      external_uri: 'http://www.cnfcp.gov.br',
+      retrieved_at: tMinus(280),
+      adapter_version: '2.0.0',
+      response_digest: `sha256:${sha256Hex('cnfcp_iphan_source')}`,
+      matching_method: 'thesaurus_alignment',
+      confidence: 0.99,
+      raw_metadata: { institution: 'Centro Nacional de Folclore e Cultura Popular', scope: 'Saberes e Fazeres Tradicionais' },
+      created_at: tMinus(280),
+    },
+    {
+      id: 'src_europeana_open',
       source: 'Europeana',
-      source_id: 'europeana_item_reina_sofia_001',
-      external_id: 'reina_sofia_guernica',
-      external_uri: 'https://www.europeana.eu/item/9200300/BibliographicResource_3000051662955',
-      retrieved_at: tMinus(160),
+      source_id: 'europeana_cultural_heritage',
+      external_id: 'eur_open_data_sparql',
+      external_uri: 'https://www.europeana.eu',
+      retrieved_at: tMinus(260),
       adapter_version: '1.4.0',
-      response_digest: 'sha256:res999europeana00112233445566778899aabbccddeeff0011223344556677',
+      response_digest: `sha256:${sha256Hex('europeana_open_source')}`,
       matching_method: 'identifier_match',
       confidence: 0.99,
-      raw_metadata: { provider: 'Museo Reina Sofía', country: 'Spain', year: 1937 },
-      created_at: tMinus(160),
+      raw_metadata: { provider: 'European Cultural Heritage Consortium', scope: 'História da Arte e Vanguardas' },
+      created_at: tMinus(260),
     },
   ];
 
-  // Logs de Segurança Isolados
+  CANONICAL_TAGS.forEach((tag, tIdx) => {
+    const baseTime = 240 - tIdx * 4;
+    const time1 = tMinus(baseTime + 30);
+    const time2 = tMinus(baseTime + 24);
+    const time3 = tMinus(baseTime + 18);
+    const time4 = tMinus(baseTime + 12);
+    const time5 = tMinus(baseTime + 6);
+    const time6 = tMinus(baseTime);
+
+    const conId = `con_${String(tIdx + 1).padStart(4, '0')}_${tag.id.replace('tag_', '')}`;
+    const conDigest = `sha256:${sha256Hex(conId + tag.contribution)}`;
+    memoryContributions.push({
+      contribution_id: conId,
+      actor_id: tag.creator,
+      actor_role: tag.creatorRole,
+      tag_id: tag.id,
+      tag_label: tag.label,
+      object_id: `obj_${tag.id}_registro`,
+      content: tag.contribution,
+      created_at: time2,
+      version: 2,
+      previous_version: 1,
+      previous_digest: `sha256:${sha256Hex(conId + tag.desc)}`,
+      digest: conDigest,
+      source: tag.creatorRole === 'USER' ? 'questionario_usuario' : 'pesquisa_academica',
+      status: 'VALIDATED',
+      history: [
+        {
+          version: 1,
+          content: tag.desc,
+          timestamp: time1,
+          digest: `sha256:${sha256Hex(conId + tag.desc)}`,
+          actor_id: tag.creator,
+          reason: 'Registro inicial via acolhimento cultural e questionário',
+        },
+        {
+          version: 2,
+          content: tag.contribution,
+          timestamp: time2,
+          digest: conDigest,
+          actor_id: 'usr_pesquisador_nordeste',
+          reason: 'Expansão de notas etnográficas e bibliográficas',
+        },
+      ],
+    });
+
+    if (tag.targetRelation) {
+      const relId = `rel_${tag.id.replace('tag_', '')}_${tag.targetRelation.replace('tag_', '')}`;
+      const relDigest = `sha256:${sha256Hex(relId + tag.relationType)}`;
+      memoryRelations.push({
+        relation_id: relId,
+        source_entity: tag.id,
+        target_entity: tag.targetRelation,
+        relation_type: tag.relationType,
+        created_by: 'usr_curador_institucional',
+        status: 'VALIDATED',
+        confidence: 0.95,
+        source: tag.sourceConnector,
+        digest: relDigest,
+        evidence: `Vínculo ontológico no eixo ${tag.eixo}: ${tag.label} com ${tag.targetRelation.replace('tag_', '').replace(/_/g, ' ')}`,
+        created_at: time4,
+        updated_at: time5,
+      });
+    }
+
+    const stages = [
+      {
+        event_type: 'tag_created',
+        version: 1,
+        prevVersion: 0,
+        actor: tag.creator,
+        role: tag.creatorRole,
+        time: time1,
+        source: tag.creatorRole === 'USER' ? 'questionario_usuario' : 'catalogacao_acervo',
+        reason: `Registro inicial da tag '${tag.label}' no catálogo de Interoperabilidade Cultural`,
+        metadata: { label: tag.label, eixo: tag.eixo, status: 'RAW' },
+      },
+      {
+        event_type: 'contribution_added',
+        version: 2,
+        prevVersion: 1,
+        actor: 'usr_pesquisador_nordeste',
+        role: 'RESEARCHER' as ActorRole,
+        time: time2,
+        source: 'formulario_pesquisa',
+        reason: `Adição de referências etnográficas e documentação descritiva`,
+        metadata: { label: tag.label, eixo: tag.eixo, status: 'SUGGESTED', contribution_id: conId },
+      },
+      {
+        event_type: 'match_found',
+        version: 3,
+        prevVersion: 2,
+        actor: 'sys_interop_daemon',
+        role: 'SYSTEM' as ActorRole,
+        time: time3,
+        source: tag.sourceConnector,
+        reason: `Correspondência externa confirmada com o acervo ${tag.sourceConnector} (ID: ${tag.externalId})`,
+        metadata: { label: tag.label, external_id: tag.externalId, matching_method: 'skos_exact_match', confidence: 0.98, status: 'UNDER_REVIEW' },
+      },
+      {
+        event_type: 'relation_created',
+        version: 4,
+        prevVersion: 3,
+        actor: 'usr_curador_institucional',
+        role: 'REVIEWER' as ActorRole,
+        time: time4,
+        source: 'curadoria_manual',
+        reason: `Vínculo ontológico estruturado com ${tag.targetRelation || 'patrimônio cultural'} via ${tag.relationType || 'skos:related'}`,
+        metadata: { label: tag.label, target_entity: tag.targetRelation, relation_type: tag.relationType, status: 'UNDER_REVIEW' },
+      },
+      {
+        event_type: 'relation_validated',
+        version: 5,
+        prevVersion: 4,
+        actor: 'adm_comite_cientifico',
+        role: 'VALIDATOR' as ActorRole,
+        time: time5,
+        source: 'conselho_editorial',
+        reason: `Chancela formal pelo Comitê Científico da autenticidade da proveniência e rede de conexões`,
+        metadata: { label: tag.label, target_entity: tag.targetRelation, status: 'VALIDATED' },
+      },
+      {
+        event_type: 'version_published',
+        version: 6,
+        prevVersion: 5,
+        actor: 'adm_root',
+        role: 'ADMIN' as ActorRole,
+        time: time6,
+        source: 'publicador_oficial',
+        reason: `Publicação definitiva no Grafo de Interoperabilidade Cultural`,
+        metadata: { label: tag.label, target_entity: tag.targetRelation, status: 'PUBLISHED' },
+      },
+    ];
+
+    let prevStageDigest: string | null = null;
+
+    stages.forEach(stage => {
+      const stateDigest = `sha256:${sha256Hex(tag.id + String(stage.version) + stage.event_type)}`;
+      const payload_digest = computePayloadDigest({
+        entity_id: tag.id,
+        entity_type: 'tag',
+        event_type: stage.event_type,
+        metadata: stage.metadata,
+        new_digest: stateDigest,
+        new_version: stage.version,
+        previous_digest: prevStageDigest,
+        previous_version: stage.prevVersion,
+        reason: stage.reason,
+        source: stage.source,
+      });
+
+      const eventPayload = {
+        entity_id: tag.id,
+        entity_type: 'tag' as const,
+        event_type: stage.event_type,
+        actor_id: stage.actor,
+        actor_role: stage.role,
+        timestamp: stage.time,
+        previous_version: stage.prevVersion,
+        new_version: stage.version,
+        previous_digest: prevStageDigest,
+        new_digest: stateDigest,
+        payload_digest,
+        previous_event_digest: prevEventDigest,
+        source: stage.source,
+        reason: stage.reason,
+        metadata: stage.metadata,
+      };
+
+      const event_digest = computeEventDigest(eventPayload);
+      const event_id = `evt_${String(eventCounter).padStart(4, '0')}_${sha256Hex(tag.id + stage.time).slice(0, 8)}`;
+      eventCounter++;
+
+      const fullEvent: AuditEvent = {
+        ...eventPayload,
+        event_id,
+        event_digest,
+      };
+
+      memoryAuditEvents.push(fullEvent);
+      prevEventDigest = event_digest;
+      prevStageDigest = stateDigest;
+    });
+  });
+
   const secEvents = [
-    { type: 'login', actor: 'usr_curador_institucional', role: 'REVIEWER', ip: '189.28.10.4', details: { method: 'token_session' }, time: tMinus(260) },
-    { type: 'failed_login', actor: 'desconhecido', role: 'ANONYMOUS', ip: '45.142.12.9', details: { reason: 'credenciais_invalidas' }, time: tMinus(200) },
-    { type: 'login', actor: 'adm_root', role: 'ADMIN', ip: '177.18.90.11', details: { method: 'admin_bearer_key' }, time: tMinus(120) },
-    { type: 'export', actor: 'usr_pesquisador_nordeste', role: 'RESEARCHER', ip: '200.17.44.82', details: { dataset: 'tags_saberes_jsonld', count: 12 }, time: tMinus(50) },
+    { type: 'login', actor: 'usr_curador_institucional', role: 'REVIEWER', ip: '189.28.10.4', details: { method: 'sessao_institucional' }, time: tMinus(260) },
+    { type: 'failed_login', actor: 'ip_desconhecido', role: 'ANONYMOUS', ip: '45.142.12.9', details: { reason: 'credenciais_invalidas' }, time: tMinus(200) },
+    { type: 'login', actor: 'adm_root', role: 'ADMIN', ip: '177.18.90.11', details: { method: 'admin_bearer_token' }, time: tMinus(120) },
+    { type: 'permission_change', actor: 'adm_root', role: 'ADMIN', ip: '177.18.90.11', details: { target: 'usr_pesquisador_nordeste', new_role: 'RESEARCHER' }, time: tMinus(80) },
   ];
 
   memorySecurityLogs = secEvents.map((s, idx) => {
@@ -677,90 +658,12 @@ export function initializeAuditLedger() {
       actor_id: s.actor,
       actor_role: s.role,
       ip_address: s.ip,
-      user_agent: 'FolksonomiaDigital-Client/2.0',
+      user_agent: 'FolksonomiaDigital-Auditoria/2.0',
       details: s.details,
       timestamp: s.time,
       log_digest: `sha256:${sha256Hex(canonical)}`,
     };
   });
-
-  // Exportações Auditadas
-  memoryExports = [
-    {
-      export_id: 'exp_20260921_001',
-      actor_id: 'usr_pesquisador_nordeste',
-      actor_role: 'RESEARCHER',
-      format: 'JSON-LD',
-      record_count: 12,
-      dataset_digest: 'sha256:exp0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-      filter_criteria: { eixo: 'SABERES', status: 'VALIDATED' },
-      timestamp: tMinus(50),
-    },
-  ];
-
-  // Contribuições Auditadas com Identidade Própria e Histórico Versionado V1 -> V2
-  memoryContributions = [
-    {
-      contribution_id: 'con_0001_cp_saberes',
-      actor_id: 'usr_comunidade_01',
-      actor_role: 'USER',
-      tag_id: 'tag_cultura_popular',
-      tag_label: 'Cultura Popular',
-      object_id: 'obj_cnfcp_saberes_01',
-      content: 'Manifestações tradicionais e festas comunitárias transmitidas oralmente de geração em geração.',
-      created_at: tMinus(210),
-      version: 2,
-      previous_version: 1,
-      previous_digest: 'sha256:con0001d8a1c9e3b4a2f8d071a6e5b4c3d2e1f089abcdef0123456789abcdef012',
-      digest: 'sha256:con0002f1e2d3c4b5a60718293a4b5c6d7e8f90123456789abcdef0123456789abc',
-      source: 'questionario_usuario',
-      status: 'VALIDATED',
-      history: [
-        {
-          version: 1,
-          content: 'Festas e saberes do povo brasileiro.',
-          timestamp: tMinus(240),
-          digest: 'sha256:con0001d8a1c9e3b4a2f8d071a6e5b4c3d2e1f089abcdef0123456789abcdef012',
-          actor_id: 'usr_comunidade_01',
-          reason: 'Registro inicial via questionário de primeiro acesso',
-        },
-        {
-          version: 2,
-          content: 'Manifestações tradicionais e festas comunitárias transmitidas oralmente de geração em geração.',
-          timestamp: tMinus(210),
-          digest: 'sha256:con0002f1e2d3c4b5a60718293a4b5c6d7e8f90123456789abcdef0123456789abc',
-          actor_id: 'usr_pesquisador_nordeste',
-          reason: 'Correção e expansão com termos técnicos e referências do acervo CNFCP',
-        },
-      ],
-    },
-    {
-      contribution_id: 'con_0002_guernica_reina',
-      actor_id: 'usr_historiador_arte',
-      actor_role: 'RESEARCHER',
-      tag_id: 'tag_guernica',
-      tag_label: 'Guernica',
-      object_id: 'obj_reina_sofia_guernica_1937',
-      content: 'Mural a óleo sobre tela (349 × 776 cm) produzido por Pablo Picasso em resposta ao bombardeio de Guernica na Guerra Civil Espanhola.',
-      created_at: tMinus(220),
-      version: 1,
-      previous_version: 0,
-      previous_digest: null,
-      digest: 'sha256:con1937picassoguernica00112233445566778899aabbccddeeff00112233445566',
-      source: 'catalogacao_obra',
-      status: 'VALIDATED',
-      history: [
-        {
-          version: 1,
-          content: 'Mural a óleo sobre tela (349 × 776 cm) produzido por Pablo Picasso em resposta ao bombardeio de Guernica na Guerra Civil Espanhola.',
-          timestamp: tMinus(220),
-          digest: 'sha256:con1937picassoguernica00112233445566778899aabbccddeeff00112233445566',
-          actor_id: 'usr_historiador_arte',
-          reason: 'Catalogação inicial e ancoragem ontológica com Cubismo e Guerra Civil Espanhola',
-        },
-      ],
-    },
-  ];
 
   isInitialized = true;
 }
