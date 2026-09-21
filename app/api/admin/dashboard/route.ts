@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       safeCount('eventos', { col: 'tipo_evento', val: 'questionario_completado' }),
     ]);
 
-    // Consolidar todos os usuários únicos (respondentes de questionário + visitantes que criaram tags)
+  // Consolidar todos os usuários únicos (respondentes de questionário + visitantes que criaram tags)
     const allUsersSet = new Set<string>();
 
     // Visitantes únicos que interagiram e colocaram tags
@@ -85,21 +85,20 @@ export async function GET(req: NextRequest) {
       allUsersSet.size,
       questionariosEventosCount,
       questionariosCount,
-      visitantesCount,
-      1
+      visitantesCount
     );
     const totalDados = (obrasCount) + (tagsCount) + (nucleosCount) + (fontesCount);
 
     // 2. Fluxo Temporal Real — Contar os dias e o número de tags colocadas por dia
-    const temporalTags = await safeSelect('tags', 'id, tag_original, criado_em', { order: 'criado_em', limit: 2000 });
+    const temporalTags = await safeSelect('tags', 'id, tag_original, created_at', { order: 'created_at', limit: 2000 });
     
     // Contagem real agrupada por dia civil (YYYY-MM-DD)
     const contagemPorData = new Map<string, { tags: string[]; count: number }>();
     const hoje = new Date();
 
     temporalTags.forEach((tag: any) => {
-      if (!tag.criado_em) return;
-      const d = new Date(tag.criado_em);
+      if (!tag.created_at) return;
+      const d = new Date(tag.created_at);
       if (isNaN(d.getTime())) return;
       const key = d.toISOString().split('T')[0]; // YYYY-MM-DD
       const cur = contagemPorData.get(key) || { tags: [], count: 0 };
@@ -182,7 +181,7 @@ export async function GET(req: NextRequest) {
     const tagsPorDia = ultimos7Dias.map(d => d.tagsCount);
 
     // 3. Tags recentes com grupos temáticos e filtro estrito anti-ruído
-    const gruposData = await safeSelect('tags', 'id, tag_original, tag_normalizada, grupo_tematico, criado_em', { order: 'criado_em', limit: 200 });
+    const gruposData = await safeSelect('tags', 'id, tag_original, tag_normalizada, grupo_tematico, created_at', { order: 'created_at', limit: 200 });
     const gruposCount: Record<string, number> = {};
     const recentTagsMap = new Map<string, any>();
 
@@ -238,6 +237,7 @@ export async function GET(req: NextRequest) {
       data: {
         visaoGeral: {
           usuarios: usuariosCount,
+          questionariosRespondidos: questionariosCount,
           obras: obrasCount,
           tags: tagsCount,
           validados: validadosCount,

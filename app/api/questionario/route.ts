@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
       familiaridade = '',
       documentacao = '',
       entendimento = '',
-      nome = '',
       faixa_etaria = '',
       visitante_hash: clientHash,
     } = body;
@@ -27,9 +26,8 @@ export async function POST(req: NextRequest) {
       ? clientHash.trim()
       : crypto.createHash('sha256').update(`${ip}:${ua}:${Date.now()}`).digest('hex').slice(0, 16);
 
-    const pseudonimo = (nome && typeof nome === 'string' && nome.trim().length > 0)
-      ? nome.trim()
-      : `Visitante_${vHash.slice(0, 6)}`;
+    const pseudonimo = `Visitante_${vHash.slice(0, 6)}`;
+    let persistenceError: string | null = null;
 
     // 1. Registrar ou atualizar visitante na tabela visitantes
     let visitanteId: string | null = null;
@@ -42,21 +40,12 @@ export async function POST(req: NextRequest) {
 
       if (existing) {
         visitanteId = existing.id;
-        if (nome && nome.trim()) {
-          await supabaseAdmin
-            .from('visitantes')
-            .update({
-              nome_publico: nome.trim(),
-              pseudonimo: nome.trim(),
-            })
-            .eq('id', existing.id);
-        }
       } else {
         const { data: novoVisitante, error: vErr } = await supabaseAdmin
           .from('visitantes')
           .insert({
             visitante_hash: vHash,
-            nome_publico: (nome && nome.trim()) || null,
+            nome_publico: null,
             pseudonimo,
             criado_em: new Date().toISOString(),
           })
@@ -65,6 +54,7 @@ export async function POST(req: NextRequest) {
 
         if (vErr) {
           console.warn('[Questionario] Erro ao inserir visitante:', vErr.message);
+          persistenceError = vErr.message;
         } else if (novoVisitante) {
           visitanteId = novoVisitante.id;
         }
@@ -86,7 +76,6 @@ export async function POST(req: NextRequest) {
             familiaridade,
             documentacao,
             entendimento,
-            nome: nome || pseudonimo,
             ip_origem: ip !== 'unknown' ? ip.slice(0, 7) + '...' : 'anon',
             submetido_em: new Date().toISOString(),
           },
@@ -95,9 +84,19 @@ export async function POST(req: NextRequest) {
 
       if (qErr) {
         console.warn('[Questionario] Erro ao inserir questionario:', qErr.message);
+        persistenceError = qErr.message;
       }
     } catch (qCatch) {
       console.warn('[Questionario] Falha ao operar tabela questionarios:', qCatch);
+      persistenceError = vCatch instanceof Error ? vCatch.message : 'Falha ao salvar visitante';
+      persistenceError = qCatch instanceof Error ? qCatch.message : 'Falha ao salvar questionário';
+    }
+
+    if (persistenceError) {
+      return NextResponse.json(
+        { success: false, error: `Não foi possível salvar suas respostas: ${persistenceError}` },
+        { status: 503 }
+      );
     }
 
     // Gerar UUID determinístico a partir do vHash para a coluna entidade_id (UUID) da tabela eventos

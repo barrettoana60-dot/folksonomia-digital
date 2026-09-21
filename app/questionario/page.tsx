@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 
 export default function QuestionarioPage() {
   const [formData, setFormData] = useState({
-    nome: '',
     familiaridade: 'Nunca visito museus',
     documentacao: 'Nunca ouvi falar',
     entendimento: ''
@@ -25,13 +24,13 @@ export default function QuestionarioPage() {
       let vHash = localStorage.getItem('visitante_hash');
       if (!vHash) {
         vHash = Math.random().toString(36).substring(2, 10);
+        localStorage.setItem('visitante_hash', vHash);
       }
 
       const res = await fetch('/api/questionario', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nome: formData.nome.trim(),
           familiaridade: formData.familiaridade,
           documentacao: formData.documentacao,
           entendimento: formData.entendimento.trim(),
@@ -40,9 +39,12 @@ export default function QuestionarioPage() {
       });
 
       const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || 'Não foi possível salvar suas respostas.');
+      }
 
       const finalHash = data.visitante_hash || vHash;
-      const finalNome = data.pseudonimo || formData.nome.trim() || `Visitante_${finalHash.slice(0, 6)}`;
+      const finalNome = data.pseudonimo || `Visitante_${finalHash.slice(0, 6)}`;
 
       localStorage.setItem('visitante_quiz_completado', 'true');
       localStorage.setItem('visitante_hash', finalHash);
@@ -55,17 +57,9 @@ export default function QuestionarioPage() {
       setTimeout(() => {
         router.push('/obras');
       }, 600);
-    } catch {
-      // Fallback em caso de indisponibilidade de rede
-      const fallbackHash = Math.random().toString(36).substring(2, 10);
-      localStorage.setItem('visitante_quiz_completado', 'true');
-      localStorage.setItem('visitante_hash', fallbackHash);
-      if (formData.nome.trim()) {
-        localStorage.setItem('visitante_nome', formData.nome.trim());
-      }
-      setTimeout(() => {
-        router.push('/obras');
-      }, 600);
+    } catch (error) {
+      setStatusMsg(error instanceof Error ? error.message : 'Não foi possível salvar suas respostas. Tente novamente.');
+      setLoading(false);
     }
   };
 
@@ -94,20 +88,6 @@ export default function QuestionarioPage() {
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
 
             <div className="space-y-6">
-              <div>
-                <label className={labelClass}>Como gostaria de ser identificado(a)? (opcional)</label>
-                <input
-                  type="text"
-                  value={formData.nome}
-                  onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                  placeholder="Seu nome ou pseudônimo no acervo"
-                  className="liquid-input w-full"
-                />
-                <span className="text-[10px] text-[#1A1A1A]/40 mt-1 block ml-1">
-                  Se não preenchido, um pseudônimo anônimo será gerado automaticamente.
-                </span>
-              </div>
-
               <div>
                 <label className={labelClass}>1. Familiaridade com Museus</label>
                 <select

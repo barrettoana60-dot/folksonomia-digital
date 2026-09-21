@@ -1710,7 +1710,8 @@ export default function AdminPage() {
   };
 
   const stats = [
-    { label: 'Usuários', value: dashboardData?.visaoGeral?.usuarios ?? 0, icon: Users, color: '#0D3A85' },
+    { label: 'Usuários Respondentes', value: dashboardData?.visaoGeral?.usuarios ?? 0, icon: Users, color: '#0D3A85' },
+    { label: 'Questionários Respondidos', value: dashboardData?.visaoGeral?.questionariosRespondidos ?? 0, icon: CheckCircle, color: '#059669' },
     { label: 'Volume de Dados', value: dashboardData?.visaoGeral?.totalDados || 0, icon: Database, color: '#E85002' },
     { label: 'Tags Criadas', value: dashboardData?.visaoGeral?.tags || 0, icon: TagIcon, color: '#E85002' },
     { label: 'Registros Validados', value: dashboardData?.visaoGeral?.validados || 0, icon: ShieldCheck, color: '#00FF00' },
@@ -2081,7 +2082,7 @@ ${internasHtml}
         ) : (
           <>
             {activeTab === 'visao' && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 animate-fade-in">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-8 animate-fade-in">
                 {stats.map((s, i) => (
                   <div key={i} className="glass-card p-6 md:p-10 flex flex-col items-center text-center space-y-3 md:space-y-6">
                     <div className="w-10 h-10 md:w-14 md:h-14 rounded-full border border-black/10 flex items-center justify-center bg-white/50">
