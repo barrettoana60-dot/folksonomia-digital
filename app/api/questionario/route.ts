@@ -27,7 +27,6 @@ export async function POST(req: NextRequest) {
       : crypto.createHash('sha256').update(`${ip}:${ua}:${Date.now()}`).digest('hex').slice(0, 16);
 
     const pseudonimo = `Visitante_${vHash.slice(0, 6)}`;
-    let persistenceError: string | null = null;
 
     // 1. Registrar ou atualizar visitante na tabela visitantes
     let visitanteId: string | null = null;
@@ -58,8 +57,6 @@ export async function POST(req: NextRequest) {
           const tableMissing = vErr.code === 'PGRST205' || /visitantes|schema cache|relation .* does not exist/i.test(vErr.message);
           if (tableMissing) {
             visitanteFallback = true;
-          } else {
-            persistenceError = vErr.message;
           }
         } else if (novoVisitante) {
           visitanteId = novoVisitante.id;
@@ -70,8 +67,6 @@ export async function POST(req: NextRequest) {
       const message = vCatch instanceof Error ? vCatch.message : 'Falha ao salvar visitante';
       if (/visitantes|schema cache|relation .* does not exist/i.test(message)) {
         visitanteFallback = true;
-      } else {
-        persistenceError = message;
       }
     }
 
@@ -100,8 +95,6 @@ export async function POST(req: NextRequest) {
         const tableMissing = qErr.code === 'PGRST205' || /questionarios|schema cache|relation .* does not exist/i.test(qErr.message);
         if (tableMissing) {
           questionarioFallback = true;
-        } else {
-          persistenceError = qErr.message;
         }
       }
     } catch (qCatch) {
@@ -109,16 +102,7 @@ export async function POST(req: NextRequest) {
       const message = qCatch instanceof Error ? qCatch.message : 'Falha ao salvar questionário';
       if (/questionarios|schema cache|relation .* does not exist/i.test(message)) {
         questionarioFallback = true;
-      } else {
-        persistenceError = message;
       }
-    }
-
-    if (persistenceError) {
-      return NextResponse.json(
-        { success: false, error: `Não foi possível salvar suas respostas: ${persistenceError}` },
-        { status: 503 }
-      );
     }
 
     // Gerar UUID determinístico a partir do vHash para a coluna entidade_id (UUID) da tabela eventos
@@ -129,8 +113,7 @@ export async function POST(req: NextRequest) {
     // 3. Registrar evento de proveniência garantindo contagem institucional.
     // Também funciona como fallback persistente enquanto a migration de questionarios
     // ainda não foi aplicada no projeto Supabase de produção.
-    try {
-      const { error: evtErr } = await supabaseAdmin.from('eventos').insert({
+    const eventPayload = {
         entidade_tipo: 'visitante',
         entidade_id: finalVisitanteId,
         tipo_evento: 'questionario_completado',
@@ -146,13 +129,29 @@ export async function POST(req: NextRequest) {
         },
         hash_evento: crypto.createHash('sha256').update(`${vHash}:${Date.now()}`).digest('hex'),
         criado_em: new Date().toISOString(),
-      });
+      };
+
+    try {
+      let { error: evtErr } = await supabaseAdmin.from('eventos').insert(eventPayload);
       if (evtErr) {
-        console.warn('[Questionario] Erro ao registrar em eventos:', evtErr.message);
-        if (questionarioFallback || !visitanteId) persistenceError = evtErr.message;
+        console.warn('[Questionario] Tentativa completa falhou:', evtErr.message);
+        const { payload: _payload, ...legacyEventPayload } = eventPayload;
+        const retry = await supabaseAdmin.from('eventos').insert(legacyEventPayload);
+        evtErr = retry.error;
+      }
+      if (evtErr) {
+        console.error('[Questionario] Falha definitiva ao registrar resposta:', evtErr.message);
+        return NextResponse.json(
+          { success: false, error: `Não foi possível registrar sua resposta: ${evtErr.message}` },
+          { status: 503 },
+        );
       }
     } catch (eCatch) {
-      console.warn('[Questionario] Falha ao registrar evento:', eCatch);
+      console.error('[Questionario] Falha ao registrar evento:', eCatch);
+      return NextResponse.json(
+        { success: false, error: 'Não foi possível registrar sua resposta no banco de dados.' },
+        { status: 503 },
+      );
     }
 
     return NextResponse.json({
