@@ -237,7 +237,7 @@ export async function GET(req: NextRequest) {
       data: {
         visaoGeral: {
           usuarios: usuariosCount,
-          questionariosRespondidos: questionariosCount,
+          questionariosRespondidos: Math.max(questionariosCount, questionariosEventosCount),
           obras: obrasCount,
           tags: tagsCount,
           validados: validadosCount,

@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Registrar respostas na tabela questionarios
+    let questionarioFallback = false;
     try {
       const { error: qErr } = await supabaseAdmin
         .from('questionarios')
@@ -84,12 +85,21 @@ export async function POST(req: NextRequest) {
 
       if (qErr) {
         console.warn('[Questionario] Erro ao inserir questionario:', qErr.message);
-        persistenceError = qErr.message;
+        const tableMissing = qErr.code === 'PGRST205' || /questionarios|schema cache|relation .* does not exist/i.test(qErr.message);
+        if (tableMissing) {
+          questionarioFallback = true;
+        } else {
+          persistenceError = qErr.message;
+        }
       }
     } catch (qCatch) {
       console.warn('[Questionario] Falha ao operar tabela questionarios:', qCatch);
-      persistenceError = vCatch instanceof Error ? vCatch.message : 'Falha ao salvar visitante';
-      persistenceError = qCatch instanceof Error ? qCatch.message : 'Falha ao salvar questionário';
+      const message = qCatch instanceof Error ? qCatch.message : 'Falha ao salvar questionário';
+      if (/questionarios|schema cache|relation .* does not exist/i.test(message)) {
+        questionarioFallback = true;
+      } else {
+        persistenceError = message;
+      }
     }
 
     if (persistenceError) {
@@ -104,18 +114,30 @@ export async function POST(req: NextRequest) {
     const visitorUuid = `${vHashHex.slice(0, 8)}-${vHashHex.slice(8, 12)}-4${vHashHex.slice(13, 16)}-a${vHashHex.slice(17, 20)}-${vHashHex.slice(20, 32)}`;
     const finalVisitanteId = visitanteId || visitorUuid;
 
-    // 3. Registrar evento de proveniência garantindo contagem institucional
+    // 3. Registrar evento de proveniência garantindo contagem institucional.
+    // Também funciona como fallback persistente enquanto a migration de questionarios
+    // ainda não foi aplicada no projeto Supabase de produção.
     try {
       const { error: evtErr } = await supabaseAdmin.from('eventos').insert({
         entidade_tipo: 'visitante',
         entidade_id: finalVisitanteId,
         tipo_evento: 'questionario_completado',
         resumo: `Questionário de primeiro acesso respondido por ${pseudonimo} (${vHash}) - Familiaridade: ${familiaridade || 'Registrado'}`,
+        payload: {
+          visitante_hash: vHash,
+          visitante_id: visitanteId,
+          familiaridade,
+          documentacao,
+          entendimento,
+          submetido_em: new Date().toISOString(),
+          armazenamento: questionarioFallback ? 'eventos_fallback' : 'questionarios',
+        },
         hash_evento: crypto.createHash('sha256').update(`${vHash}:${Date.now()}`).digest('hex'),
         criado_em: new Date().toISOString(),
       });
       if (evtErr) {
         console.warn('[Questionario] Erro ao registrar em eventos:', evtErr.message);
+        if (questionarioFallback || !visitanteId) persistenceError = evtErr.message;
       }
     } catch (eCatch) {
       console.warn('[Questionario] Falha ao registrar evento:', eCatch);
