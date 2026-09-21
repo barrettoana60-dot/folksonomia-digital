@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
 import { createSemanticVaultFingerprint } from '@/lib/core/semantic-vault';
 import { searchCulturalDerivatives } from '@/lib/connectors/cultural-interop';
+import { publicFingerprint, sanitizePublicData, securityHeaders } from '@/lib/core/public-security';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
       tagIdentity = idData;
     } catch {}
 
-    const jsonLdPayload = {
+    const jsonLdPayload = sanitizePublicData({
       '@context': {
         skos: 'http://www.w3.org/2004/02/skos/core#',
         schema: 'https://schema.org/',
@@ -137,18 +138,19 @@ export async function GET(req: NextRequest) {
         'interop:auditSequence': sealedAudit.chain_position,
         'interop:sealedAt': sealedAudit.created_at,
       } : {}),
-    };
+      'interop:publicFingerprint': publicFingerprint({ normalizedLabel, payloadHash, crossHash }),
+    });
 
     return NextResponse.json(jsonLdPayload, {
       headers: {
         'Content-Type': 'application/ld+json; charset=utf-8',
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'no-store',
-        'X-Semantic-Cross-Hash': crossHash,
+        ...securityHeaders(),
       },
     });
   } catch (error: any) {
     console.error('[JSON-LD] Falha ao exportar contribuição:', error);
-    return NextResponse.json({ error: error.message || 'Falha ao gerar JSON-LD.' }, { status: 500 });
+    return NextResponse.json({ error: 'Falha ao gerar a representação interoperável.' }, { status: 500, headers: securityHeaders() });
   }
 }

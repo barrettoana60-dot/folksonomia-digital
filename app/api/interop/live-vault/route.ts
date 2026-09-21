@@ -25,6 +25,7 @@ import {
 } from '@/lib/core/semantic-vault';
 import { searchCulturalDerivatives, discoverCulturalRelations } from '@/lib/connectors/cultural-interop';
 import { generateTagId, toDisplayFormat } from '@/lib/core/tag-identity';
+import { sanitizePublicData, securityHeaders } from '@/lib/core/public-security';
 
 export const dynamic = 'force-dynamic';
 
@@ -1105,9 +1106,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         success: true,
         data: {
-          security: getEncryptionStatusWithSelfTest(),
+          integrityFingerprint: 'sha256' + getEncryptionStatusWithSelfTest().fingerprint,
         },
-      });
+      }, { headers: securityHeaders() });
     }
 
     if (tagParam) {
@@ -1158,12 +1159,12 @@ export async function GET(req: NextRequest) {
         }
       }
 
-      return NextResponse.json({ success: true, data: dossier });
+      return NextResponse.json({ success: true, data: sanitizePublicData(dossier) }, { headers: securityHeaders() });
     }
 
     const edges = buildContributionEdges(contributions);
 
-    return NextResponse.json({
+    return NextResponse.json(sanitizePublicData({
       success: true,
       data: {
         nodes: contributions.map(contribution => ({
@@ -1185,11 +1186,10 @@ export async function GET(req: NextRequest) {
           pending: pendingHumanAudit,
           path: '/admin/validacao',
         },
-        security: getEncryptionStatusWithSelfTest(),
       },
-    });
+    }), { headers: securityHeaders() });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Não foi possível carregar a interoperabilidade cultural.' }, { status: 500, headers: securityHeaders() });
   }
 }
 
@@ -1352,7 +1352,7 @@ export async function POST(req: NextRequest) {
       (dynamicDossier.vault as any).decryptVerification = verification;
     }
 
-    return NextResponse.json({
+    return NextResponse.json(sanitizePublicData({
       success: true,
       data: {
         sourceTag: source.label,
@@ -1365,22 +1365,20 @@ export async function POST(req: NextRequest) {
         activatedNodes: pulseResult.activatedNodes,
         totalNodes: mergedNodes.length,
         action,
-        security: encStatus,
         heartbeat,
       },
-    });
+    }), { headers: securityHeaders() });
   } catch (error: any) {
     if (error instanceof EncryptionConfigurationError) {
       return NextResponse.json(
         {
           success: false,
           error: 'Rede bloqueada: configure a chave de preservação no ambiente antes de cruzar contribuições.',
-          security: getEncryptionStatusWithSelfTest(),
         },
-        { status: 503 },
+        { status: 503, headers: securityHeaders() },
       );
     }
     console.error('[LiveVault] Falha ao processar a rede de interoperabilidade:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Falha na interoperabilidade cultural.' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Falha na interoperabilidade cultural.' }, { status: 500, headers: securityHeaders() });
   }
 }

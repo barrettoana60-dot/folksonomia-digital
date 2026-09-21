@@ -18,6 +18,7 @@ import { syncFromRAG } from '@/lib/ml/cultural-network';
 import { enqueueForProgressiveLearning } from '@/lib/ml/training-loop';
 import { collectEvidence, getCachedEvidence } from '@/lib/ml/evidence-collector';
 import { getHASDossier, hasValidateAssociation } from '@/lib/ml/has-engine';
+import { publicFingerprint, sanitizePublicData, securityHeaders } from '@/lib/core/public-security';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +40,7 @@ async function searchEuropeana(query: string): Promise<any[]> {
   return [];
   /*
   try {
-    const url = `https://api.europeana.eu/record/v2/search.json?query=${encodeURIComponent(query)}&rows=5&profile=standard&wskey=api2demo`;
+    const url = `https://api.europeana.eu/record/v2/search.json?query=${encodeURIComponent(query)}&rows=5&profile=standard`;
     const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return [];
     const data = await res.json();
@@ -1218,10 +1219,11 @@ export async function POST(req: NextRequest) {
     // ================================================================
     // RESPOSTA FINAL — Estruturada com todas as camadas
     // ================================================================
-    return NextResponse.json({
+    const publicReport = sanitizePublicData({
       success: true,
       data: {
         tag: query,
+        reportFingerprint: publicFingerprint({ query, generatedAt: new Date().toISOString() }),
         tagNaoExiste: false,
         relatorioEstruturado: analiseEstruturada,
 
@@ -1329,8 +1331,9 @@ export async function POST(req: NextRequest) {
         } : null,
       }
     });
+    return NextResponse.json(publicReport, { headers: securityHeaders() });
   } catch (error: any) {
     console.error('[Relatório Semântico] Erro:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Não foi possível gerar o relatório semântico.' }, { status: 500, headers: securityHeaders() });
   }
 }
