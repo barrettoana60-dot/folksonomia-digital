@@ -556,6 +556,13 @@ export default function Header() {
                         Painel Gestão
                       </Link>
                     )}
+                    <Link
+                      href="/admin/auditoria"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#1A1A1A]/75 hover:bg-black/5 hover:text-[#0D3A85] transition-all text-left font-semibold"
+                    >
+                      Auditoria
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex w-full items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#C62228] hover:bg-red-50 transition-all text-left font-semibold"
@@ -643,6 +650,12 @@ export default function Header() {
                     Painel Gestão
                   </Link>
                 )}
+                <Link
+                  href="/admin/auditoria"
+                  className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-[#0D3A85] hover:bg-[#0D3A85]/5 transition-all uppercase tracking-wider"
+                >
+                  Auditoria
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold text-[#C62228] hover:bg-red-50 transition-all uppercase tracking-wider text-left"
