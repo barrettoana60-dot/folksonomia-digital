@@ -1026,7 +1026,7 @@ export default function CulturalInteroperabilityView() {
         {/* FLUXO ANIMADO */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-[#E8490A] mb-3 flex items-center gap-1.5">
-            <span>—</span> Da tag-identidade a troca entre acervos — com auditoria humana
+            <span>—</span> Da tag-identidade à troca entre acervos culturais com preservação de proveniência
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
             {FLOW_STEPS.map((step, idx) => {
@@ -1065,21 +1065,6 @@ export default function CulturalInteroperabilityView() {
             })}
           </div>
         </div>
-
-        {humanAudit && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-2xl text-[11px] text-emerald-950 font-medium flex items-start justify-between gap-3">
-            <p>
-              Auditoria humana obrigatoria: curadores confirmam registros antes da publicacao definitiva.
-              {humanAudit.pending > 0 ? ` ${humanAudit.pending} nucleo(s) aguardam validacao.` : ' Fila humana em dia.'}
-            </p>
-            <a
-              href={humanAudit.path}
-              className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-emerald-800 hover:underline"
-            >
-              Abrir auditoria
-            </a>
-          </div>
-        )}
 
         {vaultFeedback && (
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium">

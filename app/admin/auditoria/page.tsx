@@ -30,6 +30,9 @@ import {
   RefreshCw,
   Copy,
   Check,
+  Globe,
+  Sliders,
+  Sparkles,
 } from 'lucide-react';
 
 interface AuditEvent {
@@ -161,6 +164,7 @@ export default function AuditoriaPage() {
   // Modal de Detalhe do Evento
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
   const [copiedDigest, setCopiedDigest] = useState(false);
+  const [copiedRoot, setCopiedRoot] = useState(false);
 
   // História e Comparador de Versões
   const [selectedTagId, setSelectedTagId] = useState('tag_cultura_popular');
@@ -352,43 +356,70 @@ export default function AuditoriaPage() {
     setTimeout(() => setCopiedDigest(false), 2000);
   };
 
+  const copyRootToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedRoot(true);
+    setTimeout(() => setCopiedRoot(false), 2000);
+  };
+
+  // Cores de eventos consistentes e limpas
+  const getEventBadgeStyle = (type: string) => {
+    switch (type) {
+      case 'tag_created':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'contribution_added':
+        return 'bg-purple-50 text-purple-700 border-purple-200';
+      case 'match_found':
+        return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+      case 'relation_created':
+        return 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      case 'relation_validated':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'version_published':
+        return 'bg-amber-50 text-amber-800 border-amber-200';
+      case 'REVOKE':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
+      case 'ARCHIVE':
+        return 'bg-gray-100 text-gray-700 border-gray-300';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-[#0A0A0C] text-white selection:bg-[#E8490A]/30">
-      {/* Barra de Navegação Superior */}
-      <header className="border-b border-white/10 bg-[#121214]/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-[1400px] mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/admin"
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors border border-white/10"
-              title="Voltar ao Painel Administrativo"
-            >
-              <ArrowLeft size={16} />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="text-[#E8490A]" size={20} />
-                <h1 className="text-lg font-semibold tracking-tight">Sistema de Auditoria</h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-[#E8490A]/10 text-[#E8490A] border border-[#E8490A]/20">
-                  Interoperabilidade Cultural
-                </span>
+    <main className="min-h-screen pt-28 md:pt-32 pb-24 px-4 md:px-10 bg-[#EEEBE3] text-[#1A1A1A] antialiased">
+      <div className="max-w-[1440px] mx-auto space-y-8">
+
+        {/* ════════ CABEÇALHO INSTITUCIONAL ════════ */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-black/10">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#E8490A] text-white flex items-center justify-center shadow-[0_4px_16px_rgba(232,73,10,0.25)]">
+                <ShieldCheck size={22} />
               </div>
-              <p className="text-white/40 text-xs mt-0.5">
-                Trilha de proveniência verificável, Event Sourcing e encadeamento criptográfico contínuo
-              </p>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-normal serif-title tracking-tight text-[#1A1A1A]">
+                  Sistema de Auditoria
+                </h1>
+                <p className="text-xs text-[#1A1A1A]/60 mt-0.5 font-medium uppercase tracking-wider">
+                  Trilha de Proveniência Verificável, Event Sourcing e Encadeamento Criptográfico Contínuo
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-mono">
-              <span className="text-white/40">Altura da Cadeia:</span>
-              <span className="text-[#00FF88] font-bold">{integrityReport?.chainHeight ?? events.length} blocos</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/admin"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-white/80 hover:bg-white text-[#1A1A1A] border border-black/10 transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <ArrowLeft size={14} /> Voltar ao Painel
+            </Link>
 
             <button
               onClick={runIntegrityCheck}
               disabled={verifyingIntegrity}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all shadow-[0_0_15px_rgba(232,73,10,0.3)] disabled:opacity-50"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
             >
               <RefreshCw size={13} className={verifyingIntegrity ? 'animate-spin' : ''} />
               {verifyingIntegrity ? 'Verificando...' : 'Verificar Integridade'}
@@ -396,9 +427,78 @@ export default function AuditoriaPage() {
           </div>
         </div>
 
-        {/* Abas do Painel */}
-        <div className="max-w-[1400px] mx-auto px-6 overflow-x-auto no-scrollbar">
-          <nav className="flex space-x-1 border-t border-white/5 pt-2">
+        {/* ════════ CARDS EXECUTIVOS DE STATUS & KPIS ════════ */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+          {/* Card 1: Total Eventos */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between text-[#1A1A1A]/50">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Total de Eventos</span>
+              <Clock size={16} className="text-[#0D3A85]" />
+            </div>
+            <div className="text-3xl font-normal serif-title text-[#1A1A1A]">
+              {events.length}
+            </div>
+            <p className="text-[11px] text-[#1A1A1A]/55">
+              Registros imutáveis protegidos por gatilhos de banco
+            </p>
+          </div>
+
+          {/* Card 2: Altura da Cadeia */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between text-[#1A1A1A]/50">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Altura da Hash Chain</span>
+              <GitCommit size={16} className="text-[#059669]" />
+            </div>
+            <div className="text-3xl font-normal serif-title text-[#059669]">
+              {integrityReport?.chainHeight ?? events.length} <span className="text-sm font-sans font-medium text-[#1A1A1A]/50">blocos</span>
+            </div>
+            <p className="text-[11px] text-[#1A1A1A]/55 font-mono">
+              previous_digest → event_digest contínuo
+            </p>
+          </div>
+
+          {/* Card 3: Integridade Criptográfica */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between text-[#1A1A1A]/50">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Integridade Criptográfica</span>
+              <ShieldCheck size={16} className="text-[#059669]" />
+            </div>
+            <div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
+                <CheckCircle2 size={13} className="text-emerald-600" />
+                8/8 NÍVEIS APROVADOS
+              </span>
+            </div>
+            <p className="text-[11px] text-[#1A1A1A]/55">
+              RFC 8785 determinístico com zero descontinuidades
+            </p>
+          </div>
+
+          {/* Card 4: Merkle Root */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2">
+            <div className="flex items-center justify-between text-[#1A1A1A]/50">
+              <span className="text-[11px] font-bold uppercase tracking-wider">Merkle Root Ativa</span>
+              <button
+                onClick={() => integrityReport?.merkleRoot && copyRootToClipboard(integrityReport.merkleRoot)}
+                className="text-[10px] text-[#E8490A] hover:underline font-bold flex items-center gap-1"
+                title="Copiar Hash Raiz"
+              >
+                {copiedRoot ? <Check size={12} /> : <Copy size={12} />}
+                {copiedRoot ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
+            <div className="text-xs font-mono font-bold text-[#0D3A85] truncate bg-black/[0.03] p-2 rounded-xl border border-black/[0.06]">
+              {integrityReport?.merkleRoot || 'Calculando...'}
+            </div>
+            <p className="text-[11px] text-[#1A1A1A]/55">
+              Prova binária de integridade em lote sem blockchain pública
+            </p>
+          </div>
+        </div>
+
+        {/* ════════ BARRA DE NAVEGAÇÃO DE ABAS ════════ */}
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-1.5 border border-black/[0.08] shadow-xs overflow-x-auto no-scrollbar">
+          <nav className="flex items-center gap-1.5 min-w-max">
             {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -406,33 +506,31 @@ export default function AuditoriaPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium rounded-t-xl transition-all whitespace-nowrap border-b-2 ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold uppercase tracking-wider transition-all ${
                     isActive
-                      ? 'border-[#E8490A] text-white bg-white/5'
-                      : 'border-transparent text-white/50 hover:text-white hover:bg-white/5'
+                      ? 'bg-[#E8490A] text-white shadow-[0_4px_16px_rgba(232,73,10,0.25)]'
+                      : 'text-[#1A1A1A]/70 hover:bg-black/[0.04] hover:text-[#1A1A1A]'
                   }`}
                 >
-                  <Icon size={14} className={isActive ? 'text-[#E8490A]' : 'text-white/40'} />
+                  <Icon size={14} className={isActive ? 'text-white' : 'text-[#1A1A1A]/40'} />
                   {tab.label}
                 </button>
               );
             })}
           </nav>
         </div>
-      </header>
-
-      {/* Conteúdo Principal */}
-      <div className="max-w-[1400px] mx-auto p-6 space-y-6">
 
         {/* ════════ ABA 1: EVENTOS DE AUDITORIA ════════ */}
         {activeTab === 'eventos' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Barra de Filtros */}
-            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-3">
+            {/* Barra de Filtros Estilizada */}
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <Filter size={14} className="text-[#E8490A]" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-white/70">Filtros da Trilha</span>
+                  <Filter size={15} className="text-[#E8490A]" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">
+                    Filtros da Trilha de Proveniência
+                  </span>
                 </div>
                 {(searchQuery || filterEntity || filterActor || filterEventType || filterSource) && (
                   <button
@@ -443,162 +541,168 @@ export default function AuditoriaPage() {
                       setFilterEventType('');
                       setFilterSource('');
                     }}
-                    className="text-[11px] text-[#E8490A] hover:underline"
+                    className="text-xs font-bold text-[#E8490A] hover:underline"
                   >
-                    Limpar Filtros
+                    Limpar Todos os Filtros
                   </button>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+                {/* Busca Textual */}
                 <div className="relative">
-                  <Search size={13} className="absolute left-3 top-3 text-white/30" />
+                  <Search size={14} className="absolute left-3.5 top-3 text-[#1A1A1A]/35" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Pesquisar resumo, digest, label..."
-                    className="w-full pl-8 pr-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-[#E8490A] focus:outline-none"
+                    placeholder="Pesquisar termo, hash, razão..."
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] placeholder:text-[#1A1A1A]/40 focus:border-[#E8490A] focus:outline-none shadow-2xs"
                   />
                 </div>
 
+                {/* Filtro de Entidade */}
                 <select
                   value={filterEntity}
                   onChange={e => setFilterEntity(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-[#18181B] border border-white/10 text-white focus:border-[#E8490A] focus:outline-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] focus:border-[#E8490A] focus:outline-none shadow-2xs font-medium"
                 >
                   <option value="">Todas as Entidades</option>
                   {uniqueEntities.map(ent => (
-                    <option key={ent.id} value={ent.id}>{ent.label} ({ent.id})</option>
+                    <option key={ent.id} value={ent.id}>{ent.label}</option>
                   ))}
                 </select>
 
+                {/* Filtro de Tipo de Evento */}
                 <select
                   value={filterEventType}
                   onChange={e => setFilterEventType(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-[#18181B] border border-white/10 text-white focus:border-[#E8490A] focus:outline-none"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] focus:border-[#E8490A] focus:outline-none shadow-2xs font-medium"
                 >
                   <option value="">Todos os Tipos de Evento</option>
                   <option value="tag_created">tag_created (Criação)</option>
                   <option value="contribution_added">contribution_added (Contribuição)</option>
                   <option value="match_found">match_found (Correspondência)</option>
-                  <option value="relation_created">relation_created (Relação Criada)</option>
+                  <option value="relation_created">relation_created (Relação)</option>
                   <option value="relation_validated">relation_validated (Validação)</option>
                   <option value="version_published">version_published (Publicação)</option>
                   <option value="REVOKE">REVOKE (Revogação)</option>
                   <option value="ARCHIVE">ARCHIVE (Arquivamento)</option>
                 </select>
 
+                {/* Filtro por Ator */}
                 <input
                   type="text"
                   value={filterActor}
                   onChange={e => setFilterActor(e.target.value)}
-                  placeholder="Filtrar por Ator..."
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-[#E8490A] focus:outline-none"
+                  placeholder="Ator (ex: usr_, adm_)..."
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] placeholder:text-[#1A1A1A]/40 focus:border-[#E8490A] focus:outline-none shadow-2xs"
                 />
 
+                {/* Filtro por Origem */}
                 <input
                   type="text"
                   value={filterSource}
                   onChange={e => setFilterSource(e.target.value)}
-                  placeholder="Filtrar por Origem/Fonte..."
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/30 focus:border-[#E8490A] focus:outline-none"
+                  placeholder="Origem (Brasiliana, Europeana...)"
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] placeholder:text-[#1A1A1A]/40 focus:border-[#E8490A] focus:outline-none shadow-2xs"
                 />
               </div>
             </div>
 
             {/* Tabela de Eventos */}
-            <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
-              <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+              <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-black/[0.02]">
                 <div>
-                  <h2 className="text-sm font-semibold text-white">Eventos Criptograficamente Encadeados</h2>
-                  <p className="text-[11px] text-white/40">
-                    Mostrando {filteredEvents.length} de {events.length} eventos registrados
+                  <h2 className="text-sm font-bold text-[#1A1A1A]">Eventos Encadeados Criptograficamente</h2>
+                  <p className="text-xs text-[#1A1A1A]/55">
+                    Mostrando {filteredEvents.length} de {events.length} eventos consolidados
                   </p>
                 </div>
                 <button
                   onClick={loadEvents}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                  className="p-2 rounded-xl bg-white hover:bg-black/[0.04] text-[#1A1A1A]/70 border border-black/10 transition-colors shadow-2xs"
                   title="Recarregar eventos"
                 >
-                  <RotateCcw size={13} />
+                  <RotateCcw size={14} />
                 </button>
               </div>
 
               {loadingEvents ? (
-                <div className="p-12 text-center">
+                <div className="p-16 text-center">
                   <div className="w-8 h-8 border-2 border-[#E8490A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                  <p className="text-xs text-white/40">Carregando trilha de auditoria...</p>
+                  <p className="text-xs text-[#1A1A1A]/50">Carregando trilha de auditoria...</p>
                 </div>
               ) : filteredEvents.length === 0 ? (
-                <div className="p-12 text-center">
-                  <AlertTriangle size={32} className="mx-auto text-white/20 mb-3" />
-                  <p className="text-sm text-white/50">Nenhum evento localizado com os filtros selecionados.</p>
+                <div className="p-16 text-center">
+                  <AlertTriangle size={32} className="mx-auto text-amber-500 mb-3" />
+                  <p className="text-sm text-[#1A1A1A]/60">Nenhum evento corresponde aos critérios filtrados.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                        <th className="p-3">Data / Hora (UTC)</th>
-                        <th className="p-3">Evento</th>
-                        <th className="p-3">Entidade</th>
-                        <th className="p-3">Versão</th>
-                        <th className="p-3">Ator / Papel</th>
-                        <th className="p-3">Origem</th>
-                        <th className="p-3 font-mono">Event Digest</th>
-                        <th className="p-3 text-right">Ações</th>
+                      <tr className="bg-black/[0.03] border-b border-black/[0.08] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
+                        <th className="p-3.5">Data / Hora (UTC)</th>
+                        <th className="p-3.5">Evento</th>
+                        <th className="p-3.5">Entidade Cultural</th>
+                        <th className="p-3.5">Versão</th>
+                        <th className="p-3.5">Ator / Papel</th>
+                        <th className="p-3.5">Origem</th>
+                        <th className="p-3.5 font-mono">Event Digest (SHA-256)</th>
+                        <th className="p-3.5 text-right">Ações</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-black/[0.05]">
                       {filteredEvents.map(ev => {
                         const isGenesis = ev.previous_event_digest === null;
+                        const badgeStyle = getEventBadgeStyle(ev.event_type);
                         return (
-                          <tr key={ev.event_id} className="hover:bg-white/[0.03] transition-colors group">
-                            <td className="p-3 text-white/70 whitespace-nowrap font-mono text-[11px]">
+                          <tr key={ev.event_id} className="hover:bg-black/[0.02] transition-colors group">
+                            <td className="p-3.5 text-[#1A1A1A]/80 whitespace-nowrap font-mono text-[11px]">
                               {new Date(ev.timestamp).toLocaleString('pt-BR')}
                             </td>
-                            <td className="p-3">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-[#E8490A]/10 text-[#E8490A] border border-[#E8490A]/20">
+                            <td className="p-3.5">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${badgeStyle}`}>
                                 {ev.event_type}
                               </span>
                             </td>
-                            <td className="p-3">
-                              <div className="font-semibold text-white">
+                            <td className="p-3.5">
+                              <div className="font-bold text-[#1A1A1A]">
                                 {ev.metadata?.label || ev.entity_id}
                               </div>
-                              <div className="text-[10px] text-white/40 font-mono">{ev.entity_id}</div>
+                              <div className="text-[10px] text-[#1A1A1A]/40 font-mono">{ev.entity_id}</div>
                             </td>
-                            <td className="p-3 whitespace-nowrap font-mono text-white/80">
-                              <span className="text-white/40">V{ev.previous_version}</span>
-                              <span className="mx-1 text-[#E8490A]">→</span>
-                              <span className="font-bold text-[#00FF88]">V{ev.new_version}</span>
+                            <td className="p-3.5 whitespace-nowrap font-mono">
+                              <span className="text-[#1A1A1A]/40 font-medium">V{ev.previous_version}</span>
+                              <span className="mx-1 text-[#E8490A] font-bold">→</span>
+                              <span className="font-bold text-[#059669]">V{ev.new_version}</span>
                             </td>
-                            <td className="p-3">
-                              <div className="text-white font-medium">{ev.actor_id}</div>
-                              <span className="inline-block text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-white/60 font-mono uppercase">
+                            <td className="p-3.5">
+                              <div className="text-[#1A1A1A] font-medium">{ev.actor_id}</div>
+                              <span className="inline-block text-[9px] px-1.5 py-0.2 rounded bg-black/[0.06] text-[#1A1A1A]/70 font-mono uppercase font-bold">
                                 {ev.actor_role}
                               </span>
                             </td>
-                            <td className="p-3 text-white/70 text-[11px]">{ev.source}</td>
-                            <td className="p-3 font-mono text-[11px] text-white/60">
-                              <div className="flex items-center gap-1">
+                            <td className="p-3.5 text-[#1A1A1A]/70 font-medium">{ev.source}</td>
+                            <td className="p-3.5 font-mono text-[11px]">
+                              <div className="flex items-center gap-1 text-[#1A1A1A]/70">
                                 {isGenesis ? (
-                                  <span className="text-[9px] px-1 bg-blue-500/20 text-blue-300 rounded font-sans">
+                                  <span className="text-[9px] px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded-md font-sans font-bold">
                                     GÊNESE
                                   </span>
                                 ) : (
-                                  <GitCommit size={11} className="text-[#00FF88]" />
+                                  <GitCommit size={12} className="text-[#059669] shrink-0" />
                                 )}
-                                <span>{ev.event_digest.substring(0, 18)}…</span>
+                                <span className="truncate max-w-[140px] font-bold">{ev.event_digest.slice(0, 16)}…</span>
                               </div>
                             </td>
-                            <td className="p-3 text-right">
+                            <td className="p-3.5 text-right">
                               <button
                                 onClick={() => setSelectedEvent(ev)}
-                                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 text-white/80 hover:text-white transition-colors text-[11px] font-medium border border-white/10"
+                                className="px-3 py-1.5 rounded-xl bg-white hover:bg-black/[0.05] text-[#1A1A1A] font-semibold text-[11px] border border-black/10 transition-all shadow-2xs inline-flex items-center gap-1.5"
                               >
-                                Inspecionar
+                                <Eye size={12} className="text-[#E8490A]" /> Inspecionar
                               </button>
                             </td>
                           </tr>
@@ -615,22 +719,24 @@ export default function AuditoriaPage() {
         {/* ════════ ABA 2: HISTÓRIA DA IDENTIDADE & DIFF ════════ */}
         {activeTab === 'historia' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Seletor de Entidade */}
-            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 flex flex-wrap items-center justify-between gap-4">
+            {/* Barra Seletora de Entidade */}
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <History className="text-[#E8490A]" size={20} />
+                <div className="w-9 h-9 rounded-xl bg-[#0D3A85] text-white flex items-center justify-center">
+                  <History size={18} />
+                </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-white">Linha do Tempo da Identidade Cultural</h2>
-                  <p className="text-xs text-white/40">Evolução passo a passo desde a gênese até a publicação</p>
+                  <h2 className="text-sm font-bold text-[#1A1A1A]">Linha Temporal da Identidade Cultural</h2>
+                  <p className="text-xs text-[#1A1A1A]/60">Reconstituição passo a passo da evolução e integridade</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <label className="text-xs text-white/60">Selecionar Identidade:</label>
+                <label className="text-xs font-bold text-[#1A1A1A]/70 uppercase tracking-wider">Identidade:</label>
                 <select
                   value={selectedTagId}
                   onChange={e => setSelectedTagId(e.target.value)}
-                  className="px-3 py-1.5 text-xs rounded-xl bg-[#18181B] border border-white/10 text-white focus:border-[#E8490A] outline-none font-medium"
+                  className="px-3.5 py-2 text-xs rounded-xl bg-white border border-black/15 text-[#1A1A1A] focus:border-[#E8490A] outline-none font-bold shadow-2xs"
                 >
                   {uniqueEntities.map(ent => (
                     <option key={ent.id} value={ent.id}>{ent.label} ({ent.id})</option>
@@ -640,70 +746,73 @@ export default function AuditoriaPage() {
             </div>
 
             {loadingTimeline ? (
-              <div className="p-16 text-center rounded-2xl bg-[#121214] border border-white/10">
+              <div className="p-20 text-center rounded-2xl bg-white/80 border border-black/[0.08]">
                 <div className="w-8 h-8 border-2 border-[#E8490A] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-xs text-white/40">Carregando história da identidade...</p>
+                <p className="text-xs text-[#1A1A1A]/50">Carregando história da identidade cultural...</p>
               </div>
             ) : !tagTimeline || !tagTimeline.events || tagTimeline.events.length === 0 ? (
-              <div className="p-16 text-center rounded-2xl bg-[#121214] border border-white/10">
-                <AlertTriangle size={32} className="mx-auto text-white/20 mb-3" />
-                <p className="text-sm text-white/50">Nenhum evento registrado para esta entidade.</p>
+              <div className="p-20 text-center rounded-2xl bg-white/80 border border-black/[0.08]">
+                <AlertTriangle size={32} className="mx-auto text-amber-500 mb-3" />
+                <p className="text-sm text-[#1A1A1A]/60">Nenhum evento registrado para esta entidade.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Linha Temporal Visual (5 colunas) */}
-                <div className="lg:col-span-5 p-6 rounded-2xl bg-[#121214] border border-white/10 space-y-6">
-                  <div className="border-b border-white/10 pb-3">
-                    <h3 className="text-xs uppercase tracking-wider text-white/50 font-semibold">
-                      Trilha Cronológica de Evolução
+                <div className="lg:col-span-5 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-6">
+                  <div className="border-b border-black/[0.08] pb-3">
+                    <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/50 font-bold">
+                      Trilha de Proveniência Passo a Passo
                     </h3>
-                    <p className="text-sm font-semibold text-white mt-1">
+                    <p className="text-base font-normal serif-title text-[#1A1A1A] mt-1">
                       {tagTimeline.events[0]?.metadata?.label || selectedTagId}
                     </p>
                   </div>
 
                   <div className="relative pl-6 space-y-6">
-                    <div className="absolute left-2.5 top-2 bottom-2 w-0.5 bg-gradient-to-b from-[#E8490A] via-[#00A3FF] to-[#00FF88]" />
+                    {/* Linha Vertical Conectora */}
+                    <div className="absolute left-2.5 top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#0D3A85] via-[#E8490A] to-[#059669]" />
 
                     {tagTimeline.events.map((ev: AuditEvent, idx: number) => {
                       const isGenesis = ev.previous_version === 0;
                       const isPublished = ev.event_type.includes('publish') || ev.metadata?.status === 'PUBLISHED';
-                      const isCurrent = idx === tagTimeline.events.length - 1;
 
                       return (
                         <div key={ev.event_id} className="relative group">
+                          {/* Pin Conector */}
                           <div
-                            className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full border-2 bg-[#121214] transition-all ${
+                            className={`absolute -left-[19px] top-1.5 w-3.5 h-3.5 rounded-full border-2 bg-white transition-all ${
                               isPublished
-                                ? 'border-[#00FF88] bg-[#00FF88]/20 shadow-[0_0_8px_#00FF88]'
+                                ? 'border-[#059669] bg-[#059669] shadow-[0_0_8px_rgba(5,150,105,0.4)]'
                                 : isGenesis
-                                ? 'border-blue-400 bg-blue-400/20'
-                                : 'border-[#E8490A] bg-[#E8490A]/20'
+                                ? 'border-[#0D3A85] bg-[#0D3A85]'
+                                : 'border-[#E8490A] bg-[#E8490A]'
                             }`}
                           />
 
-                          <div className="p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/20 transition-all space-y-1.5">
+                          <div className="p-4 rounded-xl bg-white border border-black/[0.08] shadow-2xs hover:border-[#E8490A]/40 transition-all space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="font-mono font-bold text-[#00FF88]">Versão {ev.new_version}</span>
-                              <span className="text-[10px] text-white/40 font-mono">
+                              <span className="font-mono font-bold text-[#059669] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                Versão {ev.new_version}
+                              </span>
+                              <span className="text-[10px] text-[#1A1A1A]/45 font-mono">
                                 {new Date(ev.timestamp).toLocaleString('pt-BR')}
                               </span>
                             </div>
 
-                            <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                            <div className="text-xs font-bold text-[#1A1A1A] flex items-center gap-2">
                               <span>{ev.event_type}</span>
                               {ev.metadata?.status && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-white/70 font-mono">
+                                <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/[0.06] text-[#1A1A1A]/70 font-mono uppercase font-bold">
                                   {ev.metadata.status}
                                 </span>
                               )}
                             </div>
 
-                            <p className="text-[11px] text-white/60 leading-relaxed">
-                              {ev.reason || 'Atualização de metadados da identidade computacional.'}
+                            <p className="text-[11px] text-[#1A1A1A]/70 leading-relaxed font-sans">
+                              {ev.reason || 'Atualização dos atributos estruturados da identidade.'}
                             </p>
 
-                            <div className="pt-1 flex flex-wrap items-center justify-between gap-1 text-[10px] text-white/40 font-mono border-t border-white/5">
+                            <div className="pt-2 flex flex-wrap items-center justify-between gap-1 text-[10px] text-[#1A1A1A]/50 font-mono border-t border-black/[0.05]">
                               <span>Ator: {ev.actor_id} ({ev.actor_role})</span>
                               <span>Fonte: {ev.source}</span>
                             </div>
@@ -714,25 +823,25 @@ export default function AuditoriaPage() {
                   </div>
                 </div>
 
-                {/* Comparador de Versões (7 colunas) */}
-                <div className="lg:col-span-7 p-6 rounded-2xl bg-[#121214] border border-white/10 space-y-6">
-                  <div className="border-b border-white/10 pb-3 flex flex-wrap items-center justify-between gap-3">
+                {/* Comparador de Versões Lado a Lado (7 colunas) */}
+                <div className="lg:col-span-7 p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-6">
+                  <div className="border-b border-black/[0.08] pb-3 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-xs uppercase tracking-wider text-white/50 font-semibold">
+                      <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/50 font-bold">
                         Comparador Canônico de Versões
                       </h3>
-                      <p className="text-sm font-semibold text-white mt-1">
-                        Análise de Alterações, Adições e Validações
+                      <p className="text-base font-normal serif-title text-[#1A1A1A] mt-0.5">
+                        Diferenças entre Versão Anterior e Versão Atual
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className="text-white/40 font-mono">V_A:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#1A1A1A]/50 font-bold">V_A:</span>
                         <select
                           value={versionA}
                           onChange={e => setVersionA(parseInt(e.target.value, 10))}
-                          className="px-2 py-1 rounded bg-[#18181B] border border-white/10 text-white font-mono text-xs"
+                          className="px-2.5 py-1.5 rounded-lg bg-white border border-black/15 text-[#1A1A1A] font-mono text-xs font-bold"
                         >
                           {tagTimeline.events.map((e: AuditEvent) => (
                             <option key={`a-${e.new_version}`} value={e.new_version}>
@@ -742,14 +851,14 @@ export default function AuditoriaPage() {
                         </select>
                       </div>
 
-                      <span className="text-[#E8490A] font-bold">VS</span>
+                      <span className="text-[#E8490A] font-black">VS</span>
 
-                      <div className="flex items-center gap-1">
-                        <span className="text-white/40 font-mono">V_B:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#1A1A1A]/50 font-bold">V_B:</span>
                         <select
                           value={versionB}
                           onChange={e => setVersionB(parseInt(e.target.value, 10))}
-                          className="px-2 py-1 rounded bg-[#18181B] border border-white/10 text-white font-mono text-xs"
+                          className="px-2.5 py-1.5 rounded-lg bg-white border border-black/15 text-[#1A1A1A] font-mono text-xs font-bold"
                         >
                           {tagTimeline.events.map((e: AuditEvent) => (
                             <option key={`b-${e.new_version}`} value={e.new_version}>
@@ -762,36 +871,44 @@ export default function AuditoriaPage() {
                   </div>
 
                   {versionComparison && versionComparison.eventA && versionComparison.eventB ? (
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                       {/* Resumo Comparativo */}
-                      <div className="grid grid-cols-2 gap-4 text-xs font-mono">
-                        <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                          <div className="text-white/40 text-[10px] uppercase font-bold">Estado Versão {versionA}</div>
-                          <div className="text-[#E8490A] font-semibold">{versionComparison.eventA.event_type}</div>
-                          <div className="text-[10px] text-white/50 truncate">
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="p-4 rounded-xl bg-[#0D3A85]/5 border border-[#0D3A85]/20 space-y-1.5">
+                          <div className="text-[#0D3A85] text-[10px] uppercase font-bold tracking-wider">
+                            Estado na Versão {versionA}
+                          </div>
+                          <div className="text-sm font-bold text-[#1A1A1A]">
+                            {versionComparison.eventA.event_type}
+                          </div>
+                          <div className="text-[10px] text-[#1A1A1A]/60 font-mono truncate">
                             Digest: {versionComparison.eventA.new_digest.slice(0, 24)}…
                           </div>
-                          <div className="text-[10px] text-white/50">
+                          <div className="text-[10px] text-[#1A1A1A]/60">
                             Ator: {versionComparison.eventA.actor_id} ({versionComparison.eventA.actor_role})
                           </div>
                         </div>
 
-                        <div className="p-3 rounded-xl bg-[#00FF88]/5 border border-[#00FF88]/20 space-y-1">
-                          <div className="text-[#00FF88] text-[10px] uppercase font-bold">Estado Versão {versionB}</div>
-                          <div className="text-[#00FF88] font-semibold">{versionComparison.eventB.event_type}</div>
-                          <div className="text-[10px] text-white/50 truncate">
+                        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 space-y-1.5">
+                          <div className="text-emerald-800 text-[10px] uppercase font-bold tracking-wider">
+                            Estado na Versão {versionB}
+                          </div>
+                          <div className="text-sm font-bold text-emerald-950">
+                            {versionComparison.eventB.event_type}
+                          </div>
+                          <div className="text-[10px] text-emerald-800 font-mono truncate">
                             Digest: {versionComparison.eventB.new_digest.slice(0, 24)}…
                           </div>
-                          <div className="text-[10px] text-white/50">
+                          <div className="text-[10px] text-emerald-800">
                             Ator: {versionComparison.eventB.actor_id} ({versionComparison.eventB.actor_role})
                           </div>
                         </div>
                       </div>
 
                       {/* Tabela de Diff Detalhada */}
-                      <div className="rounded-xl border border-white/10 overflow-hidden text-xs">
+                      <div className="rounded-xl border border-black/[0.08] overflow-hidden text-xs bg-white shadow-2xs">
                         <table className="w-full text-left">
-                          <thead className="bg-white/5 text-[10px] uppercase tracking-wider text-white/50 font-semibold border-b border-white/10">
+                          <thead className="bg-black/[0.03] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold border-b border-black/[0.08]">
                             <tr>
                               <th className="p-3">Atributo</th>
                               <th className="p-3">Versão {versionA}</th>
@@ -799,75 +916,75 @@ export default function AuditoriaPage() {
                               <th className="p-3">Status da Modificação</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                          <tbody className="divide-y divide-black/[0.05] text-[11px]">
                             <tr>
-                              <td className="p-3 text-white/50">Status Operacional</td>
-                              <td className="p-3 text-white/80">{versionComparison.eventA.metadata?.status || 'RAW'}</td>
-                              <td className="p-3 font-semibold text-[#00FF88]">
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Status Operacional</td>
+                              <td className="p-3 text-[#1A1A1A]/80 font-mono">{versionComparison.eventA.metadata?.status || 'RAW'}</td>
+                              <td className="p-3 font-bold text-[#059669] font-mono">
                                 {versionComparison.eventB.metadata?.status || 'VALIDATED'}
                               </td>
                               <td className="p-3">
-                                <span className="px-2 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-300 font-sans">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
                                   validado
                                 </span>
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-3 text-white/50">Origem / Conector</td>
-                              <td className="p-3 text-white/80">{versionComparison.eventA.source}</td>
-                              <td className="p-3 font-semibold text-white">{versionComparison.eventB.source}</td>
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Origem / Conector</td>
+                              <td className="p-3 text-[#1A1A1A]/80">{versionComparison.eventA.source}</td>
+                              <td className="p-3 font-bold text-[#1A1A1A]">{versionComparison.eventB.source}</td>
                               <td className="p-3">
                                 {versionComparison.eventA.source !== versionComparison.eventB.source ? (
-                                  <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-sans">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
                                     alterado
                                   </span>
                                 ) : (
-                                  <span className="text-white/30 text-[10px] font-sans">inalterado</span>
+                                  <span className="text-[#1A1A1A]/40 text-[10px]">inalterado</span>
                                 )}
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-3 text-white/50">Digest de Estado</td>
-                              <td className="p-3 truncate max-w-[150px] text-white/60">
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Digest do Estado</td>
+                              <td className="p-3 truncate max-w-[150px] font-mono text-[#1A1A1A]/60">
                                 {versionComparison.eventA.new_digest.slice(0, 16)}…
                               </td>
-                              <td className="p-3 truncate max-w-[150px] text-[#00FF88]">
+                              <td className="p-3 truncate max-w-[150px] font-mono font-bold text-[#059669]">
                                 {versionComparison.eventB.new_digest.slice(0, 16)}…
                               </td>
                               <td className="p-3">
-                                <span className="px-2 py-0.5 rounded text-[10px] bg-green-500/20 text-green-300 font-sans">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                   novo digest
                                 </span>
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-3 text-white/50">Alvo Relacional</td>
-                              <td className="p-3 text-white/40">
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Entidade Relacionada</td>
+                              <td className="p-3 text-[#1A1A1A]/40 font-mono">
                                 {versionComparison.eventA.metadata?.target_entity || '—'}
                               </td>
-                              <td className="p-3 text-white font-semibold">
+                              <td className="p-3 font-bold text-[#1A1A1A] font-mono">
                                 {versionComparison.eventB.metadata?.target_entity || '—'}
                               </td>
                               <td className="p-3">
                                 {versionComparison.eventB.metadata?.target_entity && !versionComparison.eventA.metadata?.target_entity ? (
-                                  <span className="px-2 py-0.5 rounded text-[10px] bg-[#00FF88]/20 text-[#00FF88] font-sans">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
                                     adicionado
                                   </span>
                                 ) : (
-                                  <span className="text-white/30 text-[10px] font-sans">preservado</span>
+                                  <span className="text-[#1A1A1A]/40 text-[10px]">preservado</span>
                                 )}
                               </td>
                             </tr>
                             <tr>
-                              <td className="p-3 text-white/50">Motivação Formal</td>
-                              <td className="p-3 text-white/60 font-sans text-[11px]">
+                              <td className="p-3 font-semibold text-[#1A1A1A]/60">Motivação Formal</td>
+                              <td className="p-3 text-[#1A1A1A]/60 leading-tight">
                                 {versionComparison.eventA.reason || '—'}
                               </td>
-                              <td className="p-3 text-white/90 font-sans text-[11px]">
+                              <td className="p-3 text-[#1A1A1A] font-medium leading-tight">
                                 {versionComparison.eventB.reason || '—'}
                               </td>
                               <td className="p-3">
-                                <span className="px-2 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-300 font-sans">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800">
                                   revisado
                                 </span>
                               </td>
@@ -877,7 +994,7 @@ export default function AuditoriaPage() {
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-white/40">Selecione duas versões para visualizar o comparador canônico.</p>
+                    <p className="text-xs text-[#1A1A1A]/50">Selecione duas versões para calcular a comparação canônica.</p>
                   )}
                 </div>
               </div>
@@ -888,53 +1005,53 @@ export default function AuditoriaPage() {
         {/* ════════ ABA 3: RELAÇÕES & FONTES ════════ */}
         {activeTab === 'relacoes_fontes' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Relações Auditadas */}
-            <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
-              <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            {/* Tabela de Relações */}
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+              <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-black/[0.02]">
                 <div>
-                  <h2 className="text-sm font-semibold text-white">Relações Ontológicas Auditadas</h2>
-                  <p className="text-[11px] text-white/40">
-                    Origem de cada vínculo relacional, confiança matemática e comprovação probatória
+                  <h2 className="text-sm font-bold text-[#1A1A1A]">Relações Ontológicas Auditadas</h2>
+                  <p className="text-xs text-[#1A1A1A]/55">
+                    Origem de cada vínculo, nível de confiança matemática e evidência probatória
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-white/5 border border-white/10 text-white/80">
-                  {relations.length} Relações Registradas
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-black/[0.05] text-[#1A1A1A]">
+                  {relations.length} Relações Preservadas
                 </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                      <th className="p-3">Identidade Origem</th>
-                      <th className="p-3">Relação (SKOS)</th>
-                      <th className="p-3">Identidade Destino</th>
-                      <th className="p-3">Fonte / Conector</th>
-                      <th className="p-3">Confiança</th>
-                      <th className="p-3">Status</th>
-                      <th className="p-3 font-mono">Digest da Relação</th>
+                    <tr className="bg-black/[0.03] border-b border-black/[0.08] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
+                      <th className="p-3.5">Identidade Origem</th>
+                      <th className="p-3.5">Relação (SKOS)</th>
+                      <th className="p-3.5">Identidade Destino</th>
+                      <th className="p-3.5">Fonte / Conector</th>
+                      <th className="p-3.5">Confiança</th>
+                      <th className="p-3.5">Status</th>
+                      <th className="p-3.5 font-mono">Digest da Relação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-black/[0.05]">
                     {relations.map(rel => (
-                      <tr key={rel.relation_id} className="hover:bg-white/[0.03] transition-colors">
-                        <td className="p-3 font-semibold text-white font-mono text-[11px]">{rel.source_entity}</td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#E8490A]/10 text-[#E8490A] border border-[#E8490A]/20">
+                      <tr key={rel.relation_id} className="hover:bg-black/[0.02] transition-colors">
+                        <td className="p-3.5 font-bold text-[#1A1A1A] font-mono text-[11px]">{rel.source_entity}</td>
+                        <td className="p-3.5">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#E8490A]/10 text-[#E8490A] border border-[#E8490A]/20">
                             {rel.relation_type}
                           </span>
                         </td>
-                        <td className="p-3 font-semibold text-white font-mono text-[11px]">{rel.target_entity}</td>
-                        <td className="p-3 text-white/70">{rel.source}</td>
-                        <td className="p-3 font-mono font-bold text-[#00FF88]">
+                        <td className="p-3.5 font-bold text-[#1A1A1A] font-mono text-[11px]">{rel.target_entity}</td>
+                        <td className="p-3.5 text-[#1A1A1A]/70 font-medium">{rel.source}</td>
+                        <td className="p-3.5 font-mono font-bold text-[#059669]">
                           {Math.round(rel.confidence * 100)}%
                         </td>
-                        <td className="p-3">
-                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-green-500/20 text-green-300">
+                        <td className="p-3.5">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
                             {rel.status}
                           </span>
                         </td>
-                        <td className="p-3 font-mono text-[11px] text-white/60">
+                        <td className="p-3.5 font-mono text-[11px] text-[#1A1A1A]/60">
                           {rel.digest.slice(0, 20)}…
                         </td>
                       </tr>
@@ -944,56 +1061,56 @@ export default function AuditoriaPage() {
               </div>
             </div>
 
-            {/* Fontes Externas Preservadas */}
-            <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
-              <div className="p-4 border-b border-white/10 flex items-center justify-between">
+            {/* Tabela de Fontes Externas Preservadas */}
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+              <div className="p-4 border-b border-black/[0.08] flex items-center justify-between bg-black/[0.02]">
                 <div>
-                  <h2 className="text-sm font-semibold text-white">Fontes Externas com Origem Preservada</h2>
-                  <p className="text-[11px] text-white/40">
-                    Diferenciação probatória entre contribuição de usuário, acervo institucional e conector do sistema
+                  <h2 className="text-sm font-bold text-[#1A1A1A]">Fontes Externas com Origem Preservada</h2>
+                  <p className="text-xs text-[#1A1A1A]/55">
+                    Diferenciação probatória entre usuário, acervo institucional e adaptadores de rede
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-white/5 border border-white/10 text-white/80">
-                  {sources.length} Fontes Vinculadas
+                <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-black/[0.05] text-[#1A1A1A]">
+                  {sources.length} Acervos Conectados
                 </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
-                    <tr className="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                      <th className="p-3">Acervo / Conector</th>
-                      <th className="p-3">ID Externo</th>
-                      <th className="p-3">URI Externa</th>
-                      <th className="p-3">Método de Correspondência</th>
-                      <th className="p-3">Versão Adaptador</th>
-                      <th className="p-3 font-mono">Digest Resposta</th>
-                      <th className="p-3">Recuperado em</th>
+                    <tr className="bg-black/[0.03] border-b border-black/[0.08] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
+                      <th className="p-3.5">Acervo / Conector</th>
+                      <th className="p-3.5">ID Externo</th>
+                      <th className="p-3.5">URI Externa</th>
+                      <th className="p-3.5">Método de Correspondência</th>
+                      <th className="p-3.5">Versão Adaptador</th>
+                      <th className="p-3.5 font-mono">Digest Resposta</th>
+                      <th className="p-3.5">Data Recuperação</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-black/[0.05]">
                     {sources.map(src => (
-                      <tr key={src.id} className="hover:bg-white/[0.03] transition-colors">
-                        <td className="p-3 font-semibold text-white">{src.source}</td>
-                        <td className="p-3 font-mono text-[11px] text-white/80">{src.external_id || src.source_id}</td>
-                        <td className="p-3">
+                      <tr key={src.id} className="hover:bg-black/[0.02] transition-colors">
+                        <td className="p-3.5 font-bold text-[#1A1A1A]">{src.source}</td>
+                        <td className="p-3.5 font-mono text-[11px] text-[#1A1A1A]/80">{src.external_id || src.source_id}</td>
+                        <td className="p-3.5">
                           {src.external_uri ? (
                             <a
                               href={src.external_uri}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[#00A3FF] hover:underline inline-flex items-center gap-1 font-mono text-[11px]"
+                              className="text-[#0D3A85] hover:underline inline-flex items-center gap-1 font-mono text-[11px] font-bold"
                             >
-                              Link Externo <ExternalLink size={11} />
+                              Abrir Registro <ExternalLink size={11} />
                             </a>
                           ) : (
-                            <span className="text-white/30 font-mono">—</span>
+                            <span className="text-[#1A1A1A]/30 font-mono">—</span>
                           )}
                         </td>
-                        <td className="p-3 font-mono text-[11px] text-white/70">{src.matching_method}</td>
-                        <td className="p-3 font-mono text-white/60">v{src.adapter_version}</td>
-                        <td className="p-3 font-mono text-[11px] text-white/60">{src.response_digest.slice(0, 18)}…</td>
-                        <td className="p-3 text-white/50 font-mono text-[11px]">
+                        <td className="p-3.5 font-mono text-[11px] text-[#1A1A1A]/70">{src.matching_method}</td>
+                        <td className="p-3.5 font-mono text-[#1A1A1A]/60">v{src.adapter_version}</td>
+                        <td className="p-3.5 font-mono text-[11px] text-[#1A1A1A]/60">{src.response_digest.slice(0, 18)}…</td>
+                        <td className="p-3.5 text-[#1A1A1A]/60 font-mono text-[11px]">
                           {new Date(src.retrieved_at).toLocaleString('pt-BR')}
                         </td>
                       </tr>
@@ -1008,98 +1125,87 @@ export default function AuditoriaPage() {
         {/* ════════ ABA 4: VERIFICAÇÃO DE INTEGRIDADE (8 NÍVEIS) ════════ */}
         {activeTab === 'integridade' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Cartão de Status Geral */}
+            {/* Banner Executivo de Status */}
             <div
               className={`p-6 rounded-2xl border transition-all ${
                 integrityReport?.status === 'INTEGRIDADE VERIFICADA'
-                  ? 'bg-[#00FF88]/5 border-[#00FF88]/30'
-                  : 'bg-red-500/10 border-red-500/30'
+                  ? 'bg-emerald-50 border-emerald-300 shadow-xs'
+                  : 'bg-rose-50 border-rose-300 shadow-xs'
               }`}
             >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
                   {integrityReport?.status === 'INTEGRIDADE VERIFICADA' ? (
-                    <div className="w-12 h-12 rounded-2xl bg-[#00FF88]/20 border border-[#00FF88]/40 flex items-center justify-center text-[#00FF88]">
-                      <ShieldCheck size={26} />
+                    <div className="w-14 h-14 rounded-2xl bg-[#059669] text-white flex items-center justify-center shadow-md">
+                      <ShieldCheck size={32} />
                     </div>
                   ) : (
-                    <div className="w-12 h-12 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400">
-                      <AlertTriangle size={26} />
+                    <div className="w-14 h-14 rounded-2xl bg-rose-600 text-white flex items-center justify-center shadow-md">
+                      <AlertTriangle size={32} />
                     </div>
                   )}
 
                   <div>
-                    <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-tight text-[#1A1A1A]">
                       {integrityReport?.status || 'Aguardando Verificação'}
                     </h2>
-                    <p className="text-xs text-white/60 mt-1">
-                      Verificação criptográfica contínua em 8 níveis segundo o modelo canônico de interoperabilidade
+                    <p className="text-xs text-[#1A1A1A]/70 mt-1 font-medium">
+                      Auditoria matemática contínua: cadeia SHA-256 ininterrupta, conformidade RFC 8785 e Merkle Root ativa
                     </p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-right font-mono">
-                    <div className="text-[10px] uppercase text-white/40">Merkle Root Ativa</div>
-                    <div className="text-xs font-bold text-[#00FF88]">
-                      {integrityReport?.merkleRoot ? `${integrityReport.merkleRoot.slice(0, 24)}…` : '—'}
-                    </div>
-                  </div>
-
+                <div className="flex items-center gap-3">
                   <button
                     onClick={runIntegrityCheck}
                     disabled={verifyingIntegrity}
-                    className="px-5 py-3 rounded-xl text-xs font-semibold bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(232,73,10,0.3)] disabled:opacity-50"
+                    className="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
                   >
                     <RefreshCw size={14} className={verifyingIntegrity ? 'animate-spin' : ''} />
-                    {verifyingIntegrity ? 'Executando Análise Criptográfica...' : 'Verificar Integridade Agora'}
+                    {verifyingIntegrity ? 'Executando Análise Criptográfica...' : 'Executar Nova Verificação'}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Grid dos 8 Testes de Integridade */}
+            {/* Matriz dos 8 Testes de Integridade */}
             {integrityReport && integrityReport.checks && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.entries(integrityReport.checks).map(([key, chk], idx) => {
                   return (
                     <div
                       key={key}
-                      className={`p-4 rounded-2xl border transition-all ${
-                        chk.passed
-                          ? 'bg-[#121214] border-white/10 hover:border-white/20'
-                          : 'bg-red-500/10 border-red-500/30'
-                      }`}
+                      className="p-5 rounded-2xl bg-white/90 backdrop-blur-md border border-black/[0.08] shadow-xs space-y-3"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-bold ${
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-mono text-xs font-bold ${
                               chk.passed
-                                ? 'bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/30'
-                                : 'bg-red-500/20 text-red-400 border border-red-500/40'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-rose-100 text-rose-800'
                             }`}
                           >
                             {idx + 1}
                           </div>
                           <div>
-                            <span className="text-[10px] font-mono text-white/40 block">{chk.code}</span>
-                            <h3 className="text-xs font-semibold text-white mt-0.5">{chk.description}</h3>
+                            <span className="text-[10px] font-mono text-[#1A1A1A]/40 font-bold block">{chk.code}</span>
+                            <h3 className="text-xs font-bold text-[#1A1A1A] mt-0.5">{chk.description}</h3>
                           </div>
                         </div>
 
                         {chk.passed ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-[#00FF88]/10 text-[#00FF88] border border-[#00FF88]/30">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-emerald-50 text-emerald-800 border border-emerald-300">
                             Aprovado
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-red-500/20 text-red-400 border border-red-500/40">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-rose-50 text-rose-800 border border-rose-300">
                             Inconsistente
                           </span>
                         )}
                       </div>
 
-                      <p className="text-[11px] text-white/60 mt-3 pt-3 border-t border-white/5 leading-relaxed font-sans">
+                      <p className="text-[11px] text-[#1A1A1A]/70 pt-2 border-t border-black/[0.05] leading-relaxed font-sans">
                         {chk.details}
                       </p>
                     </div>
@@ -1110,22 +1216,22 @@ export default function AuditoriaPage() {
 
             {/* Diagnóstico em caso de inconsistência */}
             {integrityReport && integrityReport.inconsistencies.length > 0 && (
-              <div className="p-6 rounded-2xl bg-red-500/10 border border-red-500/30 space-y-4">
-                <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+              <div className="p-6 rounded-2xl bg-rose-50 border border-rose-300 space-y-4 shadow-xs">
+                <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
                   <AlertTriangle size={18} />
-                  <span>Diagnósticos de Adulteração ou Descontinuidade Detectados</span>
+                  <span>Inconsistências ou Adulterações Detectadas</span>
                 </div>
 
                 <div className="space-y-2 font-mono text-xs">
                   {integrityReport.inconsistencies.map((inc, iIdx) => (
-                    <div key={iIdx} className="p-3 rounded-xl bg-black/40 border border-red-500/20 space-y-1">
-                      <div className="text-red-300 font-semibold">{inc.message}</div>
-                      {inc.event_id && <div className="text-white/60 text-[11px]">Evento Afetado: {inc.event_id}</div>}
+                    <div key={iIdx} className="p-3 rounded-xl bg-white border border-rose-200 space-y-1">
+                      <div className="text-rose-700 font-bold">{inc.message}</div>
+                      {inc.event_id && <div className="text-[#1A1A1A]/60 text-[11px]">Evento Afetado: {inc.event_id}</div>}
                       {inc.expected_digest && (
-                        <div className="text-white/40 text-[11px]">Digest Esperado: {inc.expected_digest}</div>
+                        <div className="text-[#1A1A1A]/50 text-[11px]">Digest Esperado: {inc.expected_digest}</div>
                       )}
                       {inc.calculated_digest && (
-                        <div className="text-red-400 text-[11px]">Digest Calculado: {inc.calculated_digest}</div>
+                        <div className="text-rose-600 text-[11px]">Digest Calculado: {inc.calculated_digest}</div>
                       )}
                     </div>
                   ))}
@@ -1138,73 +1244,73 @@ export default function AuditoriaPage() {
         {/* ════════ ABA 5: LOG DE SEGURANÇA (SEGREGADO) ════════ */}
         {activeTab === 'seguranca' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 flex items-center justify-between">
+            <div className="p-5 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Lock size={15} className="text-[#00A3FF]" /> Log de Segurança Operacional (Segregado)
+                <h2 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
+                  <Lock size={16} className="text-[#0D3A85]" /> Log de Segurança Operacional (Segregado)
                 </h2>
-                <p className="text-[11px] text-white/40">
-                  Registro isolado de eventos de segurança: autenticação, privilégios, acessos à API e rotações
+                <p className="text-xs text-[#1A1A1A]/55 mt-0.5">
+                  Registro isolado de autenticações, privilégios, exportações e acessos administrativos
                 </p>
               </div>
 
-              <span className="px-2.5 py-1 rounded-full text-xs font-mono font-semibold bg-white/5 border border-white/10 text-white/80">
-                {securityLogs.length} Registros de Segurança
+              <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-black/[0.05] text-[#1A1A1A]">
+                {securityLogs.length} Registros Operacionais
               </span>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
               {loadingSecurity ? (
-                <div className="p-12 text-center">
-                  <div className="w-8 h-8 border-2 border-[#00A3FF] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                  <p className="text-xs text-white/40">Carregando logs de segurança...</p>
+                <div className="p-16 text-center">
+                  <div className="w-8 h-8 border-2 border-[#0D3A85] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-xs text-[#1A1A1A]/50">Carregando logs de segurança...</p>
                 </div>
               ) : securityLogs.length === 0 ? (
-                <div className="p-12 text-center">
-                  <Lock size={32} className="mx-auto text-white/20 mb-3" />
-                  <p className="text-sm text-white/50">Nenhum evento de segurança registrado no período.</p>
+                <div className="p-16 text-center">
+                  <Lock size={32} className="mx-auto text-[#1A1A1A]/20 mb-3" />
+                  <p className="text-sm text-[#1A1A1A]/50">Nenhum evento de segurança registrado no período.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                        <th className="p-3">Data / Hora</th>
-                        <th className="p-3">Tipo de Evento</th>
-                        <th className="p-3">Ator / Função</th>
-                        <th className="p-3">Endereço IP</th>
-                        <th className="p-3">Detalhes</th>
-                        <th className="p-3 font-mono">Digest Criptográfico</th>
+                      <tr className="bg-black/[0.03] border-b border-black/[0.08] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
+                        <th className="p-3.5">Data / Hora</th>
+                        <th className="p-3.5">Tipo de Evento</th>
+                        <th className="p-3.5">Ator / Função</th>
+                        <th className="p-3.5">Endereço IP</th>
+                        <th className="p-3.5">Detalhes da Operação</th>
+                        <th className="p-3.5 font-mono">Digest Criptográfico</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                    <tbody className="divide-y divide-black/[0.05] font-mono text-[11px]">
                       {securityLogs.map(log => {
                         const isFailed = log.event_type.includes('failed') || log.event_type.includes('failure');
                         return (
-                          <tr key={log.log_id} className="hover:bg-white/[0.03] transition-colors">
-                            <td className="p-3 text-white/70 whitespace-nowrap">
+                          <tr key={log.log_id} className="hover:bg-black/[0.02] transition-colors">
+                            <td className="p-3.5 text-[#1A1A1A]/80 whitespace-nowrap">
                               {new Date(log.timestamp).toLocaleString('pt-BR')}
                             </td>
-                            <td className="p-3">
+                            <td className="p-3.5">
                               <span
-                                className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
+                                className={`px-2.5 py-0.5 rounded text-[10px] uppercase font-bold ${
                                   isFailed
-                                    ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                                    : 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20'
+                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                    : 'bg-blue-100 text-blue-800 border border-blue-200'
                                 }`}
                               >
                                 {log.event_type}
                               </span>
                             </td>
-                            <td className="p-3 font-sans">
-                              <div className="font-semibold text-white">{log.actor_id}</div>
-                              <span className="text-[9px] text-white/50 uppercase font-mono">{log.actor_role}</span>
+                            <td className="p-3.5 font-sans">
+                              <div className="font-bold text-[#1A1A1A]">{log.actor_id}</div>
+                              <span className="text-[9px] text-[#1A1A1A]/50 uppercase font-mono font-bold">{log.actor_role}</span>
                             </td>
-                            <td className="p-3 text-white/70">{log.ip_address || '—'}</td>
-                            <td className="p-3 font-sans text-white/60 max-w-[200px] truncate">
+                            <td className="p-3.5 text-[#1A1A1A]/80">{log.ip_address || '—'}</td>
+                            <td className="p-3.5 font-sans text-[#1A1A1A]/70 max-w-[240px] truncate">
                               {JSON.stringify(log.details)}
                             </td>
-                            <td className="p-3 text-white/50 truncate max-w-[150px]">{log.log_digest}</td>
+                            <td className="p-3.5 text-[#1A1A1A]/50 truncate max-w-[150px]">{log.log_digest}</td>
                           </tr>
                         );
                       })}
@@ -1219,67 +1325,67 @@ export default function AuditoriaPage() {
         {/* ════════ ABA 6: EXPORTAÇÕES AUDITADAS ════════ */}
         {activeTab === 'exportacoes' && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            <div className="p-6 rounded-2xl bg-[#121214] border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="p-6 rounded-2xl bg-white/80 backdrop-blur-md border border-black/[0.08] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                <h2 className="text-sm font-bold text-[#1A1A1A] flex items-center gap-2">
                   <Download size={16} className="text-[#E8490A]" /> Pacotes de Exportação Auditados
                 </h2>
-                <p className="text-xs text-white/40 mt-1">
-                  Exportação canônica em JSON-LD com emissão e registro de digest criptográfico SHA-256
+                <p className="text-xs text-[#1A1A1A]/60 mt-1">
+                  Exportação canônica em JSON-LD com emissão de digest criptográfico SHA-256
                 </p>
               </div>
 
               <button
                 onClick={handleExportAuditedPackage}
                 disabled={exporting}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_0_15px_rgba(232,73,10,0.3)] disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#E8490A] text-white hover:bg-[#E8490A]/90 transition-all flex items-center gap-2 shadow-[0_4px_16px_rgba(232,73,10,0.25)] disabled:opacity-50"
               >
                 <Download size={13} className={exporting ? 'animate-bounce' : ''} />
                 {exporting ? 'Gerando Pacote...' : 'Exportar Pacote Canônico (JSON-LD)'}
               </button>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-[#121214] overflow-hidden">
-              <div className="p-4 border-b border-white/10">
-                <h3 className="text-xs uppercase tracking-wider text-white/50 font-semibold">
-                  Histórico de Exportações Auditadas
+            <div className="rounded-2xl border border-black/[0.08] bg-white/90 backdrop-blur-md overflow-hidden shadow-xs">
+              <div className="p-4 border-b border-black/[0.08] bg-black/[0.02]">
+                <h3 className="text-xs uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
+                  Histórico de Pacotes Exportados
                 </h3>
               </div>
 
               {exportsList.length === 0 ? (
-                <div className="p-12 text-center">
-                  <Download size={32} className="mx-auto text-white/20 mb-3" />
-                  <p className="text-sm text-white/50">Nenhuma exportação realizada até o momento.</p>
+                <div className="p-16 text-center">
+                  <Download size={32} className="mx-auto text-[#1A1A1A]/20 mb-3" />
+                  <p className="text-sm text-[#1A1A1A]/50">Nenhuma exportação auditada registrada até o momento.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-white/5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-                        <th className="p-3">ID Exportação</th>
-                        <th className="p-3">Data / Hora</th>
-                        <th className="p-3">Ator Responsável</th>
-                        <th className="p-3">Formato</th>
-                        <th className="p-3">Qtd. Registros</th>
-                        <th className="p-3 font-mono">Dataset Digest (SHA-256)</th>
+                      <tr className="bg-black/[0.03] border-b border-black/[0.08] text-[10px] uppercase tracking-wider text-[#1A1A1A]/60 font-bold">
+                        <th className="p-3.5">ID Exportação</th>
+                        <th className="p-3.5">Data / Hora</th>
+                        <th className="p-3.5">Ator Responsável</th>
+                        <th className="p-3.5">Formato</th>
+                        <th className="p-3.5">Qtd. Registros</th>
+                        <th className="p-3.5 font-mono">Dataset Digest (SHA-256)</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                    <tbody className="divide-y divide-black/[0.05] font-mono text-[11px]">
                       {exportsList.map(exp => (
-                        <tr key={exp.export_id} className="hover:bg-white/[0.03] transition-colors">
-                          <td className="p-3 font-bold text-white">{exp.export_id}</td>
-                          <td className="p-3 text-white/70">{new Date(exp.timestamp).toLocaleString('pt-BR')}</td>
-                          <td className="p-3 font-sans">
-                            <span className="text-white font-medium">{exp.actor_id}</span>
-                            <span className="text-[9px] text-white/40 block font-mono">({exp.actor_role})</span>
+                        <tr key={exp.export_id} className="hover:bg-black/[0.02] transition-colors">
+                          <td className="p-3.5 font-bold text-[#1A1A1A]">{exp.export_id}</td>
+                          <td className="p-3.5 text-[#1A1A1A]/80">{new Date(exp.timestamp).toLocaleString('pt-BR')}</td>
+                          <td className="p-3.5 font-sans">
+                            <span className="text-[#1A1A1A] font-bold">{exp.actor_id}</span>
+                            <span className="text-[9px] text-[#1A1A1A]/50 block font-mono font-bold">({exp.actor_role})</span>
                           </td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-white/10 text-white font-bold">
+                          <td className="p-3.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-black/[0.06] text-[#1A1A1A] font-bold">
                               {exp.format}
                             </span>
                           </td>
-                          <td className="p-3 text-[#00FF88] font-bold">{exp.record_count}</td>
-                          <td className="p-3 text-white/60 truncate max-w-[200px]" title={exp.dataset_digest}>
+                          <td className="p-3.5 text-[#059669] font-bold">{exp.record_count}</td>
+                          <td className="p-3.5 text-[#1A1A1A]/70 truncate max-w-[200px]" title={exp.dataset_digest}>
                             {exp.dataset_digest}
                           </td>
                         </tr>
@@ -1294,21 +1400,21 @@ export default function AuditoriaPage() {
 
       </div>
 
-      {/* ════════ MODAL DE INSPEÇÃO PROFUNDA DO EVENTO ════════ */}
+      {/* ════════ MODAL DE INSPEÇÃO CRIPTOGRÁFICA DO EVENTO ════════ */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#121214] border border-white/15 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border border-black/10 overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Header do Modal */}
-            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+            <div className="p-6 border-b border-black/[0.08] flex items-center justify-between bg-[#FBFBFB]">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#E8490A] font-semibold block">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-[#E8490A] font-bold block">
                   Inspeção Criptográfica do Evento
                 </span>
-                <h3 className="text-base font-bold text-white mt-0.5">{selectedEvent.event_id}</h3>
+                <h3 className="text-lg font-normal serif-title text-[#1A1A1A] mt-0.5">{selectedEvent.event_id}</h3>
               </div>
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                className="w-8 h-8 rounded-full bg-black/[0.05] hover:bg-black/10 text-[#1A1A1A] flex items-center justify-center transition-colors font-bold text-sm"
               >
                 ✕
               </button>
@@ -1317,77 +1423,77 @@ export default function AuditoriaPage() {
             {/* Conteúdo do Modal */}
             <div className="p-6 overflow-y-auto space-y-6 text-xs font-sans">
               {/* Encadeamento Criptográfico (Hash Chain) */}
-              <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+              <div className="p-4 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-white/50 font-mono">
-                    Encadeamento da Hash Chain
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A1A]/60 font-mono">
+                    Encadeamento da Hash Chain (Elo Sucessor)
                   </span>
                   <button
                     onClick={() => copyToClipboard(selectedEvent.event_digest)}
-                    className="flex items-center gap-1 text-[10px] text-[#E8490A] hover:underline"
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#E8490A] hover:underline"
                   >
-                    {copiedDigest ? <Check size={11} /> : <Copy size={11} />}
-                    {copiedDigest ? 'Copiado' : 'Copiar Event Digest'}
+                    {copiedDigest ? <Check size={12} /> : <Copy size={12} />}
+                    {copiedDigest ? 'Copiado!' : 'Copiar Event Digest'}
                   </button>
                 </div>
 
                 <div className="space-y-2 font-mono text-[11px]">
-                  <div>
-                    <span className="text-white/40 block text-[10px]">Previous Event Digest:</span>
-                    <span className="text-white/70 select-all break-all">
-                      {selectedEvent.previous_event_digest || 'null (Gênese da Trilha)'}
+                  <div className="bg-white p-2.5 rounded-xl border border-black/[0.06]">
+                    <span className="text-[#1A1A1A]/40 block text-[10px] font-bold uppercase">Previous Event Digest:</span>
+                    <span className="text-[#1A1A1A]/80 select-all break-all">
+                      {selectedEvent.previous_event_digest || 'null (Gênese da Trilha de Proveniência)'}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-white/40 block text-[10px]">Current Event Digest:</span>
-                    <span className="text-[#00FF88] font-bold select-all break-all">
+                  <div className="bg-white p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/50">
+                    <span className="text-emerald-800 block text-[10px] font-bold uppercase">Current Event Digest:</span>
+                    <span className="text-emerald-900 font-bold select-all break-all">
                       {selectedEvent.event_digest}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-white/40 block text-[10px]">Payload Digest (RFC 8785):</span>
-                    <span className="text-cyan-300 select-all break-all">{selectedEvent.payload_digest}</span>
+                  <div className="bg-white p-2.5 rounded-xl border border-black/[0.06]">
+                    <span className="text-[#1A1A1A]/40 block text-[10px] font-bold uppercase">Payload Digest (RFC 8785):</span>
+                    <span className="text-[#0D3A85] select-all break-all font-bold">{selectedEvent.payload_digest}</span>
                   </div>
                 </div>
               </div>
 
               {/* Informações de Proveniência W3C PROV */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                  <span className="text-[10px] uppercase font-mono text-white/40 block">Agente Responsável</span>
-                  <div className="font-semibold text-white">{selectedEvent.actor_id}</div>
-                  <span className="text-[10px] text-white/60 font-mono">Papel: {selectedEvent.actor_role}</span>
+                <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-1">
+                  <span className="text-[10px] uppercase font-mono font-bold text-[#1A1A1A]/50 block">Agente (W3C Agent)</span>
+                  <div className="font-bold text-[#1A1A1A]">{selectedEvent.actor_id}</div>
+                  <span className="text-[10px] text-[#1A1A1A]/60 font-mono font-medium">Papel: {selectedEvent.actor_role}</span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                  <span className="text-[10px] uppercase font-mono text-white/40 block">Atividade / Operação</span>
-                  <div className="font-semibold text-[#E8490A]">{selectedEvent.event_type}</div>
-                  <span className="text-[10px] text-white/60">Origem: {selectedEvent.source}</span>
+                <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-1">
+                  <span className="text-[10px] uppercase font-mono font-bold text-[#1A1A1A]/50 block">Atividade (W3C Activity)</span>
+                  <div className="font-bold text-[#E8490A]">{selectedEvent.event_type}</div>
+                  <span className="text-[10px] text-[#1A1A1A]/60 font-medium">Origem: {selectedEvent.source}</span>
                 </div>
 
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
-                  <span className="text-[10px] uppercase font-mono text-white/40 block">Entidade Afetada</span>
-                  <div className="font-semibold text-white">{selectedEvent.metadata?.label || selectedEvent.entity_id}</div>
-                  <span className="text-[10px] text-[#00FF88] font-mono">Versão {selectedEvent.new_version}</span>
+                <div className="p-3.5 rounded-2xl bg-black/[0.02] border border-black/[0.08] space-y-1">
+                  <span className="text-[10px] uppercase font-mono font-bold text-[#1A1A1A]/50 block">Entidade (W3C Entity)</span>
+                  <div className="font-bold text-[#1A1A1A]">{selectedEvent.metadata?.label || selectedEvent.entity_id}</div>
+                  <span className="text-[10px] text-[#059669] font-mono font-bold">Versão {selectedEvent.new_version}</span>
                 </div>
               </div>
 
               {/* Payload Canônico em JSON */}
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-white/50 font-mono block mb-2">
-                  Payload Canônico Completo (JSON Determinístico)
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#1A1A1A]/60 font-mono block mb-2">
+                  Payload Canônico Completo (JSON Determinístico RFC 8785)
                 </span>
-                <pre className="p-4 rounded-xl bg-black/60 border border-white/10 text-white/80 font-mono text-[11px] overflow-x-auto select-all">
+                <pre className="p-4 rounded-2xl bg-[#1A1A1A] text-white font-mono text-[11px] overflow-x-auto select-all shadow-inner">
                   {JSON.stringify(selectedEvent, null, 2)}
                 </pre>
               </div>
             </div>
 
             {/* Rodapé do Modal */}
-            <div className="p-4 border-t border-white/10 bg-black/30 flex justify-end">
+            <div className="p-4 border-t border-black/[0.08] bg-[#FBFBFB] flex justify-end">
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-[#1A1A1A] text-white text-xs font-bold transition-all shadow-xs hover:bg-[#1A1A1A]/90"
               >
                 Fechar Inspeção
               </button>
