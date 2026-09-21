@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Registrar ou atualizar visitante na tabela visitantes
     let visitanteId: string | null = null;
+    let visitanteFallback = false;
     try {
       const { data: existing } = await supabaseAdmin
         .from('visitantes')
@@ -54,13 +55,24 @@ export async function POST(req: NextRequest) {
 
         if (vErr) {
           console.warn('[Questionario] Erro ao inserir visitante:', vErr.message);
-          persistenceError = vErr.message;
+          const tableMissing = vErr.code === 'PGRST205' || /visitantes|schema cache|relation .* does not exist/i.test(vErr.message);
+          if (tableMissing) {
+            visitanteFallback = true;
+          } else {
+            persistenceError = vErr.message;
+          }
         } else if (novoVisitante) {
           visitanteId = novoVisitante.id;
         }
       }
     } catch (vCatch) {
       console.warn('[Questionario] Falha ao operar tabela visitantes:', vCatch);
+      const message = vCatch instanceof Error ? vCatch.message : 'Falha ao salvar visitante';
+      if (/visitantes|schema cache|relation .* does not exist/i.test(message)) {
+        visitanteFallback = true;
+      } else {
+        persistenceError = message;
+      }
     }
 
     // 2. Registrar respostas na tabela questionarios
@@ -130,7 +142,7 @@ export async function POST(req: NextRequest) {
           documentacao,
           entendimento,
           submetido_em: new Date().toISOString(),
-          armazenamento: questionarioFallback ? 'eventos_fallback' : 'questionarios',
+          armazenamento: questionarioFallback || visitanteFallback ? 'eventos_fallback' : 'questionarios',
         },
         hash_evento: crypto.createHash('sha256').update(`${vHash}:${Date.now()}`).digest('hex'),
         criado_em: new Date().toISOString(),

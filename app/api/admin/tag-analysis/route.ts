@@ -31,7 +31,15 @@ export async function POST(req: NextRequest) {
       .select('tag_original')
       .limit(500);
 
-    const allTags = [...new Set((allTagsData || []).map(t => t.tag_original).filter(Boolean))];
+    const { data: identityTags } = await supabaseAdmin
+      .from('tag_identities')
+      .select('tag')
+      .limit(500);
+
+    const allTags = [...new Set([
+      ...(allTagsData || []).map(t => t.tag_original),
+      ...(identityTags || []).map(t => t.tag),
+    ].filter(Boolean))];
 
     // 2. Executar análise cerebral completa
     const brainState = await runBrainAnalysis(tagClean, allTags);

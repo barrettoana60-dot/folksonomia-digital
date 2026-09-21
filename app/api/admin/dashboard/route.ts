@@ -27,6 +27,29 @@ async function safeSelect(table: string, select: string, opts?: { order?: string
   } catch { return []; }
 }
 
+async function safeSelectTagRows(select: string, opts?: { order?: string; limit?: number }) {
+  const current = await safeSelect('tags', select, opts);
+  if (current.length > 0) return current;
+
+  const legacy = await safeSelect(
+    'tags',
+    select.replace(/created_at/g, 'criado_em'),
+    opts ? { ...opts, order: opts.order?.replace('created_at', 'criado_em') } : undefined,
+  );
+  if (legacy.length > 0) {
+    return legacy.map((tag: any) => ({ ...tag, created_at: tag.created_at || tag.criado_em }));
+  }
+
+  const identities = await safeSelect('tag_identities', 'tag_id, tag, eixo, updated_at', { order: 'updated_at', limit: opts?.limit || 2000 });
+  return identities.map((tag: any) => ({
+    id: tag.tag_id,
+    tag_original: tag.tag,
+    tag_normalizada: tag.tag,
+    grupo_tematico: tag.eixo,
+    created_at: tag.updated_at,
+  }));
+}
+
 export async function GET(req: NextRequest) {
   // SEM auth guard — a página admin já é protegida pelo login localStorage
   try {
@@ -90,7 +113,7 @@ export async function GET(req: NextRequest) {
     const totalDados = (obrasCount) + (tagsCount) + (nucleosCount) + (fontesCount);
 
     // 2. Fluxo Temporal Real — Contar os dias e o número de tags colocadas por dia
-    const temporalTags = await safeSelect('tags', 'id, tag_original, created_at', { order: 'created_at', limit: 2000 });
+    const temporalTags = await safeSelectTagRows('id, tag_original, created_at', { order: 'created_at', limit: 2000 });
     
     // Contagem real agrupada por dia civil (YYYY-MM-DD)
     const contagemPorData = new Map<string, { tags: string[]; count: number }>();
@@ -181,7 +204,7 @@ export async function GET(req: NextRequest) {
     const tagsPorDia = ultimos7Dias.map(d => d.tagsCount);
 
     // 3. Tags recentes com grupos temáticos e filtro estrito anti-ruído
-    const gruposData = await safeSelect('tags', 'id, tag_original, tag_normalizada, grupo_tematico, created_at', { order: 'created_at', limit: 200 });
+    const gruposData = await safeSelectTagRows('id, tag_original, tag_normalizada, grupo_tematico, created_at', { order: 'created_at', limit: 200 });
     const gruposCount: Record<string, number> = {};
     const recentTagsMap = new Map<string, any>();
 

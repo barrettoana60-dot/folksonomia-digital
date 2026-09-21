@@ -105,7 +105,7 @@ export default function QuestionarioPage() {
               </div>
 
               <div>
-                <label className={labelClass}>2. Conhecimento em Documentação Cultural</label>
+                <label className={labelClass}>2. Conhecimento e Museus</label>
                 <select
                   id="select-documentacao"
                   value={formData.documentacao}
@@ -123,7 +123,7 @@ export default function QuestionarioPage() {
 
             <div className="flex flex-col justify-between">
               <div>
-                <label className={labelClass}>3. Entendimento sobre Tags Digitais no Acervo</label>
+                <label className={labelClass}>3. Entendimento sobre FOLKSONOMIA social para acervos</label>
                 <textarea
                   id="textarea-entendimento"
                   value={formData.entendimento}
