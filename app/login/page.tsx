@@ -30,7 +30,7 @@ export default function LoginPage() {
         router.push('/admin');
         window.dispatchEvent(new Event('storage'));
       } else {
-        setError(data.error || 'Senha Curatorial Inválida');
+        setError(data.error || 'Senha inválida');
       }
     } catch (err) {
       console.error('Erro de rede ao autenticar:', err);
@@ -57,7 +57,7 @@ export default function LoginPage() {
 
         <div className="space-y-1">
           <h1 className="text-xl md:text-2xl font-normal serif-title text-[#1A1A1A] tracking-tight">
-            Curadoria NUGEP
+            Área Administrativa
           </h1>
           <p className="text-[10px] text-[#1A1A1A]/35 uppercase tracking-[0.22em] font-semibold">
             Acesso Restrito
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 htmlFor="input-senha"
                 className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/45 ml-1 block"
               >
-                Senha Curatorial
+                Senha
               </label>
               <input
                 id="input-senha"
@@ -82,7 +82,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="liquid-input w-full"
-                placeholder="Insira a senha do curador"
+                placeholder="Insira a senha"
               />
             </div>
 
