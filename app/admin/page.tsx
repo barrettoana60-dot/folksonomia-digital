@@ -1091,20 +1091,90 @@ export default function AdminPage() {
 
 
   const handleTagAnalysis = async (tagText: string) => {
-    setSelectedTagForAnalysis(tagText);
+    const cleanTag = String(tagText || '').trim();
+
+    if (!cleanTag) {
+      setTagAnalysisResult({
+        tag: tagText,
+        error: 'Tag vazia ou inválida.',
+        duplicates: [],
+        siblings: [],
+        spellingErrors: [],
+        propagated: [],
+        neuralMap: [],
+        suggestions: [],
+      });
+      return;
+    }
+
+    setSelectedTagForAnalysis(cleanTag);
     setIsAnalyzingTag(true);
     setTagAnalysisResult(null);
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 45000);
+
     try {
       const res = await fetch('/api/admin/tag-analysis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag: tagText })
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        cache: 'no-store',
+        body: JSON.stringify({ tag: cleanTag }),
+        signal: controller.signal,
       });
-      const json = await res.json();
-      if (json.success) setTagAnalysisResult(json.data);
-    } catch (err) {
-      console.error('Erro na análise de tag:', err);
+
+      const json = await res.json().catch(() => null);
+
+      console.log('[TAG ANALYSIS] HTTP:', res.status);
+      console.log('[TAG ANALYSIS] resposta:', json);
+
+      if (!res.ok) {
+        throw new Error(
+          json?.error || `Erro HTTP ${res.status} ao analisar a tag.`
+        );
+      }
+
+      if (!json?.success || !json?.data) {
+        throw new Error(
+          json?.error || 'A API não retornou um resultado válido.'
+        );
+      }
+
+      setTagAnalysisResult(json.data);
+
+      // Atualizar imediatamente as tags exibidas no painel.
+      await fetchDashboard();
+
+      // Atualizar a rede de interoperabilidade com as relações recém-persistidas.
+      await fetchInteropNetwork();
+
+    } catch (err: unknown) {
+      console.error('[TAG ANALYSIS] Erro:', err);
+
+      const message =
+        err instanceof Error
+          ? err.name === 'AbortError'
+            ? 'A análise ultrapassou o limite de 45 segundos.'
+            : err.message
+          : 'Erro desconhecido durante a análise.';
+
+      setTagAnalysisResult({
+        tag: cleanTag,
+        error: message,
+        duplicates: [],
+        siblings: [],
+        spellingErrors: [],
+        propagated: [],
+        neuralMap: [],
+        suggestions: [
+          `A análise não foi concluída: ${message}`,
+        ],
+      });
     } finally {
+      window.clearTimeout(timeoutId);
       setIsAnalyzingTag(false);
     }
   };
@@ -2290,6 +2360,17 @@ ${internasHtml}
 
                      {tagAnalysisResult && !isAnalyzingTag && (
                        <>
+                         {tagAnalysisResult.error && (
+                           <div className="glass-card p-6 border border-red-500/30 bg-red-500/5">
+                             <h3 className="text-xs font-semibold uppercase tracking-wider text-red-500 mb-2">
+                               Erro na análise
+                             </h3>
+                             <p className="text-sm text-red-600 leading-relaxed">
+                               {tagAnalysisResult.error}
+                             </p>
+                           </div>
+                         )}
+
                          {/* Identidade da Tag */}
                          <div className="glass-card p-6 space-y-4">
                            <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
@@ -2337,6 +2418,35 @@ ${internasHtml}
                                    <span className="text-[10px] text-[#1A1A1A]/38 ml-2">({Math.round(d.score * 100)}% similar)</span>
                                  </div>
                                  <span className="text-[10px] text-red-400/85 italic max-w-[50%] text-right">{d.reason}</span>
+                               </div>
+                             ))}
+                           </div>
+                         )}
+
+                         {/* Erros ortográficos */}
+                         {tagAnalysisResult.spellingErrors?.length > 0 && (
+                           <div className="glass-card p-6 border border-amber-500/20 space-y-3">
+                             <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                               <AlertCircle size={16} className="text-amber-500" />
+                               Correções ortográficas ({tagAnalysisResult.spellingErrors.length})
+                             </h3>
+
+                             {tagAnalysisResult.spellingErrors.slice(0, 8).map((item: any, i: number) => (
+                               <div key={i} className="p-3 bg-amber-500/5 rounded-lg flex items-center justify-between gap-4">
+                                 <div className="min-w-0">
+                                   <p className="text-sm text-[#1A1A1A]/80 font-serif italic">
+                                     "{item.original}" → "{item.correctedTo}"
+                                   </p>
+                                   {item.reason && (
+                                     <p className="text-[10px] text-[#1A1A1A]/45 mt-1">
+                                       {item.reason}
+                                     </p>
+                                   )}
+                                 </div>
+
+                                 <span className="shrink-0 text-[10px] text-amber-600 font-semibold">
+                                   {Math.round((Number(item.confidence) || 0) * 100)}%
+                                 </span>
                                </div>
                              ))}
                            </div>
