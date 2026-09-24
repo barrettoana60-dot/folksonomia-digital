@@ -46,6 +46,9 @@ class ModelState:
         self.ner_version = None
         self.embedder = None
         self.embedder_model_name = "answerdotai/ModernBERT-base"
+        self.vision_model = None
+        self.vision_processor = None
+        self.vision_model_name = os.getenv('VISION_MODEL_NAME', 'google/siglip-base-patch16-224')
         self.device = "cpu"
         self.ready = False
 
@@ -151,6 +154,12 @@ class ContextRequest(BaseModel):
     text: str
     obra_context: Optional[dict] = None
 
+class ImageTagRequest(BaseModel):
+    image_url: str
+    tag: str
+    context: Optional[str] = ""
+    candidate_tags: Optional[list[str]] = None
+
 class TrainRequest(BaseModel):
     dataset_jsonl: str
     model_name: str = "modernbert_ner"
@@ -177,6 +186,8 @@ async def health():
         "status": "ok" if state.ready else "loading",
         "models": {
             "embedder": state.embedder is not None,
+            "vision": state.vision_model is not None,
+            "vision_model": state.vision_model_name,
             "ner": state.ner_model is not None,
             "ner_version": state.ner_version,
         },
@@ -354,6 +365,128 @@ async def predict_context(req: ContextRequest):
         "best_score": sorted_scores[0][1] if sorted_scores else 0,
         "context_used": req.obra_context is not None
     }
+
+@app.post("/analyze-image-tag")
+async def analyze_image_tag(req: ImageTagRequest):
+    """
+    Zero-shot vision-language: compara a imagem com descrições textuais da tag
+    e de conceitos candidatos. Os scores são relativos ao conjunto informado.
+    """
+    import io
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+    import requests
+    from PIL import Image
+    import torch
+    from transformers import AutoProcessor, AutoModel
+
+    if not req.tag.strip():
+        raise HTTPException(status_code=400, detail="Tag vazia.")
+
+    parsed = urlparse(req.image_url)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise HTTPException(status_code=400, detail="A imagem precisa usar uma URL HTTPS pública.")
+
+    # Bloqueia hosts IP privados/locais e nomes locais básicos.
+    host = parsed.hostname.lower()
+    if host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
+        raise HTTPException(status_code=400, detail="Host local não permitido.")
+    try:
+        ip = ipaddress.ip_address(host)
+        if not ip.is_global:
+            raise HTTPException(status_code=400, detail="IP privado não permitido.")
+    except ValueError:
+        # Resolução e bloqueio de IPs não públicos para reduzir risco de SSRF.
+        try:
+            addresses = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+            if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
+                raise HTTPException(status_code=400, detail="Host não público não permitido.")
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=400, detail="Não foi possível validar o host da imagem.")
+
+    try:
+        response = requests.get(
+            req.image_url,
+            timeout=(5, 15),
+            stream=True,
+            headers={"User-Agent": "FolksonomiaML/1.0"},
+            allow_redirects=False,
+        )
+        response.raise_for_status()
+        content_length = int(response.headers.get("content-length", "0") or 0)
+        if content_length > 8 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
+        raw = response.raw.read(8 * 1024 * 1024 + 1)
+        response.close()
+        if len(raw) > 8 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
+        image = Image.open(io.BytesIO(raw)).convert("RGB")
+        image.thumbnail((1024, 1024))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Não foi possível carregar a imagem: {str(exc)[:180]}")
+
+    if state.vision_model is None or state.vision_processor is None:
+        try:
+            logger.info("Carregando modelo vision-language: %s", state.vision_model_name)
+            state.vision_processor = AutoProcessor.from_pretrained(state.vision_model_name)
+            state.vision_model = AutoModel.from_pretrained(state.vision_model_name).to(state.device)
+            state.vision_model.eval()
+        except Exception as exc:
+            logger.exception("Falha ao carregar modelo visual")
+            raise HTTPException(status_code=503, detail=f"Modelo visual indisponível: {str(exc)[:180]}")
+
+    labels = []
+    for candidate in (req.candidate_tags or []):
+        value = str(candidate).strip()
+        if value and value.casefold() != req.tag.strip().casefold() and value not in labels:
+            labels.append(value)
+    labels = [req.tag.strip()] + labels[:11]
+
+    # Enquadra os candidatos em descrições visuais comparáveis.
+    prompts = [
+        f"Uma imagem de obra de arte ou objeto museológico relacionado a: {label}."
+        for label in labels
+    ]
+    if req.context and req.context.strip():
+        prompts[0] += f" Contexto da obra: {req.context.strip()[:900]}"
+
+    try:
+        inputs = state.vision_processor(
+            text=prompts,
+            images=[image],
+            padding="max_length",
+            return_tensors="pt",
+        )
+        inputs = {key: value.to(state.device) for key, value in inputs.items()}
+        with torch.no_grad():
+            outputs = state.vision_model(**inputs)
+        logits = outputs.logits_per_image[0]
+        probabilities = torch.softmax(logits, dim=0).detach().cpu().tolist()
+        concepts = [
+            {"label": label, "score": round(float(score), 4)}
+            for label, score in zip(labels, probabilities)
+        ]
+        concepts.sort(key=lambda item: item["score"], reverse=True)
+        current_score = next(
+            (item["score"] for item in concepts if item["label"] == req.tag.strip()),
+            None,
+        )
+        return {
+            "visualEvidence": current_score,
+            "visualConcepts": concepts[:8],
+            "model": state.vision_model_name,
+            "modelVersion": state.vision_model_name,
+            "scoreType": "softmax_relative_to_candidates",
+            "device": state.device,
+        }
+    except Exception as exc:
+        logger.exception("Falha na inferência visual")
+        raise HTTPException(status_code=500, detail=f"Falha na inferência visual: {str(exc)[:180]}")
 
 @app.post("/train", dependencies=[Depends(verify_admin)])
 async def train_model(req: TrainRequest):
