@@ -272,6 +272,10 @@ async function analyzeOneObra(
       mlClient.embedBatch([tag, contextText, ...otherTags.slice(0, 8)]),
     ]);
 
+    if (!vision) {
+      throw new Error('O serviço visual não respondeu. Verifique se o ML Service foi atualizado e está online.');
+    }
+
     let contextSimilarity: number | null = null;
     let tagSetCoherence: number | null = null;
 
