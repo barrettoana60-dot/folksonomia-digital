@@ -13,6 +13,7 @@ import Logo from '@/components/Logo';
 import NodeGraph from '@/components/NodeGraph';
 import CulturalInteroperabilityView from '@/components/CulturalInteroperabilityView';
 import { findTerm } from '@/lib/ml/thesaurus';
+import MultimodalTagAnalysis from '@/components/MultimodalTagAnalysis';
 
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
@@ -311,6 +312,10 @@ export default function AdminPage() {
   const [tagAnalysisResult, setTagAnalysisResult] = useState<any>(null);
   const [selectedTagForAnalysis, setSelectedTagForAnalysis] = useState<string | null>(null);
   const [isAnalyzingTag, setIsAnalyzingTag] = useState(false);
+  const [multimodalData, setMultimodalData] = useState<any>(null);
+  const [multimodalLoading, setMultimodalLoading] = useState(false);
+  const [multimodalError, setMultimodalError] = useState('');
+
 
   // ML Service Health
   const [mlHealth, setMlHealth] = useState<any>(null);
@@ -1090,6 +1095,35 @@ export default function AdminPage() {
   };
 
 
+  const fetchMultimodalAnalysis = useCallback(async (tagText: string) => {
+    const cleanTag = String(tagText || '').trim();
+    if (!cleanTag) return;
+
+    setMultimodalLoading(true);
+    setMultimodalError('');
+
+    try {
+      const response = await fetch(
+        `/api/admin/tag-multimodal?tag=${encodeURIComponent(cleanTag)}&t=${Date.now()}`,
+        { cache: 'no-store' }
+      );
+      const json = await response.json().catch(() => null);
+
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.error || `Falha ao carregar análise (HTTP ${response.status}).`);
+      }
+
+      setMultimodalData(json.data);
+    } catch (error) {
+      setMultimodalError(
+        error instanceof Error ? error.message : 'Não foi possível carregar a análise multimodal.'
+      );
+      setMultimodalData(null);
+    } finally {
+      setMultimodalLoading(false);
+    }
+  }, []);
+
   const handleTagAnalysis = async (tagText: string) => {
     const cleanTag = String(tagText || '').trim();
 
@@ -1609,6 +1643,12 @@ export default function AdminPage() {
       console.error('Erro ao excluir:', err);
     }
   };
+
+  // Atualiza a análise multimodal quando uma tag é selecionada na aba de análise.
+  useEffect(() => {
+    if (activeTab !== 'tags' || !selectedTagForAnalysis) return;
+    fetchMultimodalAnalysis(selectedTagForAnalysis);
+  }, [activeTab, selectedTagForAnalysis, fetchMultimodalAnalysis]);
 
   // Carregar dados na montagem E quando trocar de aba
   useEffect(() => {
@@ -2580,6 +2620,53 @@ ${internasHtml}
                      )}
                    </div>
                  </div>
+
+                 {/* Análise multimodal da tag selecionada */}
+                 <section className="space-y-4">
+                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                     <div>
+                       <h3 className="text-sm font-semibold uppercase tracking-wider">Análise multimodal</h3>
+                       <p className="text-[10px] text-[#1A1A1A]/45 mt-1">
+                         Evidência visual, contexto da obra, coesão das tags, frequência de uso e correlações.
+                       </p>
+                     </div>
+                     <button
+                       onClick={() => selectedTagForAnalysis && fetchMultimodalAnalysis(selectedTagForAnalysis)}
+                       disabled={!selectedTagForAnalysis || multimodalLoading}
+                       className="liquid-button !bg-[#E85002] !text-white text-[10px] disabled:opacity-40"
+                     >
+                       {multimodalLoading ? 'Analisando imagens...' : 'Atualizar análise'}
+                     </button>
+                   </div>
+
+                   {multimodalLoading && (
+                     <div className="glass-card p-8 text-center">
+                       <div className="w-7 h-7 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                       <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/45">
+                         Comparando tags com as imagens e metadados das obras...
+                       </p>
+                     </div>
+                   )}
+
+                   {multimodalError && (
+                     <div className="glass-card p-5 border border-red-500/20 bg-red-500/5">
+                       <p className="text-xs font-semibold text-red-600">Não foi possível concluir a análise multimodal.</p>
+                       <p className="text-[11px] text-red-500 mt-2">{multimodalError}</p>
+                     </div>
+                   )}
+
+                   {!multimodalLoading && !multimodalError && multimodalData && (
+                     <MultimodalTagAnalysis data={multimodalData} />
+                   )}
+
+                   {!selectedTagForAnalysis && (
+                     <div className="glass-card p-8 text-center">
+                       <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
+                         Selecione uma tag na lista acima para calcular a análise multimodal.
+                       </p>
+                     </div>
+                   )}
+                 </section>
 
                  {/* Volume por grupo */}
                  <div className="glass-card p-8">

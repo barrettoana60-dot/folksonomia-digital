@@ -151,6 +151,36 @@ class MLServiceClient {
   }
 
   /**
+   * Compara uma imagem com a tag e os candidatos usando o modelo vision-language.
+   * A resposta é comparativa entre candidatos, não uma probabilidade calibrada.
+   */
+  async analyzeImageTag(input: {
+    imageUrl: string;
+    tag: string;
+    context?: string;
+    candidateTags?: string[];
+  }): Promise<{
+    visualEvidence: number | null;
+    visualConcepts: Array<{ label: string; score: number }>;
+    model?: string;
+    modelVersion?: string;
+  } | null> {
+    if (!this.baseUrl) return null;
+    try {
+      const res = await fetch(`${this.baseUrl}/analyze-image-tag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(55_000),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Dispara treinamento (requer auth).
    */
   async triggerTraining(datasetJsonl: string, config?: any): Promise<any | null> {
