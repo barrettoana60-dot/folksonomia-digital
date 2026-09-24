@@ -460,7 +460,13 @@ async def analyze_image_tag(req: ImageTagRequest):
         value = str(candidate).strip()
         if value and value.casefold() != req.tag.strip().casefold() and value not in labels:
             labels.append(value)
-    labels = [req.tag.strip()] + labels[:11]
+    # Sempre inclui uma alternativa de controle para evitar score 1.0
+    # artificial quando só existe uma tag candidata.
+    labels = [req.tag.strip()] + labels[:9]
+    labels.extend([
+        "outros elementos visuais sem relação direta com a tag informada",
+        "uma cena ou objeto que não corresponde ao conceito da tag informada",
+    ])
 
     # Enquadra os candidatos em descrições visuais comparáveis.
     prompts = [
