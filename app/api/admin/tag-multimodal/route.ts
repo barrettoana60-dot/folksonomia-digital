@@ -520,7 +520,7 @@ export async function GET(req: NextRequest) {
           obraId: id,
           titulo: row.titulo || obras.get(id)?.titulo || 'Obra',
           imagemUrl: row.imagemUrl || obras.get(id)?.imagem_url || null,
-          cached: true,
+          cached: row.cached ?? true,
           visualEvidence: row.visual_evidence ?? row.visualEvidence ?? null,
           contextSimilarity: row.context_similarity ?? row.contextSimilarity ?? null,
           tagSetCoherence: row.tag_set_coherence ?? row.tagSetCoherence ?? null,
