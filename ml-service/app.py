@@ -473,8 +473,6 @@ async def analyze_image_tag(req: ImageTagRequest):
         f"Uma imagem de obra de arte ou objeto museológico relacionado a: {label}."
         for label in labels
     ]
-    if req.context and req.context.strip():
-
     try:
         inputs = state.vision_processor(
             text=prompts,
