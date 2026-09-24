@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const PAGE_SIZE = 1000;
-const MAX_IMAGE_INFERENCES_PER_REQUEST = 6;
+const MAX_IMAGE_INFERENCES_PER_REQUEST = 2;
 const MAX_MATRIX_TAGS = 10;
 const MIN_PAIR_SUPPORT = 2;
 
