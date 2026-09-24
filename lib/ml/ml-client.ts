@@ -165,7 +165,19 @@ class MLServiceClient {
     model?: string;
     modelVersion?: string;
   } | null> {
-    return this._request('/analyze-image-tag', input);
+    if (!this.baseUrl) return null;
+    try {
+      const res = await fetch(`${this.baseUrl}/analyze-image-tag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+        signal: AbortSignal.timeout(55_000),
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
   }
 
   /**
