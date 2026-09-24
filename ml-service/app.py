@@ -384,45 +384,60 @@ async def analyze_image_tag(req: ImageTagRequest):
     if not req.tag.strip():
         raise HTTPException(status_code=400, detail="Tag vazia.")
 
-    parsed = urlparse(req.image_url)
-    if parsed.scheme != "https" or not parsed.hostname:
-        raise HTTPException(status_code=400, detail="A imagem precisa usar uma URL HTTPS pública.")
-
-    # Bloqueia hosts IP privados/locais e nomes locais básicos.
-    host = parsed.hostname.lower()
-    if host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
-        raise HTTPException(status_code=400, detail="Host local não permitido.")
     try:
-        ip = ipaddress.ip_address(host)
-        if not ip.is_global:
-            raise HTTPException(status_code=400, detail="IP privado não permitido.")
-    except ValueError:
-        # Resolução e bloqueio de IPs não públicos para reduzir risco de SSRF.
-        try:
-            addresses = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
-            if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
-                raise HTTPException(status_code=400, detail="Host não público não permitido.")
-        except HTTPException:
-            raise
-        except Exception:
-            raise HTTPException(status_code=400, detail="Não foi possível validar o host da imagem.")
+        # A gestão de obras pode guardar imagens em data URL (base64).
+        # Esse caminho evita uma chamada de rede e mantém o limite de tamanho.
+        if req.image_url.startswith("data:image/"):
+            import base64
+            import re
+            match = re.match(r"^data:image/(?:jpeg|jpg|png|webp);base64,([A-Za-z0-9+/=]+)$", req.image_url)
+            if not match:
+                raise HTTPException(status_code=400, detail="Data URL de imagem inválida ou formato não permitido.")
+            encoded = match.group(1)
+            if len(encoded) > 11 * 1024 * 1024:
+                raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
+            raw = base64.b64decode(encoded, validate=True)
+            if len(raw) > 8 * 1024 * 1024:
+                raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
+        else:
+            parsed = urlparse(req.image_url)
+            if parsed.scheme != "https" or not parsed.hostname:
+                raise HTTPException(status_code=400, detail="A imagem precisa usar uma URL HTTPS pública.")
 
-    try:
-        response = requests.get(
-            req.image_url,
-            timeout=(5, 15),
-            stream=True,
-            headers={"User-Agent": "FolksonomiaML/1.0"},
-            allow_redirects=False,
-        )
-        response.raise_for_status()
-        content_length = int(response.headers.get("content-length", "0") or 0)
-        if content_length > 8 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
-        raw = response.raw.read(8 * 1024 * 1024 + 1)
-        response.close()
-        if len(raw) > 8 * 1024 * 1024:
-            raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
+            # Bloqueia hosts IP privados/locais e nomes locais básicos.
+            host = parsed.hostname.lower()
+            if host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
+                raise HTTPException(status_code=400, detail="Host local não permitido.")
+            try:
+                ip = ipaddress.ip_address(host)
+                if not ip.is_global:
+                    raise HTTPException(status_code=400, detail="IP privado não permitido.")
+            except ValueError:
+                try:
+                    addresses = socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)
+                    if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
+                        raise HTTPException(status_code=400, detail="Host não público não permitido.")
+                except HTTPException:
+                    raise
+                except Exception:
+                    raise HTTPException(status_code=400, detail="Não foi possível validar o host da imagem.")
+
+            response = requests.get(
+                req.image_url,
+                timeout=(5, 15),
+                stream=True,
+                headers={"User-Agent": "FolksonomiaML/1.0"},
+                allow_redirects=False,
+            )
+            response.raise_for_status()
+            content_length = int(response.headers.get("content-length", "0") or 0)
+            if content_length > 8 * 1024 * 1024:
+                raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
+            raw = response.raw.read(8 * 1024 * 1024 + 1)
+            response.close()
+            if len(raw) > 8 * 1024 * 1024:
+                raise HTTPException(status_code=413, detail="Imagem maior que 8 MB.")
+
         image = Image.open(io.BytesIO(raw)).convert("RGB")
         image.thumbnail((1024, 1024))
     except HTTPException:
@@ -453,7 +468,6 @@ async def analyze_image_tag(req: ImageTagRequest):
         for label in labels
     ]
     if req.context and req.context.strip():
-        prompts[0] += f" Contexto da obra: {req.context.strip()[:900]}"
 
     try:
         inputs = state.vision_processor(
