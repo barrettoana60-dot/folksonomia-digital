@@ -12,6 +12,7 @@ Chamado pelo Next.js via HTTP com fallback automático.
 """
 
 import os
+import asyncio
 import json
 import time
 import logging
@@ -53,6 +54,7 @@ class ModelState:
         self.ready = False
 
 state = ModelState()
+vision_model_lock = asyncio.Lock()
 
 # ============================================================
 # Lifecycle
@@ -445,15 +447,16 @@ async def analyze_image_tag(req: ImageTagRequest):
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Não foi possível carregar a imagem: {str(exc)[:180]}")
 
-    if state.vision_model is None or state.vision_processor is None:
-        try:
-            logger.info("Carregando modelo vision-language: %s", state.vision_model_name)
-            state.vision_processor = AutoProcessor.from_pretrained(state.vision_model_name)
-            state.vision_model = AutoModel.from_pretrained(state.vision_model_name).to(state.device)
-            state.vision_model.eval()
-        except Exception as exc:
-            logger.exception("Falha ao carregar modelo visual")
-            raise HTTPException(status_code=503, detail=f"Modelo visual indisponível: {str(exc)[:180]}")
+    async with vision_model_lock:
+        if state.vision_model is None or state.vision_processor is None:
+            try:
+                logger.info("Carregando modelo vision-language: %s", state.vision_model_name)
+                state.vision_processor = AutoProcessor.from_pretrained(state.vision_model_name)
+                state.vision_model = AutoModel.from_pretrained(state.vision_model_name).to(state.device)
+                state.vision_model.eval()
+            except Exception as exc:
+                logger.exception("Falha ao carregar modelo visual")
+                raise HTTPException(status_code=503, detail=f"Modelo visual indisponível: {str(exc)[:180]}")
 
     labels = []
     for candidate in (req.candidate_tags or []):
