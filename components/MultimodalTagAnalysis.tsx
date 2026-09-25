@@ -28,6 +28,9 @@ type ImageEvidence = {
   tagSetCoherence?: number | null;
   cohesionScore?: number | null;
   visualConcepts?: Array<{ label: string; score: number }>;
+  contextCategory?: string | null;
+  contextScore?: number | null;
+  contextPredictions?: Array<{ category: string; score: number }>;
   otherTags?: string[];
   model?: string;
   error?: string;
@@ -84,7 +87,7 @@ export default function MultimodalTagAnalysis({
               Análise multimodal da associação
             </h3>
             <p className="text-[10px] text-[#1A1A1A]/45 mt-1">
-              Imagem + contexto museológico + conjunto de tags + frequência das contribuições.
+              Visão computacional + contexto textual + coesão das tags + frequência e correlação entre contribuições.
             </p>
           </div>
           <div className="text-[9px] uppercase tracking-wider text-[#1A1A1A]/40 text-right">
@@ -162,10 +165,38 @@ export default function MultimodalTagAnalysis({
                     ) : (
                       <>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <MetricBar label="Evidência visual" value={item.visualEvidence} />
-                          <MetricBar label="Contexto da obra" value={item.contextSimilarity} />
-                          <MetricBar label="Coerência com outras tags" value={item.tagSetCoherence} />
-                        </div>
+  <MetricBar label="Evidência visual" value={item.visualEvidence} />
+  <MetricBar label="Contexto textual da obra" value={item.contextSimilarity} />
+  <MetricBar label="Coerência com outras tags" value={item.tagSetCoherence} />
+</div>
+
+{(item.contextCategory || (item.contextPredictions && item.contextPredictions.length > 0)) && (
+  <div className="mt-3 p-3 rounded-lg bg-blue-500/05 border border-blue-500/10">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div>
+        <p className="text-[9px] uppercase tracking-widest font-bold text-blue-700/70">Interpretação contextual do modelo</p>
+        <p className="text-sm font-semibold text-[#1A1A1A]/85 mt-1">
+          Categoria sugerida: {item.contextCategory || 'Não determinada'}
+        </p>
+      </div>
+      <span className="text-xs font-mono text-blue-700">
+        {typeof item.contextScore === 'number' ? `${Math.round(item.contextScore * 100)}% de similaridade` : 'Sem pontuação'}
+      </span>
+    </div>
+    {item.contextPredictions && item.contextPredictions.length > 0 && (
+      <div className="flex flex-wrap gap-1.5 mt-3">
+        {item.contextPredictions.slice(0, 5).map((prediction, pi) => (
+          <span key={pi} className="px-2 py-1 rounded-full text-[9px] bg-white/70 border border-blue-500/10 text-blue-800">
+            {prediction.category} · {pct(prediction.score)}
+          </span>
+        ))}
+      </div>
+    )}
+    <p className="text-[9px] text-[#1A1A1A]/45 mt-2">
+      Sugestão baseada em similaridade semântica; não substitui validação museológica.
+    </p>
+  </div>
+)}
 
                         <div className="mt-3 p-3 bg-[#E85002]/05 rounded-lg border border-[#E85002]/10">
                           <div className="flex items-center justify-between gap-3">
