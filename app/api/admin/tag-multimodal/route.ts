@@ -15,7 +15,7 @@ type TagRow = {
   tag_original: string | null;
   tag_normalizada?: string | null;
   obra_id: string | null;
-  visitante_id: string | null;
+  visitante_hash: string | null;
 };
 
 type ObraRow = {
@@ -51,7 +51,7 @@ async function loadAllTagRows(): Promise<TagRow[]> {
   while (true) {
     const { data, error } = await supabaseAdmin
       .from('tags')
-      .select('tag_original,tag_normalizada,obra_id,visitante_id')
+      .select('tag_original,tag_normalizada,obra_id,visitante_hash')
       .range(from, from + PAGE_SIZE - 1);
 
     if (error) throw new Error(`Erro ao carregar tags: ${error.message}`);
@@ -145,7 +145,7 @@ function statsMap(rows: TagRow[]): Map<string, TagStat> {
 
     stat.uses++;
 
-    if (row.visitante_id) stat._people.add(row.visitante_id);
+    if (row.visitante_hash) stat._people.add(row.visitante_hash);
     if (row.obra_id) stat._works.add(row.obra_id);
 
     // Preserva a grafia mais frequente como rótulo visual.
@@ -578,7 +578,7 @@ export async function GET(req: NextRequest) {
         visualModel: 'google/siglip-base-patch16-224',
         contextModel: 'answerdotai/ModernBERT-base',
         formula: '55% evidência visual + 30% contexto semântico da obra + 15% coerência com as demais tags. Os componentes ausentes são renormalizados.',
-        note: '“Pessoas” = visitantes distintos identificados por visitante_id. A correlação φ usa presença/ausência das tags por obra; pares são exibidos quando há suporte observado.',
+        note: '“Pessoas” = visitantes distintos identificados por visitante_hash, preservando o identificador não exibido na interface. A correlação φ usa presença/ausência das tags por obra; pares são exibidos quando há suporte observado.',
         interpretation: {
           visualEvidence: 'Compatibilidade imagem ↔ descrição da tag pelo modelo vision-language; não é probabilidade calibrada.',
           contextCategory: 'Categoria contextual mais compatível entre material, técnica, autoria, data, geografia, iconografia, tema e conservação.',
