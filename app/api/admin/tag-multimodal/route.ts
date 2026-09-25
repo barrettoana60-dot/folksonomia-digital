@@ -262,7 +262,7 @@ async function analyzeOneObra(
       )
     ).slice(0, 12);
 
-    const [vision, embeddingBatch] = await Promise.all([
+    const [vision, embeddingBatch, contextPrediction] = await Promise.all([
       mlClient.analyzeImageTag({
         imageUrl: obra.imagem_url,
         tag,
@@ -270,6 +270,15 @@ async function analyzeOneObra(
         candidateTags,
       }),
       mlClient.embedBatch([tag, contextText, ...otherTags.slice(0, 8)]),
+      mlClient.predictContext(tag, {
+        titulo: obra.titulo,
+        artista: obra.artista,
+        ano: obra.ano,
+        descricao: obra.descricao,
+        material: obra.material,
+        tecnica: obra.tecnica,
+        origem: obra.origem,
+      }),
     ]);
 
     if (!vision) {
@@ -317,6 +326,11 @@ async function analyzeOneObra(
       tagSetCoherence,
       cohesionScore,
       visualConcepts: vision?.visualConcepts || [],
+      contextCategory: contextPrediction?.best_category || null,
+      contextScore: typeof contextPrediction?.best_score === 'number'
+        ? contextPrediction.best_score
+        : null,
+      contextPredictions: contextPrediction?.predictions || [],
       otherTags,
       model: modelName,
     };
@@ -339,6 +353,9 @@ async function analyzeOneObra(
           context_evidence: {
             contextText,
             otherTags,
+            contextCategory: result.contextCategory,
+            contextScore: result.contextScore,
+            contextPredictions: result.contextPredictions,
           },
           other_tags: otherTags,
           raw_model_output: vision || {},
@@ -557,8 +574,15 @@ export async function GET(req: NextRequest) {
         worksAnalyzed: imageEvidence.filter(item => !('error' in (item as any))).length,
         visualModel: 'google/siglip-base-patch16-224',
         contextModel: 'answerdotai/ModernBERT-base',
-        formula: '55% evidência visual + 30% contexto da obra + 15% coerência com outras tags (renormalizado quando uma evidência não está disponível).',
-        note: '“Pessoas” = visitantes distintos com visitante_id na tabela tags. A correlação φ é calculada por presença/ausência da tag em cada obra e só é mostrada quando há pelo menos 2 obras em comum.',
+        formula: '55% evidência visual + 30% contexto semântico da obra + 15% coerência com as demais tags. Os componentes ausentes são renormalizados.',
+        note: '“Pessoas” = visitantes distintos identificados por visitante_id. A correlação φ usa presença/ausência das tags por obra; pares são exibidos quando há suporte observado.',
+        interpretation: {
+          visualEvidence: 'Compatibilidade imagem ↔ descrição da tag pelo modelo vision-language; não é probabilidade calibrada.',
+          contextCategory: 'Categoria contextual mais compatível entre material, técnica, autoria, data, geografia, iconografia, tema e conservação.',
+          contextScore: 'Similaridade da tag com o contexto textual da obra para a categoria escolhida.',
+          tagSetCoherence: 'Similaridade semântica da tag com as outras tags usadas na mesma obra.',
+          correlation: 'φ mede associação entre presença das duas tags nas obras; Jaccard informa sobreposição relativa.',
+        },
       },
     });
   } catch (error) {
