@@ -547,6 +547,9 @@ export async function GET(req: NextRequest) {
           tagSetCoherence: row.tag_set_coherence ?? row.tagSetCoherence ?? null,
           cohesionScore: row.cohesion_score ?? row.cohesionScore ?? null,
           visualConcepts: row.visual_concepts ?? row.visualConcepts ?? [],
+          contextCategory: row.context_evidence?.contextCategory ?? row.contextCategory ?? null,
+          contextScore: row.context_evidence?.contextScore ?? row.contextScore ?? null,
+          contextPredictions: row.context_evidence?.contextPredictions ?? row.contextPredictions ?? [],
           otherTags: row.other_tags ?? row.otherTags ?? [],
           model: row.model_name || row.model || null,
         };
