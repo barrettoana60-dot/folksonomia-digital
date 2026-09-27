@@ -110,10 +110,6 @@ export default function ObraCard({ obra }: ObraCardProps) {
             src={obra.imagem_url || 'https://via.placeholder.com/400x500?text=Sem+Imagem'}
             alt={obra.titulo}
             className="w-full h-full object-contain p-2 transition-all duration-500 group-hover:scale-105"
-            style={{
-              transform: 'scale(var(--obra-scale, 1))',
-              transformOrigin: 'center center',
-            }}
           />
           {/* Gradiente suave no bottom */}
           <div className="absolute inset-0 pointer-events-none"

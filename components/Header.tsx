@@ -91,7 +91,7 @@ export default function Header() {
   const [fontFamily,    setFontFamily]    = useState<FontFamilyKey>('sans');
   const [fontSize,      setFontSize]      = useState(16);
   const [lineHeight,    setLineHeight]    = useState(1.5);
-  const [obraZoomLevel, setObraZoomLevel] = useState(100);
+  const [zoomLevel,     setZoomLevel]     = useState(100);
   const [librasActive,  setLibrasActive]  = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -112,22 +112,21 @@ export default function Header() {
       const savedFont = (rawFont && ['sans', 'serif', 'mono'].includes(rawFont) ? rawFont : 'sans') as FontFamilyKey;
       const savedFontSize = parseInt(localStorage.getItem('fontSize') || '16') || 16;
       const savedLineHeight = parseFloat(localStorage.getItem('lineHeight') || '1.5') || 1.5;
-      const savedObraZoom = parseInt(localStorage.getItem('obraZoomLevel') || '100') || 100;
+      const savedZoom = parseInt(localStorage.getItem('zoomLevel') || '100') || 100;
 
       setActiveTheme(savedTheme);
       setFontFamily(savedFont);
       setFontSize(savedFontSize);
       setLineHeight(savedLineHeight);
-      setObraZoomLevel(savedObraZoom);
+      setZoomLevel(savedZoom);
 
       applyTheme(savedTheme);
       document.documentElement.style.setProperty('--text-scale-factor', String(savedFontSize / 16));
       document.documentElement.style.setProperty('--font-current', FONT_STACK[savedFont] || FONT_STACK['sans']);
       document.documentElement.style.lineHeight = String(savedLineHeight);
-      document.documentElement.style.setProperty('--obra-scale', String(savedObraZoom / 100));
-      // Garante que o body não tenha zoom geral que distorça a interface
+      // Zoom em toda a página via acessibilidade
       // @ts-ignore
-      if (document.body) document.body.style.zoom = '100%';
+      if (document.body) document.body.style.zoom = `${savedZoom}%`;
     } catch (e) {
       console.warn('[Header] Falha ao carregar preferências:', e);
     }
@@ -194,16 +193,13 @@ export default function Header() {
     localStorage.setItem('lineHeight', lh.toString());
   };
 
-  const changeObraZoom = (zoom: number) => {
-    const clamped = Math.min(200, Math.max(100, zoom));
-    setObraZoomLevel(clamped);
+  const changeZoom = (zoom: number) => {
+    const clamped = Math.min(160, Math.max(80, zoom));
+    setZoomLevel(clamped);
     if (typeof document !== 'undefined') {
-      document.documentElement.style.setProperty('--obra-scale', String(clamped / 100));
-      // Garante que o body não tenha zoom geral que distorça a interface
       // @ts-ignore
-      if (document.body) document.body.style.zoom = '100%';
-      localStorage.setItem('obraZoomLevel', clamped.toString());
-      window.dispatchEvent(new CustomEvent('obraZoomChange', { detail: { zoom: clamped } }));
+      if (document.body) document.body.style.zoom = `${clamped}%`;
+      localStorage.setItem('zoomLevel', clamped.toString());
     }
   };
 
@@ -251,9 +247,7 @@ export default function Header() {
     changeFontFamily('sans');
     changeFontSize(16);
     changeLineHeight(1.5);
-    changeObraZoom(100);
-    // @ts-ignore
-    if (document.body) document.body.style.zoom = '100%';
+    changeZoom(100);
   };
 
   /* ---- estilos ---- */
@@ -367,43 +361,43 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ---- Zoom nas Obras (Lupa) ---- */}
+      {/* ---- Zoom da Página ---- */}
       <div className="space-y-1.5 p-3 rounded-xl bg-black/[0.03] border border-black/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <ZoomIn size={13} className="text-[#0D3A85]" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D3A85]">
-              Zoom nas Obras
+              Zoom da Página
             </span>
           </div>
-          <span className="text-[10px] font-mono font-bold text-[#0D3A85]">{obraZoomLevel}%</span>
+          <span className="text-[10px] font-mono font-bold text-[#0D3A85]">{zoomLevel}%</span>
         </div>
         <p className="text-[9px] text-[#1A1A1A]/50 leading-tight">
-          Aumenta apenas as imagens das obras culturais sem alterar o restante da interface.
+          Aumenta ou diminui a escala de toda a página para facilitar a visualização.
         </p>
         <div className="flex items-center gap-2 pt-1">
           <button
-            onClick={() => changeObraZoom(obraZoomLevel - 20)}
-            disabled={obraZoomLevel <= 100}
+            onClick={() => changeZoom(zoomLevel - 10)}
+            disabled={zoomLevel <= 80}
             className="w-7 h-7 rounded-lg bg-black/5 hover:bg-black/10 text-xs font-bold transition-all flex items-center justify-center shrink-0 disabled:opacity-30"
-            aria-label="Diminuir zoom da obra"
+            aria-label="Diminuir zoom"
           >-</button>
           <input
             type="range"
-            min={100} max={200} step={10}
-            value={obraZoomLevel}
-            onChange={e => changeObraZoom(Number(e.target.value))}
+            min={80} max={160} step={10}
+            value={zoomLevel}
+            onChange={e => changeZoom(Number(e.target.value))}
             className="flex-1 h-1.5 accent-[#0D3A85] cursor-pointer"
           />
           <button
-            onClick={() => changeObraZoom(obraZoomLevel + 20)}
-            disabled={obraZoomLevel >= 200}
+            onClick={() => changeZoom(zoomLevel + 10)}
+            disabled={zoomLevel >= 160}
             className="w-7 h-7 rounded-lg bg-black/5 hover:bg-black/10 text-xs font-bold transition-all flex items-center justify-center shrink-0 disabled:opacity-30"
-            aria-label="Aumentar zoom da obra"
+            aria-label="Aumentar zoom"
           >+</button>
         </div>
         <div className="flex justify-between text-[9px] text-[#1A1A1A]/40 font-mono">
-          <span>100%</span><span>125%</span><span>150%</span><span>175%</span><span>200%</span>
+          <span>80%</span><span>100%</span><span>120%</span><span>140%</span><span>160%</span>
         </div>
       </div>
 
