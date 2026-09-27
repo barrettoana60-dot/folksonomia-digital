@@ -311,6 +311,18 @@ export default function AdminPage() {
   const [selectedTagForAnalysis, setSelectedTagForAnalysis] = useState<string | null>(null);
   const [isAnalyzingTag, setIsAnalyzingTag] = useState(false);
 
+  // Sub-tabs da Análise de Tags
+  const [tagsSubTab, setTagsSubTab] = useState<'frequencia' | 'correlacoes' | 'visual' | 'semantica'>('frequencia');
+
+  // Dados de estatísticas reais de tags
+  const [tagStats, setTagStats] = useState<any>(null);
+  const [isLoadingTagStats, setIsLoadingTagStats] = useState(false);
+
+  // Análise visual de obra
+  const [selectedObraForVisual, setSelectedObraForVisual] = useState<string | null>(null);
+  const [visualAnalysisResult, setVisualAnalysisResult] = useState<any>(null);
+  const [isAnalyzingVisual, setIsAnalyzingVisual] = useState(false);
+
   // ML Service Health
   const [mlHealth, setMlHealth] = useState<any>(null);
   const [mlChecking, setMlChecking] = useState(true);
@@ -1105,6 +1117,53 @@ export default function AdminPage() {
       console.error('Erro na análise de tag:', err);
     } finally {
       setIsAnalyzingTag(false);
+    }
+  };
+
+  // Carrega estatísticas reais de frequência, pessoas e correlações
+  const loadTagStats = async () => {
+    setIsLoadingTagStats(true);
+    try {
+      const res = await fetch('/api/admin/tag-stats', { cache: 'no-store' });
+      const json = await res.json();
+      if (json.success) setTagStats(json.data);
+    } catch (err) {
+      console.error('Erro ao carregar tag-stats:', err);
+    } finally {
+      setIsLoadingTagStats(false);
+    }
+  };
+
+  // Dispara análise visual de uma obra via Gemini Vision
+  const handleVisualAnalysis = async (obraId: string) => {
+    setSelectedObraForVisual(obraId);
+    setIsAnalyzingVisual(true);
+    setVisualAnalysisResult(null);
+    try {
+      const res = await fetch('/api/admin/tag-visual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ obra_id: obraId }),
+      });
+      const json = await res.json();
+      if (json.success) setVisualAnalysisResult(json.data);
+    } catch (err) {
+      console.error('Erro na análise visual:', err);
+    } finally {
+      setIsAnalyzingVisual(false);
+    }
+  };
+
+  // Registra feedback de validação de coesão visual
+  const handleVisualFeedback = async (obraId: string, tag: string, status: 'validado' | 'rejeitado') => {
+    try {
+      await fetch('/api/admin/tag-visual', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ obra_id: obraId, tag, status }),
+      });
+    } catch (err) {
+      console.error('Erro ao registrar feedback visual:', err);
     }
   };
 
@@ -2061,7 +2120,7 @@ ${internasHtml}
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); if (tab.id === 'tags' && !tagStats) loadTagStats(); }}
               className={`whitespace-nowrap flex-shrink-0 px-4 md:px-7 py-2 md:py-2.5 rounded-xl text-[9px] md:text-xs font-semibold uppercase tracking-wider transition-all liquid-button ${
                 activeTab === tab.id 
                   ? '!bg-[#E8490A] !text-white border border-[#E8490A]/30 shadow-[0_4px_16px_rgba(232,73,10,0.25)]' 
@@ -2230,260 +2289,693 @@ ${internasHtml}
             )}
 
             {activeTab === 'tags' && (
-              <div className="space-y-8 animate-fade-in">
-                 <div className="flex justify-between items-center">
-                   <div>
-                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Análise de Tags</h2>
-                     <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">Motor ML: deduplicação, famílias temáticas, erros ortográficos, correlações inter-tags</p>
-                   </div>
-                   <button onClick={() => { setTagAnalysisResult(null); setSelectedTagForAnalysis(null); }} className="liquid-button !bg-white/50 text-[11px] font-semibold tracking-wider">Limpar Análise</button>
-                 </div>
-                 
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                   {/* Lista de tags recentes */}
-                   <div className="glass-card p-8">
-                     <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-6">
-                       <TagIcon className="text-[#E85002]" size={18} /> Tags no Sistema
-                     </h3>
-                     <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                        {dashboardData?.relatorioSemantico?.recentTags && dashboardData.relatorioSemantico.recentTags.length > 0 ? (
-                          dashboardData.relatorioSemantico.recentTags.map((tagObj: any, i: number) => (
-                            <div key={tagObj.id || i} className={`p-4 rounded-lg border flex justify-between items-center cursor-pointer transition-all ${
-                              selectedTagForAnalysis === tagObj.tag 
-                                ? 'bg-[#E85002]/10 border-[#E85002]/40' 
-                                : 'bg-white/50 border-black/10 hover:border-black/15'
-                            }`} onClick={() => handleTagAnalysis(tagObj.tag)}>
-                              <div>
-                                <span className="text-[#E85002] font-serif italic text-lg">&quot;{tagObj.tag}&quot;</span>
-                                <p className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/48 mt-1">
-                                  {tagObj.grupo !== 'Outros' ? tagObj.grupo : 'Clique para analisar'}
-                                </p>
+              <div className="space-y-6 animate-fade-in">
+                {/* Cabeçalho */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Análise de Tags</h2>
+                    <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">
+                      Frequência real · Correlações Jaccard · Análise visual ML · Metadados ativos TAG-
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => loadTagStats()}
+                    disabled={isLoadingTagStats}
+                    className="liquid-button !bg-white/50 text-[11px] font-semibold tracking-wider flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {isLoadingTagStats ? (
+                      <div className="w-3 h-3 border-2 border-[#E85002] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Activity size={13} />
+                    )}
+                    Atualizar Dados
+                  </button>
+                </div>
+
+                {/* Sub-tabs */}
+                <div className="flex gap-2 border-b border-black/10 pb-0">
+                  {([
+                    { id: 'frequencia', label: 'Frequência e Pessoas' },
+                    { id: 'correlacoes', label: 'Correlações' },
+                    { id: 'visual', label: 'Análise Visual ML' },
+                    { id: 'semantica', label: 'Análise Semântica' },
+                  ] as const).map(st => (
+                    <button
+                      key={st.id}
+                      onClick={() => { setTagsSubTab(st.id); if (st.id !== 'semantica' && !tagStats && !isLoadingTagStats) loadTagStats(); }}
+                      className={`px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 transition-all -mb-px ${
+                        tagsSubTab === st.id
+                          ? 'border-[#E8490A] text-[#E8490A]'
+                          : 'border-transparent text-[#1A1A1A]/50 hover:text-[#1A1A1A]/80'
+                      }`}
+                    >
+                      {st.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* ─── SUB-TAB: FREQUÊNCIA E PESSOAS ─────────────────────────────── */}
+                {tagsSubTab === 'frequencia' && (
+                  <div className="space-y-6">
+                    {/* Cards de resumo */}
+                    {tagStats?.resumo && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="glass-card p-4">
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Total de Registros</p>
+                          <p className="text-2xl font-bold text-[#E8490A] mt-1">{tagStats.resumo.total_registros}</p>
+                        </div>
+                        <div className="glass-card p-4">
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Tags Distintas</p>
+                          <p className="text-2xl font-bold text-[#0D3A85] mt-1">{tagStats.resumo.tags_distintas}</p>
+                        </div>
+                        <div className="glass-card p-4">
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Obras com Tags</p>
+                          <p className="text-2xl font-bold text-[#059669] mt-1">{tagStats.resumo.obras_com_tags}</p>
+                        </div>
+                        <div className="glass-card p-4">
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Tag mais Frequente</p>
+                          <p className="text-sm font-bold text-[#1A1A1A] mt-1 font-serif italic truncate">
+                            &quot;{tagStats.resumo.tag_mais_frequente}&quot;
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tabela de frequência */}
+                    <div className="glass-card p-6">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-5">
+                        <TagIcon size={16} className="text-[#E8490A]" />
+                        Frequência por Tag — Metadados Ativos
+                      </h3>
+
+                      {isLoadingTagStats && (
+                        <div className="flex items-center justify-center py-12">
+                          <div className="w-7 h-7 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mr-3" />
+                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Calculando frequências...</span>
+                        </div>
+                      )}
+
+                      {!isLoadingTagStats && !tagStats && (
+                        <div className="text-center py-10 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
+                          Clique em Atualizar Dados para carregar as estatísticas
+                        </div>
+                      )}
+
+                      {tagStats?.tags && (
+                        <div className="space-y-1 max-h-[520px] overflow-y-auto">
+                          {/* Cabeçalho da tabela */}
+                          <div className="grid grid-cols-[1fr_120px_60px_60px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
+                            <span>Tag / Código</span>
+                            <span>Frequência</span>
+                            <span className="text-center">Pessoas</span>
+                            <span className="text-center">Obras</span>
+                            <span className="text-center">Analisar</span>
+                          </div>
+                          {tagStats.tags.map((t: any, i: number) => {
+                            const maxFreq = tagStats.tags[0]?.frequencia || 1;
+                            const pct = Math.max((t.frequencia / maxFreq) * 100, 4);
+                            return (
+                              <div
+                                key={t.tag_normalizada}
+                                className="grid grid-cols-[1fr_120px_60px_60px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors"
+                              >
+                                <div>
+                                  <span className="font-serif italic text-[#1A1A1A]/85 text-sm">&quot;{t.tag_original}&quot;</span>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <code className="text-[9px] font-mono text-[#0D3A85]/70 bg-[#0D3A85]/08 px-1.5 py-0.5 rounded">
+                                      {t.codigo}
+                                    </code>
+                                    {t.grupo_tematico && t.grupo_tematico !== 'Outros' && (
+                                      <span className="text-[9px] uppercase tracking-wider text-[#1A1A1A]/35 font-semibold">{t.grupo_tematico}</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="h-1.5 flex-1 bg-black/08 rounded-full overflow-hidden">
+                                    <div className="h-full bg-[#E8490A] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className="text-[11px] font-bold text-[#1A1A1A]/70 w-4 text-right">{t.frequencia}</span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-[12px] font-bold text-[#0D3A85]">{t.pessoas}</span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-[12px] font-bold text-[#059669]">{t.obras}</span>
+                                </div>
+                                <div className="text-center">
+                                  <button
+                                    onClick={() => { setTagsSubTab('semantica'); handleTagAnalysis(t.tag_original); }}
+                                    className="p-1.5 rounded-lg hover:bg-[#E8490A]/10 transition-colors text-[#E8490A]/60 hover:text-[#E8490A]"
+                                    title="Análise semântica"
+                                  >
+                                    <ChevronRight size={14} />
+                                  </button>
+                                </div>
                               </div>
-                              <ChevronRight size={16} className="text-[#1A1A1A]/35" />
-                            </div>
-                          ))
-                        ) : (
-                          <div className="p-4 text-center text-[#1A1A1A]/48 text-[11px] font-semibold uppercase tracking-wider border border-black/07 rounded-lg">
-                            Nenhuma tag criada ainda
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Gráfico de barras — Top 15 tags */}
+                    {tagStats?.tags && tagStats.tags.length > 0 && (
+                      <div className="glass-card p-6">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider mb-5 flex items-center gap-2">
+                          <BarChart3 size={16} className="text-[#E8490A]" />
+                          Top 15 Tags — Volume de Aplicações
+                        </h3>
+                        <div className="space-y-2">
+                          {tagStats.tags.slice(0, 15).map((t: any) => {
+                            const maxFreq = tagStats.tags[0]?.frequencia || 1;
+                            const pct = Math.max((t.frequencia / maxFreq) * 100, 3);
+                            return (
+                              <div key={t.tag_normalizada} className="flex items-center gap-3">
+                                <span className="font-serif italic text-[#1A1A1A]/80 text-sm w-36 truncate text-right">&quot;{t.tag_original}&quot;</span>
+                                <div className="h-5 flex-1 bg-black/05 rounded overflow-hidden relative">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-[#E8490A] to-[#F16001] rounded transition-all duration-700 flex items-center"
+                                    style={{ width: `${pct}%` }}
+                                  >
+                                    {pct > 20 && (
+                                      <span className="text-[9px] font-bold text-white px-2">{t.frequencia}×</span>
+                                    )}
+                                  </div>
+                                  {pct <= 20 && (
+                                    <span className="absolute left-2 top-0 h-full flex items-center text-[9px] font-bold text-[#1A1A1A]/50">{t.frequencia}×</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-semibold text-[#0D3A85]/70 w-16 text-right">
+                                  {t.pessoas} pessoa{t.pessoas !== 1 ? 's' : ''}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ─── SUB-TAB: CORRELAÇÕES ───────────────────────────────────────── */}
+                {tagsSubTab === 'correlacoes' && (
+                  <div className="space-y-6">
+                    <div className="glass-card p-6">
+                      <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <Share2 size={16} className="text-[#0D3A85]" />
+                        Correlações entre Tags — Índice de Jaccard
+                      </h3>
+                      <p className="text-[10px] text-[#1A1A1A]/45 uppercase tracking-wider mb-5">
+                        Pares de tags que aparecem juntas nas mesmas obras. Score = interseção / união de obras.
+                      </p>
+
+                      {isLoadingTagStats && (
+                        <div className="flex items-center justify-center py-12">
+                          <div className="w-7 h-7 border-4 border-[#0D3A85] border-t-transparent rounded-full animate-spin mr-3" />
+                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Calculando correlações...</span>
+                        </div>
+                      )}
+
+                      {!isLoadingTagStats && !tagStats && (
+                        <div className="text-center py-10 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
+                          Clique em Atualizar Dados para calcular as correlações
+                        </div>
+                      )}
+
+                      {tagStats?.correlacoes && tagStats.correlacoes.length === 0 && (
+                        <div className="text-center py-10 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
+                          Nenhuma correlação detectada ainda — são necessárias pelo menos 2 obras com tags em comum
+                        </div>
+                      )}
+
+                      {tagStats?.correlacoes && tagStats.correlacoes.length > 0 && (
+                        <div className="space-y-2">
+                          {/* Cabeçalho */}
+                          <div className="grid grid-cols-[1fr_1fr_80px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
+                            <span>Tag A</span>
+                            <span>Tag B</span>
+                            <span>Score Jaccard</span>
+                            <span className="text-center">Obras</span>
+                          </div>
+                          {tagStats.correlacoes.map((c: any, i: number) => {
+                            const pct = Math.round(c.score * 100);
+                            const color = pct >= 80 ? '#059669' : pct >= 50 ? '#0D3A85' : '#E8490A';
+                            return (
+                              <div key={i} className="grid grid-cols-[1fr_1fr_80px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors">
+                                <span className="font-serif italic text-[#1A1A1A]/85 text-sm truncate">&quot;{c.tagA}&quot;</span>
+                                <span className="font-serif italic text-[#1A1A1A]/85 text-sm truncate">&quot;{c.tagB}&quot;</span>
+                                <div className="flex items-center gap-2">
+                                  <div className="h-1.5 flex-1 bg-black/08 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full transition-all duration-500"
+                                      style={{ width: `${pct}%`, backgroundColor: color }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] font-bold w-7 text-right" style={{ color }}>{pct}%</span>
+                                </div>
+                                <div className="text-center">
+                                  <span className="text-[11px] font-semibold text-[#1A1A1A]/60">{c.intersecao}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Gráfico de barras horizontais — Top correlações */}
+                    {tagStats?.correlacoes && tagStats.correlacoes.length > 0 && (
+                      <div className="glass-card p-6">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider mb-5 flex items-center gap-2">
+                          <TrendingUp size={16} className="text-[#059669]" />
+                          Top Pares — Maior Co-ocorrência
+                        </h3>
+                        <div className="space-y-3">
+                          {tagStats.correlacoes.slice(0, 15).map((c: any, i: number) => {
+                            const pct = Math.round(c.score * 100);
+                            const barWidth = Math.max(pct, 5);
+                            return (
+                              <div key={i} className="flex items-center gap-3">
+                                <span className="text-[10px] text-[#1A1A1A]/60 w-44 text-right leading-tight">
+                                  <span className="font-serif italic">&quot;{c.tagA}&quot;</span>
+                                  <span className="text-[#1A1A1A]/30 mx-1">+</span>
+                                  <span className="font-serif italic">&quot;{c.tagB}&quot;</span>
+                                </span>
+                                <div className="h-4 flex-1 bg-black/05 rounded overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-[#059669] to-[#06a070] rounded flex items-center"
+                                    style={{ width: `${barWidth}%` }}
+                                  >
+                                    {barWidth > 25 && (
+                                      <span className="text-[9px] font-bold text-white px-2">{pct}%</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {barWidth <= 25 && (
+                                  <span className="text-[10px] font-bold text-[#059669] w-8">{pct}%</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ─── SUB-TAB: ANÁLISE VISUAL ML ─────────────────────────────────── */}
+                {tagsSubTab === 'visual' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Lista de obras */}
+                      <div className="glass-card p-6">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-5">
+                          <Cpu size={16} className="text-[#E8490A]" />
+                          Obras — Selecione para Análise Visual
+                        </h3>
+                        {isLoadingTagStats && (
+                          <div className="flex items-center justify-center py-10">
+                            <div className="w-6 h-6 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin" />
                           </div>
                         )}
-                     </div>
-                   </div>
+                        {!tagStats?.obras && !isLoadingTagStats && (
+                          <p className="text-center text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35 py-8">
+                            Clique em Atualizar Dados para carregar as obras
+                          </p>
+                        )}
+                        {tagStats?.obras && (
+                          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                            {tagStats.obras.map((o: any) => (
+                              <button
+                                key={o.obra_id}
+                                onClick={() => handleVisualAnalysis(o.obra_id)}
+                                disabled={isAnalyzingVisual}
+                                className={`w-full text-left flex gap-3 p-3 rounded-xl border transition-all disabled:opacity-50 ${
+                                  selectedObraForVisual === o.obra_id
+                                    ? 'bg-[#E8490A]/08 border-[#E8490A]/30'
+                                    : 'bg-white/40 border-black/08 hover:border-black/15 hover:bg-white/60'
+                                }`}
+                              >
+                                {o.imagem_url && (
+                                  <img
+                                    src={o.imagem_url}
+                                    alt=""
+                                    className="w-14 h-14 object-cover rounded-lg flex-shrink-0"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                  />
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-sm font-serif italic text-[#1A1A1A]/85 truncate">
+                                    {o.titulo || o.obra_id.slice(0, 12)}
+                                  </p>
+                                  {o.artista && (
+                                    <p className="text-[10px] text-[#1A1A1A]/45 font-semibold uppercase tracking-wider truncate">{o.artista}</p>
+                                  )}
+                                  <div className="flex gap-3 mt-1">
+                                    <span className="text-[9px] font-bold text-[#E8490A] uppercase tracking-wider">{o.tags_distintas} tags</span>
+                                    <span className="text-[9px] font-bold text-[#0D3A85] uppercase tracking-wider">{o.pessoas} pessoas</span>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
-                   {/* Resultado da análise ML da tag selecionada */}
-                   <div className="space-y-4">
-                     {isAnalyzingTag && (
-                       <div className="glass-card p-12 text-center">
-                         <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                         <p className="text-[#1A1A1A]/48 text-[11px] uppercase tracking-wider font-semibold">Analisando tag com motor ML...</p>
-                       </div>
-                     )}
+                      {/* Resultado da análise visual */}
+                      <div className="space-y-4">
+                        {isAnalyzingVisual && (
+                          <div className="glass-card p-12 text-center">
+                            <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">
+                              Gemini Vision analisando a imagem...
+                            </p>
+                            <p className="text-[10px] text-[#1A1A1A]/35 mt-1">
+                              Processando contexto visual e coesão das tags
+                            </p>
+                          </div>
+                        )}
 
-                     {tagAnalysisResult && !isAnalyzingTag && (
-                       <>
-                         {/* Identidade da Tag */}
-                         <div className="glass-card p-6 space-y-4">
-                           <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                             <Network size={16} className="text-[#E85002]" /> Identidade Semântica
-                           </h3>
-                           <div className="flex items-center gap-3">
-                             <span className="text-2xl font-serif italic text-[#E85002]">&quot;{tagAnalysisResult.tag}&quot;</span>
-                             {tagAnalysisResult.family && (
-                               <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-[10px] uppercase font-semibold tracking-wider text-purple-400">
-                                 {tagAnalysisResult.family.name}
-                               </span>
-                             )}
-                             {!tagAnalysisResult.family && (
-                               <span className="px-3 py-1 bg-white/50 border border-black/10 rounded-full text-[10px] uppercase font-semibold tracking-wider text-[#1A1A1A]/45">
-                                 Sem família detectada
-                               </span>
-                             )}
-                           </div>
-                           {tagAnalysisResult.family && (
-                             <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg">
-                               <p className="text-[11px] uppercase font-semibold tracking-wider text-purple-400 mb-3">Membros desta família</p>
-                               <div className="flex flex-wrap gap-2">
-                                 {tagAnalysisResult.family.members.slice(0, 12).map((m: string, i: number) => (
-                                   <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold ${
-                                     m.toLowerCase() === tagAnalysisResult.tag.toLowerCase() 
-                                       ? 'bg-[#E85002]/20 text-[#E85002] border border-[#E85002]/30' 
-                                       : 'bg-purple-500/10 text-purple-300'
-                                   }`}>{m}</span>
-                                 ))}
-                               </div>
-                             </div>
-                           )}
-                         </div>
+                        {!visualAnalysisResult && !isAnalyzingVisual && (
+                          <div className="glass-card p-12 text-center">
+                            <Cpu size={40} className="mx-auto text-[#1A1A1A]/15 mb-4" />
+                            <p className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
+                              Selecione uma obra para análise visual
+                            </p>
+                            <p className="text-[10px] text-[#1A1A1A]/25 mt-2">
+                              O modelo visual avalia a coesão entre a imagem e as tags aplicadas
+                            </p>
+                          </div>
+                        )}
 
-                         {/* Duplicatas e erros */}
-                         {tagAnalysisResult.duplicates?.length > 0 && (
-                           <div className="glass-card p-6 border border-red-500/20 space-y-3">
-                             <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <AlertCircle size={16} className="text-red-400" /> Duplicatas / Erros Detectados ({tagAnalysisResult.duplicates.length})
-                             </h3>
-                             {tagAnalysisResult.duplicates.map((d: any, i: number) => (
-                               <div key={i} className="p-3 bg-red-500/5 rounded-lg flex items-center justify-between">
-                                 <div>
-                                   <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{d.tag}&quot;</span>
-                                   <span className="text-[10px] text-[#1A1A1A]/38 ml-2">({Math.round(d.score * 100)}% similar)</span>
-                                 </div>
-                                 <span className="text-[10px] text-red-400/85 italic max-w-[50%] text-right">{d.reason}</span>
-                               </div>
-                             ))}
-                           </div>
-                         )}
+                        {visualAnalysisResult && !isAnalyzingVisual && (
+                          <>
+                            {/* Miniatura da obra + contexto */}
+                            <div className="glass-card p-5 space-y-4">
+                              <div className="flex gap-4">
+                                {visualAnalysisResult.imagem_url && (
+                                  <img
+                                    src={visualAnalysisResult.imagem_url}
+                                    alt=""
+                                    className="w-20 h-20 object-cover rounded-xl flex-shrink-0"
+                                  />
+                                )}
+                                <div>
+                                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]/55 mb-1">Contexto Visual</h3>
+                                  <p className="text-sm text-[#1A1A1A]/80 leading-relaxed">{visualAnalysisResult.descricao_visual}</p>
+                                  {visualAnalysisResult.contexto_cultural && (
+                                    <p className="text-[11px] text-[#1A1A1A]/50 italic mt-2">{visualAnalysisResult.contexto_cultural}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-4 text-[9px] font-bold uppercase tracking-widest text-[#1A1A1A]/40 pt-2 border-t border-black/07">
+                                <span>{visualAnalysisResult.tags_aplicadas?.length || 0} tags analisadas</span>
+                                <span>{visualAnalysisResult.total_visitantes || 0} visitantes</span>
+                                <span className="ml-auto text-[#059669]">{visualAnalysisResult.fonte}</span>
+                              </div>
+                            </div>
 
-                         {/* Tags relacionadas */}
-                         {tagAnalysisResult.siblings?.length > 0 && (
-                           <div className="glass-card p-6 border border-blue-500/20 space-y-3">
-                             <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <Share2 size={16} className="text-blue-400" /> Tags Relacionadas ({tagAnalysisResult.siblings.length})
-                             </h3>
-                             {tagAnalysisResult.siblings.slice(0, 8).map((s: any, i: number) => (
-                               <div key={i} className="p-3 bg-blue-500/5 rounded-lg flex items-center justify-between">
-                                 <div className="flex items-center gap-2">
-                                   <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{s.tag}&quot;</span>
-                                   <div className="flex items-center gap-1">
-                                     <div className="h-1 w-16 bg-white/50 rounded-full overflow-hidden">
-                                       <div className="h-full bg-blue-400" style={{ width: `${s.score * 100}%` }} />
-                                     </div>
-                                     <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round(s.score * 100)}%</span>
-                                   </div>
-                                 </div>
-                                 <span className="text-[10px] text-blue-400/85 italic max-w-[45%] text-right">{s.reason}</span>
-                               </div>
-                             ))}
-                           </div>
-                         )}
+                            {/* Coesão das tags */}
+                            {visualAnalysisResult.coesao_tags?.length > 0 && (
+                              <div className="glass-card p-5 space-y-3">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                                  <CheckCircle size={14} className="text-[#059669]" />
+                                  Coesão das Tags com a Imagem
+                                </h3>
+                                <div className="space-y-2">
+                                  {visualAnalysisResult.coesao_tags.map((c: any, i: number) => {
+                                    const statusColors: Record<string, string> = {
+                                      COERENTE: 'text-[#059669] bg-[#059669]/08 border-[#059669]/20',
+                                      PARCIAL: 'text-amber-600 bg-amber-500/08 border-amber-500/20',
+                                      SEM_RESPALDO: 'text-red-500 bg-red-500/08 border-red-500/20',
+                                      PENDENTE: 'text-[#1A1A1A]/40 bg-black/05 border-black/10',
+                                    };
+                                    const sc = statusColors[c.status] || statusColors.PENDENTE;
+                                    return (
+                                      <div key={i} className={`flex items-start justify-between gap-3 p-3 rounded-lg border ${sc}`}>
+                                        <div>
+                                          <span className="font-serif italic text-[#1A1A1A]/85">&quot;{c.tag}&quot;</span>
+                                          {c.motivo && (
+                                            <p className="text-[10px] text-[#1A1A1A]/55 mt-0.5">{c.motivo}</p>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                          <span className="text-[9px] font-bold uppercase tracking-wider">{c.status?.replace('_', ' ')}</span>
+                                          {c.status !== 'PENDENTE' && (
+                                            <div className="flex gap-1">
+                                              <button
+                                                onClick={() => handleVisualFeedback(visualAnalysisResult.obra_id, c.tag, 'validado')}
+                                                className="p-1 rounded hover:bg-[#059669]/20 transition-colors"
+                                                title="Confirmar"
+                                              >
+                                                <CheckCircle size={12} className="text-[#059669]" />
+                                              </button>
+                                              <button
+                                                onClick={() => handleVisualFeedback(visualAnalysisResult.obra_id, c.tag, 'rejeitado')}
+                                                className="p-1 rounded hover:bg-red-500/20 transition-colors"
+                                                title="Rejeitar"
+                                              >
+                                                <X size={12} className="text-red-400" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
 
-                         {/* Sugestões do ML */}
-                         {tagAnalysisResult.suggestions?.length > 0 && (
-                           <div className="glass-card p-6 space-y-2">
-                             <h3 className="text-xs font-semibold uppercase tracking-wider mb-3">Sugestões do Cérebro</h3>
-                             {tagAnalysisResult.suggestions.map((s: string, i: number) => (
-                               <p key={i} className="text-[11px] text-[#1A1A1A]/60 leading-relaxed flex items-start gap-2">
-                                 <span className="text-[#E85002] mt-0.5">→</span> {s}
-                               </p>
-                             ))}
-                           </div>
-                         )}
+                            {/* Tags sugeridas pelo modelo */}
+                            {visualAnalysisResult.tags_sugeridas?.length > 0 && (
+                              <div className="glass-card p-5 space-y-3">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                                  <Brain size={14} className="text-[#0D3A85]" />
+                                  Tags Sugeridas pelo Modelo — Não Aplicadas
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                  {visualAnalysisResult.tags_sugeridas.map((t: string, i: number) => (
+                                    <span
+                                      key={i}
+                                      className="px-3 py-1.5 bg-[#0D3A85]/08 border border-[#0D3A85]/20 rounded-full text-[11px] font-semibold text-[#0D3A85] font-serif italic"
+                                    >
+                                      &quot;{t}&quot;
+                                    </span>
+                                  ))}
+                                </div>
+                                <p className="text-[9px] uppercase tracking-wider text-[#1A1A1A]/35 font-semibold">
+                                  Termos identificados visualmente que ainda não foram inseridos pelos visitantes
+                                </p>
+                              </div>
+                            )}
 
-                         {/* Conexões Propagadas (A→B + B→C = A↔C) */}
-                         {tagAnalysisResult.propagated?.length > 0 && (
-                           <div className="glass-card p-6 border border-orange-500/20 space-y-3">
-                             <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <TrendingUp size={16} className="text-orange-400" /> Conexões Propagadas ({tagAnalysisResult.propagated.length})
-                             </h3>
-                             <p className="text-[10px] text-[#1A1A1A]/38 uppercase tracking-wider">Inferidas automaticamente: se A→B e B→C, então A↔C</p>
-                             {tagAnalysisResult.propagated.map((p: any, i: number) => (
-                               <div key={i} className="p-3 bg-orange-500/5 rounded-lg">
-                                 <div className="flex items-center justify-between">
-                                   <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{p.tag}&quot;</span>
-                                   <span className="text-[10px] text-orange-400/80 font-semibold">{Math.round(p.score * 100)}% confiança</span>
-                                 </div>
-                                 <p className="text-[10px] text-[#1A1A1A]/48 italic mt-1">{p.reason}</p>
-                               </div>
-                             ))}
-                           </div>
-                         )}
+                            {visualAnalysisResult.feedback_historico > 0 && (
+                              <p className="text-[9px] text-[#1A1A1A]/35 uppercase tracking-wider font-semibold text-right">
+                                Calibrado com {visualAnalysisResult.feedback_historico} feedback(s) anteriores
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                         {/* DNA Semântico */}
-                         {tagAnalysisResult.dna && (
-                           <div className="glass-card p-6 space-y-4">
-                             <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <Database size={16} className="text-[#E85002]" /> DNA Semântico
-                             </h3>
-                             <div className="space-y-2">
-                               {Object.entries(tagAnalysisResult.dna)
-                                 .filter(([, val]) => (val as number) > 0)
-                                 .sort(([, a], [, b]) => (b as number) - (a as number))
-                                 .map(([key, val]) => {
-                                   const labels: Record<string, string> = { period: 'Período', technique: 'Técnica', geography: 'Geografia', material: 'Material', theme: 'Temática', provenance: 'Proveniência', movement: 'Movimento' };
-                                   return (
-                                     <div key={key} className="flex items-center gap-3">
-                                       <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/48 w-24 text-right font-semibold">{labels[key] || key}</span>
-                                       <div className="h-2 flex-1 bg-white/50 rounded-full overflow-hidden">
-                                         <div className="h-full bg-gradient-to-r from-[#E85002] to-[#F16001] transition-all duration-700" style={{ width: `${(val as number) * 100}%` }} />
-                                       </div>
-                                       <span className="text-[10px] text-[#1A1A1A]/38 font-semibold w-10">{Math.round((val as number) * 100)}%</span>
-                                     </div>
-                                   );
-                                 })}
-                             </div>
-                           </div>
-                         )}
+                {/* ─── SUB-TAB: ANÁLISE SEMÂNTICA ─────────────────────────────────── */}
+                {tagsSubTab === 'semantica' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Lista de todas as tags */}
+                      <div className="glass-card p-6">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-5">
+                          <TagIcon className="text-[#E85002]" size={16} /> Tags no Sistema
+                        </h3>
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                          {tagStats?.tags && tagStats.tags.length > 0 ? (
+                            tagStats.tags.map((t: any) => (
+                              <div
+                                key={t.tag_normalizada}
+                                className={`p-3.5 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${
+                                  selectedTagForAnalysis === t.tag_original
+                                    ? 'bg-[#E85002]/08 border-[#E85002]/35'
+                                    : 'bg-white/45 border-black/08 hover:border-black/15'
+                                }`}
+                                onClick={() => handleTagAnalysis(t.tag_original)}
+                              >
+                                <div>
+                                  <span className="text-[#E85002] font-serif italic">&quot;{t.tag_original}&quot;</span>
+                                  <div className="flex gap-2 mt-0.5">
+                                    <code className="text-[9px] font-mono text-[#0D3A85]/60 bg-[#0D3A85]/06 px-1 py-0.5 rounded">{t.codigo}</code>
+                                    <span className="text-[9px] text-[#1A1A1A]/35 font-semibold uppercase tracking-wider">{t.frequencia}× · {t.pessoas} pessoa{t.pessoas !== 1 ? 's' : ''}</span>
+                                  </div>
+                                </div>
+                                <ChevronRight size={14} className="text-[#1A1A1A]/30 flex-shrink-0" />
+                              </div>
+                            ))
+                          ) : dashboardData?.relatorioSemantico?.recentTags?.length > 0 ? (
+                            dashboardData.relatorioSemantico.recentTags.map((tagObj: any, i: number) => (
+                              <div
+                                key={tagObj.id || i}
+                                className={`p-3.5 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${
+                                  selectedTagForAnalysis === tagObj.tag
+                                    ? 'bg-[#E85002]/08 border-[#E85002]/35'
+                                    : 'bg-white/45 border-black/08 hover:border-black/15'
+                                }`}
+                                onClick={() => handleTagAnalysis(tagObj.tag)}
+                              >
+                                <div>
+                                  <span className="text-[#E85002] font-serif italic">&quot;{tagObj.tag}&quot;</span>
+                                  <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/40 mt-0.5">
+                                    {tagObj.grupo !== 'Outros' ? tagObj.grupo : 'Clique para analisar'}
+                                  </p>
+                                </div>
+                                <ChevronRight size={14} className="text-[#1A1A1A]/30" />
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-8 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
+                              Nenhuma tag disponível — carregue os dados ou aguarde o dashboard
+                            </div>
+                          )}
+                        </div>
+                      </div>
 
-                         {/* Rastro Neural (Tráfego de Informação) */}
-                         {tagAnalysisResult.traces?.length > 0 && (
-                           <div className="glass-card p-6 space-y-3">
-                             <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                               <Clock size={16} className="text-[#1A1A1A]/55" /> Rastro Neural ({tagAnalysisResult.totalTraces || tagAnalysisResult.traces.length} eventos)
-                             </h3>
-                             <p className="text-[10px] text-[#1A1A1A]/38 uppercase tracking-wider">De onde veio → Para onde vai</p>
-                             <div className="space-y-2 max-h-48 overflow-y-auto">
-                               {tagAnalysisResult.traces.slice(0, 10).map((t: any, i: number) => {
-                                 const actionColors: Record<string, string> = {
-                                   'INGESTAO': 'text-blue-400 bg-blue-500/10',
-                                   'CORRELACAO': 'text-purple-400 bg-purple-500/10',
-                                   'PROPAGACAO': 'text-orange-400 bg-orange-500/10',
-                                   'APRENDIZADO': 'text-yellow-400 bg-yellow-500/10',
-                                   'VALIDACAO': 'text-orange-400 bg-orange-500/10',
-                                   'CONEXAO': 'text-[#E85002] bg-[#E85002]/10'
-                                 };
-                                 const colorClass = actionColors[t.action] || 'text-[#1A1A1A]/55 bg-white/50';
-                                 return (
-                                   <div key={t.id || i} className="flex items-center gap-2 text-[10px]">
-                                     <span className={`px-2 py-0.5 rounded text-[8px] uppercase font-semibold tracking-wider ${colorClass}`}>{t.action}</span>
-                                     <span className="text-[#1A1A1A]/35">{t.origin}</span>
-                                     <span className="text-white/15">→</span>
-                                     <span className="text-[#1A1A1A]/55">{t.destination}</span>
-                                     <span className="text-white/15 ml-auto">{Math.round(t.confidence * 100)}%</span>
-                                   </div>
-                                 );
-                               })}
-                             </div>
-                           </div>
-                         )}
+                      {/* Resultado da análise ML semântica */}
+                      <div className="space-y-4">
+                        {isAnalyzingTag && (
+                          <div className="glass-card p-12 text-center">
+                            <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-[#1A1A1A]/48 text-[11px] uppercase tracking-wider font-semibold">Analisando tag com motor ML...</p>
+                          </div>
+                        )}
 
-                         {/* Botão para análise completa no Relatório Semântico */}
-                         <button onClick={() => { setSearchTag(tagAnalysisResult.tag); setActiveTab('tags'); setTimeout(() => handleSemanticSearch(), 300); }} className="w-full liquid-button !bg-[#E85002] flex items-center justify-center gap-2">
-                           <Globe size={16} /> Análise Completa (IBRAM/Tainacan + Tesauro CNFCP)
-                         </button>
-                       </>
-                     )}
+                        {tagAnalysisResult && !isAnalyzingTag && (
+                          <>
+                            {/* Identidade da Tag */}
+                            <div className="glass-card p-6 space-y-4">
+                              <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                                <Network size={16} className="text-[#E85002]" /> Identidade Semântica
+                              </h3>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className="text-2xl font-serif italic text-[#E85002]">&quot;{tagAnalysisResult.tag}&quot;</span>
+                                {tagAnalysisResult.family && (
+                                  <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-[10px] uppercase font-semibold tracking-wider text-purple-400">
+                                    {tagAnalysisResult.family.name}
+                                  </span>
+                                )}
+                                {/* Código de metadado */}
+                                {tagStats?.tags && (() => {
+                                  const found = tagStats.tags.find((t: any) => t.tag_original?.toLowerCase() === tagAnalysisResult.tag?.toLowerCase() || t.tag_normalizada === tagAnalysisResult.tag?.toLowerCase());
+                                  return found ? (
+                                    <code className="text-[10px] font-mono text-[#0D3A85]/80 bg-[#0D3A85]/08 px-2 py-1 rounded border border-[#0D3A85]/15">
+                                      {found.codigo}
+                                    </code>
+                                  ) : null;
+                                })()}
+                              </div>
+                              {tagAnalysisResult.family && (
+                                <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg">
+                                  <p className="text-[11px] uppercase font-semibold tracking-wider text-purple-400 mb-3">Membros desta família</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {tagAnalysisResult.family.members.slice(0, 12).map((m: string, i: number) => (
+                                      <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold ${
+                                        m.toLowerCase() === tagAnalysisResult.tag.toLowerCase()
+                                          ? 'bg-[#E85002]/20 text-[#E85002] border border-[#E85002]/30'
+                                          : 'bg-purple-500/10 text-purple-300'
+                                      }`}>{m}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
 
-                     {!tagAnalysisResult && !isAnalyzingTag && (
-                       <div className="glass-card p-12 text-center">
-                         <TagIcon size={48} className="mx-auto text-[#1A1A1A]/15 mb-4" />
-                         <p className="text-[#1A1A1A]/38 text-xs uppercase tracking-wider font-semibold">Clique em uma tag à esquerda para ver a análise ML completa</p>
-                         <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider mt-2 font-medium">Família temática • Duplicatas • Erros ortográficos • Tags relacionadas</p>
-                       </div>
-                     )}
-                   </div>
-                 </div>
+                            {/* Duplicatas */}
+                            {tagAnalysisResult.duplicates?.length > 0 && (
+                              <div className="glass-card p-6 border border-red-500/20 space-y-3">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                                  <AlertCircle size={16} className="text-red-400" /> Duplicatas / Erros ({tagAnalysisResult.duplicates.length})
+                                </h3>
+                                {tagAnalysisResult.duplicates.map((d: any, i: number) => (
+                                  <div key={i} className="p-3 bg-red-500/5 rounded-lg flex items-center justify-between">
+                                    <div>
+                                      <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{d.tag}&quot;</span>
+                                      <span className="text-[10px] text-[#1A1A1A]/38 ml-2">({Math.round(d.score * 100)}% similar)</span>
+                                    </div>
+                                    <span className="text-[10px] text-red-400/85 italic max-w-[50%] text-right">{d.reason}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
 
-                 {/* Volume por grupo */}
-                 <div className="glass-card p-8">
-                   <h3 className="text-xs font-semibold uppercase tracking-wider mb-6">Volume por Grupo Temático</h3>
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     {dashboardData?.relatorioSemantico?.topConceitos?.map((c: any, i: number) => {
-                       const maxVal = Math.max(...(dashboardData?.relatorioSemantico?.topConceitos?.map((x: any) => x.valor) || [1]));
-                       return (
-                         <div key={i} className="space-y-2">
-                           <div className="flex justify-between text-[11px] font-semibold uppercase tracking-wider">
-                             <span>{c.nome}</span>
-                             <span className="text-[#1A1A1A]/45">{c.valor} tags</span>
-                           </div>
-                           <div className="h-1.5 bg-white/50 rounded-full overflow-hidden">
-                             <div className="h-full bg-[#E85002] transition-all duration-700" style={{ width: `${(c.valor / maxVal) * 100}%` }} />
-                           </div>
-                         </div>
-                       );
-                     })}
-                   </div>
-                 </div>
+                            {/* Tags relacionadas */}
+                            {tagAnalysisResult.siblings?.length > 0 && (
+                              <div className="glass-card p-6 border border-blue-500/20 space-y-3">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                                  <Share2 size={16} className="text-blue-400" /> Tags Relacionadas ({tagAnalysisResult.siblings.length})
+                                </h3>
+                                {tagAnalysisResult.siblings.slice(0, 8).map((s: any, i: number) => (
+                                  <div key={i} className="p-3 bg-blue-500/5 rounded-lg flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{s.tag}&quot;</span>
+                                      <div className="h-1 w-16 bg-white/50 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-400" style={{ width: `${s.score * 100}%` }} />
+                                      </div>
+                                      <span className="text-[10px] text-[#1A1A1A]/38 font-semibold">{Math.round(s.score * 100)}%</span>
+                                    </div>
+                                    <span className="text-[10px] text-blue-400/85 italic max-w-[45%] text-right">{s.reason}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* DNA Semântico */}
+                            {tagAnalysisResult.dna && (
+                              <div className="glass-card p-6 space-y-4">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                                  <Database size={16} className="text-[#E85002]" /> DNA Semântico
+                                </h3>
+                                <div className="space-y-2">
+                                  {Object.entries(tagAnalysisResult.dna)
+                                    .filter(([, val]) => (val as number) > 0)
+                                    .sort(([, a], [, b]) => (b as number) - (a as number))
+                                    .map(([key, val]) => {
+                                      const labels: Record<string, string> = { period: 'Período', technique: 'Técnica', geography: 'Geografia', material: 'Material', theme: 'Temática', provenance: 'Proveniência', movement: 'Movimento' };
+                                      return (
+                                        <div key={key} className="flex items-center gap-3">
+                                          <span className="text-[10px] uppercase tracking-wider text-[#1A1A1A]/48 w-24 text-right font-semibold">{labels[key] || key}</span>
+                                          <div className="h-2 flex-1 bg-white/50 rounded-full overflow-hidden">
+                                            <div className="h-full bg-gradient-to-r from-[#E85002] to-[#F16001] transition-all duration-700" style={{ width: `${(val as number) * 100}%` }} />
+                                          </div>
+                                          <span className="text-[10px] text-[#1A1A1A]/38 font-semibold w-10">{Math.round((val as number) * 100)}%</span>
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Botão análise completa */}
+                            <button onClick={() => { setSearchTag(tagAnalysisResult.tag); setActiveTab('relatorios'); setTimeout(() => handleSemanticSearch(), 300); }} className="w-full liquid-button !bg-[#E85002] flex items-center justify-center gap-2">
+                              <Globe size={16} /> Análise Completa (IBRAM/Tainacan + Tesauro CNFCP)
+                            </button>
+                          </>
+                        )}
+
+                        {!tagAnalysisResult && !isAnalyzingTag && (
+                          <div className="glass-card p-12 text-center">
+                            <TagIcon size={40} className="mx-auto text-[#1A1A1A]/15 mb-4" />
+                            <p className="text-[#1A1A1A]/38 text-xs uppercase tracking-wider font-semibold">Clique em uma tag para ver a análise semântica completa</p>
+                            <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider mt-2 font-medium">Família temática · Duplicatas · Erros · Tags relacionadas · DNA semântico</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
 
             {activeTab === 'relatorios' && (
               <div className="space-y-8 animate-fade-in print-section">
