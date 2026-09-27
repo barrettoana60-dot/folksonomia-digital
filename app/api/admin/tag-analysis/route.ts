@@ -65,22 +65,22 @@ export async function POST(req: NextRequest) {
 
     const exactDups = duplicates.filter((d: any) => d.type !== 'spelling');
     if (exactDups.length > 0) {
-      suggestions.push(`Descritores cossignificativos identificados — recomenda-se normalização terminológica: ${exactDups.map((d: any) => `"${d.tag}"`).join(', ')}`);
+      suggestions.push(`Tags sinônimas identificadas — recomenda-se normalização terminológica: ${exactDups.map((d: any) => `"${d.tag}"`).join(', ')}`);
     }
 
     if (family) {
       const familyTags = brainState.neuralMap.filter((c: any) => c.connectionType === 'family').map((c: any) => c.tagB);
       if (familyTags.length > 0) {
-        suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" — ${familyTags.length} membro(s) desta categoria localizado(s) no acervo`);
+        suggestions.push(`Tag classificada na categoria temática "${family.name}" — ${familyTags.length} tag(s) associada(s) nesta categoria`);
       } else {
-        suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" — nenhum outro membro desta categoria localizado no acervo`);
+        suggestions.push(`Tag classificada na categoria temática "${family.name}"`);
       }
     }
     if (propagated.length > 0) {
-      suggestions.push(`${propagated.length} conexão(ões) inferida(s) por propagação taxonômica — caminhos indiretos identificados entre descritores`);
+      suggestions.push(`${propagated.length} conexão(ões) inferida(s) por propagação semântica — caminhos indiretos identificados entre tags`);
     }
     if (brainState.totalTraces > 3) {
-      suggestions.push(`O sistema acumulou ${brainState.totalTraces} registro(s) de aprendizado documental sobre este descritor`);
+      suggestions.push(`O sistema acumulou ${brainState.totalTraces} registro(s) de aprendizado documental sobre esta tag`);
     }
 
     return NextResponse.json({

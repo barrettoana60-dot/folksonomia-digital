@@ -295,14 +295,44 @@ function jaccardSimilarity(a: string, b: string): number {
 // Motor de Correlação
 // ============================================================
 
+// Termos legítimos reconhecidos da arte popular, iconografia, indumentária e cultura brasileira
+const TERMOS_LEGITIMOS_CULTURA = [
+  // Indígena, indumentária e adornos
+  'cocar', 'cocares', 'maraca', 'maracas', 'zarabatana', 'tipoio', 'adereco', 'aderecos', 'adorno', 'adornos',
+  'brinco', 'brincos', 'colar', 'colares', 'pulseira', 'pulseiras', 'tornozeleira', 'tornozeleiras',
+  'penas', 'pena', 'plumaria', 'arte plumaria', 'indigena', 'indigenas', 'povo indigena', 'etnia', 'tribo',
+  'pintura corporal', 'urucum', 'genipapo', 'chapeu', 'chapeus', 'vestido', 'vestidos', 'traje', 'trajes',
+  'indumentaria', 'faixa', 'manto', 'saiote', 'turbante',
+  // Ocupações, agentes e figuras
+  'trabalho', 'trabalhador', 'trabalhadores', 'pescador', 'pescadores', 'artesao', 'artesaos', 'artesa', 'artesas',
+  'ceramista', 'oleiro', 'escultor', 'entalhador', 'mestre', 'mestre artesao', 'vaqueiro', 'boiadeiro',
+  'figura', 'figuras', 'personagem', 'personagens', 'homem', 'mulher', 'crianca', 'boneco', 'bonecos',
+  // Instrumentos musicais e manifestações
+  'violao', 'violoes', 'viola', 'violas', 'rabeca', 'rabecas', 'berimbau', 'cuica', 'pandeiro', 'pandeiros',
+  'atabaque', 'tambor', 'tambores', 'flauta', 'flautas', 'chocalho', 'agogo', 'triangulo', 'sanfona', 'acordeon',
+  'zabumba', 'gaita', 'cavaquinho', 'musica', 'canto', 'danca', 'ritmo',
+  // Suporte, materiais e técnicas
+  'suporte', 'suportes', 'base', 'pedestal', 'ceramica', 'barro', 'argila', 'policromia', 'madeira', 'madeiras',
+  'talha', 'entalhe', 'escultura', 'esculturas', 'pintura', 'desenho', 'gravura', 'xilogravura', 'cordel',
+  'faianca', 'olaria', 'modelagem', 'tecido', 'fios', 'palha', 'trancado', 'couro',
+  // Conceitos culturais
+  'arte popular', 'cultura popular', 'folclore', 'folclore brasileiro', 'auto popular', 'bumba meu boi',
+  'boi bumba', 'maracatu', 'frevo', 'congada', 'reisado', 'cavalo marinho', 'pastoril', 'festa junina',
+  'carnaval', 'manifestacao', 'tradicao', 'saber popular', 'patrimonio', 'patrimonio imaterial', 'ex-voto',
+  'imaginaria', 'santo', 'santos', 'oratorio', 'oratorios', 'devocao', 'religiosidade', 'fe', 'altar'
+];
+
 /**
  * Retorna o vocabulário canônico controlado derivado do Tesauro CNFCP/IPHAN,
- * famílias temáticas, dicionário de sinônimos e termos existentes no acervo.
+ * famílias temáticas, dicionário de sinônimos, termos da cultura e acervo.
  */
 export function getCanonicalVocabulary(knownTags: string[] = []): string[] {
   const vocabulary = new Set<string>();
 
-  // 1. Termos canônicos do Tesauro CNFCP/IPHAN
+  // 1. Termos legítimos de arte e cultura brasileira
+  TERMOS_LEGITIMOS_CULTURA.forEach(t => vocabulary.add(t));
+
+  // 2. Termos canônicos do Tesauro CNFCP/IPHAN
   try {
     THESAURUS.forEach(t => {
       vocabulary.add(t.termo);
@@ -312,17 +342,17 @@ export function getCanonicalVocabulary(knownTags: string[] = []): string[] {
     });
   } catch {}
 
-  // 2. Chaves canônicas de SYNONYM_MAP
+  // 3. Chaves canônicas de SYNONYM_MAP
   for (const key of Object.keys(SYNONYM_MAP)) {
     vocabulary.add(key);
   }
 
-  // 3. Membros de THEMATIC_FAMILIES
+  // 4. Membros de THEMATIC_FAMILIES
   for (const fam of Object.values(THEMATIC_FAMILIES)) {
     fam.members.forEach(m => vocabulary.add(m));
   }
 
-  // 4. Tags conhecidas do acervo/banco
+  // 5. Tags conhecidas do acervo/banco
   for (const t of knownTags) {
     if (t && t.trim().length > 1) {
       vocabulary.add(t.trim());
@@ -333,31 +363,74 @@ export function getCanonicalVocabulary(knownTags: string[] = []): string[] {
 }
 
 /**
- * Detecta inconsistências ortográficas comparando o descritor com o vocabulário
+ * Detecta inconsistências ortográficas reais comparando a tag com o vocabulário
  * canônico controlado do acervo e do Tesauro CNFCP/IPHAN.
+ * Tags válidas reconhecidas e plurais gramaticais NUNCA são tratadas como erro.
  */
 export function detectSpellingErrors(
   tag: string,
   knownTags: string[] = []
 ): SpellingCorrection[] {
   const normalized = normalizeForComparison(tag);
-  const corrections: SpellingCorrection[] = [];
+  if (!normalized || normalized.length < 3) return [];
+
   const referencePool = getCanonicalVocabulary(knownTags);
+  const normPool = new Set(referencePool.map(normalizeForComparison));
+
+  // 1. REGRA ESSENCIAL: Se a tag já é um termo legítimo conhecido, NÃO HÁ ERRO ORTOGRÁFICO!
+  // Ex: "cocar", "violão", "arte popular", "suporte", "trabalho" são 100% corretos!
+  if (normPool.has(normalized)) {
+    return [];
+  }
+
+  // 2. REGRA DE PLURAL: Plurais regulares em português (ex: "adornos" -> "adorno", "brincos" -> "brinco", "cocares" -> "cocar")
+  // são variações gramaticais legítimas, NÃO erros ortográficos!
+  if (normalized.endsWith('s')) {
+    const s1 = normalized.slice(0, -1);
+    const s2 = normalized.endsWith('es') ? normalized.slice(0, -2) : '';
+    const s3 = normalized.endsWith('is') ? normalized.slice(0, -2) + 'l' : '';
+    if (normPool.has(s1) || (s2 && normPool.has(s2)) || (s3 && normPool.has(s3))) {
+      return [];
+    }
+  }
+
+  // 3. REGRA DE TERMOS MULTI-PALAVRA: Se todas as palavras do termo são válidas
+  // (ex: "arte popular" -> "arte" + "popular"), a tag é legítima!
+  const words = normalized.split(' ').filter(Boolean);
+  if (words.length > 1) {
+    const allWordsValid = words.every(w => {
+      if (normPool.has(w)) return true;
+      if (w.endsWith('s') && normPool.has(w.slice(0, -1))) return true;
+      return false;
+    });
+    if (allWordsValid) {
+      return [];
+    }
+  }
+
+  // 4. Busca por correção aproximada (apenas para termos que NÃO existem no vocabulário legítimo)
+  const corrections: SpellingCorrection[] = [];
   const seenCorrections = new Set<string>();
 
   for (const candidate of referencePool) {
     const candidateNorm = normalizeForComparison(candidate);
     if (candidateNorm === normalized) continue;
 
+    // Se o candidato difere apenas por plural/singular, não classificar como erro ortográfico
+    if (candidateNorm + 's' === normalized || normalized + 's' === candidateNorm) continue;
+
     const distance = levenshteinDistance(normalized, candidateNorm);
     const maxLen = Math.max(normalized.length, candidateNorm.length);
 
-    // Aceitar distância proporcional ao tamanho da expressão
-    const maxDistance = normalized.length <= 4 ? 1 : normalized.length <= 8 ? 2 : 3;
+    // Para palavras curtas (<=4 letras), distância máxima 1 apenas se houver altíssima similaridade
+    // Evita falsos positivos como "cocar" -> "colar"
+    if (normalized.length <= 4 && distance > 1) continue;
+    if (normalized.length <= 6 && distance > 2) continue;
 
-    if (distance > 0 && distance <= maxDistance) {
-      const confidence = 1 - (distance / maxLen);
-      if (confidence >= 0.75 && !seenCorrections.has(candidateNorm)) {
+    // Similaridade mínima de 80%
+    const confidence = 1 - (distance / maxLen);
+    if (confidence >= 0.80 && distance <= 2) {
+      if (!seenCorrections.has(candidateNorm)) {
         seenCorrections.add(candidateNorm);
         corrections.push({
           original: tag,
@@ -369,34 +442,36 @@ export function detectSpellingErrors(
     }
   }
 
-  // Análise por token/palavra para expressões compostas
-  const tagTokens = normalized.split(' ').filter(Boolean);
-  if (tagTokens.length > 1) {
+  // Análise especial de termos compostos onde apenas uma palavra tem erro de digitação
+  // Exemplo: "cultura populae" -> "cultura" é válida, "populae" não existe -> corrige para "cultura popular"
+  if (words.length > 1 && corrections.length === 0) {
     for (const candidate of referencePool) {
       const candidateNorm = normalizeForComparison(candidate);
       const candTokens = candidateNorm.split(' ').filter(Boolean);
-      if (candTokens.length !== tagTokens.length) continue;
+      if (candTokens.length !== words.length) continue;
 
-      let tokenDifferences = 0;
-      let totalTokenDist = 0;
-      for (let i = 0; i < tagTokens.length; i++) {
-        const tDist = levenshteinDistance(tagTokens[i], candTokens[i]);
-        if (tDist > 0) {
-          tokenDifferences++;
-          totalTokenDist += tDist;
+      let diffCount = 0;
+      let totalDist = 0;
+      for (let i = 0; i < words.length; i++) {
+        const d = levenshteinDistance(words[i], candTokens[i]);
+        if (d > 0) {
+          diffCount++;
+          totalDist += d;
         }
       }
 
-      if (tokenDifferences === 1 && totalTokenDist <= 2 && !seenCorrections.has(candidateNorm)) {
+      if (diffCount === 1 && totalDist <= 2 && !seenCorrections.has(candidateNorm)) {
         seenCorrections.add(candidateNorm);
         const maxLen = Math.max(normalized.length, candidateNorm.length);
-        const confidence = 1 - (totalTokenDist / maxLen);
-        corrections.push({
-          original: tag,
-          correctedTo: candidate,
-          distance: totalTokenDist,
-          confidence: Math.round(confidence * 100) / 100
-        });
+        const confidence = 1 - (totalDist / maxLen);
+        if (confidence >= 0.75) {
+          corrections.push({
+            original: tag,
+            correctedTo: candidate,
+            distance: totalDist,
+            confidence: Math.round(confidence * 100) / 100
+          });
+        }
       }
     }
   }
@@ -689,7 +764,7 @@ export function analyzeTagCorrelations(
           tag: member,
           relation: 'related',
           score: 0.85,
-          reason: `Descritor correlato na categoria taxonômica "${family.name}"`
+          reason: `Tag correlata na categoria temática "${family.name}"`
         });
       }
     }
@@ -707,14 +782,14 @@ export function analyzeTagCorrelations(
     }
   }
 
-  // 5. Gerar sugestões de curadoria em terminologia museológica formal
+  // 5. Gerar sugestões em linguagem acadêmica para tags
   const suggestions: string[] = [];
 
   // Erros ortográficos têm prioridade
   const spellingDups = duplicates.filter(d => d.relation === 'spelling_error');
   if (spellingDups.length > 0) {
     const corrected = spellingDups.map(d => `"${d.tag}"`).join(', ');
-    suggestions.push(`Variante grafêmica identificada — forma normalizada preferencial: ${corrected}`);
+    suggestions.push(`Variante grafêmica identificada — forma normalizada recomendada: ${corrected}`);
   }
 
   if (spellingErrors.length > 0) {
@@ -723,20 +798,20 @@ export function analyzeTagCorrelations(
 
   if (duplicates.filter(d => d.relation !== 'spelling_error').length > 0) {
     const dupNames = duplicates.filter(d => d.relation !== 'spelling_error').map(d => `"${d.tag}"`).join(', ');
-    suggestions.push(`Descritores cossignificativos identificados — recomenda-se normalização terminológica: ${dupNames}`);
+    suggestions.push(`Tags sinônimas identificadas — recomenda-se normalização terminológica: ${dupNames}`);
   }
 
   if (family) {
     const familyMembers = findFamilyMembers(tag, allDbTags);
     if (familyMembers.length > 0) {
-      suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" junto com: ${familyMembers.map(m => `"${m}"`).join(', ')}`);
+      suggestions.push(`Tag classificada na categoria temática "${family.name}" junto com: ${familyMembers.map(m => `"${m}"`).join(', ')}`);
     } else {
-      suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" — nenhum outro membro desta categoria localizado no acervo`);
+      suggestions.push(`Tag classificada na categoria temática "${family.name}"`);
     }
   }
 
   if (relatedSiblings.length > 0 && !family) {
-    suggestions.push(`Descritores semanticamente análogos identificados: ${relatedSiblings.slice(0, 3).map(s => `"${s.tag}"`).join(', ')}`);
+    suggestions.push(`Tags relacionadas identificadas: ${relatedSiblings.slice(0, 3).map(s => `"${s.tag}"`).join(', ')}`);
   }
 
   return {

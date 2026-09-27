@@ -2354,7 +2354,7 @@ ${internasHtml}
                           <p className="text-2xl font-bold text-[#E8490A] mt-1">{tagStats.resumo.total_registros}</p>
                         </div>
                         <div className="glass-card p-4">
-                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Descritores Distintos</p>
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Tags Distintas</p>
                           <p className="text-2xl font-bold text-[#0D3A85] mt-1">{tagStats.resumo.tags_distintas}</p>
                         </div>
                         <div className="glass-card p-4">
@@ -2366,7 +2366,7 @@ ${internasHtml}
                           <p className="text-2xl font-bold text-amber-600 mt-1">{tagStats.resumo.total_erros_ortograficos ?? 0}</p>
                         </div>
                         <div className="glass-card p-4">
-                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Descritor Preponderante</p>
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Tag Mais Frequente</p>
                           <p className="text-sm font-bold text-[#1A1A1A] mt-1 font-serif italic truncate">
                             &quot;{tagStats.resumo.tag_mais_frequente}&quot;
                           </p>
@@ -2378,7 +2378,7 @@ ${internasHtml}
                     <div className="glass-card p-6">
                       <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-5">
                         <TagIcon size={16} className="text-[#E8490A]" />
-                        Frequência de Atribuição de Descritores
+                        Frequência de Tags
                       </h3>
 
                       {isLoadingTagStats && (
@@ -2398,7 +2398,7 @@ ${internasHtml}
                         <div className="space-y-1 max-h-[520px] overflow-y-auto">
                           {/* Cabeçalho da tabela */}
                           <div className="grid grid-cols-[1fr_120px_70px_60px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
-                            <span>Descritor / Código</span>
+                            <span>Tag / Código</span>
                             <span>Frequência</span>
                             <span className="text-center">Usuários</span>
                             <span className="text-center">Obras</span>
@@ -2463,7 +2463,7 @@ ${internasHtml}
                       <div className="glass-card p-6">
                         <h3 className="text-xs font-semibold uppercase tracking-wider mb-5 flex items-center gap-2">
                           <BarChart3 size={16} className="text-[#E8490A]" />
-                          Descritores com Maior Incidência de Atribuição
+                          Tags Mais Frequentes
                         </h3>
                         <div className="space-y-2">
                           {tagStats.tags.slice(0, 15).map((t: any) => {
@@ -2503,7 +2503,7 @@ ${internasHtml}
                     <div className="glass-card p-6">
                       <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-2">
                         <Share2 size={16} className="text-[#0D3A85]" />
-                        Correlações entre Descritores
+                        Correlações entre Tags
                       </h3>
                       <p className="text-[10px] text-[#1A1A1A]/45 uppercase tracking-wider mb-5">
                         Matriz de compatibilidade calculada por co-ocorrência em unidades do acervo.
@@ -2532,8 +2532,8 @@ ${internasHtml}
                         <div className="space-y-2">
                           {/* Cabeçalho */}
                           <div className="grid grid-cols-[1fr_1fr_140px_80px] gap-3 text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
-                            <span>Descritor A</span>
-                            <span>Descritor B</span>
+                            <span>Tag A</span>
+                            <span>Tag B</span>
                             <span className="text-left whitespace-nowrap">Compatibilidade</span>
                             <span className="text-center whitespace-nowrap">Ocorrências</span>
                           </div>
@@ -2683,7 +2683,7 @@ ${internasHtml}
                               Selecione uma unidade do acervo para avaliação visual-semântica
                             </p>
                             <p className="text-[10px] text-[#1A1A1A]/25 mt-2">
-                              O motor de inferência afere a convergência entre os elementos morfológicos da obra e os descritores atribuídos.
+                              O motor de inferência afere a convergência entre os elementos visuais da obra e as tags atribuídas.
                             </p>
                           </div>
                         )}
@@ -2718,7 +2718,7 @@ ${internasHtml}
                                 </div>
                               </div>
                               <div className="flex gap-4 text-[9px] font-bold uppercase tracking-widest text-[#1A1A1A]/40 pt-2 border-t border-black/07">
-                                <span>{visualAnalysisResult.tags_aplicadas?.length || 0} descritores avaliados</span>
+                                <span>{visualAnalysisResult.tags_aplicadas?.length || 0} tags avaliadas</span>
                                 <span>{visualAnalysisResult.total_visitantes || 0} colaboradores</span>
                                 <span className="ml-auto text-[#059669]">{visualAnalysisResult.fonte}</span>
                               </div>
@@ -2729,7 +2729,7 @@ ${internasHtml}
                               <div className="glass-card p-5 space-y-3">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
                                   <CheckCircle size={14} className="text-[#059669]" />
-                                  Coerência Terminológica dos Descritores
+                                  Coesão das Tags com a Imagem
                                 </h3>
                                 <div className="space-y-2">
                                   {visualAnalysisResult.coesao_tags.map((c: any, i: number) => {
@@ -2781,7 +2781,7 @@ ${internasHtml}
                               <div className="glass-card p-5 space-y-3">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
                                   <Brain size={14} className="text-[#0D3A85]" />
-                                  Descritores Complementares Inferidos
+                                  Tags Sugeridas por Visão Computacional
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                   {visualAnalysisResult.tags_sugeridas.map((t: string, i: number) => (
@@ -2916,7 +2916,7 @@ ${internasHtml}
                               </div>
                                {tagAnalysisResult.family && (
                                 <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg">
-                                  <p className="text-[11px] uppercase font-bold tracking-wider text-purple-800 mb-3">Descritores Associados a esta Categoria Taxonômica</p>
+                                  <p className="text-[11px] uppercase font-bold tracking-wider text-purple-800 mb-3">Tags da Família Temática</p>
                                   <div className="flex flex-wrap gap-2">
                                     {tagAnalysisResult.family.members.slice(0, 18).map((m: string, i: number) => (
                                       <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold ${
@@ -2945,7 +2945,7 @@ ${internasHtml}
                                       </span>
                                     </div>
                                     <p className="text-sm text-[#1A1A1A]/85">
-                                      O descritor <span className="font-serif italic font-bold text-red-600">&quot;{tagAnalysisResult.tag}&quot;</span> apresenta desvio ortográfico em relação ao vocabulário controlado. Forma canônica recomendada: <span className="font-serif italic font-bold text-[#059669]">&quot;{spellingError.tag}&quot;</span>.
+                                      A tag <span className="font-serif italic font-bold text-red-600">&quot;{tagAnalysisResult.tag}&quot;</span> apresenta desvio ortográfico em relação ao vocabulário controlado. Forma canônica recomendada: <span className="font-serif italic font-bold text-[#059669]">&quot;{spellingError.tag}&quot;</span>.
                                     </p>
                                   </div>
                                 );
@@ -2971,11 +2971,11 @@ ${internasHtml}
                               </div>
                             )}
 
-                            {/* Descritores Relacionados */}
+                            {/* Tags Relacionadas */}
                             {tagAnalysisResult.siblings?.length > 0 && (
                               <div className="glass-card p-6 border border-blue-500/20 space-y-3">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                                  <Share2 size={16} className="text-blue-400" /> Descritores Semanticamente Relacionados ({tagAnalysisResult.siblings.length})
+                                  <Share2 size={16} className="text-blue-400" /> Tags Relacionadas ({tagAnalysisResult.siblings.length})
                                 </h3>
                                 {tagAnalysisResult.siblings.slice(0, 8).map((s: any, i: number) => (
                                   <div key={i} className="p-3 bg-blue-500/5 rounded-lg flex items-center justify-between">
@@ -3028,8 +3028,8 @@ ${internasHtml}
                         {!tagAnalysisResult && !isAnalyzingTag && (
                           <div className="glass-card p-12 text-center">
                             <TagIcon size={40} className="mx-auto text-[#1A1A1A]/15 mb-4" />
-                            <p className="text-[#1A1A1A]/38 text-xs uppercase tracking-wider font-semibold">Selecione um descritor para visualizar a análise ontológica e taxonômica</p>
-                            <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider mt-2 font-medium">Classificação taxonômica · Variantes grafêmicas · Descritores correlatos · Vetor de atributos</p>
+                            <p className="text-[#1A1A1A]/38 text-xs uppercase tracking-wider font-semibold">Selecione uma tag para visualizar a análise semântica</p>
+                            <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider mt-2 font-medium">Classificação temática · Variantes grafêmicas · Tags correlatas · Atributos</p>
                           </div>
                         )}
                       </div>
@@ -3345,7 +3345,7 @@ ${internasHtml}
                         {/* Siblings semânticos */}
                         {semanticResult.tagAnalysis.siblings?.length > 0 && (
                           <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-lg">
-                            <p className="text-[11px] uppercase font-semibold tracking-wider text-blue-400 mb-2">Descritores Semanticamente Análogos</p>
+                            <p className="text-[11px] uppercase font-semibold tracking-wider text-blue-400 mb-2">Tags Relacionadas</p>
                             <div className="space-y-2">
                               {semanticResult.tagAnalysis.siblings.slice(0, 5).map((s: any, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-sm">
