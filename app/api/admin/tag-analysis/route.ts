@@ -55,25 +55,32 @@ export async function POST(req: NextRequest) {
     const { detectTagFamily } = await import('@/lib/ml/tag-correlator');
     const family = detectTagFamily(tagClean);
 
-    // Gerar sugestões inteligentes baseadas no estado cerebral
+    // Gerar sugestões de curadoria em terminologia museológica formal
     const suggestions: string[] = [];
-    
-    if (duplicates.length > 0) {
-      suggestions.push(`⚠ ${duplicates.length} tag(s) duplicada(s) detectada(s) — considere mesclar: ${duplicates.map(d => `"${d.tag}"`).join(', ')}`);
+
+    const spellingDups = duplicates.filter((d: any) => d.type === 'spelling');
+    if (spellingDups.length > 0) {
+      suggestions.push(`Variante grafêmica identificada — forma normalizada preferencial: ${spellingDups.map((d: any) => `"${d.tag}"`).join(', ')}`);
     }
+
+    const exactDups = duplicates.filter((d: any) => d.type !== 'spelling');
+    if (exactDups.length > 0) {
+      suggestions.push(`Descritores cossignificativos identificados — recomenda-se normalização terminológica: ${exactDups.map((d: any) => `"${d.tag}"`).join(', ')}`);
+    }
+
     if (family) {
-      const familyTags = brainState.neuralMap.filter(c => c.connectionType === 'family').map(c => c.tagB);
+      const familyTags = brainState.neuralMap.filter((c: any) => c.connectionType === 'family').map((c: any) => c.tagB);
       if (familyTags.length > 0) {
-        suggestions.push(`🏛 Esta tag pertence à família "${family.name}" — ${familyTags.length} membro(s) encontrado(s) no banco`);
+        suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" — ${familyTags.length} membro(s) desta categoria localizado(s) no acervo`);
       } else {
-        suggestions.push(`🏛 Esta tag pertence à família "${family.name}" — nenhum outro membro encontrado ainda no banco`);
+        suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" — nenhum outro membro desta categoria localizado no acervo`);
       }
     }
     if (propagated.length > 0) {
-      suggestions.push(`🧠 ${propagated.length} conexão(ões) inferida(s) por propagação — o cérebro detectou caminhos indiretos entre tags`);
+      suggestions.push(`${propagated.length} conexão(ões) inferida(s) por propagação taxonômica — caminhos indiretos identificados entre descritores`);
     }
     if (brainState.totalTraces > 3) {
-      suggestions.push(`📊 O cérebro já acumulou ${brainState.totalTraces} registro(s) de aprendizado sobre esta tag`);
+      suggestions.push(`O sistema acumulou ${brainState.totalTraces} registro(s) de aprendizado documental sobre este descritor`);
     }
 
     return NextResponse.json({

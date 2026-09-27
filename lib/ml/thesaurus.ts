@@ -36,7 +36,7 @@ export interface ThesaurusEntry {
 // Extraído do Tesauro de Folclore e Cultura Popular Brasileira
 // ============================================================
 
-const THESAURUS: ThesaurusEntry[] = [
+export const THESAURUS: ThesaurusEntry[] = [
   // ---- ARTE ----
   {
     termo: 'arte popular',
@@ -314,18 +314,50 @@ const THESAURUS: ThesaurusEntry[] = [
 // Funções de Consulta ao Tesauro
 // ============================================================
 
+function thesaurusLev(a: string, b: string): number {
+  if (Math.abs(a.length - b.length) > 3) return 99;
+  const matrix: number[][] = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] = b[i - 1] === a[j - 1] ? matrix[i - 1][j - 1] : 1 + Math.min(matrix[i - 1][j - 1], matrix[i][j - 1], matrix[i - 1][j]);
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
 /**
- * Busca um termo no tesauro (case-insensitive, normalizado).
+ * Busca um termo no tesauro (case-insensitive, normalizado e com tolerância a variantes ortográficas).
  */
 export function findTerm(query: string): ThesaurusEntry | undefined {
   const norm = query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-  return THESAURUS.find(entry => {
+  
+  // 1. Busca exata
+  const exact = THESAURUS.find(entry => {
     const termNorm = entry.termo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     if (termNorm === norm) return true;
-    // Checar sinônimos (UP)
     if (entry.up?.some(u => u.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '') === norm)) return true;
     return false;
   });
+  if (exact) return exact;
+
+  // 2. Busca com tolerância ortográfica (distância <= 2 para termos com mais de 5 caracteres)
+  if (norm.length >= 5) {
+    const fuzzy = THESAURUS.find(entry => {
+      const termNorm = entry.termo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const dist = thesaurusLev(norm, termNorm);
+      if (dist <= (norm.length > 8 ? 2 : 1)) return true;
+      if (entry.up?.some(u => {
+        const uNorm = u.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        return thesaurusLev(norm, uNorm) <= (norm.length > 8 ? 2 : 1);
+      })) return true;
+      return false;
+    });
+    if (fuzzy) return fuzzy;
+  }
+
+  return undefined;
 }
 
 /**

@@ -2520,17 +2520,17 @@ ${internasHtml}
                       {tagStats?.correlacoes && tagStats.correlacoes.length > 0 && (
                         <div className="space-y-2">
                           {/* Cabeçalho */}
-                          <div className="grid grid-cols-[1fr_1fr_90px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
+                          <div className="grid grid-cols-[1fr_1fr_140px_80px] gap-3 text-[9px] uppercase tracking-wider font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
                             <span>Descritor A</span>
                             <span>Descritor B</span>
-                            <span>Compatibilidade</span>
-                            <span className="text-center">Ocorrências</span>
+                            <span className="text-left whitespace-nowrap">Compatibilidade</span>
+                            <span className="text-center whitespace-nowrap">Ocorrências</span>
                           </div>
                           {tagStats.correlacoes.map((c: any, i: number) => {
                             const pct = Math.round(c.score * 100);
                             const color = pct >= 80 ? '#059669' : pct >= 50 ? '#0D3A85' : '#E8490A';
                             return (
-                              <div key={i} className="grid grid-cols-[1fr_1fr_90px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors">
+                              <div key={i} className="grid grid-cols-[1fr_1fr_140px_80px] gap-3 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors">
                                 <span className="font-serif italic text-[#1A1A1A]/85 text-sm truncate">&quot;{c.tagA}&quot;</span>
                                 <span className="font-serif italic text-[#1A1A1A]/85 text-sm truncate">&quot;{c.tagB}&quot;</span>
                                 <div className="flex items-center gap-2">
@@ -2882,6 +2882,17 @@ ${internasHtml}
                                     {tagAnalysisResult.family.name}
                                   </span>
                                 )}
+                                {(() => {
+                                  const spellingDup = tagAnalysisResult.duplicates?.find((d: any) => d.type === 'spelling' || d.relation === 'spelling_error');
+                                  if (spellingDup) {
+                                    return (
+                                      <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/25 rounded-full text-[10px] uppercase font-semibold tracking-wider text-amber-700">
+                                        Forma Canônica Recomendada: &quot;{spellingDup.tag}&quot; ({Math.round(spellingDup.score * 100)}%)
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                                 {/* Código de metadado */}
                                 {tagStats?.tags && (() => {
                                   const found = tagStats.tags.find((t: any) => t.tag_original?.toLowerCase() === tagAnalysisResult.tag?.toLowerCase() || t.tag_normalizada === tagAnalysisResult.tag?.toLowerCase());
@@ -2894,13 +2905,13 @@ ${internasHtml}
                               </div>
                                {tagAnalysisResult.family && (
                                 <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg">
-                                  <p className="text-[11px] uppercase font-semibold tracking-wider text-purple-400 mb-3">Descritores Associados a esta Categoria Taxonômica</p>
+                                  <p className="text-[11px] uppercase font-bold tracking-wider text-purple-800 mb-3">Descritores Associados a esta Categoria Taxonômica</p>
                                   <div className="flex flex-wrap gap-2">
-                                    {tagAnalysisResult.family.members.slice(0, 12).map((m: string, i: number) => (
+                                    {tagAnalysisResult.family.members.slice(0, 18).map((m: string, i: number) => (
                                       <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold ${
                                         m.toLowerCase() === tagAnalysisResult.tag.toLowerCase()
                                           ? 'bg-[#E85002]/20 text-[#E85002] border border-[#E85002]/30'
-                                          : 'bg-purple-500/10 text-purple-300'
+                                          : 'bg-purple-500/10 text-purple-800 border-purple-500/25 hover:bg-purple-500/15'
                                       }`}>{m}</span>
                                     ))}
                                   </div>

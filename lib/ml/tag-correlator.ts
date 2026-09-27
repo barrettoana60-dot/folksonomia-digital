@@ -132,6 +132,16 @@ const SYNONYM_MAP: Record<string, string[]> = {
   'sao paulo': ['são paulo', 'sp', 'terra da garoa'],
   'bahia': ['ba', 'terra de todos os santos'],
   'pernambuco': ['pe', 'terra do frevo'],
+
+  // Cultura Popular e Arte Folclórica — variantes terminológicas
+  'cultura popular': ['cultura tradicional', 'folclore', 'saber popular', 'cultura populae', 'expressao popular', 'manifestacao cultural', 'tradicao popular', 'cultura folk', 'arte do povo'],
+  'arte popular': ['artesanato', 'arte tradicional', 'criacao popular', 'escultura popular', 'arte folklorica', 'imaginaria popular', 'arte folk', 'arte artesanal'],
+  'ceramica popular': ['ceramica de barro', 'arte em barro', 'faianca popular', 'louca de barro', 'olaria', 'barro modelado', 'escultura em barro', 'figuracao em barro'],
+  'imaginaria': ['escultura sacra popular', 'imagem devocional', 'escultura devocional', 'santos esculpidos', 'bulto sacro', 'estatuaria religiosa'],
+  'ex-voto': ['milagre', 'promessa', 'objeto votivo', 'tabuleta votiva', 'ex voto', 'voto'],
+  'bumba meu boi': ['boi bumba', 'bumba-meu-boi', 'boi de mamao', 'boi bumbá', 'bumba meu boi nordestino'],
+  'xilogravura nordestina': ['cordel ilustrado', 'gravura de cordel', 'gravura popular', 'xilogravura de cordel'],
+  'cerâmica nordestina': ['ceramica nordestina', 'ceramica de caruaru', 'ceramica de juazeiro', 'figuracao nordestina'],
 };
 
 // Famílias temáticas expandidas
@@ -205,6 +215,17 @@ const THEMATIC_FAMILIES: Record<string, { name: string; type: TagFamily['type'];
     name: 'Indumentária e Têxteis',
     type: 'theme',
     members: ['vestido', 'traje', 'uniforme', 'farda', 'renda', 'bordado', 'tecido', 'seda', 'algodao', 'tapeçaria', 'moda', 'indumentaria']
+  },
+  cultura_popular_brasileira: {
+    name: 'Cultura Popular e Arte Folclórica Brasileira',
+    type: 'theme',
+    members: [
+      'cultura popular', 'arte popular', 'folclore', 'artesanato', 'ceramica popular',
+      'imaginaria', 'ex-voto', 'tradicao popular', 'saber popular', 'patrimonio imaterial',
+      'manifestacao cultural', 'bumba meu boi', 'xilogravura nordestina', 'ceramica nordestina',
+      'cordel', 'mamulengo', 'arte do povo', 'mestre artesao', 'figuracao popular',
+      'escultura popular', 'gravura popular'
+    ]
   }
 };
 
@@ -393,6 +414,51 @@ export function findSemanticSiblings(
     }
   }
 
+  // 4. Correspondência fuzzy com chaves do SYNONYM_MAP via Levenshtein
+  // Permite que "cultura populae" seja vinculada a "cultura popular" mesmo sem hit exato
+  if (normalized.length >= 5) {
+    for (const [canonical, synonyms] of Object.entries(SYNONYM_MAP)) {
+      const canonicalNorm = normalizeForComparison(canonical);
+      const allForms = [canonicalNorm, ...synonyms.map(normalizeForComparison)];
+
+      // Verificar se a tag buscada é aproximada de qualquer forma do grupo
+      const matchedForm = allForms.find(form => {
+        if (form === normalized) return false;
+        if (Math.abs(form.length - normalized.length) > 3) return false;
+        const d = levenshteinDistance(normalized, form);
+        const maxL = Math.max(normalized.length, form.length);
+        return d <= Math.min(2, Math.floor(maxL * 0.12)) && (1 - d / maxL) >= 0.82;
+      });
+
+      if (matchedForm && !seen.has(canonicalNorm)) {
+        // Expor o descritor canônico como variante grafêmica
+        seen.add(canonicalNorm);
+        const dist = levenshteinDistance(normalized, matchedForm);
+        const maxL = Math.max(normalized.length, matchedForm.length);
+        siblings.push({
+          tag: canonical,
+          relation: 'spelling_error',
+          score: Math.round((1 - dist / maxL) * 100) / 100,
+          reason: `Possível variante grafêmica de "${canonical}": "${tag}" difere por ${dist} caractere(s)`
+        });
+
+        // Expor sinônimos do grupo que existem no banco
+        for (const other of allTags) {
+          const otherNorm = normalizeForComparison(other);
+          if (otherNorm !== normalized && allForms.includes(otherNorm) && !seen.has(otherNorm)) {
+            seen.add(otherNorm);
+            siblings.push({
+              tag: other,
+              relation: 'synonym',
+              score: 0.8,
+              reason: `Descritor relacionado ao grupo terminológico de "${canonical}"`
+            });
+          }
+        }
+      }
+    }
+  }
+
   return siblings.sort((a, b) => b.score - a.score);
 }
 
@@ -457,21 +523,51 @@ export function detectTagFamily(tag: string): TagFamily | null {
     }
   }
 
+  // 3. Fallback fuzzy: verificar se a tag corrige para um membro de alguma família (Levenshtein)
+  // Isso garante que "cultura populae" → encontra família de "cultura popular"
+  if (normalized.length >= 5) {
+    for (const [, family] of Object.entries(THEMATIC_FAMILIES)) {
+      for (const member of family.members) {
+        const memberNorm = normalizeForComparison(member);
+        if (memberNorm.length < 4) continue;
+        const dist = levenshteinDistance(normalized, memberNorm);
+        const maxLen = Math.max(normalized.length, memberNorm.length);
+        if (dist > 0 && dist <= Math.min(2, Math.floor(memberNorm.length * 0.15))) {
+          const confidence = Math.round((1 - dist / maxLen) * 100) / 100;
+          if (confidence >= 0.82) {
+            return {
+              name: family.name,
+              type: family.type,
+              members: family.members,
+              confidence
+            };
+          }
+        }
+      }
+    }
+  }
+
   return null;
 }
 
 /**
  * Encontra outras tags no banco que pertencem à mesma família.
  */
-export function findFamilyMembers(tag: string, allTags: string[]): string[] {
+export function findFamilyMembers(tag: string, allTags: string[] = []): string[] {
   const family = detectTagFamily(tag);
   if (!family) return [];
 
-  const normalizedMembers = family.members.map(normalizeForComparison);
-  return allTags.filter(t => {
+  const normTag = normalizeForComparison(tag);
+  // Membros canônicos conceituais da família taxonômica
+  const canonicalMembers = family.members.filter(m => normalizeForComparison(m) !== normTag);
+
+  // Membros já presentes nas unidades do acervo
+  const dbMembers = allTags.filter(t => {
     const norm = normalizeForComparison(t);
-    return norm !== normalizeForComparison(tag) && normalizedMembers.includes(norm);
+    return norm !== normTag && family.members.some(m => normalizeForComparison(m) === norm);
   });
+
+  return [...new Set([...dbMembers, ...canonicalMembers])];
 }
 
 // ============================================================
@@ -494,69 +590,81 @@ export function analyzeTagCorrelations(
   // 2. Encontrar sinônimos e variantes
   const siblings = findSemanticSiblings(tag, allDbTags);
 
-  // 3. Separar duplicatas (score >= 0.8) de relações (score < 0.8)
-  const duplicates = siblings.filter(s => 
-    s.relation === 'exact_match' || 
-    s.relation === 'case_variant' || 
+  // 3. Separar duplicatas/erros grafêmicos (score >= 0.8 ou relação explícita) de descritores relacionados
+  const duplicates = siblings.filter(s =>
+    s.relation === 'exact_match' ||
+    s.relation === 'case_variant' ||
+    s.relation === 'spelling_error' ||
     s.score >= 0.9
   );
-  const relatedSiblings = siblings.filter(s => 
-    s.relation !== 'exact_match' && 
-    s.relation !== 'case_variant' && 
+  const relatedSiblings = siblings.filter(s =>
+    s.relation !== 'exact_match' &&
+    s.relation !== 'case_variant' &&
+    s.relation !== 'spelling_error' &&
     s.score < 0.9
   );
 
   // 4. Detectar família temática
   const family = detectTagFamily(tag);
 
-  // Se tem família, adicionar membros que existem no banco como siblings
+  // Se tem família, adicionar membros conceituais e do acervo como descritores relacionados
   if (family) {
     const familyMembers = findFamilyMembers(tag, allDbTags);
     for (const member of familyMembers) {
-      if (!siblings.some(s => normalizeForComparison(s.tag) === normalizeForComparison(member))) {
+      if (!siblings.some(s => normalizeForComparison(s.tag) === normalizeForComparison(member)) &&
+          !relatedSiblings.some(s => normalizeForComparison(s.tag) === normalizeForComparison(member))) {
         relatedSiblings.push({
           tag: member,
           relation: 'related',
-          score: 0.6,
-          reason: `Mesma família: "${family.name}"`
+          score: 0.85,
+          reason: `Descritor correlato na categoria taxonômica "${family.name}"`
         });
       }
     }
   }
 
-  // Adicionar erros ortográficos como duplicatas
+  // Adicionar inconsistências ortográficas como duplicatas
   for (const err of spellingErrors) {
     if (!duplicates.some(d => normalizeForComparison(d.tag) === normalizeForComparison(err.correctedTo))) {
       duplicates.push({
         tag: err.correctedTo,
         relation: 'spelling_error',
         score: err.confidence,
-        reason: `Possível erro ortográfico: "${err.original}" → "${err.correctedTo}" (distância: ${err.distance})`
+        reason: `Inconsistência ortográfica identificada: forma canônica recomendada é "${err.correctedTo}" (similaridade: ${Math.round(err.confidence * 100)}%)`
       });
     }
   }
 
-  // 5. Gerar sugestões actionáveis
+  // 5. Gerar sugestões de curadoria em terminologia museológica formal
   const suggestions: string[] = [];
 
-  if (duplicates.length > 0) {
-    const dupNames = duplicates.map(d => `"${d.tag}"`).join(', ');
-    suggestions.push(`Considerar mesclar esta tag com: ${dupNames}`);
+  // Erros ortográficos têm prioridade
+  const spellingDups = duplicates.filter(d => d.relation === 'spelling_error');
+  if (spellingDups.length > 0) {
+    const corrected = spellingDups.map(d => `"${d.tag}"`).join(', ');
+    suggestions.push(`Variante grafêmica identificada — forma normalizada preferencial: ${corrected}`);
   }
 
   if (spellingErrors.length > 0) {
-    suggestions.push(`Possível erro de digitação — a forma correta pode ser "${spellingErrors[0].correctedTo}"`);
+    suggestions.push(`Inconsistência ortográfica detectada — forma canônica recomendada: "${spellingErrors[0].correctedTo}" (distância: ${spellingErrors[0].distance})`);
+  }
+
+  if (duplicates.filter(d => d.relation !== 'spelling_error').length > 0) {
+    const dupNames = duplicates.filter(d => d.relation !== 'spelling_error').map(d => `"${d.tag}"`).join(', ');
+    suggestions.push(`Descritores cossignificativos identificados — recomenda-se normalização terminológica: ${dupNames}`);
   }
 
   if (family) {
     const familyMembers = findFamilyMembers(tag, allDbTags);
     if (familyMembers.length > 0) {
-      suggestions.push(`Esta tag pertence à família "${family.name}" junto com: ${familyMembers.map(m => `"${m}"`).join(', ')}`);
+      suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" junto com: ${familyMembers.map(m => `"${m}"`).join(', ')}`);
+    } else {
+      suggestions.push(`Descritor classifica-se na categoria taxonômica "${family.name}" — nenhum outro membro desta categoria localizado no acervo`);
     }
   }
 
   if (relatedSiblings.length > 0 && !family) {
-    suggestions.push(`Tags semanticamente próximas encontradas: ${relatedSiblings.slice(0, 3).map(s => `"${s.tag}"`).join(', ')}`);
+    suggestions.push(`Descritores semanticamente análogos identificados: ${relatedSiblings.slice(0, 3).map(s => `"${s.tag}"`).join(', ')}`);
   }
 
   return {
