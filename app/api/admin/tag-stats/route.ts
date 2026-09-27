@@ -148,7 +148,7 @@ export async function GET() {
     let totalErrosOrtograficos = 0;
 
     const tagsComAnalise = tags.map(t => {
-      const spelling = detectSpellingErrors(t.tag_normalizada, allNormTags);
+      const spelling = detectSpellingErrors(t.tag_normalizada);
       const erro = spelling.length > 0 && spelling[0].distance > 0 ? {
         detectado: true,
         sugestao_canonica: spelling[0].correctedTo,
