@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
 import Logo from '@/components/Logo';
-import { Accessibility, VolumeX, ZoomIn, Type, AlignJustify, Sun } from 'lucide-react';
+import { VolumeX, ZoomIn, Type, AlignJustify, Sun } from 'lucide-react';
+import AccessibilityIcon from '@/components/AccessibilityIcon';
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                               */
@@ -90,7 +91,7 @@ export default function Header() {
   const [fontFamily,    setFontFamily]    = useState<FontFamilyKey>('sans');
   const [fontSize,      setFontSize]      = useState(16);
   const [lineHeight,    setLineHeight]    = useState(1.5);
-  const [zoomLevel,     setZoomLevel]     = useState(100);
+  const [obraZoomLevel, setObraZoomLevel] = useState(100);
   const [librasActive,  setLibrasActive]  = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -111,20 +112,22 @@ export default function Header() {
       const savedFont = (rawFont && ['sans', 'serif', 'mono'].includes(rawFont) ? rawFont : 'sans') as FontFamilyKey;
       const savedFontSize = parseInt(localStorage.getItem('fontSize') || '16') || 16;
       const savedLineHeight = parseFloat(localStorage.getItem('lineHeight') || '1.5') || 1.5;
-      const savedZoom = parseInt(localStorage.getItem('zoomLevel') || '100') || 100;
+      const savedObraZoom = parseInt(localStorage.getItem('obraZoomLevel') || '100') || 100;
 
       setActiveTheme(savedTheme);
       setFontFamily(savedFont);
       setFontSize(savedFontSize);
       setLineHeight(savedLineHeight);
-      setZoomLevel(savedZoom);
+      setObraZoomLevel(savedObraZoom);
 
       applyTheme(savedTheme);
       document.documentElement.style.setProperty('--text-scale-factor', String(savedFontSize / 16));
       document.documentElement.style.setProperty('--font-current', FONT_STACK[savedFont] || FONT_STACK['sans']);
       document.documentElement.style.lineHeight = String(savedLineHeight);
+      document.documentElement.style.setProperty('--obra-scale', String(savedObraZoom / 100));
+      // Garante que o body não tenha zoom geral que distorça a interface
       // @ts-ignore
-      if (document.body) document.body.style.zoom = `${savedZoom}%`;
+      if (document.body) document.body.style.zoom = '100%';
     } catch (e) {
       console.warn('[Header] Falha ao carregar preferências:', e);
     }
@@ -191,11 +194,17 @@ export default function Header() {
     localStorage.setItem('lineHeight', lh.toString());
   };
 
-  const changeZoom = (zoom: number) => {
-    setZoomLevel(zoom);
-    // @ts-ignore
-    document.body.style.zoom = `${zoom}%`;
-    localStorage.setItem('zoomLevel', zoom.toString());
+  const changeObraZoom = (zoom: number) => {
+    const clamped = Math.min(200, Math.max(100, zoom));
+    setObraZoomLevel(clamped);
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--obra-scale', String(clamped / 100));
+      // Garante que o body não tenha zoom geral que distorça a interface
+      // @ts-ignore
+      if (document.body) document.body.style.zoom = '100%';
+      localStorage.setItem('obraZoomLevel', clamped.toString());
+      window.dispatchEvent(new CustomEvent('obraZoomChange', { detail: { zoom: clamped } }));
+    }
   };
 
   const stopAudio = () => {
@@ -242,7 +251,9 @@ export default function Header() {
     changeFontFamily('sans');
     changeFontSize(16);
     changeLineHeight(1.5);
-    changeZoom(100);
+    changeObraZoom(100);
+    // @ts-ignore
+    if (document.body) document.body.style.zoom = '100%';
   };
 
   /* ---- estilos ---- */
@@ -284,7 +295,7 @@ export default function Header() {
       {!compact && (
         <div className="flex items-center justify-between border-b border-black/5 pb-2">
           <div className="flex items-center gap-2">
-            <Accessibility size={15} className="text-[#0D3A85]" />
+            <AccessibilityIcon size={16} />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#0D3A85]">
               Acessibilidade
             </span>
@@ -356,26 +367,43 @@ export default function Header() {
         </div>
       </div>
 
-      {/* ---- Zoom (Lupa) ---- */}
-      <div className="space-y-1.5">
+      {/* ---- Zoom nas Obras (Lupa) ---- */}
+      <div className="space-y-1.5 p-3 rounded-xl bg-black/[0.03] border border-black/5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <ZoomIn size={12} className="text-[#1A1A1A]/40" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/50">
-              Zoom da Página
+            <ZoomIn size={13} className="text-[#0D3A85]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#0D3A85]">
+              Zoom nas Obras
             </span>
           </div>
-          <span className="text-[10px] font-mono text-[#1A1A1A]/50">{zoomLevel}%</span>
+          <span className="text-[10px] font-mono font-bold text-[#0D3A85]">{obraZoomLevel}%</span>
         </div>
-        <input
-          type="range"
-          min={80} max={160} step={10}
-          value={zoomLevel}
-          onChange={e => changeZoom(Number(e.target.value))}
-          className="w-full h-1.5 accent-[#0D3A85] cursor-pointer"
-        />
-        <div className="flex justify-between text-[9px] text-[#1A1A1A]/30 font-mono">
-          <span>80%</span><span>100%</span><span>130%</span><span>160%</span>
+        <p className="text-[9px] text-[#1A1A1A]/50 leading-tight">
+          Aumenta apenas as imagens das obras culturais sem alterar o restante da interface.
+        </p>
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            onClick={() => changeObraZoom(obraZoomLevel - 20)}
+            disabled={obraZoomLevel <= 100}
+            className="w-7 h-7 rounded-lg bg-black/5 hover:bg-black/10 text-xs font-bold transition-all flex items-center justify-center shrink-0 disabled:opacity-30"
+            aria-label="Diminuir zoom da obra"
+          >-</button>
+          <input
+            type="range"
+            min={100} max={200} step={10}
+            value={obraZoomLevel}
+            onChange={e => changeObraZoom(Number(e.target.value))}
+            className="flex-1 h-1.5 accent-[#0D3A85] cursor-pointer"
+          />
+          <button
+            onClick={() => changeObraZoom(obraZoomLevel + 20)}
+            disabled={obraZoomLevel >= 200}
+            className="w-7 h-7 rounded-lg bg-black/5 hover:bg-black/10 text-xs font-bold transition-all flex items-center justify-center shrink-0 disabled:opacity-30"
+            aria-label="Aumentar zoom da obra"
+          >+</button>
+        </div>
+        <div className="flex justify-between text-[9px] text-[#1A1A1A]/40 font-mono">
+          <span>100%</span><span>125%</span><span>150%</span><span>175%</span><span>200%</span>
         </div>
       </div>
 
@@ -487,16 +515,16 @@ export default function Header() {
           <div className="relative hidden md:block" ref={panelRef}>
             <button
               onClick={() => setAccessibilityOpen(!accessibilityOpen)}
-              className={`flex items-center justify-center w-9 h-9 rounded-full border transition-all ${
+              className={`flex items-center justify-center w-9 h-9 rounded-full border transition-all overflow-hidden ${
                 accessibilityOpen
-                  ? 'bg-[#0D3A85] text-white border-[#0D3A85]'
-                  : 'bg-white/40 border-white/50 text-[#0D3A85] hover:bg-[#0D3A85]/10'
+                  ? 'bg-white border-[#0D3A85] ring-2 ring-[#0D3A85]/20 shadow-md'
+                  : 'bg-white/60 border-black/10 hover:bg-white hover:border-black/20 shadow-sm'
               }`}
               title="Acessibilidade"
               aria-label="Abrir menu de acessibilidade"
               aria-expanded={accessibilityOpen}
             >
-              <Accessibility size={18} />
+              <AccessibilityIcon size={22} />
             </button>
 
             {accessibilityOpen && (
@@ -624,7 +652,7 @@ export default function Header() {
             <div className="border-b border-black/5 pb-4 mb-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Accessibility size={15} className="text-[#0D3A85]" />
+                  <AccessibilityIcon size={16} />
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#0D3A85]">
                     Acessibilidade
                   </span>

@@ -5,20 +5,21 @@ import {
   Tag as TagIcon, Database, BarChart3, Plus, Trash2, ExternalLink, 
   FileText, Download, Share2, TrendingUp, Clock, PieIcon, 
   CheckCircle2, Settings, ChevronRight, ShieldCheck, Network, Globe, 
-  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen, ArrowRight, Fingerprint, Layers, Users
+  Search, ArrowUpRight, X, AlertCircle, Activity, Cpu, AlertTriangle, CheckCircle, Brain, BookOpen, ArrowRight, Fingerprint, Layers, Users, ZoomIn
 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Logo from '@/components/Logo';
 import NodeGraph from '@/components/NodeGraph';
 import CulturalInteroperabilityView from '@/components/CulturalInteroperabilityView';
+import ObraZoomModal from '@/components/ObraZoomModal';
 import { findTerm } from '@/lib/ml/thesaurus';
 
 const tabs = [
   { id: 'visao', label: 'Visão Geral' },
   { id: 'obras', label: 'Gestão de Obras' },
   { id: 'tags', label: 'Análise de Tags' },
-  { id: 'relatorios', label: 'Relatório de Proveniência' },
+  { id: 'relatorios', label: 'Relatório Semântico' },
   { id: 'interoperabilidade', label: 'Interoperabilidade Cultural' },
   { id: 'ontologia', label: 'Ontologias' },
 ];
@@ -322,6 +323,7 @@ export default function AdminPage() {
   const [selectedObraForVisual, setSelectedObraForVisual] = useState<string | null>(null);
   const [visualAnalysisResult, setVisualAnalysisResult] = useState<any>(null);
   const [isAnalyzingVisual, setIsAnalyzingVisual] = useState(false);
+  const [zoomedObra, setZoomedObra] = useState<any>(null);
 
   // ML Service Health
   const [mlHealth, setMlHealth] = useState<any>(null);
@@ -2252,8 +2254,15 @@ ${internasHtml}
                      {obrasList.map((obra) => (
                        <div key={obra.id} className="glass-card overflow-hidden group hover:border-[#E85002]/30 transition-all duration-300">
                          {obra.imagem_url ? (
-                           <div className="h-48 overflow-hidden bg-white/30">
+                           <div
+                             className="h-48 overflow-hidden bg-white/30 relative cursor-zoom-in group/img"
+                             onClick={() => setZoomedObra(obra)}
+                             title="Clique para ampliar a obra (Lupa em alta resolução)"
+                           >
                              <img src={obra.imagem_url} alt={obra.titulo} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                             <div className="absolute top-2 right-2 p-1.5 rounded-full bg-black/60 backdrop-blur-sm text-white opacity-0 group-hover/img:opacity-100 transition-opacity">
+                               <ZoomIn size={14} />
+                             </div>
                            </div>
                          ) : (
                            <div className="h-48 bg-gradient-to-br from-[#E85002]/10 to-transparent flex items-center justify-center">
@@ -2674,11 +2683,20 @@ ${internasHtml}
                             <div className="glass-card p-5 space-y-4">
                               <div className="flex gap-4">
                                 {visualAnalysisResult.imagem_url && (
-                                  <img
-                                    src={visualAnalysisResult.imagem_url}
-                                    alt=""
-                                    className="w-20 h-20 object-cover rounded-xl flex-shrink-0"
-                                  />
+                                  <div
+                                    className="relative cursor-zoom-in group/img shrink-0"
+                                    onClick={() => setZoomedObra(visualAnalysisResult)}
+                                    title="Clique para ampliar obra com zoom de alta resolução"
+                                  >
+                                    <img
+                                      src={visualAnalysisResult.imagem_url}
+                                      alt=""
+                                      className="w-20 h-20 object-cover rounded-xl shadow-sm group-hover/img:scale-105 transition-transform"
+                                    />
+                                    <div className="absolute top-1 right-1 p-1 rounded-full bg-black/60 backdrop-blur-sm text-white opacity-0 group-hover/img:opacity-100 transition-opacity">
+                                      <ZoomIn size={12} />
+                                    </div>
+                                  </div>
                                 )}
                                 <div>
                                   <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]/55 mb-1">Contexto Visual</h3>
@@ -3730,6 +3748,20 @@ ${internasHtml}
             )}
 
           </>
+        )}
+
+        {/* Modal de Zoom Exclusivo para Obra */}
+        {zoomedObra && (
+          <ObraZoomModal
+            isOpen={!!zoomedObra}
+            onClose={() => setZoomedObra(null)}
+            imageUrl={zoomedObra.imagem_url || ''}
+            titulo={zoomedObra.titulo || ''}
+            artista={zoomedObra.artista}
+            ano={zoomedObra.ano}
+            descricao={zoomedObra.descricao}
+            audiodescricao={zoomedObra.audiodescricao}
+          />
         )}
       </div>
     </div>

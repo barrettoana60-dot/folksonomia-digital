@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Volume2, VolumeX, Tag as TagIcon } from 'lucide-react';
+import { Volume2, VolumeX, Tag as TagIcon, ZoomIn } from 'lucide-react';
+import ObraZoomModal from '@/components/ObraZoomModal';
 
 interface ObraCardProps {
   obra: {
@@ -21,6 +22,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
   const [submitting, setSubmitting] = useState(false);
   const [tagsSentCount, setTagsSentCount] = useState(0);
   const [speaking, setSpeaking] = useState(false);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   const handleSpeech = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -98,17 +100,38 @@ export default function ObraCard({ obra }: ObraCardProps) {
         style={{ borderRadius: '1.25rem' }}
       >
         {/* Imagem */}
-        <div className="relative aspect-square overflow-hidden"
-          style={{ background: 'rgba(26,26,26,0.06)' }}>
+        <div
+          className="relative aspect-square overflow-hidden cursor-zoom-in group"
+          style={{ background: 'rgba(26,26,26,0.06)' }}
+          onClick={() => setIsZoomOpen(true)}
+          title="Clique para ampliar a obra (Lupa em alta resolução)"
+        >
           <img
             src={obra.imagem_url || 'https://via.placeholder.com/400x500?text=Sem+Imagem'}
             alt={obra.titulo}
-            className="w-full h-full object-cover transition-all duration-700 hover:scale-105"
+            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+            style={{
+              transform: 'scale(var(--obra-scale, 1))',
+              transformOrigin: 'center center',
+            }}
           />
           {/* Gradiente suave no bottom */}
-          <div className="absolute inset-0"
+          <div className="absolute inset-0 pointer-events-none"
             style={{ background: 'linear-gradient(to top, rgba(242,237,228,0.85) 0%, transparent 55%)' }}
           />
+
+          {/* Botão de Zoom específico na obra */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsZoomOpen(true);
+            }}
+            className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center liquid-button !p-0 !rounded-full transition-all bg-white/85 hover:bg-white text-[#0D3A85] shadow-md border border-white/70 hover:scale-110"
+            aria-label="Ampliar obra (Lupa)"
+            title="Ampliar obra com zoom de alta resolução"
+          >
+            <ZoomIn size={16} className="text-[#0D3A85]" />
+          </button>
 
           {/* Botão audio */}
           <button
@@ -215,6 +238,18 @@ export default function ObraCard({ obra }: ObraCardProps) {
           </form>
         </div>
       )}
+
+      {/* Modal de Zoom da Obra (Lupa em alta resolução) */}
+      <ObraZoomModal
+        isOpen={isZoomOpen}
+        onClose={() => setIsZoomOpen(false)}
+        imageUrl={obra.imagem_url || 'https://via.placeholder.com/400x500?text=Sem+Imagem'}
+        titulo={obra.titulo}
+        artista={obra.artista}
+        ano={obra.ano}
+        descricao={obra.descricao}
+        audiodescricao={obra.audiodescricao}
+      />
     </div>
   );
 }
