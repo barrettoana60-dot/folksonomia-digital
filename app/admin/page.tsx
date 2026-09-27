@@ -2304,7 +2304,7 @@ ${internasHtml}
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Análise de Tags</h2>
                     <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">
-                      Frequência Lexical · Co-ocorrência e Compatibilidade · Avaliação Visual-Semântica
+                      Frequência · Correlações · Avaliação Visual · Ontologia Semântica
                     </p>
                   </div>
                   <button
@@ -2324,7 +2324,7 @@ ${internasHtml}
                 {/* Sub-tabs */}
                 <div className="flex gap-2 border-b border-black/10 pb-0">
                   {([
-                    { id: 'frequencia', label: 'Frequência Lexical' },
+                    { id: 'frequencia', label: 'Frequência' },
                     { id: 'correlacoes', label: 'Correlações' },
                     { id: 'visual', label: 'Avaliação Visual' },
                     { id: 'semantica', label: 'Ontologia Semântica' },
@@ -2348,7 +2348,7 @@ ${internasHtml}
                   <div className="space-y-6">
                     {/* Cards de resumo */}
                     {tagStats?.resumo && (
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                         <div className="glass-card p-4">
                           <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Total de Registros</p>
                           <p className="text-2xl font-bold text-[#E8490A] mt-1">{tagStats.resumo.total_registros}</p>
@@ -2360,6 +2360,10 @@ ${internasHtml}
                         <div className="glass-card p-4">
                           <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Unidades Indexadas</p>
                           <p className="text-2xl font-bold text-[#059669] mt-1">{tagStats.resumo.obras_com_tags}</p>
+                        </div>
+                        <div className="glass-card p-4 border border-amber-500/25 bg-amber-500/05">
+                          <p className="text-[9px] uppercase tracking-widest text-amber-800 font-bold">Inconsistências Ortográficas</p>
+                          <p className="text-2xl font-bold text-amber-600 mt-1">{tagStats.resumo.total_erros_ortograficos ?? 0}</p>
                         </div>
                         <div className="glass-card p-4">
                           <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Descritor Preponderante</p>
@@ -2374,19 +2378,19 @@ ${internasHtml}
                     <div className="glass-card p-6">
                       <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-5">
                         <TagIcon size={16} className="text-[#E8490A]" />
-                        Distribuição Lexical do Vocabulário Folksonômico
+                        Frequência de Atribuição de Descritores
                       </h3>
 
                       {isLoadingTagStats && (
                         <div className="flex items-center justify-center py-12">
                           <div className="w-7 h-7 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mr-3" />
-                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Processando frequências lexicais...</span>
+                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Processando dados de frequência...</span>
                         </div>
                       )}
 
                       {!isLoadingTagStats && !tagStats && (
                         <div className="text-center py-10 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
-                          Clique em Atualizar Dados para carregar os parâmetros lexicais
+                          Clique em Atualizar Dados para carregar os registros de frequência
                         </div>
                       )}
 
@@ -2409,7 +2413,14 @@ ${internasHtml}
                                 className="grid grid-cols-[1fr_120px_70px_60px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors"
                               >
                                 <div>
-                                  <span className="font-serif italic text-[#1A1A1A]/85 text-sm">&quot;{t.tag_original}&quot;</span>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-serif italic text-[#1A1A1A]/85 text-sm">&quot;{t.tag_original}&quot;</span>
+                                    {t.erro_ortografico?.detectado && (
+                                      <span className="px-2 py-0.5 bg-amber-500/10 text-amber-800 border border-amber-500/25 rounded text-[9px] font-bold">
+                                        Inconsistência Grafêmica: sugerido &quot;{t.erro_ortografico.sugestao_canonica}&quot;
+                                      </span>
+                                    )}
+                                  </div>
                                   <div className="flex items-center gap-2 mt-0.5">
                                     <code className="text-[9px] font-mono text-[#0D3A85]/70 bg-[#0D3A85]/08 px-1.5 py-0.5 rounded">
                                       {t.codigo}
@@ -2918,6 +2929,29 @@ ${internasHtml}
                                 </div>
                               )}
                             </div>
+
+                            {/* Alerta de Inconsistência Ortográfica */}
+                            {(() => {
+                              const spellingError = tagAnalysisResult.duplicates?.find((d: any) => d.type === 'spelling' || d.relation === 'spelling_error');
+                              if (spellingError) {
+                                return (
+                                  <div className="glass-card p-5 border border-amber-500/30 bg-amber-500/05 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-2">
+                                        <AlertCircle size={15} /> Inconsistência Ortográfica Identificada
+                                      </span>
+                                      <span className="text-[10px] font-bold text-amber-800 px-2.5 py-0.5 bg-amber-500/15 border border-amber-500/20 rounded">
+                                        {Math.round(spellingError.score * 100)}% de similaridade
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-[#1A1A1A]/85">
+                                      O descritor <span className="font-serif italic font-bold text-red-600">&quot;{tagAnalysisResult.tag}&quot;</span> apresenta desvio ortográfico em relação ao vocabulário controlado. Forma canônica recomendada: <span className="font-serif italic font-bold text-[#059669]">&quot;{spellingError.tag}&quot;</span>.
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
 
                             {/* Variantes Grafêmicas e Sinônimos */}
                             {tagAnalysisResult.duplicates?.length > 0 && (

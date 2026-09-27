@@ -10,6 +10,8 @@
  * Funciona para qualquer palavra, conceito, termo ou significado.
  */
 
+import { THESAURUS } from './thesaurus';
+
 // ============================================================
 // Tipos
 // ============================================================
@@ -134,7 +136,7 @@ const SYNONYM_MAP: Record<string, string[]> = {
   'pernambuco': ['pe', 'terra do frevo'],
 
   // Cultura Popular e Arte Folclórica — variantes terminológicas
-  'cultura popular': ['cultura tradicional', 'folclore', 'saber popular', 'cultura populae', 'expressao popular', 'manifestacao cultural', 'tradicao popular', 'cultura folk', 'arte do povo'],
+  'cultura popular': ['cultura tradicional', 'folclore', 'saber popular', 'expressao popular', 'manifestacao cultural', 'tradicao popular', 'cultura folk', 'arte do povo'],
   'arte popular': ['artesanato', 'arte tradicional', 'criacao popular', 'escultura popular', 'arte folklorica', 'imaginaria popular', 'arte folk', 'arte artesanal'],
   'ceramica popular': ['ceramica de barro', 'arte em barro', 'faianca popular', 'louca de barro', 'olaria', 'barro modelado', 'escultura em barro', 'figuracao em barro'],
   'imaginaria': ['escultura sacra popular', 'imagem devocional', 'escultura devocional', 'santos esculpidos', 'bulto sacro', 'estatuaria religiosa'],
@@ -294,41 +296,111 @@ function jaccardSimilarity(a: string, b: string): number {
 // ============================================================
 
 /**
- * Detecta erros ortográficos comparando com tags conhecidas.
- * Funciona para QUALQUER tag — não apenas cubismo.
+ * Retorna o vocabulário canônico controlado derivado do Tesauro CNFCP/IPHAN,
+ * famílias temáticas, dicionário de sinônimos e termos existentes no acervo.
+ */
+export function getCanonicalVocabulary(knownTags: string[] = []): string[] {
+  const vocabulary = new Set<string>();
+
+  // 1. Termos canônicos do Tesauro CNFCP/IPHAN
+  try {
+    THESAURUS.forEach(t => {
+      vocabulary.add(t.termo);
+      t.up?.forEach(u => vocabulary.add(u));
+      t.te?.forEach(te => vocabulary.add(te));
+      t.ta?.forEach(ta => vocabulary.add(ta));
+    });
+  } catch {}
+
+  // 2. Chaves canônicas de SYNONYM_MAP
+  for (const key of Object.keys(SYNONYM_MAP)) {
+    vocabulary.add(key);
+  }
+
+  // 3. Membros de THEMATIC_FAMILIES
+  for (const fam of Object.values(THEMATIC_FAMILIES)) {
+    fam.members.forEach(m => vocabulary.add(m));
+  }
+
+  // 4. Tags conhecidas do acervo/banco
+  for (const t of knownTags) {
+    if (t && t.trim().length > 1) {
+      vocabulary.add(t.trim());
+    }
+  }
+
+  return [...vocabulary];
+}
+
+/**
+ * Detecta inconsistências ortográficas comparando o descritor com o vocabulário
+ * canônico controlado do acervo e do Tesauro CNFCP/IPHAN.
  */
 export function detectSpellingErrors(
   tag: string,
-  knownTags: string[]
+  knownTags: string[] = []
 ): SpellingCorrection[] {
   const normalized = normalizeForComparison(tag);
   const corrections: SpellingCorrection[] = [];
+  const referencePool = getCanonicalVocabulary(knownTags);
+  const seenCorrections = new Set<string>();
 
-  for (const known of knownTags) {
-    const knownNorm = normalizeForComparison(known);
-    if (knownNorm === normalized) continue; // mesma tag normalizada
+  for (const candidate of referencePool) {
+    const candidateNorm = normalizeForComparison(candidate);
+    if (candidateNorm === normalized) continue;
 
-    const distance = levenshteinDistance(normalized, knownNorm);
-    const maxLen = Math.max(normalized.length, knownNorm.length);
+    const distance = levenshteinDistance(normalized, candidateNorm);
+    const maxLen = Math.max(normalized.length, candidateNorm.length);
 
-    // Aceitar distância proporcional ao tamanho da tag
-    // Tags curtas (≤4 chars): distância máxima 1
-    // Tags médias (5-8 chars): distância máxima 2
-    // Tags longas (>8 chars): distância máxima 3
+    // Aceitar distância proporcional ao tamanho da expressão
     const maxDistance = normalized.length <= 4 ? 1 : normalized.length <= 8 ? 2 : 3;
 
     if (distance > 0 && distance <= maxDistance) {
       const confidence = 1 - (distance / maxLen);
-      corrections.push({
-        original: tag,
-        correctedTo: known,
-        distance,
-        confidence: Math.round(confidence * 100) / 100
-      });
+      if (confidence >= 0.75 && !seenCorrections.has(candidateNorm)) {
+        seenCorrections.add(candidateNorm);
+        corrections.push({
+          original: tag,
+          correctedTo: candidate,
+          distance,
+          confidence: Math.round(confidence * 100) / 100
+        });
+      }
     }
   }
 
-  // Ordenar por confiança decrescente
+  // Análise por token/palavra para expressões compostas
+  const tagTokens = normalized.split(' ').filter(Boolean);
+  if (tagTokens.length > 1) {
+    for (const candidate of referencePool) {
+      const candidateNorm = normalizeForComparison(candidate);
+      const candTokens = candidateNorm.split(' ').filter(Boolean);
+      if (candTokens.length !== tagTokens.length) continue;
+
+      let tokenDifferences = 0;
+      let totalTokenDist = 0;
+      for (let i = 0; i < tagTokens.length; i++) {
+        const tDist = levenshteinDistance(tagTokens[i], candTokens[i]);
+        if (tDist > 0) {
+          tokenDifferences++;
+          totalTokenDist += tDist;
+        }
+      }
+
+      if (tokenDifferences === 1 && totalTokenDist <= 2 && !seenCorrections.has(candidateNorm)) {
+        seenCorrections.add(candidateNorm);
+        const maxLen = Math.max(normalized.length, candidateNorm.length);
+        const confidence = 1 - (totalTokenDist / maxLen);
+        corrections.push({
+          original: tag,
+          correctedTo: candidate,
+          distance: totalTokenDist,
+          confidence: Math.round(confidence * 100) / 100
+        });
+      }
+    }
+  }
+
   return corrections.sort((a, b) => b.confidence - a.confidence);
 }
 

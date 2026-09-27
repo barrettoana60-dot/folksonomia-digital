@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { createHash } from 'crypto';
+import { detectSpellingErrors } from '@/lib/ml/tag-correlator';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -143,15 +144,36 @@ export async function GET() {
       };
     }).sort((a, b) => b.frequencia_total - a.frequencia_total);
 
+    const allNormTags = tags.map(t => t.tag_normalizada);
+    let totalErrosOrtograficos = 0;
+
+    const tagsComAnalise = tags.map(t => {
+      const spelling = detectSpellingErrors(t.tag_normalizada, allNormTags);
+      const erro = spelling.length > 0 && spelling[0].distance > 0 ? {
+        detectado: true,
+        sugestao_canonica: spelling[0].correctedTo,
+        similaridade: Math.round(spelling[0].confidence * 100),
+        distancia: spelling[0].distance,
+      } : null;
+
+      if (erro) totalErrosOrtograficos++;
+
+      return {
+        ...t,
+        erro_ortografico: erro,
+      };
+    });
+
     return NextResponse.json({
       success: true,
       data: {
-        tags,
+        tags: tagsComAnalise,
         correlacoes: topCorrelacoes,
         obras,
         resumo: {
           total_registros: tagsData.length,
           tags_distintas: tags.length,
+          total_erros_ortograficos: totalErrosOrtograficos,
           obras_com_tags: obras.length,
           pares_correlatos: topCorrelacoes.length,
           tag_mais_frequente: tags[0]?.tag_original || '',
