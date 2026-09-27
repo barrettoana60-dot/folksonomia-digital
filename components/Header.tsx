@@ -289,7 +289,7 @@ export default function Header() {
   /*  Painel de acessibilidade (reutilizado em desktop e mobile)        */
   /* ---------------------------------------------------------------- */
   const AccessibilityPanel = ({ compact = false }: { compact?: boolean }) => (
-    <div className={`space-y-4 ${compact ? '' : 'p-4'}`}>
+    <div className="space-y-4">
 
       {/* Cabeçalho do painel */}
       {!compact && (
@@ -529,7 +529,7 @@ export default function Header() {
 
             {accessibilityOpen && (
               <div
-                className="absolute right-0 mt-3 w-80 rounded-2xl z-50 animate-fade-in text-[#1A1A1A] overflow-hidden"
+                className="absolute right-0 top-full mt-3 w-80 rounded-2xl z-50 animate-fade-in text-[#1A1A1A] overflow-hidden"
                 style={{
                   background:   'rgba(255,255,255,0.97)',
                   backdropFilter: 'blur(28px)',
