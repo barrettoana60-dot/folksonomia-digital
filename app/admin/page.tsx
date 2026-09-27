@@ -2304,7 +2304,7 @@ ${internasHtml}
                   <div>
                     <h2 className="text-xl md:text-2xl font-normal serif-title tracking-normal">Análise de Tags</h2>
                     <p className="text-[10px] uppercase tracking-wider font-semibold text-[#1A1A1A]/38 mt-1">
-                      Frequência real · Correlações Jaccard · Análise visual ML · Metadados ativos TAG-
+                      Frequência Lexical · Co-ocorrência e Compatibilidade · Avaliação Visual-Semântica
                     </p>
                   </div>
                   <button
@@ -2324,10 +2324,10 @@ ${internasHtml}
                 {/* Sub-tabs */}
                 <div className="flex gap-2 border-b border-black/10 pb-0">
                   {([
-                    { id: 'frequencia', label: 'Frequência e Pessoas' },
+                    { id: 'frequencia', label: 'Frequência Lexical' },
                     { id: 'correlacoes', label: 'Correlações' },
-                    { id: 'visual', label: 'Análise Visual ML' },
-                    { id: 'semantica', label: 'Análise Semântica' },
+                    { id: 'visual', label: 'Avaliação Visual' },
+                    { id: 'semantica', label: 'Ontologia Semântica' },
                   ] as const).map(st => (
                     <button
                       key={st.id}
@@ -2354,15 +2354,15 @@ ${internasHtml}
                           <p className="text-2xl font-bold text-[#E8490A] mt-1">{tagStats.resumo.total_registros}</p>
                         </div>
                         <div className="glass-card p-4">
-                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Tags Distintas</p>
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Descritores Distintos</p>
                           <p className="text-2xl font-bold text-[#0D3A85] mt-1">{tagStats.resumo.tags_distintas}</p>
                         </div>
                         <div className="glass-card p-4">
-                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Obras com Tags</p>
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Unidades Indexadas</p>
                           <p className="text-2xl font-bold text-[#059669] mt-1">{tagStats.resumo.obras_com_tags}</p>
                         </div>
                         <div className="glass-card p-4">
-                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Tag mais Frequente</p>
+                          <p className="text-[9px] uppercase tracking-widest text-[#1A1A1A]/40 font-bold">Descritor Preponderante</p>
                           <p className="text-sm font-bold text-[#1A1A1A] mt-1 font-serif italic truncate">
                             &quot;{tagStats.resumo.tag_mais_frequente}&quot;
                           </p>
@@ -2374,31 +2374,31 @@ ${internasHtml}
                     <div className="glass-card p-6">
                       <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-5">
                         <TagIcon size={16} className="text-[#E8490A]" />
-                        Frequência por Tag — Metadados Ativos
+                        Distribuição Lexical do Vocabulário Folksonômico
                       </h3>
 
                       {isLoadingTagStats && (
                         <div className="flex items-center justify-center py-12">
                           <div className="w-7 h-7 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mr-3" />
-                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Calculando frequências...</span>
+                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Processando frequências lexicais...</span>
                         </div>
                       )}
 
                       {!isLoadingTagStats && !tagStats && (
                         <div className="text-center py-10 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
-                          Clique em Atualizar Dados para carregar as estatísticas
+                          Clique em Atualizar Dados para carregar os parâmetros lexicais
                         </div>
                       )}
 
                       {tagStats?.tags && (
                         <div className="space-y-1 max-h-[520px] overflow-y-auto">
                           {/* Cabeçalho da tabela */}
-                          <div className="grid grid-cols-[1fr_120px_60px_60px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
-                            <span>Tag / Código</span>
+                          <div className="grid grid-cols-[1fr_120px_70px_60px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
+                            <span>Descritor / Código</span>
                             <span>Frequência</span>
-                            <span className="text-center">Pessoas</span>
+                            <span className="text-center">Usuários</span>
                             <span className="text-center">Obras</span>
-                            <span className="text-center">Analisar</span>
+                            <span className="text-center">Detalhes</span>
                           </div>
                           {tagStats.tags.map((t: any, i: number) => {
                             const maxFreq = tagStats.tags[0]?.frequencia || 1;
@@ -2406,7 +2406,7 @@ ${internasHtml}
                             return (
                               <div
                                 key={t.tag_normalizada}
-                                className="grid grid-cols-[1fr_120px_60px_60px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors"
+                                className="grid grid-cols-[1fr_120px_70px_60px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors"
                               >
                                 <div>
                                   <span className="font-serif italic text-[#1A1A1A]/85 text-sm">&quot;{t.tag_original}&quot;</span>
@@ -2435,7 +2435,7 @@ ${internasHtml}
                                   <button
                                     onClick={() => { setTagsSubTab('semantica'); handleTagAnalysis(t.tag_original); }}
                                     className="p-1.5 rounded-lg hover:bg-[#E8490A]/10 transition-colors text-[#E8490A]/60 hover:text-[#E8490A]"
-                                    title="Análise semântica"
+                                    title="Análise ontológica"
                                   >
                                     <ChevronRight size={14} />
                                   </button>
@@ -2452,7 +2452,7 @@ ${internasHtml}
                       <div className="glass-card p-6">
                         <h3 className="text-xs font-semibold uppercase tracking-wider mb-5 flex items-center gap-2">
                           <BarChart3 size={16} className="text-[#E8490A]" />
-                          Top 15 Tags — Volume de Aplicações
+                          Descritores com Maior Incidência de Atribuição
                         </h3>
                         <div className="space-y-2">
                           {tagStats.tags.slice(0, 15).map((t: any) => {
@@ -2492,45 +2492,45 @@ ${internasHtml}
                     <div className="glass-card p-6">
                       <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-2">
                         <Share2 size={16} className="text-[#0D3A85]" />
-                        Correlações entre Tags — Índice de Jaccard
+                        Correlações entre Descritores
                       </h3>
                       <p className="text-[10px] text-[#1A1A1A]/45 uppercase tracking-wider mb-5">
-                        Pares de tags que aparecem juntas nas mesmas obras. Score = interseção / união de obras.
+                        Matriz de compatibilidade calculada por co-ocorrência em unidades do acervo.
                       </p>
 
                       {isLoadingTagStats && (
                         <div className="flex items-center justify-center py-12">
                           <div className="w-7 h-7 border-4 border-[#0D3A85] border-t-transparent rounded-full animate-spin mr-3" />
-                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Calculando correlações...</span>
+                          <span className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">Calculando matriz de correlações...</span>
                         </div>
                       )}
 
                       {!isLoadingTagStats && !tagStats && (
                         <div className="text-center py-10 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
-                          Clique em Atualizar Dados para calcular as correlações
+                          Clique em Atualizar Dados para processar a matriz de compatibilidade
                         </div>
                       )}
 
                       {tagStats?.correlacoes && tagStats.correlacoes.length === 0 && (
                         <div className="text-center py-10 text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
-                          Nenhuma correlação detectada ainda — são necessárias pelo menos 2 obras com tags em comum
+                          Dados insuficientes para cálculo de co-ocorrência amostral
                         </div>
                       )}
 
                       {tagStats?.correlacoes && tagStats.correlacoes.length > 0 && (
                         <div className="space-y-2">
                           {/* Cabeçalho */}
-                          <div className="grid grid-cols-[1fr_1fr_80px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
-                            <span>Tag A</span>
-                            <span>Tag B</span>
-                            <span>Score Jaccard</span>
-                            <span className="text-center">Obras</span>
+                          <div className="grid grid-cols-[1fr_1fr_90px_60px] gap-2 text-[9px] uppercase tracking-widest font-bold text-[#1A1A1A]/40 px-3 pb-2 border-b border-black/07">
+                            <span>Descritor A</span>
+                            <span>Descritor B</span>
+                            <span>Compatibilidade</span>
+                            <span className="text-center">Ocorrências</span>
                           </div>
                           {tagStats.correlacoes.map((c: any, i: number) => {
                             const pct = Math.round(c.score * 100);
                             const color = pct >= 80 ? '#059669' : pct >= 50 ? '#0D3A85' : '#E8490A';
                             return (
-                              <div key={i} className="grid grid-cols-[1fr_1fr_80px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors">
+                              <div key={i} className="grid grid-cols-[1fr_1fr_90px_60px] gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-white/40 transition-colors">
                                 <span className="font-serif italic text-[#1A1A1A]/85 text-sm truncate">&quot;{c.tagA}&quot;</span>
                                 <span className="font-serif italic text-[#1A1A1A]/85 text-sm truncate">&quot;{c.tagB}&quot;</span>
                                 <div className="flex items-center gap-2">
@@ -2540,7 +2540,7 @@ ${internasHtml}
                                       style={{ width: `${pct}%`, backgroundColor: color }}
                                     />
                                   </div>
-                                  <span className="text-[10px] font-bold w-7 text-right" style={{ color }}>{pct}%</span>
+                                  <span className="text-[10px] font-bold w-8 text-right" style={{ color }}>{pct}%</span>
                                 </div>
                                 <div className="text-center">
                                   <span className="text-[11px] font-semibold text-[#1A1A1A]/60">{c.intersecao}</span>
@@ -2557,7 +2557,7 @@ ${internasHtml}
                       <div className="glass-card p-6">
                         <h3 className="text-xs font-semibold uppercase tracking-wider mb-5 flex items-center gap-2">
                           <TrendingUp size={16} className="text-[#059669]" />
-                          Top Pares — Maior Co-ocorrência
+                          Associações Bidirecionais de Maior Co-ocorrência
                         </h3>
                         <div className="space-y-3">
                           {tagStats.correlacoes.slice(0, 15).map((c: any, i: number) => {
@@ -2600,7 +2600,7 @@ ${internasHtml}
                       <div className="glass-card p-6">
                         <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-5">
                           <Cpu size={16} className="text-[#E8490A]" />
-                          Obras — Selecione para Análise Visual
+                          Obras Catalogadas para Avaliação Iconográfica
                         </h3>
                         {isLoadingTagStats && (
                           <div className="flex items-center justify-center py-10">
@@ -2642,7 +2642,7 @@ ${internasHtml}
                                   )}
                                   <div className="flex gap-3 mt-1">
                                     <span className="text-[9px] font-bold text-[#E8490A] uppercase tracking-wider">{o.tags_distintas} tags</span>
-                                    <span className="text-[9px] font-bold text-[#0D3A85] uppercase tracking-wider">{o.pessoas} pessoas</span>
+                                    <span className="text-[9px] font-bold text-[#0D3A85] uppercase tracking-wider">{o.pessoas} usuários</span>
                                   </div>
                                 </div>
                               </button>
@@ -2657,10 +2657,10 @@ ${internasHtml}
                           <div className="glass-card p-12 text-center">
                             <div className="w-8 h-8 border-4 border-[#E85002] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                             <p className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/50">
-                              Gemini Vision analisando a imagem...
+                              Processando inferência iconográfica e convergência semântica...
                             </p>
                             <p className="text-[10px] text-[#1A1A1A]/35 mt-1">
-                              Processando contexto visual e coesão das tags
+                              Aferindo morfologia visual e coerência terminológica
                             </p>
                           </div>
                         )}
@@ -2669,10 +2669,10 @@ ${internasHtml}
                           <div className="glass-card p-12 text-center">
                             <Cpu size={40} className="mx-auto text-[#1A1A1A]/15 mb-4" />
                             <p className="text-[11px] uppercase tracking-wider font-semibold text-[#1A1A1A]/35">
-                              Selecione uma obra para análise visual
+                              Selecione uma unidade do acervo para avaliação visual-semântica
                             </p>
                             <p className="text-[10px] text-[#1A1A1A]/25 mt-2">
-                              O modelo visual avalia a coesão entre a imagem e as tags aplicadas
+                              O motor de inferência afere a convergência entre os elementos morfológicos da obra e os descritores atribuídos.
                             </p>
                           </div>
                         )}
@@ -2699,7 +2699,7 @@ ${internasHtml}
                                   </div>
                                 )}
                                 <div>
-                                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]/55 mb-1">Contexto Visual</h3>
+                                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]/55 mb-1">Análise Morfológica e Iconográfica</h3>
                                   <p className="text-sm text-[#1A1A1A]/80 leading-relaxed">{visualAnalysisResult.descricao_visual}</p>
                                   {visualAnalysisResult.contexto_cultural && (
                                     <p className="text-[11px] text-[#1A1A1A]/50 italic mt-2">{visualAnalysisResult.contexto_cultural}</p>
@@ -2707,8 +2707,8 @@ ${internasHtml}
                                 </div>
                               </div>
                               <div className="flex gap-4 text-[9px] font-bold uppercase tracking-widest text-[#1A1A1A]/40 pt-2 border-t border-black/07">
-                                <span>{visualAnalysisResult.tags_aplicadas?.length || 0} tags analisadas</span>
-                                <span>{visualAnalysisResult.total_visitantes || 0} visitantes</span>
+                                <span>{visualAnalysisResult.tags_aplicadas?.length || 0} descritores avaliados</span>
+                                <span>{visualAnalysisResult.total_visitantes || 0} colaboradores</span>
                                 <span className="ml-auto text-[#059669]">{visualAnalysisResult.fonte}</span>
                               </div>
                             </div>
@@ -2718,7 +2718,7 @@ ${internasHtml}
                               <div className="glass-card p-5 space-y-3">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
                                   <CheckCircle size={14} className="text-[#059669]" />
-                                  Coesão das Tags com a Imagem
+                                  Coerência Terminológica dos Descritores
                                 </h3>
                                 <div className="space-y-2">
                                   {visualAnalysisResult.coesao_tags.map((c: any, i: number) => {
@@ -2744,14 +2744,14 @@ ${internasHtml}
                                               <button
                                                 onClick={() => handleVisualFeedback(visualAnalysisResult.obra_id, c.tag, 'validado')}
                                                 className="p-1 rounded hover:bg-[#059669]/20 transition-colors"
-                                                title="Confirmar"
+                                                title="Validar"
                                               >
                                                 <CheckCircle size={12} className="text-[#059669]" />
                                               </button>
                                               <button
                                                 onClick={() => handleVisualFeedback(visualAnalysisResult.obra_id, c.tag, 'rejeitado')}
                                                 className="p-1 rounded hover:bg-red-500/20 transition-colors"
-                                                title="Rejeitar"
+                                                title="Desclassificar"
                                               >
                                                 <X size={12} className="text-red-400" />
                                               </button>
@@ -2770,7 +2770,7 @@ ${internasHtml}
                               <div className="glass-card p-5 space-y-3">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
                                   <Brain size={14} className="text-[#0D3A85]" />
-                                  Tags Sugeridas pelo Modelo — Não Aplicadas
+                                  Descritores Complementares Inferidos
                                 </h3>
                                 <div className="flex flex-wrap gap-2">
                                   {visualAnalysisResult.tags_sugeridas.map((t: string, i: number) => (
@@ -2783,14 +2783,14 @@ ${internasHtml}
                                   ))}
                                 </div>
                                 <p className="text-[9px] uppercase tracking-wider text-[#1A1A1A]/35 font-semibold">
-                                  Termos identificados visualmente que ainda não foram inseridos pelos visitantes
+                                  Vocabulário formal derivado do tesauro não contemplado nas contribuições colaborativas
                                 </p>
                               </div>
                             )}
 
                             {visualAnalysisResult.feedback_historico > 0 && (
                               <p className="text-[9px] text-[#1A1A1A]/35 uppercase tracking-wider font-semibold text-right">
-                                Calibrado com {visualAnalysisResult.feedback_historico} feedback(s) anteriores
+                                Calibrado com {visualAnalysisResult.feedback_historico} validação(ões) documentais prévias
                               </p>
                             )}
                           </>
@@ -2892,9 +2892,9 @@ ${internasHtml}
                                   ) : null;
                                 })()}
                               </div>
-                              {tagAnalysisResult.family && (
+                               {tagAnalysisResult.family && (
                                 <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-lg">
-                                  <p className="text-[11px] uppercase font-semibold tracking-wider text-purple-400 mb-3">Membros desta família</p>
+                                  <p className="text-[11px] uppercase font-semibold tracking-wider text-purple-400 mb-3">Descritores Associados a esta Categoria Taxonômica</p>
                                   <div className="flex flex-wrap gap-2">
                                     {tagAnalysisResult.family.members.slice(0, 12).map((m: string, i: number) => (
                                       <span key={i} className={`px-2 py-1 rounded text-[10px] font-bold ${
@@ -2908,17 +2908,17 @@ ${internasHtml}
                               )}
                             </div>
 
-                            {/* Duplicatas */}
+                            {/* Variantes Grafêmicas e Sinônimos */}
                             {tagAnalysisResult.duplicates?.length > 0 && (
                               <div className="glass-card p-6 border border-red-500/20 space-y-3">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                                  <AlertCircle size={16} className="text-red-400" /> Duplicatas / Erros ({tagAnalysisResult.duplicates.length})
+                                  <AlertCircle size={16} className="text-red-400" /> Variantes Grafêmicas e Inconsistências ({tagAnalysisResult.duplicates.length})
                                 </h3>
                                 {tagAnalysisResult.duplicates.map((d: any, i: number) => (
                                   <div key={i} className="p-3 bg-red-500/5 rounded-lg flex items-center justify-between">
                                     <div>
                                       <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{d.tag}&quot;</span>
-                                      <span className="text-[10px] text-[#1A1A1A]/38 ml-2">({Math.round(d.score * 100)}% similar)</span>
+                                      <span className="text-[10px] text-[#1A1A1A]/38 ml-2">({Math.round(d.score * 100)}% de similaridade)</span>
                                     </div>
                                     <span className="text-[10px] text-red-400/85 italic max-w-[50%] text-right">{d.reason}</span>
                                   </div>
@@ -2926,11 +2926,11 @@ ${internasHtml}
                               </div>
                             )}
 
-                            {/* Tags relacionadas */}
+                            {/* Descritores Relacionados */}
                             {tagAnalysisResult.siblings?.length > 0 && (
                               <div className="glass-card p-6 border border-blue-500/20 space-y-3">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                                  <Share2 size={16} className="text-blue-400" /> Tags Relacionadas ({tagAnalysisResult.siblings.length})
+                                  <Share2 size={16} className="text-blue-400" /> Descritores Semanticamente Relacionados ({tagAnalysisResult.siblings.length})
                                 </h3>
                                 {tagAnalysisResult.siblings.slice(0, 8).map((s: any, i: number) => (
                                   <div key={i} className="p-3 bg-blue-500/5 rounded-lg flex items-center justify-between">
@@ -2947,11 +2947,11 @@ ${internasHtml}
                               </div>
                             )}
 
-                            {/* DNA Semântico */}
+                            {/* Perfil Taxonômico e Vetor de Atributos */}
                             {tagAnalysisResult.dna && (
                               <div className="glass-card p-6 space-y-4">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
-                                  <Database size={16} className="text-[#E85002]" /> DNA Semântico
+                                  <Database size={16} className="text-[#E85002]" /> Perfil Taxonômico e Vetor de Atributos
                                 </h3>
                                 <div className="space-y-2">
                                   {Object.entries(tagAnalysisResult.dna)
@@ -2975,7 +2975,7 @@ ${internasHtml}
 
                             {/* Botão análise completa */}
                             <button onClick={() => { setSearchTag(tagAnalysisResult.tag); setActiveTab('relatorios'); setTimeout(() => handleSemanticSearch(), 300); }} className="w-full liquid-button !bg-[#E85002] flex items-center justify-center gap-2">
-                              <Globe size={16} /> Análise Completa (IBRAM/Tainacan + Tesauro CNFCP)
+                              <Globe size={16} /> Consulta Ontológica Integrada (IBRAM / Tainacan e Tesauro CNFCP)
                             </button>
                           </>
                         )}
@@ -2983,8 +2983,8 @@ ${internasHtml}
                         {!tagAnalysisResult && !isAnalyzingTag && (
                           <div className="glass-card p-12 text-center">
                             <TagIcon size={40} className="mx-auto text-[#1A1A1A]/15 mb-4" />
-                            <p className="text-[#1A1A1A]/38 text-xs uppercase tracking-wider font-semibold">Clique em uma tag para ver a análise semântica completa</p>
-                            <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider mt-2 font-medium">Família temática · Duplicatas · Erros · Tags relacionadas · DNA semântico</p>
+                            <p className="text-[#1A1A1A]/38 text-xs uppercase tracking-wider font-semibold">Selecione um descritor para visualizar a análise ontológica e taxonômica</p>
+                            <p className="text-[#1A1A1A]/25 text-[10px] uppercase tracking-wider mt-2 font-medium">Classificação taxonômica · Variantes grafêmicas · Descritores correlatos · Vetor de atributos</p>
                           </div>
                         )}
                       </div>
@@ -3300,7 +3300,7 @@ ${internasHtml}
                         {/* Siblings semânticos */}
                         {semanticResult.tagAnalysis.siblings?.length > 0 && (
                           <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-lg">
-                            <p className="text-[11px] uppercase font-semibold tracking-wider text-blue-400 mb-2">Tags Semanticamente Próximas</p>
+                            <p className="text-[11px] uppercase font-semibold tracking-wider text-blue-400 mb-2">Descritores Semanticamente Análogos</p>
                             <div className="space-y-2">
                               {semanticResult.tagAnalysis.siblings.slice(0, 5).map((s: any, i: number) => (
                                 <div key={i} className="flex items-center justify-between text-sm">
@@ -3632,7 +3632,7 @@ ${internasHtml}
                        {/* Conexões */}
                        {(tagAnalysisResult.siblings?.length > 0 || tagAnalysisResult.duplicates?.length > 0) && (
                          <div className="p-4 bg-white/50 border border-black/10 rounded-lg mb-4 space-y-2">
-                           <p className="text-[10px] uppercase font-black tracking-widest text-[#1A1A1A]/55 mb-2">Conexões ({tagAnalysisResult.totalRelated})</p>
+                           <p className="text-[10px] uppercase font-black tracking-widest text-[#1A1A1A]/55 mb-2">Correlações Taxonômicas ({tagAnalysisResult.totalRelated})</p>
                            {[...(tagAnalysisResult.duplicates || []), ...(tagAnalysisResult.siblings || [])].slice(0, 6).map((s: any, i: number) => (
                              <div key={i} className="flex items-center justify-between text-sm">
                                <span className="text-[#1A1A1A]/80 font-serif italic">&quot;{s.tag}&quot;</span>
@@ -3645,7 +3645,7 @@ ${internasHtml}
                        {/* DNA */}
                        {tagAnalysisResult.dna && Object.values(tagAnalysisResult.dna).some((v: any) => v > 0) && (
                          <div className="p-4 bg-white/50 border border-black/10 rounded-lg mb-4 space-y-2">
-                           <p className="text-[11px] uppercase font-semibold tracking-wider text-[#1A1A1A]/48 mb-2">DNA Semântico</p>
+                           <p className="text-[11px] uppercase font-semibold tracking-wider text-[#1A1A1A]/48 mb-2">Perfil Taxonômico e Vetor de Atributos</p>
                            {Object.entries(tagAnalysisResult.dna).filter(([,v]) => (v as number) > 0).sort(([,a],[,b]) => (b as number) - (a as number)).map(([k,v]) => {
                              const labels: Record<string,string> = { period:'Período', technique:'Técnica', geography:'Geografia', material:'Material', theme:'Temática', movement:'Movimento', provenance:'Proveniência' };
                              return (
