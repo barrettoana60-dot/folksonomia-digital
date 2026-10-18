@@ -187,7 +187,7 @@ function ContributionNetworkPanel({ contributions, tag }: { contributions: any[]
 }
 
 // ─── PAINEL: IDENTIDADE DA TAG ────────────────────────────────────────────────
-function TagIdentityPanel({ identity, tag }: { identity: any; tag: string }) {
+function TagIdentityPanel({ identity, tag, readOnly = false }: { identity: any; tag: string; readOnly?: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!identity) {
@@ -198,7 +198,9 @@ function TagIdentityPanel({ identity, tag }: { identity: any; tag: string }) {
           IDENTIDADE DA TAG
         </p>
         <p className="text-[10px] text-[#1A1A1A]/40 italic">
-          Identidade ainda nao registrada. Use "Cruzar na rede" para ativar.
+          {readOnly
+            ? 'Prévia de leitura: nenhuma identidade persistente é criada neste modo.'
+            : 'Identidade ainda nao registrada. Use "Cruzar na rede" para ativar.'}
         </p>
       </div>
     );
@@ -337,7 +339,7 @@ function buildInstantDossier(
     };
   });
 
-  if (targetNode?.secureState === 'pending_seal') {
+  if (targetNode?.secureState === 'pending_seal' || targetNode?.secureState === 'read_only') {
     return {
       id: nodeId,
       tag: nodeLabel,
@@ -345,12 +347,12 @@ function buildInstantDossier(
       eixo: targetNode.eixo || 'PATRIMONIO',
       cor: targetNode.fill || EIXO_COLORS.default,
       familia: targetNode.familia || 'acervo_historico',
-      descricao: 'Tag encontrada no banco original. O registro criptográfico e a cadeia de auditoria ainda aguardam a migração segura do Supabase.',
+      descricao: 'Prévia de leitura da tag existente. Este modo não cria selo criptográfico nem afirma auditoria persistente.',
       autor: 'Acervo histórico do sistema',
       tripla: {
         sujeito: nodeLabel,
-        predicado: 'aguarda selagem criptográfica',
-        objeto: 'cofre auditável',
+        predicado: 'está relacionada a',
+        objeto: conexoesTextuais.length ? 'outros termos do acervo' : 'acervo cultural',
       },
       artigo: null,
       acervos: [],
@@ -358,7 +360,7 @@ function buildInstantDossier(
       tagIdentity: null,
       vault: null,
       heartbeat: null,
-      legacyStatus: 'awaiting_secure_seal',
+      legacyStatus: 'read_only_preview',
     };
   }
 
@@ -588,6 +590,7 @@ export default function CulturalInteroperabilityView() {
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [vaultFeedback, setVaultFeedback] = useState<string | null>(null);
+  const [readOnlyPreview, setReadOnlyPreview] = useState(false);
   const [humanAudit, setHumanAudit] = useState<{ pending: number; path: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'dossier' | 'identity' | 'contributions'>('dossier');
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -607,6 +610,7 @@ export default function CulturalInteroperabilityView() {
           setVaultFeedback(json.error || 'Nao foi possivel carregar as contribuicoes.');
           return;
         }
+        setReadOnlyPreview(Boolean(json.data?.previewOnly));
 
         if (json.data?.humanAudit) {
           setHumanAudit({
@@ -654,8 +658,8 @@ export default function CulturalInteroperabilityView() {
             fill: node.cor || EIXO_COLORS[eixo] || EIXO_COLORS.default,
             eixo,
             desc: node.description || 'Contribuicao cultural registrada por usuario.',
-            type: node.secureState === 'pending_seal'
-              ? 'Tag histórica — aguardando selagem'
+            type: node.secureState === 'pending_seal' || node.secureState === 'read_only'
+              ? 'Tag histórica — somente leitura'
               : 'Contribuicao de usuario',
             familia: node.familia,
             secureState: node.secureState || 'sealed',
@@ -879,6 +883,7 @@ export default function CulturalInteroperabilityView() {
 
       const dynamicDossier = json.data;
       const conns = dynamicDossier?.conexoesTextuais || [];
+      const isReadOnlyPreview = dynamicDossier?.legacyStatus === 'read_only_preview';
       const activated: any[] = [];
 
       if (dynamicDossier) {
@@ -893,10 +898,10 @@ export default function CulturalInteroperabilityView() {
         from: sourceNode.id,
         to: connection.targetId,
         weight: connection.confidence || 0.8,
-        skosRelation: connection.relation || 'skos:related',
+        skosRelation: connection.relation || connection.relationType || 'skos:related',
         mechanism: 'inferred' as const,
         eixoRel: dynamicDossier?.eixo || sourceNode.eixo || 'PATRIMONIO',
-        discovered: true,
+        discovered: !isReadOnlyPreview,
       })) || [];
 
       if (newEdges.length > 0) {
@@ -915,7 +920,9 @@ export default function CulturalInteroperabilityView() {
 
       setDiscoveredConnections(conns);
       addStep(`4. ${conns.length} ligacao(oes) cultural(is) identificada(s) entre contribuicoes da rede.`);
-      addStep('5. A cadeia selada foi consultada; quaisquer novas relações permanecem pendentes de curadoria.');
+      addStep(isReadOnlyPreview
+        ? '5. Prévia calculada localmente; nenhum recibo foi gravado nem apresentado como auditado.'
+        : '5. A cadeia selada foi consultada; quaisquer novas relações permanecem pendentes de curadoria.');
 
       if (newEdges[0]) {
         setActivePulseKey(`${newEdges[0].from}__${newEdges[0].to}`);
@@ -974,8 +981,8 @@ export default function CulturalInteroperabilityView() {
       setVaultFeedback('Selecione uma contribuicao antes de exportar o pacote JSON-LD.');
       return;
     }
-    if (currentDossier?.legacyStatus === 'awaiting_secure_seal') {
-      setVaultFeedback('Este registro histórico já aparece na rede, mas só poderá ser exportado após a selagem criptográfica no Supabase.');
+    if (currentDossier?.legacyStatus === 'awaiting_secure_seal' || currentDossier?.legacyStatus === 'read_only_preview') {
+      setVaultFeedback('Esta é uma prévia somente de leitura; não há pacote auditável para exportar.');
       return;
     }
     setIsTestingTransfer(true);
@@ -1052,14 +1059,15 @@ export default function CulturalInteroperabilityView() {
                 <Network size={24} className="text-[#E8490A]" />
                 Interoperabilidade Cultural
               </h2>
-              <span className="text-[9px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-green-500/10 text-green-700 border border-green-500/20 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
-                REDE ATIVA
+              <span className={`text-[9px] uppercase font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${readOnlyPreview ? 'bg-amber-500/10 text-amber-800 border-amber-500/20' : 'bg-green-500/10 text-green-700 border-green-500/20'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${readOnlyPreview ? 'bg-amber-600' : 'bg-green-600'}`} />
+                {readOnlyPreview ? 'PRÉVIA DE LEITURA' : 'REDE ATIVA'}
               </span>
             </div>
             <p className="text-xs text-[#1A1A1A]/55 font-medium">
-              Repositorio vivo de interoperabilidade cultural: auditavel, rastreavel e interconectado.
-              Cada tag e uma identidade computacional persistente que se expande nos acervos e na rede de conexoes.
+              {readOnlyPreview
+                ? 'Tags e vínculos calculados a partir do acervo existente, em modo somente leitura. Nenhuma tag é gravada, selada ou anunciada como auditada.'
+                : 'Repositorio vivo de interoperabilidade cultural: auditavel, rastreavel e interconectado. Cada tag e uma identidade computacional persistente.'}
             </p>
           </div>
 
@@ -1263,7 +1271,7 @@ export default function CulturalInteroperabilityView() {
                       onMouseDown={e => handleMouseDown(node.id, node.label, e)}
                       onClick={() => handleSelectNode(node.id, node.label)}
                     >
-                      <title>{node.label}{node.secureState === 'pending_seal' ? ' — aguardando selagem criptográfica' : ''}</title>
+                      <title>{node.label}{node.secureState === 'pending_seal' || node.secureState === 'read_only' ? ' — prévia somente de leitura' : ''}</title>
                       <circle
                         cx={nx}
                         cy={ny}
@@ -1278,8 +1286,8 @@ export default function CulturalInteroperabilityView() {
                         cy={ny}
                         r={r}
                         fill={nodeColor}
-                        stroke={isSel ? '#ffffff' : node.secureState === 'pending_seal' ? '#f59e0b' : 'rgba(255,255,255,0.4)'}
-                        strokeDasharray={!isSel && node.secureState === 'pending_seal' ? '2,2' : undefined}
+                        stroke={isSel ? '#ffffff' : node.secureState === 'pending_seal' || node.secureState === 'read_only' ? '#f59e0b' : 'rgba(255,255,255,0.4)'}
+                        strokeDasharray={!isSel && (node.secureState === 'pending_seal' || node.secureState === 'read_only') ? '2,2' : undefined}
                         strokeWidth={isSel ? 2.5 : 1}
                         filter={isSel ? 'url(#civ-glow)' : undefined}
                         className="transition-all duration-200"
@@ -1493,7 +1501,7 @@ export default function CulturalInteroperabilityView() {
                 {/* TAB: IDENTIDADE */}
                 {activeTab === 'identity' && (
                   <div className="space-y-4">
-                    <TagIdentityPanel identity={currentDossier.tagIdentity} tag={currentDossier.tag || selectedTagLabel} />
+                    <TagIdentityPanel identity={currentDossier.tagIdentity} tag={currentDossier.tag || selectedTagLabel} readOnly={currentDossier.legacyStatus === 'read_only_preview'} />
 
                     {/* CODIGO DE CRUZAMENTO */}
                     <div className="p-4 bg-gradient-to-br from-slate-950 to-slate-800 text-white border border-slate-700 rounded-2xl space-y-3 shadow-xs">

@@ -278,6 +278,49 @@ async function fetchAllTags(): Promise<LegacyTagRow[]> {
   return rows;
 }
 
+/**
+ * A leitura da rede não deve depender de metadados opcionais do esquema antigo.
+ * Começa com os vínculos mais úteis e reduz a projeção até chegar ao par mínimo
+ * id/rótulo, preservando a visualização mesmo em instalações legadas.
+ */
+async function fetchPreviewTags(): Promise<LegacyTagRow[]> {
+  const projections = [
+    'id, obra_id, nucleo_id, tag_original, tag_normalizada, grupo_tematico, criado_em',
+    'id, obra_id, nucleo_id, tag_original, tag_normalizada',
+    'id, tag_original, tag_normalizada',
+    'id, tag_original',
+    'id',
+  ];
+  const rows: LegacyTagRow[] = [];
+  let projectionIndex = 0;
+
+  for (let from = 0; ; from += TAG_PAGE_SIZE) {
+    let page: LegacyTagRow[] | null = null;
+    let lastError: unknown;
+    for (let index = projectionIndex; index < projections.length; index += 1) {
+      const { data, error } = await supabaseAdmin
+        .from('tags')
+        .select(projections[index])
+        .order('id', { ascending: true })
+        .range(from, from + TAG_PAGE_SIZE - 1);
+      if (!error) {
+        projectionIndex = index;
+        page = (data || []) as LegacyTagRow[];
+        break;
+      }
+      lastError = error;
+      const failure = extractFailure(error);
+      const missingColumn = /42703|pgrst204/.test(`${failure.code} ${failure.message}`.toLowerCase())
+        || /column .* does not exist|could not find the .* column|schema cache.*column/i.test(failure.message);
+      if (!missingColumn) throw error;
+    }
+    if (!page) throw lastError || new Error('Não foi possível ler as tags históricas.');
+    rows.push(...page);
+    if (page.length < TAG_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 async function fetchRowsByIds(table: 'nucleos' | 'obras', select: string, ids: string[]): Promise<any[]> {
   const rows: any[] = [];
   for (let offset = 0; offset < ids.length; offset += 180) {
@@ -692,16 +735,21 @@ async function loadLegacyRelations(): Promise<any[]> {
  * como selados, auditados ou como resultados de inferência visual.
  */
 export async function loadLegacyTagNetworkPreview(): Promise<LegacyNetworkPreview> {
-  const entries = await loadLegacyEntries();
-  const nodes = entries
-    .map(entry => ({
-      id: entry.tag.id,
-      label: entry.label,
-      normalizedLabel: entry.normalizedTag,
-      eixo: entry.eixo,
-      familia: `${entry.eixo.toLocaleLowerCase('pt-BR')}.${entry.normalizedTag}`,
-      createdAt: entry.createdAt,
-    }));
+  const tags = await fetchPreviewTags();
+  const entries = tags.map(tag => {
+    const label = legacyLabel(tag);
+    const normalizedTag = normalizeLegacyTag(label, tag.id);
+    const eixo = plainString(tag.grupo_tematico, 'PATRIMONIO');
+    return { tag, label, normalizedTag, eixo };
+  });
+  const nodes = entries.map(entry => ({
+    id: entry.tag.id,
+    label: entry.label,
+    normalizedLabel: entry.normalizedTag,
+    eixo: entry.eixo,
+    familia: `${entry.eixo.toLocaleLowerCase('pt-BR')}.${entry.normalizedTag}`,
+    createdAt: stableCreatedAt(entry.tag.criado_em),
+  }));
 
   const edges = new Map<string, LegacyNetworkPreview['edges'][number]>();
   const addEdge = (a: string, b: string, weight: number, relation: string, preserveStoredRelation = false) => {
@@ -726,7 +774,7 @@ export async function loadLegacyTagNetworkPreview(): Promise<LegacyNetworkPrevie
   const byNormalizedTag = new Map<string, string[]>();
   for (const entry of entries) {
     const nucleusId = plainString(entry.tag.nucleo_id);
-    const artworkId = plainString(entry.tag.obra_id || entry.artwork?.id);
+    const artworkId = plainString(entry.tag.obra_id);
     if (nucleusId) byNucleus.set(nucleusId, [...(byNucleus.get(nucleusId) || []), entry.tag.id]);
     if (artworkId) byArtwork.set(artworkId, [...(byArtwork.get(artworkId) || []), entry.tag.id]);
     byNormalizedTag.set(entry.normalizedTag, [...(byNormalizedTag.get(entry.normalizedTag) || []), entry.tag.id]);

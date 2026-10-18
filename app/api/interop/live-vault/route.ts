@@ -15,7 +15,6 @@ import {
 import {
   createSemanticVaultAuditRecord,
   createSemanticVaultFingerprint,
-  verifySemanticVaultFingerprint,
   heartbeatsFromDossier,
   humanizeGeneticCode,
   SemanticVaultRelation,
@@ -24,7 +23,6 @@ import {
 import { searchCulturalDerivatives, discoverCulturalRelations } from '@/lib/connectors/cultural-interop';
 import { generateTagId, toDisplayFormat } from '@/lib/core/tag-identity';
 import {
-  ensureLegacyTagNetworkBackfill,
   loadLegacyTagNetworkPreview,
   type LegacyNetworkPreview,
 } from '@/lib/core/legacy-tag-network-backfill';
@@ -59,7 +57,7 @@ interface UserContribution {
     lastChainHash: string | null;
     lastEvent: string | null;
   };
-  secureState?: 'sealed' | 'pending_seal';
+  secureState?: 'sealed' | 'pending_seal' | 'read_only';
 }
 
 interface LiveContributionEdge {
@@ -228,19 +226,6 @@ async function fetchUserContributions(): Promise<UserContribution[]> {
   return contributions;
 }
 
-async function fetchHumanAuditPending(): Promise<number> {
-  try {
-    const { count, error } = await supabaseAdmin
-      .from('nucleos')
-      .select('id', { count: 'exact', head: true })
-      .in('status_validacao', ['bruto', 'em_analise']);
-    if (error) return 0;
-    return count || 0;
-  } catch {
-    return 0;
-  }
-}
-
 function buildContributionEdges(contributions: UserContribution[]) {
   const sample = contributions.slice(0, 80);
   const edges: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }> = [];
@@ -292,40 +277,6 @@ function buildContributionEdges(contributions: UserContribution[]) {
   return edges.slice(0, 160);
 }
 
-/** Relações que já existiam no banco e foram convertidas para o circuito auditável. */
-async function fetchPersistedCorrelationEdges(contributions: UserContribution[]) {
-  const ids = new Set(contributions.map(item => item.id));
-  if (ids.size === 0) return [] as Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>;
-  const { data, error } = await supabaseAdmin
-    .from('tag_context_correlations')
-    .select('source_submission_id, target_submission_id, relation_type, confidence, status, method')
-    .in('status', ['suggested', 'validated'])
-    .limit(3_000);
-  if (error) {
-    console.warn('[LiveVault] Relações auditáveis ainda indisponíveis:', error.message);
-    return [];
-  }
-
-  const result: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }> = [];
-  const seen = new Set<string>();
-  for (const row of data || []) {
-    const from = String(row.source_submission_id || '');
-    const to = String(row.target_submission_id || '');
-    if (!ids.has(from) || !ids.has(to) || from === to) continue;
-    const key = [from, to].sort().join('::');
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push({
-      from,
-      to,
-      weight: Math.max(0, Math.min(1, Number(row.confidence || 0.6))),
-      skosRelation: String(row.relation_type || 'skos:related'),
-      discovered: true,
-    });
-  }
-  return result;
-}
-
 function mergeContributionEdges(...groups: LiveContributionEdge[][]): LiveContributionEdge[] {
   const merged = new Map<string, LiveContributionEdge>();
   const edges = groups.flat();
@@ -345,6 +296,42 @@ function mergeContributionEdges(...groups: LiveContributionEdge[][]): LiveContri
 
 function emptyLegacyPreview(): LegacyNetworkPreview {
   return { nodes: [], edges: [] };
+}
+
+function buildLegacyPreviewDossier(node: LegacyNetworkPreview['nodes'][number], preview: LegacyNetworkPreview) {
+  const relatedEdges = preview.edges.filter(edge => edge.from === node.id || edge.to === node.id);
+  const conexoesTextuais = relatedEdges.map(edge => {
+    const targetId = edge.from === node.id ? edge.to : edge.from;
+    const target = preview.nodes.find(candidate => candidate.id === targetId);
+    return {
+      targetId,
+      targetLabel: target?.label || targetId,
+      relationType: edge.skosRelation,
+      confidence: edge.weight,
+      evidence: 'Vínculo calculado a partir do acervo existente; apenas prévia de leitura, sem selo ou auditoria persistente.',
+    };
+  });
+  return {
+    id: node.id,
+    tag: node.label,
+    dataCriacao: node.createdAt,
+    eixo: node.eixo,
+    familia: node.familia,
+    descricao: 'Prévia de leitura do acervo existente. Este modo não cria registro criptográfico nem afirma auditoria persistente.',
+    autor: 'Acervo histórico do sistema',
+    tripla: {
+      sujeito: node.label,
+      predicado: 'está relacionado a',
+      objeto: conexoesTextuais.length ? 'outros termos do acervo' : 'acervo cultural',
+    },
+    artigo: null,
+    acervos: [],
+    conexoesTextuais,
+    tagIdentity: null,
+    vault: null,
+    heartbeat: null,
+    legacyStatus: 'read_only_preview',
+  };
 }
 
 function isNoiseTerm(s: string): boolean {
@@ -1055,15 +1042,6 @@ export async function GET(req: NextRequest) {
     if (submissionIdParam && !isUuid(submissionIdParam)) {
       return NextResponse.json({ success: false, error: 'submission_id inválido.' }, { status: 400 });
     }
-    // A primeira leitura da tela também incorpora, em lotes idempotentes, as
-    // tags que já existiam no banco. Não há cadastro manual ou reenvio das
-    // contribuições históricas: a própria rede conclui a migração.
-    const backfill = await ensureLegacyTagNetworkBackfill();
-    const [contributions, pendingHumanAudit] = await Promise.all([
-      fetchUserContributions(),
-      fetchHumanAuditPending(),
-    ]);
-
     if (selftestParam === '1' || verifyParam === 'crypto') {
       return NextResponse.json({
         success: true,
@@ -1073,71 +1051,20 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (submissionIdParam || tagParam) {
-      const dossier = await buildDynamicTagDossier({
-        ...(submissionIdParam ? { submissionId: submissionIdParam } : {}),
-        ...(submissionIdParam ? {} : { tagLabel: tagParam }),
-      }, contributions);
-      if (!dossier) {
-        return NextResponse.json(
-          { success: false, error: 'A contribuição solicitada não foi encontrada na rede de interoperabilidade.' },
-          { status: 404 },
-        );
-      }
-
-      const verify = searchParams.get('verify') === 'integrity';
-      if (verify) {
-        const norm = normalizeForComparison(tagParam).replace(/\s+/g, '_');
-        const contrib = submissionIdParam
-          ? contributions.find(c => c.id === submissionIdParam)
-          : contributions.find(c => c.normalizedLabel === norm);
-        if (contrib && dossier.vault) {
-          const relations = dossier.conexoesTextuais || [];
-          const sources = [
-            { id: contrib.id, label: 'Contribuição registrada no Folksonomia Digital', type: 'user_contribution' },
-            ...(articleToSource(dossier.artigo) ? [articleToSource(dossier.artigo)!] : []),
-          ];
-          const result = verifySemanticVaultFingerprint(
-            {
-              vaultId: contrib.id,
-              label: contrib.label,
-              normalizedLabel: contrib.normalizedLabel,
-              semanticTriple: dossier.tripla,
-              relations,
-              sources,
-              provenance: {
-                actorScope: 'user_contribution',
-                createdAt: contrib.createdAt,
-                sourceRecordId: contrib.id,
-              },
-              heartbeat: dossier.heartbeat,
-            },
-            {
-              payloadHash: dossier.vault.payloadHash,
-              crossHash: dossier.vault.crossHash,
-              geneticCode: dossier.vault.geneticCode,
-            },
-          );
-          dossier.verification = {
-            requestedAt: new Date().toISOString(),
-            ...result,
-            recovered: null,
-          };
-        }
-      }
-
-      return NextResponse.json({ success: true, data: dossier });
-    }
-
+    // A rede pública funciona em modo somente leitura sobre o catálogo antigo.
+    // Não consulta nem grava tabelas do cofre, então continua útil antes das
+    // migrações de ledger, sem apresentar prévias como seladas/auditadas.
     let legacyPreview = emptyLegacyPreview();
     try {
       legacyPreview = await loadLegacyTagNetworkPreview();
-    } catch {
-      console.warn('[LiveVault] Não foi possível montar a prévia do acervo legado.');
+    } catch (error) {
+      const failure = error as { code?: unknown };
+      console.warn('[LiveVault] Prévia de leitura indisponível', {
+        code: typeof failure?.code === 'string' ? failure.code : 'unknown',
+      });
     }
-    const sealedSubmissionIds = new Set(contributions.map(contribution => contribution.id));
-    const pendingLegacyContributions: UserContribution[] = legacyPreview.nodes
-      .filter(node => !sealedSubmissionIds.has(node.id) && Boolean(node.label.trim()))
+    const networkContributions: UserContribution[] = legacyPreview.nodes
+      .filter(node => Boolean(node.label.trim()))
       .map(node => ({
         id: node.id,
         label: node.label,
@@ -1145,14 +1072,30 @@ export async function GET(req: NextRequest) {
         eixo: node.eixo || inferEixo(node.label),
         familia: node.familia,
         createdAt: node.createdAt,
-        secureState: 'pending_seal',
+        secureState: 'read_only',
       }));
-    const networkContributions = [...contributions, ...pendingLegacyContributions];
+
+    if (submissionIdParam || tagParam) {
+      const selected = submissionIdParam
+        ? networkContributions.find(contribution => contribution.id === submissionIdParam)
+        : networkContributions.find(contribution => contribution.normalizedLabel
+          === normalizeForComparison(tagParam).replace(/\s+/g, '_'));
+      const previewNode = legacyPreview.nodes.find(node => node.id === selected?.id);
+      if (!selected || !previewNode) {
+        return NextResponse.json(
+          { success: false, error: 'A contribuição solicitada não foi encontrada na rede de interoperabilidade.' },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        data: buildLegacyPreviewDossier(previewNode, legacyPreview),
+      });
+    }
     const graphIds = new Set(networkContributions.map(contribution => contribution.id));
     const legacyEdges = legacyPreview.edges.filter(edge => graphIds.has(edge.from) && graphIds.has(edge.to));
-    const persistedEdges = await fetchPersistedCorrelationEdges(contributions);
     const inferredEdges = buildContributionEdges(networkContributions);
-    const edges = mergeContributionEdges(persistedEdges, legacyEdges, inferredEdges);
+    const edges = mergeContributionEdges(legacyEdges, inferredEdges);
 
     return NextResponse.json({
       success: true,
@@ -1160,8 +1103,8 @@ export async function GET(req: NextRequest) {
         nodes: networkContributions.map(contribution => ({
           id: contribution.id,
           label: contribution.label,
-          description: contribution.secureState === 'pending_seal'
-            ? 'Tag histórica do acervo. Aguardando selagem criptográfica e registro auditável.'
+          description: contribution.secureState === 'read_only'
+            ? 'Tag histórica exibida em prévia somente de leitura; sem selo criptográfico ou auditoria persistente.'
             : 'Tag-código registrada por usuário na rede cultural.',
           eixo: contribution.eixo,
           familia: contribution.familia,
@@ -1174,14 +1117,9 @@ export async function GET(req: NextRequest) {
         })),
         edges,
         total: networkContributions.length,
-        sealedTotal: contributions.length,
-        pendingSealTotal: pendingLegacyContributions.length,
-        backfill,
-        humanAudit: {
-          required: true,
-          pending: pendingHumanAudit,
-          path: '/admin/validacao',
-        },
+        sealedTotal: 0,
+        pendingSealTotal: networkContributions.length,
+        previewOnly: true,
         security: getEncryptionStatusWithSelfTest(),
       },
     });
