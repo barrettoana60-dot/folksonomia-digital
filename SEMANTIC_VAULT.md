@@ -12,6 +12,9 @@ com UUID, envelope criptográfico e cadeia de auditoria próprios.
   do evento anterior. SHA-256 não é usado como cifra.
 - Busca protegida: hipóteses visuais geram índices cegos HMAC; os termos que
   coincidem não são gravados na tabela de correlações.
+- Acervo pré-existente: as tags que já estavam no banco são seladas pelo
+  próprio sistema, com preservação de obra, núcleo e relações internas. Elas
+  não precisam ser reenviadas pela interface.
 - Imutabilidade: `tag_secure_records` e `semantic_vault_audit` só aceitam
   inserção. O banco valida posição e hash anterior de cada cadeia.
 - Falha fechada: sem uma `ENCRYPTION_KEY` válida, sem service role do Supabase
@@ -39,12 +42,23 @@ não houve inferência visual.
 2. Configure `SUPABASE_SERVICE_ROLE_KEY`; as tabelas do cofre não têm política
    pública de leitura ou escrita.
 3. Aplique todas as migrações, incluindo
-   `supabase/migrations/0014_secure_tag_ledger.sql` após `0010` e `0011`.
+   `supabase/migrations/0014_secure_tag_ledger.sql` após `0010` e `0011`, e
+   `0015_legacy_tag_network_backfill.sql` em seguida.
 4. Opcionalmente configure `GEMINI_API_KEY` e `GEMINI_VISION_MODEL` para a
    análise multimodal.
 5. Se um worker de curadoria precisar anexar pulsos posteriores, configure
    `LIVE_VAULT_MUTATION_SECRET` e envie-o somente pelo cabeçalho interno
    `x-live-vault-mutation-secret`. A interface pública é somente de leitura.
+
+Depois da publicação, a primeira leitura de `/api/interop/live-vault` aciona a
+incorporação automática em lotes idempotentes. Ela cria identidades canônicas,
+envelopes AES-256-GCM, gêneses SHA-256 encadeadas, vínculos com as obras,
+relações já existentes em `relacoes` e vínculos por obra/identidade. A tela se
+atualiza sozinha até concluir; nenhum reenvio das tags históricas é necessário.
+
+Análises visuais LLM posteriores ficam em `tag_visual_analyses`, também cifradas
+e imutáveis. Assim, a ausência temporária do provedor multimodal não impede a
+entrada das tags no cofre e não exige alterar seu envelope de gênese depois.
 
 ## Interoperabilidade pública
 

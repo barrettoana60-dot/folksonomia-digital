@@ -565,9 +565,15 @@ export default function CulturalInteroperabilityView() {
 
   // ─── CARREGAR CONTRIBUICOES REGISTRADAS ──────────────────────────────────────
   useEffect(() => {
-    fetch('/api/interop/live-vault', { method: 'GET' })
-      .then(r => r.json())
-      .then(json => {
+    let alive = true;
+    let retryTimer: ReturnType<typeof window.setTimeout> | undefined;
+    let hasInitialSelection = false;
+
+    const loadNetwork = async () => {
+      try {
+        const response = await fetch('/api/interop/live-vault', { method: 'GET', cache: 'no-store' });
+        const json = await response.json();
+        if (!alive) return;
         if (!json.success) {
           setVaultFeedback(json.error || 'Nao foi possivel carregar as contribuicoes.');
           return;
@@ -578,6 +584,15 @@ export default function CulturalInteroperabilityView() {
             pending: Number(json.data.humanAudit.pending || 0),
             path: json.data.humanAudit.path || '/admin/validacao',
           });
+        }
+
+        const backfill = json.data?.backfill;
+        if (backfill?.state === 'blocked') {
+          setVaultFeedback(backfill.message || 'A rede segura ainda nao esta disponivel neste ambiente.');
+        } else if (backfill?.state === 'running') {
+          setVaultFeedback(`Integrando automaticamente ${backfill.sealedTags || 0} de ${backfill.totalTags || 0} tags existentes e seus vinculos culturais...`);
+        } else {
+          setVaultFeedback(null);
         }
 
         const allFetched: any[] = json.data?.nodes || [];
@@ -610,7 +625,8 @@ export default function CulturalInteroperabilityView() {
 
         setNodes(userNodes);
         setConnections(fetchedEdges);
-        if (userNodes[0]) {
+        if (userNodes[0] && !hasInitialSelection) {
+          hasInitialSelection = true;
           setSelectedNodeId(userNodes[0].id);
           setSelectedTagLabel(userNodes[0].label);
           const initialKey = userNodes[0].id;
@@ -619,19 +635,35 @@ export default function CulturalInteroperabilityView() {
           setDossierCache(previous => ({ ...previous, [initialKey]: initialDossier }));
 
           fetch(`/api/interop/live-vault?submission_id=${encodeURIComponent(userNodes[0].id)}`)
-            .then(response => response.json())
+            .then(dossierResponse => dossierResponse.json())
             .then(dossierResponse => {
-              if (!dossierResponse.success || !dossierResponse.data) return;
+              if (!alive || !dossierResponse.success || !dossierResponse.data) return;
               setCurrentDossier(dossierResponse.data);
               setDossierCache(previous => ({ ...previous, [initialKey]: dossierResponse.data }));
             })
             .catch(() => {});
-        } else {
+        } else if (!userNodes[0]) {
           setCurrentDossier(null);
-          setVaultFeedback('Ainda nao ha termos registrados na rede de conexoes.');
+          if (!backfill || backfill.state === 'complete') {
+            setVaultFeedback('Ainda nao ha termos registrados na rede de conexoes.');
+          }
         }
-      })
-      .catch(() => setVaultFeedback('Nao foi possivel carregar a rede de conexoes.'));
+
+        // Continua sozinho até transformar todo o acervo histórico; a pessoa
+        // não precisa reenviar as tags nem acionar um botão administrativo.
+        if (backfill?.state === 'running' && alive) {
+          retryTimer = window.setTimeout(loadNetwork, 1_200);
+        }
+      } catch {
+        if (alive) setVaultFeedback('Nao foi possivel carregar a rede de conexoes.');
+      }
+    };
+
+    void loadNetwork();
+    return () => {
+      alive = false;
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
   }, []);
 
   // ─── SELECIONAR E CARREGAR DOSSIE DA TAG ─────────────────────────────────────

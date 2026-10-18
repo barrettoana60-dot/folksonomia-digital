@@ -23,8 +23,10 @@ import {
 } from '@/lib/core/semantic-vault';
 import { searchCulturalDerivatives, discoverCulturalRelations } from '@/lib/connectors/cultural-interop';
 import { generateTagId, toDisplayFormat } from '@/lib/core/tag-identity';
+import { ensureLegacyTagNetworkBackfill } from '@/lib/core/legacy-tag-network-backfill';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const EIXO_COLORS: Record<string, string> = {
   SABERES: '#1A6B3A',
@@ -270,6 +272,58 @@ function buildContributionEdges(contributions: UserContribution[]) {
     }
   }
   return edges.slice(0, 160);
+}
+
+/** Relações que já existiam no banco e foram convertidas para o circuito auditável. */
+async function fetchPersistedCorrelationEdges(contributions: UserContribution[]) {
+  const ids = new Set(contributions.map(item => item.id));
+  if (ids.size === 0) return [] as Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>;
+  const { data, error } = await supabaseAdmin
+    .from('tag_context_correlations')
+    .select('source_submission_id, target_submission_id, relation_type, confidence, status, method')
+    .in('status', ['suggested', 'validated'])
+    .limit(3_000);
+  if (error) {
+    console.warn('[LiveVault] Relações auditáveis ainda indisponíveis:', error.message);
+    return [];
+  }
+
+  const result: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }> = [];
+  const seen = new Set<string>();
+  for (const row of data || []) {
+    const from = String(row.source_submission_id || '');
+    const to = String(row.target_submission_id || '');
+    if (!ids.has(from) || !ids.has(to) || from === to) continue;
+    const key = [from, to].sort().join('::');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({
+      from,
+      to,
+      weight: Math.max(0, Math.min(1, Number(row.confidence || 0.6))),
+      skosRelation: String(row.relation_type || 'skos:related'),
+      discovered: true,
+    });
+  }
+  return result;
+}
+
+function mergeContributionEdges(
+  persisted: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>,
+  inferred: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>,
+) {
+  const merged = new Map<string, { from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>();
+  for (const edge of [...persisted, ...inferred]) {
+    const key = [edge.from, edge.to].sort().join('::');
+    const current = merged.get(key);
+    // A relação registrada no banco tem precedência, mesmo que uma heurística
+    // local encontre outra afinidade para o mesmo par.
+    if (!current || (edge.discovered && !current.discovered) ||
+      (edge.discovered === current.discovered && edge.weight > current.weight)) {
+      merged.set(key, edge);
+    }
+  }
+  return [...merged.values()].slice(0, 320);
 }
 
 function isNoiseTerm(s: string): boolean {
@@ -980,6 +1034,10 @@ export async function GET(req: NextRequest) {
     if (submissionIdParam && !isUuid(submissionIdParam)) {
       return NextResponse.json({ success: false, error: 'submission_id inválido.' }, { status: 400 });
     }
+    // A primeira leitura da tela também incorpora, em lotes idempotentes, as
+    // tags que já existiam no banco. Não há cadastro manual ou reenvio das
+    // contribuições históricas: a própria rede conclui a migração.
+    const backfill = await ensureLegacyTagNetworkBackfill();
     const [contributions, pendingHumanAudit] = await Promise.all([
       fetchUserContributions(),
       fetchHumanAuditPending(),
@@ -1050,7 +1108,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: dossier });
     }
 
-    const edges = buildContributionEdges(contributions);
+    const [persistedEdges, inferredEdges] = await Promise.all([
+      fetchPersistedCorrelationEdges(contributions),
+      Promise.resolve(buildContributionEdges(contributions)),
+    ]);
+    const edges = mergeContributionEdges(persistedEdges, inferredEdges);
 
     return NextResponse.json({
       success: true,
@@ -1069,6 +1131,7 @@ export async function GET(req: NextRequest) {
         })),
         edges,
         total: contributions.length,
+        backfill,
         humanAudit: {
           required: true,
           pending: pendingHumanAudit,

@@ -79,6 +79,49 @@ export interface ContextCorrelation {
   evidenceDigest: string;
 }
 
+export type CorrelationStatus = 'suggested' | 'validated' | 'rejected' | 'revoked';
+
+export interface LedgerCorrelationEndpoint {
+  submissionId: string;
+  canonicalTagId: string;
+  tag: string;
+  normalizedTag: string;
+  createdAt: string;
+  metadataDigest: string;
+}
+
+export interface AuditableContextCorrelationInput {
+  source: LedgerCorrelationEndpoint;
+  target: LedgerCorrelationEndpoint;
+  relationType: string;
+  confidence: number;
+  method: string;
+  evidenceDigest?: string;
+  status?: Extract<CorrelationStatus, 'suggested' | 'validated'>;
+  requiresHumanReview?: boolean;
+  sourceLabel?: string;
+  privateEvidence?: Record<string, unknown>;
+}
+
+export interface VisualAnalysisReceipt {
+  analysisKey: string;
+  contextBlindIndexCount: number;
+  auditSequence?: number;
+}
+
+export interface RecordedContextCorrelation {
+  id: string;
+  sourceSubmissionId: string;
+  targetSubmissionId: string;
+  sourceTagId: string;
+  targetTagId: string;
+  relationType: string;
+  confidence: number;
+  status: CorrelationStatus;
+  method: string;
+  evidenceDigest: string;
+}
+
 export class SecureLedgerStorageError extends Error {
   constructor(message: string, readonly causeMessage?: string) {
     super(message);
@@ -230,6 +273,8 @@ async function appendAuditEvent(params: {
   relations?: SemanticVaultRelation[];
   sources?: SemanticVaultSource[];
   privateEvent?: Record<string, unknown>;
+  /** Identificadores não sensíveis usados para tornar a escrita idempotente. */
+  publicMarkers?: Record<string, string | number | boolean>;
 }): Promise<{ chainHash: string; sequence: number }> {
   assertEncryptionConfigured();
 
@@ -290,6 +335,7 @@ async function appendAuditEvent(params: {
         envelopeVersion: encrypted.info.version,
         encryptionAlgorithm: 'AES-256-GCM',
         keyVersion: ENCRYPTION_KEY_VERSION,
+        ...(params.publicMarkers || {}),
       },
       encrypted_payload: encrypted.envelope,
       encryption_algorithm: 'AES-256-GCM',
@@ -308,6 +354,334 @@ async function appendAuditEvent(params: {
   }
 
   throw new SecureLedgerStorageError('Não foi possível anexar o evento à cadeia auditável.', lastError);
+}
+
+async function findAuditByMarker(
+  submissionId: string,
+  eventType: SecureLedgerEvent,
+  marker: Record<string, string | number | boolean>,
+): Promise<{ sequence: number } | null> {
+  const { data, error } = await supabaseAdmin
+    .from('semantic_vault_audit')
+    .select('chain_position')
+    .eq('vault_id', submissionId)
+    .eq('event_type', eventType)
+    .contains('public_manifest', marker)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new SecureLedgerStorageError('Não foi possível verificar a idempotência da cadeia auditável.', error.message);
+  }
+  return data ? { sequence: Number(data.chain_position) } : null;
+}
+
+function safeDigest(value: string | undefined, fallback: unknown): string {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/i.test(value)
+    ? value.toLowerCase()
+    : generateSignature(fallback);
+}
+
+/**
+ * Persiste a evidência visual em um registro próprio, imutável e cifrado.
+ * Isso possibilita adicionar análise LLM a um legado que já foi selado sem
+ * abrir ou alterar o envelope de gênese da contribuição.
+ */
+export async function recordVisualContextAnalysis(params: {
+  input: Pick<SealTagSubmissionInput, 'submissionId' | 'canonicalTagId' | 'tag' | 'normalizedTag' | 'createdAt'>;
+  metadataDigest: string;
+  visual?: VisualContextForLedger | null;
+}): Promise<VisualAnalysisReceipt | null> {
+  if (!isVisionBackedAnalysis(params.visual)) return null;
+  assertEncryptionConfigured();
+
+  const visual = params.visual!;
+  const promptHash = safeDigest(visual.promptHash, {
+    domain: 'folksonomia-digital/visual-prompt-fallback/v1',
+    submissionId: params.input.submissionId,
+    tag: params.input.normalizedTag,
+  });
+  const imageSha256 = safeDigest(visual.imageSha256, {
+    domain: 'folksonomia-digital/visual-image-fallback/v1',
+    submissionId: params.input.submissionId,
+    promptHash,
+  });
+  const analysisKey = generateSignature({
+    domain: 'folksonomia-digital/visual-analysis/v1',
+    submissionId: params.input.submissionId,
+    canonicalTagId: params.input.canonicalTagId,
+    provider: visual.provider,
+    model: visual.model || 'configured-model',
+    promptHash,
+    imageSha256,
+  });
+  const contextBlindIndexes = buildVisualContextBlindIndexes(visual);
+  const encrypted = encryptWithChecksum({
+    schemaVersion: 'tag-visual-analysis-private/v1',
+    analysisKey,
+    submissionId: params.input.submissionId,
+    canonicalTagId: params.input.canonicalTagId,
+    analyzedAt: new Date().toISOString(),
+    visual,
+  });
+
+  const { error: visualInsertError } = await supabaseAdmin
+    .from('tag_visual_analyses')
+    .insert({
+      analysis_key: analysisKey,
+      submission_id: params.input.submissionId,
+      tag_id: params.input.canonicalTagId,
+      metadata_digest: encrypted.signature,
+      encrypted_payload: encrypted.envelope,
+      encryption_algorithm: 'AES-256-GCM',
+      envelope_version: encrypted.info.version,
+      key_version: ENCRYPTION_KEY_VERSION,
+      provider: visual.provider || 'unknown',
+      model: visual.model || null,
+      prompt_hash: promptHash,
+      image_sha256: imageSha256,
+      context_blind_indexes: contextBlindIndexes,
+      public_manifest: {
+        schemaVersion: 'tag-visual-analysis/v1',
+        analysisKey,
+        submissionId: params.input.submissionId,
+        canonicalTagId: params.input.canonicalTagId,
+        metadataDigest: encrypted.signature,
+        provider: visual.provider || 'unknown',
+        model: visual.model || null,
+        promptHash,
+        imageSha256,
+        encryptionAlgorithm: 'AES-256-GCM',
+        envelopeVersion: encrypted.info.version,
+        keyVersion: ENCRYPTION_KEY_VERSION,
+      },
+    });
+  if (visualInsertError && (visualInsertError as { code?: string }).code !== '23505') {
+    throw new SecureLedgerStorageError('Não foi possível preservar a análise visual no cofre.', visualInsertError.message);
+  }
+
+  const marker = { visualAnalysisKey: analysisKey };
+  const existingAudit = await findAuditByMarker(params.input.submissionId, 'vault_visual_analysis', marker);
+  if (existingAudit) {
+    return {
+      analysisKey,
+      contextBlindIndexCount: contextBlindIndexes.length,
+      auditSequence: existingAudit.sequence,
+    };
+  }
+
+  const visualEvent = await appendAuditEvent({
+    input: params.input,
+    metadataDigest: params.metadataDigest,
+    eventType: 'vault_visual_analysis',
+    relations: visualRelations(visual),
+    sources: [{
+      id: imageSha256,
+      label: `${visual.provider || 'vision'}:${visual.model || 'configured-model'}`,
+      type: 'visual_inference',
+    }],
+    privateEvent: {
+      analysisKey,
+      provider: visual.provider,
+      model: visual.model,
+      promptHash,
+      imageSha256,
+      confidence: visual.confidence,
+      status: visual.status,
+    },
+    publicMarkers: marker,
+  });
+
+  return {
+    analysisKey,
+    contextBlindIndexCount: contextBlindIndexes.length,
+    auditSequence: visualEvent.sequence,
+  };
+}
+
+function normalizeCorrelationEndpoints(params: AuditableContextCorrelationInput): {
+  source: LedgerCorrelationEndpoint;
+  target: LedgerCorrelationEndpoint;
+} {
+  if (params.source.submissionId === params.target.submissionId) {
+    throw new SecureLedgerStorageError('Uma contribuição não pode ser correlacionada consigo mesma.');
+  }
+  return params.source.submissionId < params.target.submissionId
+    ? { source: params.source, target: params.target }
+    : { source: params.target, target: params.source };
+}
+
+async function persistCorrelationCreationEvent(params: {
+  correlation: RecordedContextCorrelation;
+  sourceLabel: string;
+  requiresHumanReview: boolean;
+  privateEvidence?: Record<string, unknown>;
+}): Promise<void> {
+  const snapshot = {
+    schemaVersion: 'tag-context-correlation/v1',
+    correlationId: params.correlation.id,
+    sourceSubmissionId: params.correlation.sourceSubmissionId,
+    targetSubmissionId: params.correlation.targetSubmissionId,
+    sourceTagId: params.correlation.sourceTagId,
+    targetTagId: params.correlation.targetTagId,
+    relationType: params.correlation.relationType,
+    confidence: params.correlation.confidence,
+    status: params.correlation.status,
+    method: params.correlation.method,
+    evidenceDigest: params.correlation.evidenceDigest,
+    requiresHumanReview: params.requiresHumanReview,
+  };
+  const encrypted = encryptWithChecksum({
+    snapshot,
+    sourceLabel: params.sourceLabel,
+    ...(params.privateEvidence ? { privateEvidence: params.privateEvidence } : {}),
+  });
+  const { error } = await supabaseAdmin
+    .from('tag_context_correlation_events')
+    .insert({
+      correlation_id: params.correlation.id,
+      event_type: 'created',
+      actor: `system:${params.correlation.method}`.slice(0, 240),
+      snapshot_digest: generateSignature(snapshot),
+      encrypted_payload: encrypted.envelope,
+      encryption_algorithm: 'AES-256-GCM',
+      envelope_version: encrypted.info.version,
+      public_manifest: {
+        schemaVersion: 'tag-context-correlation-event/v1',
+        correlationId: params.correlation.id,
+        eventType: 'created',
+        snapshotDigest: generateSignature(snapshot),
+        encryptionAlgorithm: 'AES-256-GCM',
+        envelopeVersion: encrypted.info.version,
+      },
+    });
+  if (error && (error as { code?: string }).code !== '23505') {
+    throw new SecureLedgerStorageError('Não foi possível anexar o recibo imutável da correlação.', error.message);
+  }
+}
+
+/**
+ * Cria uma relação entre dois envelopes já selados e a audita nos dois lados
+ * do circuito. Relações preexistentes são retomadas sem duplicar recibos.
+ */
+export async function recordAuditableContextCorrelation(
+  params: AuditableContextCorrelationInput,
+): Promise<RecordedContextCorrelation> {
+  assertEncryptionConfigured();
+  const { source, target } = normalizeCorrelationEndpoints(params);
+  const status = params.status || 'suggested';
+  const requiresHumanReview = params.requiresHumanReview ?? status !== 'validated';
+  const confidence = Math.round(Math.min(1, Math.max(0, params.confidence)) * 100) / 100;
+  const evidenceDigest = safeDigest(params.evidenceDigest, {
+    domain: 'folksonomia-digital/correlation-evidence/v1',
+    sourceSubmissionId: source.submissionId,
+    targetSubmissionId: target.submissionId,
+    method: params.method,
+  });
+
+  let correlationId = '';
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from('tag_context_correlations')
+    .select('id')
+    .eq('source_submission_id', source.submissionId)
+    .eq('target_submission_id', target.submissionId)
+    .eq('method', params.method)
+    .maybeSingle();
+  if (existingError) {
+    throw new SecureLedgerStorageError('Não foi possível verificar uma correlação existente.', existingError.message);
+  }
+
+  if (existing?.id) {
+    correlationId = String(existing.id);
+  } else {
+    const { data: inserted, error: insertError } = await supabaseAdmin
+      .from('tag_context_correlations')
+      .insert({
+        source_submission_id: source.submissionId,
+        target_submission_id: target.submissionId,
+        source_tag_id: source.canonicalTagId,
+        target_tag_id: target.canonicalTagId,
+        relation_type: params.relationType,
+        confidence,
+        method: params.method,
+        evidence_digest: evidenceDigest,
+        status,
+        requires_human_review: requiresHumanReview,
+        ...(status === 'validated' ? { reviewed_at: new Date().toISOString(), reviewed_by: 'legacy-system-record' } : {}),
+      })
+      .select('id')
+      .maybeSingle();
+    if (insertError && (insertError as { code?: string }).code !== '23505') {
+      throw new SecureLedgerStorageError('Não foi possível registrar a correlação protegida.', insertError.message);
+    }
+    correlationId = inserted?.id ? String(inserted.id) : '';
+    if (!correlationId) {
+      const { data: raced, error: racedError } = await supabaseAdmin
+        .from('tag_context_correlations')
+        .select('id')
+        .eq('source_submission_id', source.submissionId)
+        .eq('target_submission_id', target.submissionId)
+        .eq('method', params.method)
+        .maybeSingle();
+      if (racedError || !raced?.id) {
+        throw new SecureLedgerStorageError('Não foi possível recuperar a correlação recém-criada.', racedError?.message || insertError?.message);
+      }
+      correlationId = String(raced.id);
+    }
+  }
+
+  const correlation: RecordedContextCorrelation = {
+    id: correlationId,
+    sourceSubmissionId: source.submissionId,
+    targetSubmissionId: target.submissionId,
+    sourceTagId: source.canonicalTagId,
+    targetTagId: target.canonicalTagId,
+    relationType: params.relationType,
+    confidence,
+    status,
+    method: params.method,
+    evidenceDigest,
+  };
+
+  await persistCorrelationCreationEvent({
+    correlation,
+    sourceLabel: params.sourceLabel || 'Correlação cultural protegida',
+    requiresHumanReview,
+    privateEvidence: params.privateEvidence,
+  });
+
+  for (const [current, peer] of [[source, target], [target, source]] as const) {
+    const marker = { correlationId, correlationMethod: params.method };
+    const alreadyAudited = await findAuditByMarker(current.submissionId, 'vault_correlation', marker);
+    if (alreadyAudited) continue;
+    await appendAuditEvent({
+      input: current,
+      metadataDigest: current.metadataDigest,
+      eventType: 'vault_correlation',
+      relations: [{
+        targetId: peer.submissionId,
+        targetLabel: peer.tag,
+        relation: params.relationType,
+        evidence: `sha256:${evidenceDigest}`,
+      }],
+      sources: [{
+        id: correlationId,
+        label: params.sourceLabel || 'Correlação cultural protegida',
+        type: 'protected_context_match',
+      }],
+      privateEvent: {
+        correlationId,
+        confidence,
+        status,
+        method: params.method,
+        evidenceDigest,
+        requiresHumanReview,
+        ...(params.privateEvidence ? { privateEvidence: params.privateEvidence } : {}),
+      },
+      publicMarkers: marker,
+    });
+  }
+
+  return correlation;
 }
 
 export async function sealTagSubmission(input: SealTagSubmissionInput): Promise<LedgerReceipt> {
@@ -357,6 +731,7 @@ export async function sealTagSubmission(input: SealTagSubmissionInput): Promise<
     throw new SecureLedgerStorageError('Não foi possível selar os metadados da contribuição.', secureInsertError.message);
   }
 
+  let existingGenesis: { chainHash: string; sequence: number } | null = null;
   if (secureInsertError) {
     const { data: existing, error: existingError } = await supabaseAdmin
       .from('tag_secure_records')
@@ -366,9 +741,26 @@ export async function sealTagSubmission(input: SealTagSubmissionInput): Promise<
     if (existingError || !existing || existing.metadata_digest !== encrypted.signature) {
       throw new SecureLedgerStorageError('O identificador da contribuição já está associado a outro conteúdo selado.');
     }
+    const { data: genesisAudit, error: genesisError } = await supabaseAdmin
+      .from('semantic_vault_audit')
+      .select('chain_hash, chain_position')
+      .eq('vault_id', input.submissionId)
+      .eq('event_type', 'vault_genesis')
+      .order('chain_position', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (genesisError) {
+      throw new SecureLedgerStorageError('Não foi possível recuperar a gênese já registrada no cofre.', genesisError.message);
+    }
+    if (genesisAudit) {
+      existingGenesis = {
+        chainHash: String(genesisAudit.chain_hash),
+        sequence: Number(genesisAudit.chain_position),
+      };
+    }
   }
 
-  const genesis = await appendAuditEvent({
+  const genesis = existingGenesis || await appendAuditEvent({
     input,
     metadataDigest: encrypted.signature,
     eventType: 'vault_genesis',
@@ -381,26 +773,12 @@ export async function sealTagSubmission(input: SealTagSubmissionInput): Promise<
 
   let visualAuditSequence: number | undefined;
   if (isVisionBackedAnalysis(input.visual)) {
-    const visualEvent = await appendAuditEvent({
+    const visualReceipt = await recordVisualContextAnalysis({
       input,
       metadataDigest: encrypted.signature,
-      eventType: 'vault_visual_analysis',
-      relations: visualRelations(input.visual),
-      sources: [{
-        id: input.visual?.imageSha256 || `submission:${input.submissionId}`,
-        label: `${input.visual?.provider || 'vision'}:${input.visual?.model || 'configured-model'}`,
-        type: 'visual_inference',
-      }],
-      privateEvent: {
-        provider: input.visual?.provider,
-        model: input.visual?.model,
-        promptHash: input.visual?.promptHash,
-        imageSha256: input.visual?.imageSha256,
-        confidence: input.visual?.confidence,
-        status: input.visual?.status,
-      },
+      visual: input.visual,
     });
-    visualAuditSequence = visualEvent.sequence;
+    visualAuditSequence = visualReceipt?.auditSequence;
   }
 
   return {
@@ -422,21 +800,78 @@ export async function discoverAndRecordVisualContextCorrelations(params: {
   const contextBlindIndexes = buildVisualContextBlindIndexes(params.visual);
   if (contextBlindIndexes.length === 0) return [];
 
-  const { data: peers, error: peersError } = await supabaseAdmin
+  const { data: sealedPeers, error: sealedPeersError } = await supabaseAdmin
     .from('tag_secure_records')
     .select('submission_id, tag_id, context_blind_indexes')
     .neq('submission_id', params.input.submissionId)
     .overlaps('context_blind_indexes', contextBlindIndexes)
     .limit(40);
 
-  if (peersError) {
-    throw new SecureLedgerStorageError('Não foi possível consultar contextos culturais protegidos.', peersError.message);
+  if (sealedPeersError) {
+    throw new SecureLedgerStorageError('Não foi possível consultar contextos culturais protegidos.', sealedPeersError.message);
+  }
+
+  // Análises posteriores ao envelope de gênese também participam da busca.
+  // Isso é essencial para o acervo legado: ele pode ser selado primeiro e
+  // analisado pelo modelo multimodal assim que uma imagem estiver disponível.
+  const { data: visualPeers, error: visualPeersError } = await supabaseAdmin
+    .from('tag_visual_analyses')
+    .select('submission_id, tag_id, context_blind_indexes')
+    .neq('submission_id', params.input.submissionId)
+    .overlaps('context_blind_indexes', contextBlindIndexes)
+    .limit(80);
+  if (visualPeersError) {
+    throw new SecureLedgerStorageError('Não foi possível consultar as análises visuais protegidas.', visualPeersError.message);
+  }
+
+  const peerMap = new Map<string, { tagId: string; indexes: string[] }>();
+  for (const peer of [...(sealedPeers || []), ...(visualPeers || [])]) {
+    const submissionId = String(peer.submission_id || '');
+    const tagId = String(peer.tag_id || '');
+    if (!submissionId || !tagId) continue;
+    const current = peerMap.get(submissionId) || { tagId, indexes: [] };
+    for (const index of Array.isArray(peer.context_blind_indexes) ? peer.context_blind_indexes : []) {
+      if (typeof index === 'string' && !current.indexes.includes(index)) current.indexes.push(index);
+    }
+    peerMap.set(submissionId, current);
+  }
+
+  const peerIds = [...peerMap.keys()];
+  const peerLabels = new Map<string, { label: string; normalizedTag: string; createdAt: string }>();
+  const peerMetadataDigests = new Map<string, string>();
+  if (peerIds.length > 0) {
+    const { data: peerSecureRecords, error: peerSecureRecordsError } = await supabaseAdmin
+      .from('tag_secure_records')
+      .select('submission_id, metadata_digest')
+      .in('submission_id', peerIds);
+    if (peerSecureRecordsError) {
+      throw new SecureLedgerStorageError('Não foi possível recuperar os recibos das contribuições correlacionadas.', peerSecureRecordsError.message);
+    }
+    for (const peerRecord of peerSecureRecords || []) {
+      peerMetadataDigests.set(String(peerRecord.submission_id), String(peerRecord.metadata_digest));
+    }
+
+    const { data: peerTags, error: peerTagsError } = await supabaseAdmin
+      .from('tags')
+      .select('id, tag_original, tag_normalizada, criado_em')
+      .in('id', peerIds);
+    if (peerTagsError) {
+      throw new SecureLedgerStorageError('Não foi possível recuperar os rótulos das contribuições correlacionadas.', peerTagsError.message);
+    }
+    for (const peerTag of peerTags || []) {
+      const label = String(peerTag.tag_original || peerTag.tag_normalizada || 'Contribuição cultural correlacionada').trim();
+      peerLabels.set(String(peerTag.id), {
+        label,
+        normalizedTag: String(peerTag.tag_normalizada || normalizeContextTerm(label).replace(/\s+/g, '_')),
+        createdAt: String(peerTag.criado_em || params.input.createdAt),
+      });
+    }
   }
 
   const currentSet = new Set(contextBlindIndexes);
   const correlations: ContextCorrelation[] = [];
-  for (const peer of peers || []) {
-    const peerIndexes = Array.isArray(peer.context_blind_indexes) ? peer.context_blind_indexes : [];
+  for (const [peerSubmissionId, peer] of peerMap) {
+    const peerIndexes = peer.indexes;
     const shared = peerIndexes.filter((index: string) => currentSet.has(index));
     if (shared.length === 0) continue;
 
@@ -451,83 +886,51 @@ export async function discoverAndRecordVisualContextCorrelations(params: {
     );
     if (confidence < 0.6) continue;
 
-    const [sourceSubmissionId, targetSubmissionId] = [params.input.submissionId, String(peer.submission_id)].sort();
-    const sourceIsCurrent = sourceSubmissionId === params.input.submissionId;
-    const correlation: ContextCorrelation = {
-      sourceSubmissionId,
-      targetSubmissionId,
-      sourceTagId: sourceIsCurrent ? params.input.canonicalTagId : String(peer.tag_id),
-      targetTagId: sourceIsCurrent ? String(peer.tag_id) : params.input.canonicalTagId,
-      confidence,
-      status: 'suggested',
-      method: 'visual_context_hmac_overlap',
-      evidenceDigest: generateSignature({
+    const peerLabel = peerLabels.get(peerSubmissionId) || {
+      label: 'Contribuição cultural correlacionada',
+      normalizedTag: `contribuicao_${peerSubmissionId.slice(0, 8)}`,
+      createdAt: params.input.createdAt,
+    };
+    const peerMetadataDigest = peerMetadataDigests.get(peerSubmissionId);
+    if (!peerMetadataDigest) continue;
+    const [sourceSubmissionId, targetSubmissionId] = [params.input.submissionId, peerSubmissionId].sort();
+    const evidenceDigest = generateSignature({
         domain: 'folksonomia-digital/visual-correlation-evidence/v1',
         sourceSubmissionId,
         targetSubmissionId,
         sharedBlindIndexes: [...shared].sort(),
         confidence,
-      }),
-    };
-
-    const { data: existing, error: existingError } = await supabaseAdmin
-      .from('tag_context_correlations')
-      .select('id')
-      .eq('source_submission_id', sourceSubmissionId)
-      .eq('target_submission_id', targetSubmissionId)
-      .eq('method', correlation.method)
-      .maybeSingle();
-    if (existingError) {
-      throw new SecureLedgerStorageError('Não foi possível verificar uma correlação existente.', existingError.message);
-    }
-    if (existing) continue;
-
-    const { data: inserted, error: insertError } = await supabaseAdmin
-      .from('tag_context_correlations')
-      .insert({
-        source_submission_id: correlation.sourceSubmissionId,
-        target_submission_id: correlation.targetSubmissionId,
-        source_tag_id: correlation.sourceTagId,
-        target_tag_id: correlation.targetTagId,
-        relation_type: 'skos:related',
-        confidence: correlation.confidence,
-        method: correlation.method,
-        evidence_digest: correlation.evidenceDigest,
-        status: correlation.status,
-        requires_human_review: true,
-      })
-      .select('id')
-      .maybeSingle();
-    if (insertError && (insertError as any).code !== '23505') {
-      throw new SecureLedgerStorageError('Não foi possível registrar a correlação sugerida.', insertError.message);
-    }
-    if (inserted?.id) correlation.id = inserted.id;
-
-    // A relação é somente uma sugestão até revisão humana, mas sua geração já
-    // fica encadeada e verificável no cofre da contribuição atual.
-    await appendAuditEvent({
-      input: params.input,
-      metadataDigest: params.metadataDigest,
-      eventType: 'vault_correlation',
-      relations: [{
-        targetId: String(peer.submission_id),
-        targetLabel: 'Contribuição com contexto visual compatível',
-        relation: 'skos:related',
-        evidence: `sha256:${correlation.evidenceDigest}`,
-      }],
-      sources: [{
-        id: String(peer.submission_id),
-        label: 'Registro cultural correlacionado',
-        type: 'protected_context_match',
-      }],
-      privateEvent: {
-        correlationId: correlation.id,
-        confidence: correlation.confidence,
-        status: correlation.status,
-        evidenceDigest: correlation.evidenceDigest,
-      },
     });
-    correlations.push(correlation);
+    const recorded = await recordAuditableContextCorrelation({
+      source: { ...params.input, metadataDigest: params.metadataDigest },
+      target: {
+        submissionId: peerSubmissionId,
+        canonicalTagId: peer.tagId,
+        tag: peerLabel.label,
+        normalizedTag: peerLabel.normalizedTag,
+        createdAt: peerLabel.createdAt,
+        metadataDigest: peerMetadataDigest,
+      },
+      relationType: 'skos:related',
+      confidence,
+      method: 'visual_context_hmac_overlap',
+      evidenceDigest,
+      status: 'suggested',
+      requiresHumanReview: true,
+      sourceLabel: 'Correlação visual proposta por análise multimodal',
+      privateEvidence: { sharedBlindIndexes: [...shared].sort() },
+    });
+    correlations.push({
+      id: recorded.id,
+      sourceSubmissionId: recorded.sourceSubmissionId,
+      targetSubmissionId: recorded.targetSubmissionId,
+      sourceTagId: recorded.sourceTagId,
+      targetTagId: recorded.targetTagId,
+      confidence: recorded.confidence,
+      status: 'suggested',
+      method: 'visual_context_hmac_overlap',
+      evidenceDigest: recorded.evidenceDigest,
+    });
   }
 
   return correlations;
