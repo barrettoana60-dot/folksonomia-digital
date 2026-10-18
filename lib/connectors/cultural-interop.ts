@@ -137,6 +137,53 @@ export async function searchCulturalDerivatives(tag: string): Promise<CulturalDe
 }
 
 /**
+ * Busca direta e sem fallback demonstrativo nas três fontes da interoperabilidade.
+ * Uma resposta vazia significa que a fonte não confirmou correspondência; os
+ * links de busca continuam sendo mostrados separadamente pela interface.
+ */
+export async function searchLiveCulturalDerivatives(tag: string): Promise<CulturalDerivative[]> {
+  const query = String(tag || '').trim();
+  if (query.length < 2) return [];
+
+  const connectors = [
+    new BrasilianaConnector(),
+    new TainacanConnector(),
+    new EuropeanaConnector(),
+  ];
+  const settled = await Promise.allSettled(connectors.map(async connector => {
+    const matches = await withTimeout(connector.searchExternalSourceLive(query), 8_000);
+    return { connectorName: connector.name, matches: matches.slice(0, PER_SOURCE_LIMIT) };
+  }));
+
+  const seen = new Set<string>();
+  const derivatives: CulturalDerivative[] = [];
+  for (const result of settled) {
+    if (result.status !== 'fulfilled') continue;
+    for (const match of result.value.matches) {
+      if (!match.url || !match.external_id || !match.title) continue;
+      const source = match.source || result.value.connectorName;
+      const key = `${source}:${match.external_id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      derivatives.push({
+        source,
+        externalId: String(match.external_id),
+        title: match.title,
+        description: match.description,
+        url: match.url,
+        provider: match.provider,
+        relation: skosRelation(match),
+        score: Number(match.match_score || 0),
+        connector: result.value.connectorName,
+      });
+    }
+  }
+  return derivatives
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    .slice(0, 9);
+}
+
+/**
  * Rotina completa de descoberta de correspondências e relações.
  * Retorna derivados, fontes prontas para persistência e resumo por conector.
  *

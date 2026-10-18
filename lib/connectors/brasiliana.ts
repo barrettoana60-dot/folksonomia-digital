@@ -26,6 +26,13 @@ export class BrasilianaConnector implements OpenDataConnector {
    * Busca nos acervos da Brasiliana Museus.
    */
   async searchExternalSource(query: string): Promise<ExternalMatch[]> {
+    const liveMatches = await this.searchExternalSourceLive(query);
+    return liveMatches.length > 0 ? liveMatches : this.getCuratedBrasilianaMatches(query);
+  }
+
+  /** Busca apenas resultados recebidos da API; nunca inclui dados demonstrativos. */
+  async searchExternalSourceLive(query: string): Promise<ExternalMatch[]> {
+    if (!query.trim()) return [];
     const headers = this.buildHeaders();
     const queryParams = new URLSearchParams({
       perpage: '12',
@@ -48,7 +55,7 @@ export class BrasilianaConnector implements OpenDataConnector {
         for (const url of paths) {
           const res = await fetch(url, {
             headers,
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(7000),
           });
 
           if (!res.ok) {
@@ -74,7 +81,7 @@ export class BrasilianaConnector implements OpenDataConnector {
     }
 
     if (items.length === 0) {
-      return this.getCuratedBrasilianaMatches(query);
+      return [];
     }
 
     const seen = new Set<string>();
@@ -97,7 +104,7 @@ export class BrasilianaConnector implements OpenDataConnector {
 
       return {
         source: this.name,
-        external_id: `brasiliana-${item.id || Date.now()}`,
+      external_id: `brasiliana-${item.id || item.slug || this.extractTitle(item).toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80)}`,
         title: this.extractTitle(item),
         description: description || `Acervo: ${museum}`,
         url: item.url || item.link || usedBase,

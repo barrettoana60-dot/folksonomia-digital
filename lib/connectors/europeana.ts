@@ -44,11 +44,13 @@ export class EuropeanaConnector implements OpenDataConnector {
    * Retorna até `rows` resultados formatados.
    */
   async searchRecords(query: string, rows: number = 20): Promise<EuropeanaRecord[]> {
-    if (!this.apiKey) {
-      console.warn('[Europeana] API Key not configured, returning mock data');
-      return this.getMockRecords(query);
-    }
+    const records = await this.searchRecordsLive(query, rows);
+    return records.length > 0 ? records : this.getMockRecords(query);
+  }
 
+  /** Busca somente dados reais, sem inserir os registros demonstrativos legados. */
+  async searchRecordsLive(query: string, rows: number = 20): Promise<EuropeanaRecord[]> {
+    if (!this.apiKey || !query.trim()) return [];
     try {
       const params = new URLSearchParams({
         wskey: this.apiKey,
@@ -58,14 +60,15 @@ export class EuropeanaConnector implements OpenDataConnector {
         lang: 'pt'
       });
 
-      const res = await fetch(`https://api.europeana.eu/record/v2/search.json?${params}`);
-      if (!res.ok) throw new Error(`Europeana API error: ${res.status}`);
+      const res = await fetch(`https://api.europeana.eu/record/v2/search.json?${params}`, {
+        signal: AbortSignal.timeout(7_000),
+      });
+      if (!res.ok) return [];
 
       const data = await res.json();
       return (data.items || []).map((item: any) => this.parseRecord(item));
-    } catch (err) {
-      console.error('[Europeana] Fetch error:', err);
-      return this.getMockRecords(query);
+    } catch {
+      return [];
     }
   }
 
@@ -106,6 +109,22 @@ export class EuropeanaConnector implements OpenDataConnector {
       match_score: 0.85,
       relation_type: 'closeMatch' as const,
       raw: rec.raw
+    }));
+  }
+
+  async searchExternalSourceLive(query: string): Promise<ExternalMatch[]> {
+    const records = await this.searchRecordsLive(query, 5);
+    return records.filter(record => Boolean(record.id && record.title && record.url)).map(record => ({
+      source: this.name,
+      external_id: record.id,
+      title: record.title,
+      description: record.description || record.creator || record.type || '',
+      url: record.url,
+      provider: record.dataProvider,
+      rights: record.rights,
+      match_score: 0.65,
+      relation_type: 'relatedMatch' as const,
+      raw: record.raw,
     }));
   }
 

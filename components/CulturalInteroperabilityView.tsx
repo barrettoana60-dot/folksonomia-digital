@@ -211,7 +211,7 @@ function TagIdentityPanel({ identity, tag, readOnly = false }: { identity: any; 
       <div className="flex items-center justify-between">
         <span className="text-[9.5px] font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
           <Hash size={11} />
-          IDENTIDADE COMPUTACIONAL
+          {identity.ephemeral ? 'IDENTIDADE CALCULADA · NÃO SALVA' : 'IDENTIDADE COMPUTACIONAL'}
         </span>
         <span className="text-[9px] text-emerald-400 font-mono">v{identity.version}</span>
       </div>
@@ -356,8 +356,27 @@ function buildInstantDossier(
       },
       artigo: null,
       acervos: [],
+      metadata: targetNode?.metadataCode ? {
+        code: targetNode.metadataCode,
+        digest: targetNode.metadataDigest,
+        tagId: targetNode.tagId,
+        axis: targetNode.eixo,
+      } : null,
+      encryption: targetNode?.metadataEncryption || null,
+      obra: targetNode?.obra || null,
+      visualContext: null,
+      sourceSearches: [],
       conexoesTextuais,
-      tagIdentity: null,
+      tagIdentity: targetNode?.tagId ? {
+        tagId: targetNode.tagId,
+        digest: targetNode.metadataDigest,
+        version: 1,
+        ephemeral: true,
+        status: 'preview_calculated_not_persisted',
+        identitySources: [],
+        versionChain: [],
+        contributions: [],
+      } : null,
       vault: null,
       heartbeat: null,
       legacyStatus: 'read_only_preview',
@@ -664,6 +683,12 @@ export default function CulturalInteroperabilityView() {
             familia: node.familia,
             secureState: node.secureState || 'sealed',
             createdAt: node.createdAt,
+            tagId: node.tagId,
+            metadataCode: node.metadataCode,
+            metadataDigest: node.metadataDigest,
+            metadataEncryption: node.metadataEncryption,
+            obra: node.obra,
+            contextoTag: node.contextoTag,
             activation: 0.5,
           };
         });
@@ -1419,6 +1444,80 @@ export default function CulturalInteroperabilityView() {
                       )}
                     </div>
 
+                    {/* METADADO CANÔNICO DA TAG + ESTADO CRIPTOGRÁFICO */}
+                    {currentDossier.metadata && (
+                      <div className="p-4 bg-gradient-to-br from-slate-950 to-slate-800 text-white border border-slate-700 rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[9.5px] font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                            <LockKeyhole size={12} /> METADADO DA TAG · {currentDossier.metadata.axis || currentDossier.eixo}
+                          </p>
+                          <span className={`text-[8px] font-bold uppercase px-2 py-1 rounded-full ${currentDossier.encryption?.state === 'encrypted_ephemeral' ? 'bg-emerald-400/15 text-emerald-200' : 'bg-amber-400/15 text-amber-200'}`}>
+                            {currentDossier.encryption?.state === 'encrypted_ephemeral'
+                              ? 'AES-256-GCM · cifra temporária'
+                              : currentDossier.encryption?.state === 'key_missing'
+                                ? 'chave de cifragem ausente'
+                                : 'falha na cifragem'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-white/60 leading-relaxed">
+                          Código determinístico do metadado e resumo SHA-256. O envelope é calculado no servidor; nesta prévia sem persistência ele não é salvo no banco.
+                        </p>
+                        <div className="space-y-1.5 font-mono text-[9px]">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-white/45 shrink-0">CÓDIGO</span>
+                            <button type="button" onClick={() => copyText(currentDossier.metadata.code)} className="text-emerald-200 truncate text-right">
+                              {currentDossier.metadata.code || '—'} <Copy size={9} className="inline ml-1" />
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-white/45 shrink-0">SHA-256</span>
+                            <button type="button" onClick={() => copyText(currentDossier.metadata.digest)} className="text-amber-200 truncate text-right">
+                              {shortDigest(currentDossier.metadata.digest, 10)} <Copy size={9} className="inline ml-1" />
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-white/45 shrink-0">TAG ID</span>
+                            <span className="text-sky-200 truncate">{currentDossier.metadata.tagId}</span>
+                          </div>
+                        </div>
+                        {(currentDossier.obra?.titulo || currentDossier.obra?.artista || currentDossier.obra?.material || currentDossier.obra?.tecnica) && (
+                          <div className="border-t border-white/10 pt-2 text-[10px] text-white/75 space-y-1">
+                            <p className="font-bold text-white">{currentDossier.obra.titulo || 'Obra vinculada'}{currentDossier.obra.ano ? ` · ${currentDossier.obra.ano}` : ''}</p>
+                            {currentDossier.obra.artista && <p>Autoria: {currentDossier.obra.artista}</p>}
+                            {(currentDossier.obra.material || currentDossier.obra.tecnica) && <p>Material/técnica: {[currentDossier.obra.material, currentDossier.obra.tecnica].filter(Boolean).join(' · ')}</p>}
+                            {currentDossier.obra.origem && <p>Origem: {currentDossier.obra.origem}</p>}
+                          </div>
+                        )}
+                        <div className="border-t border-white/10 pt-2 space-y-1.5">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-sky-200">LEITURA DE CONTEXTO VISUAL</p>
+                          <p className="text-[10px] text-white/70">
+                            {currentDossier.visualContext?.context?.visualSummary
+                              || currentDossier.visualContext?.notices?.[0]
+                              || 'A análise de imagem ainda não foi executada para esta obra.'}
+                          </p>
+                          <p className="text-[8.5px] text-white/45">
+                            Estado: {currentDossier.visualContext?.status || 'pendente'} · {currentDossier.visualContext?.provider || 'sem provedor'} · sugestões precisam de curadoria humana.
+                          </p>
+                          {currentDossier.visualContext?.candidates?.slice(0, 4).map((candidate: any, index: number) => (
+                            <div key={index} className="text-[9px] text-white/65 flex items-start justify-between gap-2">
+                              <span>{candidate.label} — {candidate.assessment === 'supports_tag' ? 'apoia a tag' : candidate.assessment === 'not_evidenced' ? 'não evidenciada' : 'contexto relacionado'}</span>
+                              <span className="shrink-0">{Math.round((candidate.confidence || 0) * 100)}% · revisão pendente</span>
+                            </div>
+                          ))}
+                          {currentDossier.contextRelations?.map((relation: any) => (
+                            <button key={relation.targetId} type="button" onClick={() => handleSelectNode(relation.targetId, relation.targetLabel)} className="w-full text-left text-[9px] text-sky-200 hover:text-sky-100 border-t border-white/10 pt-1.5">
+                              Família visual candidata: {relation.targetLabel} · {Math.round((relation.confidence || 0) * 100)}% · exige curadoria humana
+                            </button>
+                          ))}
+                        </div>
+                        {currentDossier.encryption?.envelope && (
+                          <button type="button" onClick={() => copyText(currentDossier.encryption.envelope)} className="text-[9px] text-emerald-200 hover:text-emerald-100 inline-flex items-center gap-1">
+                            <Copy size={10} /> Copiar envelope cifrado AES-256-GCM
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {/* PULSO / GERACAO */}
                     {currentDossier.heartbeat && (
                       <div className="flex items-center gap-3 p-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl text-[10.5px]">
@@ -1434,7 +1533,7 @@ export default function CulturalInteroperabilityView() {
                       <div className="space-y-2">
                         <p className="text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 flex items-center gap-1.5">
                           <Globe size={11} />
-                          CORRESPONDENCIAS EM FONTES EXTERNAS ({allSources.length})
+                          RESULTADOS REAIS DE BUSCA · REVISÃO PENDENTE ({allSources.length})
                         </p>
                         <div className="space-y-1.5 max-h-48 overflow-auto pr-1">
                           {allSources.slice(0, 10).map((src: any, i: number) => (
@@ -1461,6 +1560,25 @@ export default function CulturalInteroperabilityView() {
                               {src.skosRelation && (
                                 <p className="text-[9px] text-[#1A1A1A]/40 font-mono mt-0.5">{src.skosRelation}</p>
                               )}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* LINKS DE BUSCA DAS FONTES: separados de correspondências verificadas */}
+                    {currentDossier.sourceSearches?.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[9.5px] font-bold uppercase tracking-wider text-[#1A1A1A]/50 flex items-center gap-1.5">
+                          <Globe size={11} /> BUSCAR A TAG NOS ACERVOS
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {currentDossier.sourceSearches.map((source: any) => (
+                            <a key={source.source} href={source.url} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-amber-50/70 border border-amber-200/70 hover:border-[#E8490A] transition-colors">
+                              <span className="block text-[10px] font-bold text-[#1A1A1A]">{source.source}</span>
+                              <span className="block text-[8.5px] text-[#1A1A1A]/55 mt-1">
+                                {source.status === 'match_found' ? 'API retornou item; revisão pendente' : 'abrir busca da fonte'}
+                              </span>
                             </a>
                           ))}
                         </div>

@@ -94,6 +94,7 @@ function normalizeItem(item: any, baseUrl: string, score: number): ExternalMatch
     provider: 'Tainacan / Museus Brasileiros',
     relation_type: score >= 0.80 ? 'closeMatch' : 'relatedMatch',
     match_score: score,
+    raw: item,
   };
 }
 
@@ -116,6 +117,12 @@ export class TainacanConnector {
   readonly name = 'Tainacan';
 
   async searchExternalSource(query: string): Promise<ExternalMatch[]> {
+    const liveMatches = await this.searchExternalSourceLive(query);
+    return liveMatches.length > 0 ? liveMatches : this.getCuratedTainacanMatches(query);
+  }
+
+  /** Busca apenas itens retornados por APIs Tainacan públicas. */
+  async searchExternalSourceLive(query: string): Promise<ExternalMatch[]> {
     if (!query || query.length < 3) return [];
 
     try {
@@ -147,10 +154,9 @@ export class TainacanConnector {
         .sort((a, b) => (b.match_score || 0) - (a.match_score || 0))
         .slice(0, 5);
 
-      if (sorted.length > 0) return sorted;
-      return this.getCuratedTainacanMatches(query);
+      return sorted;
     } catch {
-      return this.getCuratedTainacanMatches(query);
+      return [];
     }
   }
 

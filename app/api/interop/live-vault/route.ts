@@ -10,6 +10,8 @@ import {
   encryptWithChecksum,
   inspectEnvelope,
   EncryptionConfigurationError,
+  generateSignature,
+  getEncryptionStatus,
   getEncryptionStatusWithSelfTest,
 } from '@/lib/core/crypto';
 import {
@@ -20,8 +22,9 @@ import {
   SemanticVaultRelation,
   SemanticVaultSource,
 } from '@/lib/core/semantic-vault';
-import { searchCulturalDerivatives, discoverCulturalRelations } from '@/lib/connectors/cultural-interop';
+import { searchCulturalDerivatives, searchLiveCulturalDerivatives, discoverCulturalRelations } from '@/lib/connectors/cultural-interop';
 import { generateTagId, toDisplayFormat } from '@/lib/core/tag-identity';
+import { analyzeVisualContext } from '@/lib/ml/visual-context';
 import {
   loadLegacyTagNetworkPreview,
   type LegacyNetworkPreview,
@@ -298,7 +301,143 @@ function emptyLegacyPreview(): LegacyNetworkPreview {
   return { nodes: [], edges: [] };
 }
 
-function buildLegacyPreviewDossier(node: LegacyNetworkPreview['nodes'][number], preview: LegacyNetworkPreview) {
+function canonicalAxis(value: string | null | undefined, context: string): string {
+  const candidate = String(value || '').trim().toLocaleUpperCase('pt-BR');
+  if (['SABERES', 'FESTA', 'MUSICA', 'CRENCAS', 'PATRIMONIO'].includes(candidate) && candidate !== 'PATRIMONIO') {
+    return candidate;
+  }
+  if (candidate.includes('FEST')) return 'FESTA';
+  if (candidate.includes('MUSI') || candidate.includes('DAN')) return 'MUSICA';
+  if (candidate.includes('SABER') || candidate.includes('OFICIO') || candidate.includes('MATERIAL')) return 'SABERES';
+  if (candidate.includes('CREN') || candidate.includes('RIT')) return 'CRENCAS';
+  return inferEixo(context);
+}
+
+function buildTagMetadata(node: LegacyNetworkPreview['nodes'][number]) {
+  const contextText = [
+    node.label,
+    node.contextoTag?.conteudoOriginal,
+    node.contextoTag?.conteudoNormalizado,
+    node.contextoTag?.origem,
+    node.obra?.titulo,
+    node.obra?.artista,
+    node.obra?.tipo,
+    node.obra?.descricao,
+    node.obra?.material,
+    node.obra?.tecnica,
+    node.obra?.origem,
+  ].filter(Boolean).join(' ');
+  const eixo = canonicalAxis(node.eixo, contextText);
+  const normalizedLabel = normalizeForComparison(node.label).replace(/\s+/g, '_');
+  const tagId = generateTagId(normalizedLabel || node.normalizedLabel);
+  const metadata = {
+    schemaVersion: 'folksonomia.tag-metadata/v1',
+    identity: { tagId, label: node.label, normalizedLabel },
+    culturalAxis: { code: eixo, family: `${eixo.toLocaleLowerCase('pt-BR')}.${normalizedLabel}` },
+    artwork: node.obra ? {
+      id: node.obra.id,
+      title: node.obra.titulo || null,
+      artist: node.obra.artista || null,
+      year: node.obra.ano || null,
+      type: node.obra.tipo || null,
+      description: node.obra.descricao || null,
+      material: node.obra.material || null,
+      technique: node.obra.tecnica || null,
+      origin: node.obra.origem || null,
+    } : null,
+    culturalContext: node.contextoTag ? {
+      original: node.contextoTag.conteudoOriginal || null,
+      normalized: node.contextoTag.conteudoNormalizado || null,
+      origin: node.contextoTag.origem || null,
+    } : null,
+    provenance: {
+      source: 'catalogo_historico_read_only',
+      sourceRecordId: node.id,
+      createdAt: node.createdAt,
+    },
+  };
+  const digest = generateSignature(metadata);
+  return {
+    tagId,
+    eixo,
+    familia: `${eixo.toLocaleLowerCase('pt-BR')}.${normalizedLabel}`,
+    metadata,
+    metadataCode: `FSD-META-${digest.slice(0, 20).toUpperCase()}`,
+    metadataDigest: `sha256:${digest}`,
+  };
+}
+
+function encryptMetadataIfConfigured(metadata: Record<string, unknown>) {
+  const status = getEncryptionStatus();
+  if (!status.configured) {
+    return { state: 'key_missing', algorithm: status.algorithm, keyFingerprint: status.keyFingerprint, envelope: null };
+  }
+  try {
+    const result = encryptWithChecksum(metadata);
+    return {
+      state: 'encrypted_ephemeral',
+      algorithm: 'AES-256-GCM',
+      envelopeVersion: result.info.version,
+      keyFingerprint: result.fingerprint,
+      signature: `sha256:${result.signature}`,
+      envelope: result.envelope,
+    };
+  } catch {
+    return { state: 'encryption_failed', algorithm: status.algorithm, keyFingerprint: status.keyFingerprint, envelope: null };
+  }
+}
+
+async function buildLegacyPreviewDossier(node: LegacyNetworkPreview['nodes'][number], preview: LegacyNetworkPreview) {
+  const tagMetadata = buildTagMetadata(node);
+  const obra = node.obra;
+  const [visualContext, derivatives] = await Promise.all([
+    analyzeVisualContext({
+      tag: node.label,
+      imageUrl: obra?.imagemUrl,
+      catalog: {
+        title: obra?.titulo,
+        artist: obra?.artista,
+        description: obra?.descricao,
+        material: obra?.material,
+        technique: obra?.tecnica,
+        origin: obra?.origem,
+      },
+    }),
+    searchLiveCulturalDerivatives(node.label),
+  ]);
+  const query = encodeURIComponent(node.label);
+  const sourceSearches = [
+    {
+      source: 'Brasiliana',
+      url: `https://brasiliana.museus.gov.br/wp-json/tainacan/v2/items/?perpage=5&search=${query}&exposer=json-flat`,
+      status: derivatives.some(item => item.source === 'Brasiliana Museus') ? 'match_found' : 'no_confirmed_match',
+    },
+    {
+      source: 'Tainacan',
+      url: `https://museus.cultura.gov.br/wp-json/tainacan/v2/items?perpage=4&search=${query}&status=publish`,
+      status: derivatives.some(item => item.source === 'Tainacan') ? 'match_found' : 'no_confirmed_match',
+    },
+    {
+      source: 'Europeana',
+      url: `https://www.europeana.eu/en/search?query=${query}`,
+      status: derivatives.some(item => item.source === 'Europeana') ? 'match_found' : 'no_confirmed_match',
+    },
+  ];
+  const contextRelations = visualContext.candidates.flatMap(candidate => {
+    if (normalizeForComparison(candidate.label) === normalizeForComparison(node.label)) return [];
+    const target = preview.nodes.find(other => other.id !== node.id
+      && normalizeForComparison(other.label) === normalizeForComparison(candidate.label));
+    if (!target) return [];
+    return [{
+      targetId: target.id,
+      targetLabel: target.label,
+      relationType: 'skos:related',
+      confidence: candidate.confidence,
+      rationale: candidate.rationale,
+      status: 'requires_human_review',
+      source: visualContext.provider,
+    }];
+  });
   const relatedEdges = preview.edges.filter(edge => edge.from === node.id || edge.to === node.id);
   const conexoesTextuais = relatedEdges.map(edge => {
     const targetId = edge.from === node.id ? edge.to : edge.from;
@@ -315,19 +454,51 @@ function buildLegacyPreviewDossier(node: LegacyNetworkPreview['nodes'][number], 
     id: node.id,
     tag: node.label,
     dataCriacao: node.createdAt,
-    eixo: node.eixo,
-    familia: node.familia,
-    descricao: 'Prévia de leitura do acervo existente. Este modo não cria registro criptográfico nem afirma auditoria persistente.',
+    eixo: tagMetadata.eixo,
+    familia: tagMetadata.familia,
+    descricao: obra?.descricao || 'Prévia de leitura do acervo existente. O contexto visual é uma hipótese curatorial, não uma validação.',
     autor: 'Acervo histórico do sistema',
+    metadata: {
+      code: tagMetadata.metadataCode,
+      digest: tagMetadata.metadataDigest,
+      tagId: tagMetadata.tagId,
+      schemaVersion: tagMetadata.metadata.schemaVersion,
+      axis: tagMetadata.eixo,
+    },
+    encryption: encryptMetadataIfConfigured(tagMetadata.metadata),
+    analysisEncryption: encryptMetadataIfConfigured({
+      schemaVersion: 'folksonomia.context-analysis/v1',
+      tagId: tagMetadata.tagId,
+      visualContext,
+      externalMatches: derivatives,
+      sourceSearches,
+    }),
+    visualContext,
+    obra: obra || null,
+    sourceSearches,
+    contextRelations,
     tripla: {
       sujeito: node.label,
       predicado: 'está relacionado a',
       objeto: conexoesTextuais.length ? 'outros termos do acervo' : 'acervo cultural',
     },
     artigo: null,
-    acervos: [],
+    acervos: derivatives.map(item => ({
+      ...item,
+      evidenceStatus: 'resultado_real_api_pendente_curadoria',
+    })),
     conexoesTextuais,
-    tagIdentity: null,
+    tagIdentity: {
+      tagId: tagMetadata.tagId,
+      digest: tagMetadata.metadataDigest,
+      canonicalForm: tagMetadata.metadata.identity.normalizedLabel,
+      version: 1,
+      status: 'preview_calculated_not_persisted',
+      ephemeral: true,
+      identitySources: [],
+      versionChain: [],
+      contributions: [],
+    },
     vault: null,
     heartbeat: null,
     legacyStatus: 'read_only_preview',
@@ -1065,15 +1236,18 @@ export async function GET(req: NextRequest) {
     }
     const networkContributions: UserContribution[] = legacyPreview.nodes
       .filter(node => Boolean(node.label.trim()))
-      .map(node => ({
-        id: node.id,
-        label: node.label,
-        normalizedLabel: node.normalizedLabel,
-        eixo: node.eixo || inferEixo(node.label),
-        familia: node.familia,
-        createdAt: node.createdAt,
-        secureState: 'read_only',
-      }));
+      .map(node => {
+        const metadata = buildTagMetadata(node);
+        return {
+          id: node.id,
+          label: node.label,
+          normalizedLabel: node.normalizedLabel,
+          eixo: metadata.eixo,
+          familia: metadata.familia,
+          createdAt: node.createdAt,
+          secureState: 'read_only' as const,
+        };
+      });
 
     if (submissionIdParam || tagParam) {
       const selected = submissionIdParam
@@ -1089,7 +1263,7 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json({
         success: true,
-        data: buildLegacyPreviewDossier(previewNode, legacyPreview),
+        data: await buildLegacyPreviewDossier(previewNode, legacyPreview),
       });
     }
     const graphIds = new Set(networkContributions.map(contribution => contribution.id));
@@ -1100,21 +1274,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        nodes: networkContributions.map(contribution => ({
-          id: contribution.id,
-          label: contribution.label,
-          description: contribution.secureState === 'read_only'
-            ? 'Tag histórica exibida em prévia somente de leitura; sem selo criptográfico ou auditoria persistente.'
-            : 'Tag-código registrada por usuário na rede cultural.',
-          eixo: contribution.eixo,
-          familia: contribution.familia,
-          cor: EIXO_COLORS[contribution.eixo] || EIXO_COLORS.default,
-          isFromUser: true,
-          secureState: contribution.secureState || 'sealed',
-          createdAt: contribution.createdAt,
-          heartbeat: contribution.heartbeat || null,
-          auditState: contribution.auditState || null,
-        })),
+        nodes: networkContributions.map(contribution => {
+          const previewNode = legacyPreview.nodes.find(node => node.id === contribution.id)!;
+          const metadata = buildTagMetadata(previewNode);
+          return {
+            id: contribution.id,
+            label: contribution.label,
+            description: contribution.secureState === 'read_only'
+              ? 'Tag histórica em prévia somente de leitura; código SHA-256 por tag calculado e envelope AES-GCM temporário quando há chave configurada.'
+              : 'Tag-código registrada por usuário na rede cultural.',
+            eixo: metadata.eixo,
+            familia: metadata.familia,
+            cor: EIXO_COLORS[metadata.eixo] || EIXO_COLORS.default,
+            tagId: metadata.tagId,
+            metadataCode: metadata.metadataCode,
+            metadataDigest: metadata.metadataDigest,
+            metadataEncryption: encryptMetadataIfConfigured(metadata.metadata),
+            obra: previewNode.obra || null,
+            contextoTag: previewNode.contextoTag || null,
+            isFromUser: true,
+            secureState: contribution.secureState || 'sealed',
+            createdAt: contribution.createdAt,
+            heartbeat: contribution.heartbeat || null,
+            auditState: contribution.auditState || null,
+          };
+        }),
         edges,
         total: networkContributions.length,
         sealedTotal: 0,

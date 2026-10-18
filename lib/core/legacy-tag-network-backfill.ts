@@ -133,6 +133,24 @@ export interface LegacyNetworkPreview {
     eixo: string;
     familia: string;
     createdAt: string;
+    obra?: {
+      id: string;
+      titulo?: string | null;
+      artista?: string | null;
+      ano?: string | null;
+      tipo?: string | null;
+      descricao?: string | null;
+      material?: string | null;
+      tecnica?: string | null;
+      origem?: string | null;
+      imagemUrl?: string | null;
+    } | null;
+    contextoTag?: {
+      nucleoId: string | null;
+      conteudoOriginal?: string | null;
+      conteudoNormalizado?: string | null;
+      origem?: string | null;
+    };
   }>;
   edges: Array<{
     from: string;
@@ -317,6 +335,51 @@ async function fetchPreviewTags(): Promise<LegacyTagRow[]> {
     if (!page) throw lastError || new Error('Não foi possível ler as tags históricas.');
     rows.push(...page);
     if (page.length < TAG_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
+async function fetchPreviewContextRows(
+  table: 'obras' | 'nucleos',
+  ids: string[],
+): Promise<Array<Record<string, any>>> {
+  if (ids.length === 0) return [];
+  const projections = table === 'obras'
+    ? [
+        'id, titulo, artista, ano, tipo, descricao, material, tecnica, origem, imagem_url',
+        'id, titulo, artista, ano, tipo, descricao, material, tecnica, imagem_url',
+        'id, titulo, artista, descricao, imagem_url',
+        'id, titulo',
+      ]
+    : [
+        'id, obra_id, conteudo_original, conteudo_normalizado, origem',
+        'id, obra_id, conteudo_original, conteudo_normalizado',
+        'id, obra_id, conteudo_original',
+        'id, obra_id',
+      ];
+  const rows: Array<Record<string, any>> = [];
+
+  for (let offset = 0; offset < ids.length; offset += 180) {
+    const batch = ids.slice(offset, offset + 180);
+    let selectedRows: Array<Record<string, any>> | null = null;
+    let lastError: unknown;
+    for (const projection of projections) {
+      const { data, error } = await supabaseAdmin.from(table).select(projection).in('id', batch);
+      if (!error) {
+        selectedRows = (data || []) as Array<Record<string, any>>;
+        break;
+      }
+      lastError = error;
+      const failure = extractFailure(error);
+      const missingColumn = /42703|pgrst204/.test(`${failure.code} ${failure.message}`.toLowerCase())
+        || /column .* does not exist|could not find the .* column|schema cache.*column/i.test(failure.message);
+      if (!missingColumn) return rows;
+    }
+    if (!selectedRows) {
+      if (lastError) return rows;
+      break;
+    }
+    rows.push(...selectedRows);
   }
   return rows;
 }
@@ -736,11 +799,23 @@ async function loadLegacyRelations(): Promise<any[]> {
  */
 export async function loadLegacyTagNetworkPreview(): Promise<LegacyNetworkPreview> {
   const tags = await fetchPreviewTags();
+  const nucleusIds = [...new Set(tags.map(tag => plainString(tag.nucleo_id)).filter(Boolean))];
+  const nuclei = await fetchPreviewContextRows('nucleos', nucleusIds);
+  const nucleiById = new Map(nuclei.map(row => [String(row.id), row]));
+  const artworkIds = [...new Set([
+    ...tags.map(tag => plainString(tag.obra_id)),
+    ...nuclei.map(row => plainString(row.obra_id)),
+  ].filter(Boolean))];
+  const artworks = await fetchPreviewContextRows('obras', artworkIds);
+  const artworksById = new Map(artworks.map(row => [String(row.id), row]));
   const entries = tags.map(tag => {
+    const nucleus = tag.nucleo_id ? nucleiById.get(String(tag.nucleo_id)) : undefined;
+    const artworkId = plainString(tag.obra_id || nucleus?.obra_id);
+    const artwork = artworkId ? artworksById.get(artworkId) : undefined;
     const label = legacyLabel(tag);
     const normalizedTag = normalizeLegacyTag(label, tag.id);
     const eixo = plainString(tag.grupo_tematico, 'PATRIMONIO');
-    return { tag, label, normalizedTag, eixo };
+    return { tag, nucleus, artwork, label, normalizedTag, eixo };
   });
   const nodes = entries.map(entry => ({
     id: entry.tag.id,
@@ -749,6 +824,24 @@ export async function loadLegacyTagNetworkPreview(): Promise<LegacyNetworkPrevie
     eixo: entry.eixo,
     familia: `${entry.eixo.toLocaleLowerCase('pt-BR')}.${entry.normalizedTag}`,
     createdAt: stableCreatedAt(entry.tag.criado_em),
+    obra: entry.artwork ? {
+      id: String(entry.artwork.id),
+      titulo: entry.artwork.titulo || null,
+      artista: entry.artwork.artista || null,
+      ano: entry.artwork.ano || null,
+      tipo: entry.artwork.tipo || null,
+      descricao: entry.artwork.descricao || null,
+      material: entry.artwork.material || null,
+      tecnica: entry.artwork.tecnica || null,
+      origem: entry.artwork.origem || null,
+      imagemUrl: entry.artwork.imagem_url || null,
+    } : null,
+    contextoTag: {
+      nucleoId: entry.tag.nucleo_id || null,
+      conteudoOriginal: entry.nucleus?.conteudo_original || null,
+      conteudoNormalizado: entry.nucleus?.conteudo_normalizado || null,
+      origem: entry.nucleus?.origem || null,
+    },
   }));
 
   const edges = new Map<string, LegacyNetworkPreview['edges'][number]>();
