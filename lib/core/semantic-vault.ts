@@ -58,7 +58,13 @@ export interface SemanticVaultFingerprint {
 }
 
 export interface SemanticVaultAuditInput extends SemanticVaultFingerprintInput {
-  eventType: 'vault_pulse' | 'vault_export' | 'vault_validation' | 'vault_genesis';
+  eventType:
+    | 'vault_pulse'
+    | 'vault_export'
+    | 'vault_validation'
+    | 'vault_genesis'
+    | 'vault_visual_analysis'
+    | 'vault_correlation';
   sequence: number;
   previousHash: string | null;
   occurredAt: string;

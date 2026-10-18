@@ -613,12 +613,12 @@ export default function CulturalInteroperabilityView() {
         if (userNodes[0]) {
           setSelectedNodeId(userNodes[0].id);
           setSelectedTagLabel(userNodes[0].label);
-          const initialKey = normalizeForComparison(userNodes[0].label).replace(/\s+/g, '_');
+          const initialKey = userNodes[0].id;
           const initialDossier = buildInstantDossier(userNodes[0].id, userNodes[0].label, userNodes, fetchedEdges);
           setCurrentDossier(initialDossier);
           setDossierCache(previous => ({ ...previous, [initialKey]: initialDossier }));
 
-          fetch(`/api/interop/live-vault?tag=${encodeURIComponent(userNodes[0].label)}`)
+          fetch(`/api/interop/live-vault?submission_id=${encodeURIComponent(userNodes[0].id)}`)
             .then(response => response.json())
             .then(dossierResponse => {
               if (!dossierResponse.success || !dossierResponse.data) return;
@@ -639,7 +639,7 @@ export default function CulturalInteroperabilityView() {
     setSelectedNodeId(nodeId);
     setSelectedTagLabel(nodeLabel);
 
-    const normKey = normalizeForComparison(nodeLabel).replace(/\s+/g, '_');
+    const normKey = nodeId;
 
     if (dossierCache[normKey]) {
       setCurrentDossier(dossierCache[normKey]);
@@ -654,7 +654,7 @@ export default function CulturalInteroperabilityView() {
 
     // Complementa com validação e auditoria remota em segundo plano
     try {
-      const res = await fetch(`/api/interop/live-vault?tag=${encodeURIComponent(nodeLabel)}`);
+      const res = await fetch(`/api/interop/live-vault?submission_id=${encodeURIComponent(nodeId)}`);
       if (res.ok) {
         const json = await res.json();
         if (json.success && json.data) {
@@ -793,14 +793,9 @@ export default function CulturalInteroperabilityView() {
     addStep('3. Cruzamento interno entre contribuicoes e preparacao da auditoria.');
 
     try {
-      const res = await fetch('/api/interop/live-vault', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourceTag: sourceNode.label,
-          action: 'pulse'
-        })
-      });
+      // A visualização pública consulta a cadeia já selada; a criação de novos
+      // eventos é reservada ao worker/curadoria autenticado.
+      const res = await fetch(`/api/interop/live-vault?submission_id=${encodeURIComponent(sourceNode.id)}`);
       const json = await res.json();
 
       if (!res.ok || !json.success) {
@@ -809,23 +804,23 @@ export default function CulturalInteroperabilityView() {
         return;
       }
 
-      const conns = json.data?.connections || [];
-      const activated = json.data?.activatedNodes || [];
-      const dynamicDossier = json.data?.dossier;
+      const dynamicDossier = json.data;
+      const conns = dynamicDossier?.conexoesTextuais || [];
+      const activated: any[] = [];
 
       if (dynamicDossier) {
-        const normKey = normalizeForComparison(dynamicDossier.tag || sourceNode.label).replace(/\s+/g, '_');
+        const normKey = dynamicDossier.id || sourceNode.id;
         setSelectedTagLabel(dynamicDossier.tag || sourceNode.label);
         setSelectedNodeId(dynamicDossier.id || sourceNode.id);
         setCurrentDossier(dynamicDossier);
         setDossierCache(prev => ({ ...prev, [normKey]: dynamicDossier }));
       }
 
-      const newEdges: GraphMathEdge[] = json.data?.pulses?.map((pulse: any) => ({
-        from: pulse.from,
-        to: pulse.to,
-        weight: pulse.intensity || 0.8,
-        skosRelation: 'skos:related',
+      const newEdges: GraphMathEdge[] = conns.map((connection: any) => ({
+        from: sourceNode.id,
+        to: connection.targetId,
+        weight: connection.confidence || 0.8,
+        skosRelation: connection.relation || 'skos:related',
         mechanism: 'inferred' as const,
         eixoRel: dynamicDossier?.eixo || sourceNode.eixo || 'PATRIMONIO',
         discovered: true,
@@ -847,7 +842,7 @@ export default function CulturalInteroperabilityView() {
 
       setDiscoveredConnections(conns);
       addStep(`4. ${conns.length} ligacao(oes) cultural(is) identificada(s) entre contribuicoes da rede.`);
-      addStep(`5. Auditoria ${dynamicDossier?.vault?.audit?.persisted ? 'registrada na cadeia de proveniencia' : 'aguardando curadoria'} e pacote JSON-LD atualizado.`);
+      addStep('5. A cadeia selada foi consultada; quaisquer novas relações permanecem pendentes de curadoria.');
 
       if (newEdges[0]) {
         setActivePulseKey(`${newEdges[0].from}__${newEdges[0].to}`);
@@ -908,7 +903,7 @@ export default function CulturalInteroperabilityView() {
     }
     setIsTestingTransfer(true);
     try {
-      const res = await fetch(`/api/interop/jsonld?tag=${encodeURIComponent(selectedTagLabel)}`, {
+      const res = await fetch(`/api/interop/jsonld?submission_id=${encodeURIComponent(selectedNodeId)}`, {
         headers: { Accept: 'application/ld+json' }
       });
       const data = await res.json();

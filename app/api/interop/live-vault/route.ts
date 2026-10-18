@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase/client';
 import { discoverLiveConnections, pulseLiveNetwork } from '@/lib/ml/live-network-engine';
 import { hybridSemanticSimilarity } from '@/lib/ml/similarity';
@@ -6,13 +7,10 @@ import { BrazilianCultureArchitect } from '@/lib/ml/cultural-architect';
 import { normalizeForComparison } from '@/lib/ml/tag-correlator';
 import { searchAcademicLiterature } from '@/lib/ml/academic-search';
 import {
-  encryptPayload,
   encryptWithChecksum,
-  decryptAndVerify,
   inspectEnvelope,
   EncryptionConfigurationError,
   getEncryptionStatusWithSelfTest,
-  getEncryptionStatus,
 } from '@/lib/core/crypto';
 import {
   createSemanticVaultAuditRecord,
@@ -65,6 +63,22 @@ function isValidCulturalTag(label?: string): boolean {
   return !noise.test(clean);
 }
 
+function isUuid(value?: string | null): boolean {
+  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value));
+}
+
+function hasLiveVaultMutationAuthorization(request: NextRequest): boolean {
+  // Esta rota é pública para leitura, mas qualquer novo evento na cadeia exige
+  // um worker/curador autenticado. O fluxo público de envio sela somente sua
+  // própria contribuição em /api/ml/analisar-tag.
+  const expected = process.env.LIVE_VAULT_MUTATION_SECRET || process.env.ADMIN_SECRET || '';
+  const provided = request.headers.get('x-live-vault-mutation-secret') || '';
+  if (!expected || !provided) return false;
+  const expectedBuffer = Buffer.from(expected);
+  const providedBuffer = Buffer.from(provided);
+  return expectedBuffer.length === providedBuffer.length && crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+}
+
 function inferEixo(label: string): string {
   const profile = BrazilianCultureArchitect.getCulturalProfile(label);
   const axis = profile.axes[0];
@@ -75,67 +89,7 @@ function inferEixo(label: string): string {
   return 'PATRIMONIO';
 }
 
-async function fetchLastAuditFor(vaultId: string): Promise<{
-  lastSequence: number;
-  lastChainHash: string | null;
-  lastEvent: string | null;
-  pulseCount: number;
-  lastPulse: string;
-  connectionCount: number;
-  generation: number;
-} | null> {
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('semantic_vault_audit')
-      .select('chain_position, chain_hash, event_type, created_at, public_manifest, genetic_code')
-      .eq('vault_id', vaultId)
-      .order('chain_position', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error && !/semantic_vault_audit/i.test(error.message || '')) return null;
-    if (!data) {
-      const { data: evtData } = await supabaseAdmin
-        .from('eventos')
-        .select('chain_position:id, hash_evento, tipo_evento, created_at, payload')
-        .eq('entidade_tipo', 'semantic_vault')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!evtData) return null;
-      return {
-        lastSequence: Number((evtData.payload as any)?.sequence || 0),
-        lastChainHash: evtData.hash_evento || null,
-        lastEvent: evtData.tipo_evento || null,
-        pulseCount: Number((evtData.payload as any)?.sequence || 0),
-        lastPulse: evtData.created_at || new Date().toISOString(),
-        connectionCount: 0,
-        generation: Number((evtData.payload as any)?.sequence || 1),
-      };
-    }
-
-    const manifest = (data.public_manifest as any) || {};
-    const genetic = data.genetic_code || '';
-    const markerMatch = genetic.match(/G(\d{3})C(\d{3})/);
-    const generation = markerMatch ? Number(markerMatch[1]) : 1;
-    const connectionCount = markerMatch ? Number(markerMatch[2]) : 0;
-
-    return {
-      lastSequence: Number(data.chain_position || 0),
-      lastChainHash: data.chain_hash || null,
-      lastEvent: data.event_type || null,
-      pulseCount: Number(data.chain_position || 0),
-      lastPulse: data.created_at || new Date().toISOString(),
-      connectionCount,
-      generation,
-    };
-  } catch {
-    return null;
-  }
-}
-
 async function fetchUserContributions(): Promise<UserContribution[]> {
-  const seen = new Set<string>();
   const contributions: UserContribution[] = [];
 
   try {
@@ -165,37 +119,66 @@ async function fetchUserContributions(): Promise<UserContribution[]> {
       }
     }
 
-    // Também incorporar núcleos válidos se existirem
-    try {
-      const { data: nucleosData } = await supabaseAdmin
-        .from('nucleos')
-        .select('id, conteudo_original, conteudo_normalizado, origem, status_validacao')
-        .limit(100);
+    const candidateIds = rawTags
+      .map(tag => String(tag.id || ''))
+      .filter(id => isUuid(id));
+    if (candidateIds.length === 0) return contributions;
 
-      if (nucleosData) {
-        for (const n of nucleosData) {
-          rawTags.push({
-            id: n.id,
-            tag_original: n.conteudo_original,
-            tag_normalizada: n.conteudo_normalizado,
-            grupo_tematico: null,
-          });
-        }
-      }
-    } catch {
-      // Ignorar erro de núcleos
+    // A rede pública mostra apenas contribuições que possuem tanto envelope
+    // privado quanto gênese na cadeia. Registros históricos ou em recuperação
+    // não são anunciados como se fossem selados.
+    const { data: secureRows, error: secureError } = await supabaseAdmin
+      .from('tag_secure_records')
+      .select('submission_id')
+      .in('submission_id', candidateIds);
+    if (secureError) throw secureError;
+    const sealedIds = new Set((secureRows || []).map(row => String(row.submission_id)));
+    if (sealedIds.size === 0) return contributions;
+
+    const { data: auditRows, error: auditError } = await supabaseAdmin
+      .from('semantic_vault_audit')
+      .select('vault_id, chain_position, chain_hash, event_type, created_at, genetic_code')
+      .in('vault_id', [...sealedIds])
+      .order('chain_position', { ascending: false })
+      .limit(2_000);
+    if (auditError) throw auditError;
+
+    const auditsBySubmission = new Map<string, {
+      lastSequence: number;
+      lastChainHash: string | null;
+      lastEvent: string | null;
+      pulseCount: number;
+      lastPulse: string;
+      connectionCount: number;
+      generation: number;
+    }>();
+    for (const audit of auditRows || []) {
+      const vaultId = String(audit.vault_id || '');
+      if (auditsBySubmission.has(vaultId)) continue;
+      const genetic = String(audit.genetic_code || '');
+      const markerMatch = genetic.match(/G(\d{3})C(\d{3})/);
+      auditsBySubmission.set(vaultId, {
+        lastSequence: Number(audit.chain_position || 0),
+        lastChainHash: audit.chain_hash || null,
+        lastEvent: audit.event_type || null,
+        pulseCount: Number(audit.chain_position || 0),
+        lastPulse: audit.created_at || new Date().toISOString(),
+        connectionCount: markerMatch ? Number(markerMatch[2]) : 0,
+        generation: markerMatch ? Number(markerMatch[1]) : 1,
+      });
     }
 
     for (const tag of rawTags) {
       const label = String(tag.tag_original || tag.tag_normalizada || '').trim();
       const normalizedLabel = normalizeForComparison(label).replace(/\s+/g, '_');
-      if (!isValidCulturalTag(label) || !normalizedLabel || seen.has(normalizedLabel)) continue;
+      const submissionId = String(tag.id || '');
+      if (!isUuid(submissionId) || !sealedIds.has(submissionId) || !isValidCulturalTag(label) || !normalizedLabel) continue;
 
-      seen.add(normalizedLabel);
       const eixo = tag.grupo_tematico || inferEixo(label);
-      const auditState = await fetchLastAuditFor(normalizedLabel);
+      const auditState = auditsBySubmission.get(submissionId);
+      if (!auditState) continue;
       contributions.push({
-        id: normalizedLabel,
+        id: submissionId,
         label,
         normalizedLabel,
         eixo,
@@ -220,41 +203,6 @@ async function fetchUserContributions(): Promise<UserContribution[]> {
     }
   } catch (error) {
     console.warn('[LiveVault] Falha ao consultar banco, usando nós culturais:', error instanceof Error ? error.message : error);
-  }
-
-  // Garantir a presença dos nós canônicos dos eixos culturais requisitados pelo usuário
-  const FOUNDATIONAL_CULTURAL_TAGS: Array<{ label: string; eixo: string }> = [
-    { label: 'Cultura Popular', eixo: 'PATRIMONIO' },
-    { label: 'Arte Popular', eixo: 'SABERES' },
-    { label: 'Cultura', eixo: 'PATRIMONIO' },
-    { label: 'Barroco', eixo: 'PATRIMONIO' },
-    { label: 'Talha Dourada', eixo: 'SABERES' },
-    { label: 'Mestre Vitalino', eixo: 'SABERES' },
-    { label: 'Capoeira', eixo: 'MUSICA' },
-    { label: 'Arte', eixo: 'PATRIMONIO' },
-    { label: 'Machado', eixo: 'PATRIMONIO' },
-    { label: 'Cubismo', eixo: 'PATRIMONIO' },
-    { label: 'Guerra Civil Espanhola', eixo: 'PATRIMONIO' },
-    { label: 'Guernica', eixo: 'PATRIMONIO' },
-    { label: 'Pablo Picasso', eixo: 'PATRIMONIO' },
-    { label: 'Picasso', eixo: 'PATRIMONIO' },
-    { label: 'Preto e Branco', eixo: 'PATRIMONIO' },
-    { label: 'Dor', eixo: 'PATRIMONIO' },
-  ];
-
-  for (const item of FOUNDATIONAL_CULTURAL_TAGS) {
-    const norm = normalizeForComparison(item.label).replace(/\s+/g, '_');
-    if (!seen.has(norm)) {
-      seen.add(norm);
-      contributions.push({
-        id: norm,
-        label: item.label,
-        normalizedLabel: norm,
-        eixo: item.eixo,
-        familia: `${item.eixo.toLowerCase()}.${norm}`,
-        createdAt: '2026-01-01T00:00:00.000Z',
-      });
-    }
   }
 
   return contributions;
@@ -768,50 +716,15 @@ function getCuratedDerivativesForTag(tag: string): CulturalDerivative[] {
 }
 
 async function buildDynamicTagDossier(
-  tagLabel: string,
+  selector: { submissionId?: string; tagLabel?: string },
   allContributions: UserContribution[],
 ): Promise<any | null> {
-  const normalizedLabel = normalizeForComparison(tagLabel).replace(/\s+/g, '_');
-  let contribution = allContributions.find(item => item.id === normalizedLabel);
-
-  // Fallback: buscar diretamente na tabela de tags se não encontrado na lista em memória
-  if (!contribution) {
-    try {
-      const { data: tagRow } = await supabaseAdmin
-        .from('tags')
-        .select('id, tag_original, tag_normalizada, grupo_tematico, criado_em')
-        .or(`tag_original.ilike.${tagLabel},tag_normalizada.ilike.${normalizedLabel.replace(/_/g, ' ')}`)
-        .maybeSingle();
-
-      if (tagRow) {
-        const label = String(tagRow.tag_original || tagRow.tag_normalizada || tagLabel).trim();
-        const normLabel = normalizeForComparison(label).replace(/\s+/g, '_');
-        const eixo = tagRow.grupo_tematico || inferEixo(label);
-        contribution = {
-          id: normLabel,
-          label,
-          normalizedLabel: normLabel,
-          eixo,
-          familia: `${String(eixo).toLowerCase()}.${normLabel}`,
-          createdAt: tagRow.criado_em || undefined,
-        };
-      }
-    } catch {
-      // Ignorar erro de banco — continuar
-    }
-  }
-
-  // Último recurso: criar contribuição sintética para qualquer tag válida com cluster cultural
-  if (!contribution && isValidCulturalTag(tagLabel)) {
-    const eixo = inferEixo(tagLabel);
-    contribution = {
-      id: normalizedLabel,
-      label: tagLabel,
-      normalizedLabel,
-      eixo,
-      familia: `${String(eixo).toLowerCase()}.${normalizedLabel}`,
-    };
-  }
+  const requestedLabel = selector.tagLabel
+    ? normalizeForComparison(selector.tagLabel).replace(/\s+/g, '_')
+    : null;
+  const contribution = selector.submissionId
+    ? allContributions.find(item => item.id === selector.submissionId)
+    : allContributions.find(item => item.normalizedLabel === requestedLabel);
 
   if (!contribution) return null;
 
@@ -956,7 +869,7 @@ async function persistAudit(
   input: Parameters<typeof createSemanticVaultAuditRecord>[0],
 ): Promise<{
   persisted: boolean;
-  storage: 'semantic_vault_audit' | 'eventos' | 'unavailable';
+  storage: 'semantic_vault_audit' | 'unavailable';
   chainHash: string;
   sequence: number;
   envelope: string | null;
@@ -1037,46 +950,13 @@ async function persistAudit(
       };
     }
     lastResult = { checksum, record };
-    if (insertError.code === '23505') continue;
+    const retryableRace = insertError.code === '23505' || /cadeia do cofre/i.test(insertError.message || '');
+    if (retryableRace) continue;
     break;
   }
 
-  try {
-    const cs = lastResult?.checksum || encryptWithChecksum(fallbackRecord.auditPayload);
-    const encryptedPayload = cs.envelope;
-    const { error } = await supabaseAdmin.from('eventos').insert({
-      entidade_tipo: 'semantic_vault',
-      entidade_id: null,
-      tipo_evento: input.eventType,
-      resumo: `Cofre semântico: ${input.eventType} para ${input.vaultId}`,
-      payload: {
-        vaultId: input.vaultId,
-        sequence: fallbackRecord.sequence,
-        crossHash: fallbackRecord.crossHash,
-        geneticCode: fallbackRecord.geneticCode,
-        encryptedPayload,
-        encryption: getEncryptionStatus(),
-        signature: cs.signature,
-      },
-      hash_evento: fallbackRecord.chainHash,
-      hash_anterior: (fallbackRecord.previousHash as any) || null,
-    });
-    if (!error) {
-      return {
-        persisted: true,
-        storage: 'eventos',
-        chainHash: fallbackRecord.chainHash,
-        sequence: fallbackRecord.sequence,
-        envelope: encryptedPayload,
-        envelopeInfo: cs.info,
-        signature: cs.signature,
-        keyFingerprint: cs.fingerprint,
-      };
-    }
-  } catch {
-    // sem persistência
-  }
-
+  // Sem fallback para a tabela genérica de eventos: uma cadeia que não pôde
+  // ser gravada atomicamente não pode ser apresentada como registro auditável.
   const cs2 = lastResult?.checksum || encryptWithChecksum(fallbackRecord.auditPayload);
   return {
     persisted: false,
@@ -1093,9 +973,13 @@ async function persistAudit(
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const tagParam = searchParams.get('tag');
+    const tagParam = searchParams.get('tag')?.trim() || '';
+    const submissionIdParam = searchParams.get('submission_id')?.trim() || '';
     const verifyParam = searchParams.get('verify');
     const selftestParam = searchParams.get('selftest');
+    if (submissionIdParam && !isUuid(submissionIdParam)) {
+      return NextResponse.json({ success: false, error: 'submission_id inválido.' }, { status: 400 });
+    }
     const [contributions, pendingHumanAudit] = await Promise.all([
       fetchUserContributions(),
       fetchHumanAuditPending(),
@@ -1110,8 +994,11 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (tagParam) {
-      const dossier = await buildDynamicTagDossier(tagParam, contributions);
+    if (submissionIdParam || tagParam) {
+      const dossier = await buildDynamicTagDossier({
+        ...(submissionIdParam ? { submissionId: submissionIdParam } : {}),
+        ...(submissionIdParam ? {} : { tagLabel: tagParam }),
+      }, contributions);
       if (!dossier) {
         return NextResponse.json(
           { success: false, error: 'A contribuição solicitada não foi encontrada na rede de interoperabilidade.' },
@@ -1122,7 +1009,9 @@ export async function GET(req: NextRequest) {
       const verify = searchParams.get('verify') === 'integrity';
       if (verify) {
         const norm = normalizeForComparison(tagParam).replace(/\s+/g, '_');
-        const contrib = contributions.find(c => c.id === norm);
+        const contrib = submissionIdParam
+          ? contributions.find(c => c.id === submissionIdParam)
+          : contributions.find(c => c.normalizedLabel === norm);
         if (contrib && dossier.vault) {
           const relations = dossier.conexoesTextuais || [];
           const sources = [
@@ -1195,20 +1084,25 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!hasLiveVaultMutationAuthorization(req)) {
+      return NextResponse.json(
+        { success: false, error: 'A criação de pulsos auditáveis é restrita à curadoria ou ao worker autorizado.' },
+        { status: 403 },
+      );
+    }
     const encStatus = getEncryptionStatusWithSelfTest();
     if (!encStatus.configured) {
       throw new EncryptionConfigurationError();
     }
 
     const body = await req.json();
-    const { sourceTag, action = 'pulse' } = body;
-    if (!isValidCulturalTag(sourceTag)) {
-      return NextResponse.json({ success: false, error: 'Contribuição inválida.' }, { status: 400 });
+    const { submission_id: submissionId, action = 'pulse' } = body;
+    if (!isUuid(typeof submissionId === 'string' ? submissionId : '')) {
+      return NextResponse.json({ success: false, error: 'submission_id obrigatório e inválido.' }, { status: 400 });
     }
 
     const contributions = await fetchUserContributions();
-    const targetId = normalizeForComparison(sourceTag).replace(/\s+/g, '_');
-    const source = contributions.find(item => item.id === targetId);
+    const source = contributions.find(item => item.id === submissionId);
     if (!source) {
       return NextResponse.json(
         { success: false, error: 'Somente contribuições já registradas por usuários entram na rede de interoperabilidade.' },
@@ -1260,7 +1154,7 @@ export async function POST(req: NextRequest) {
     const heartbeat = heartbeatsFromDossier(source.heartbeat || null);
     heartbeat.connectionCount = mergedNodes.length;
 
-    const dynamicDossier = await buildDynamicTagDossier(source.label, [
+    const dynamicDossier = await buildDynamicTagDossier({ submissionId: source.id }, [
       ...contributions,
       { ...source, heartbeat, auditState: previousAudit ? { ...previousAudit, lastEvent: 'vault_pulse' } : undefined },
     ]);
@@ -1315,6 +1209,10 @@ export async function POST(req: NextRequest) {
       occurredAt,
     });
 
+    if (!audit.persisted) {
+      throw new Error('O cofre auditável está indisponível; a pulsação não foi publicada.');
+    }
+
     const dossierEnvelope = encryptWithChecksum({
       id: dynamicDossier.id,
       tag: dynamicDossier.tag,
@@ -1334,22 +1232,27 @@ export async function POST(req: NextRequest) {
         sequence: audit.sequence,
         occurredAt,
         previousHash: previousAudit?.lastChainHash || null,
-        envelope: audit.envelope,
+        // O ciphertext nunca sai por esta rota pública. O manifesto, hash e
+        // tamanho permitem auditoria sem transformar a API em um canal de
+        // exfiltração do cofre.
+        encrypted: Boolean(audit.envelope),
         envelopeInfo: audit.envelopeInfo,
         signature: audit.signature,
         keyFingerprint: audit.keyFingerprint,
       },
       heartbeat,
       dossierEnvelope: {
-        envelope: dossierEnvelope.envelope,
+        encrypted: true,
         signature: dossierEnvelope.signature,
         info: dossierEnvelope.info,
       },
     };
 
-    if (audit.envelope && action === 'decrypt-check') {
-      const verification = decryptAndVerify(audit.envelope, audit.signature);
-      (dynamicDossier.vault as any).decryptVerification = verification;
+    if (action === 'decrypt-check') {
+      (dynamicDossier.vault as any).decryptVerification = {
+        available: false,
+        reason: 'A verificação com decriptação é restrita ao serviço de auditoria autenticado.',
+      };
     }
 
     return NextResponse.json({

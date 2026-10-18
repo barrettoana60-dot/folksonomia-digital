@@ -88,7 +88,7 @@ export interface TagContribution {
   /** Conteúdo descritivo da contribuição */
   content?: string;
   /** Hash do estado anterior do registro */
-  previousState?: string;
+  previousState?: string | null;
   /** Hash do estado atual do registro */
   currentState: string;
   /** Impressão digital desta contribuição */
@@ -266,17 +266,24 @@ export function createTagIdentity(params: {
     contributions: [] as TagContribution[],
   };
 
-  const snapshot = serializeTagState(baseIdentity);
+  // O digest inclui a contagem de contribuições. Incluímos um marcador de
+  // gênese no snapshot antes de calcular o estado para que a identidade
+  // retornada possa ser verificada sem divergência de contagem.
+  const genesisContributionId = generateSignature(canonicalize({ tagId, timestamp: now, type: 'criacao' })).slice(0, 24);
+  const snapshot = serializeTagState({
+    ...baseIdentity,
+    contributions: [{ contributionId: genesisContributionId } as TagContribution],
+  });
   const digest = computeTagDigest(snapshot);
 
   const genesisContribution: TagContribution = {
-    contributionId: generateSignature(canonicalize({ tagId, timestamp: now, type: 'criacao' })).slice(0, 24),
+    contributionId: genesisContributionId,
     tagId,
     objectId: params.objectId,
     timestamp: now,
     type: 'criacao',
     content: `Identidade criada para a tag "${params.tag}"`,
-    previousState: null as unknown as string,
+    previousState: null,
     currentState: digest,
     digest: computeTagDigest(snapshot),
     contributorHash: params.contributorHash,
@@ -335,13 +342,16 @@ export function applyTagUpdate(
   const mergedObjects = mergeObjects(existing.objects, update.objectsToAdd || []);
   const newVersion = existing.version + 1;
 
+  const nextContributions = update.contributionToAdd
+    ? [...existing.contributions, { contributionId: 'pending' } as TagContribution]
+    : existing.contributions;
   const snapshot = serializeTagState({
     ...existing,
     version: newVersion,
     relations: mergedRelations,
     sources: mergedSources,
     objects: mergedObjects,
-    contributions: existing.contributions,
+    contributions: nextContributions,
   });
   const newDigest = computeTagDigest(snapshot);
 
@@ -351,14 +361,7 @@ export function applyTagUpdate(
         tagId: existing.tagId,
         previousState: previousDigest,
         currentState: newDigest,
-        digest: computeTagDigest(serializeTagState({
-          ...existing,
-          version: newVersion,
-          relations: mergedRelations,
-          sources: mergedSources,
-          objects: mergedObjects,
-          contributions: [...existing.contributions, { tagId: existing.tagId } as TagContribution],
-        })),
+        digest: newDigest,
       }
     : null;
 

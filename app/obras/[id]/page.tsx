@@ -80,6 +80,7 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
     setSubmitError(null);
 
     try {
+      const submissionId = window.crypto?.randomUUID?.();
       const res = await fetch('/api/ml/analisar-tag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -87,7 +88,8 @@ export default function ObraDetalhePage({ params }: { params: { id: string } }) 
           tag: tagInput.trim(),
           obra_id: params.id,
           visitante_hash: localStorage.getItem('visitante_hash'),
-          visitante_nome: localStorage.getItem('visitante_nome')
+          visitante_nome: localStorage.getItem('visitante_nome'),
+          ...(submissionId ? { submission_id: submissionId } : {})
         })
       });
 

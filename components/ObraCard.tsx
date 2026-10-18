@@ -59,6 +59,7 @@ export default function ObraCard({ obra }: ObraCardProps) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 25000);
+      const submissionId = window.crypto?.randomUUID?.();
 
       const res = await fetch('/api/ml/analisar-tag', {
         method: 'POST',
@@ -67,7 +68,8 @@ export default function ObraCard({ obra }: ObraCardProps) {
           tag: tagInput.trim(),
           obra_id: obra.id,
           visitante_hash: localStorage.getItem('visitante_hash'),
-          visitante_nome: localStorage.getItem('visitante_nome')
+          visitante_nome: localStorage.getItem('visitante_nome'),
+          ...(submissionId ? { submission_id: submissionId } : {})
         }),
         signal: controller.signal
       });

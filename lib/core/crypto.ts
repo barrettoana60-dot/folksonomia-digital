@@ -40,7 +40,7 @@ export function getEncryptionStatus(): EncryptionStatus {
     envelopeVersion: ENVELOPE_VERSION,
     compression: COMPRESSION,
     keyFingerprint: getEncryptionKeyFingerprint(),
-    keyBitLength: Math.max(256, keyLen),
+    keyBitLength: keyLen,
   };
 }
 
@@ -115,6 +115,19 @@ export function generateSignature(data: unknown): string {
 
 export function generateSignature512(data: unknown): string {
   return sha512half(canonicalStringify(data));
+}
+
+/**
+ * Índice cego para encontrar contexto equivalente sem revelar o texto que o
+ * produziu. Diferentemente de SHA-256 simples, o HMAC depende da chave do
+ * cofre e não pode ser enumerado por quem apenas lê o banco.
+ */
+export function generateBlindIndex(data: unknown, domain = 'folksonomia-digital/blind-index/v1'): string {
+  const material = canonicalStringify({ domain, data });
+  return crypto
+    .createHmac('sha256', deriveKey('ALFA'))
+    .update(material, 'utf8')
+    .digest('hex');
 }
 
 export function generateCrossReferenceHash(data: unknown): string {
