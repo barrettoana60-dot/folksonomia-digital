@@ -122,6 +122,26 @@ export interface LegacyBackfillProgress {
   processedThisRun: number;
   message: string;
   code?: string;
+  diagnosticCode?: string;
+}
+
+export interface LegacyNetworkPreview {
+  nodes: Array<{
+    id: string;
+    label: string;
+    normalizedLabel: string;
+    eixo: string;
+    familia: string;
+    createdAt: string;
+  }>;
+  edges: Array<{
+    from: string;
+    to: string;
+    weight: number;
+    skosRelation: string;
+    discovered: boolean;
+    auditPending: boolean;
+  }>;
 }
 
 let activeBackfill: Promise<LegacyBackfillProgress> | null = null;
@@ -178,6 +198,69 @@ function isServiceRoleConfigured(): boolean {
   return Boolean(String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim());
 }
 
+function extractFailure(error: unknown): { code: string; message: string } {
+  const codes: string[] = [];
+  const messages: string[] = [];
+  const seen = new Set<unknown>();
+  const visit = (value: unknown, depth = 0) => {
+    if (depth > 3 || value == null || seen.has(value)) return;
+    if (typeof value === 'string') {
+      if (value.trim()) messages.push(value.trim());
+      return;
+    }
+    if (typeof value !== 'object') return;
+    seen.add(value);
+    const record = value as Record<string, unknown>;
+    if (typeof record.code === 'string' || typeof record.code === 'number') codes.push(String(record.code));
+    for (const key of ['message', 'details', 'hint', 'causeMessage']) {
+      if (typeof record[key] === 'string' && String(record[key]).trim()) messages.push(String(record[key]).trim());
+    }
+    if (record.cause) visit(record.cause, depth + 1);
+  };
+  visit(error);
+  return {
+    code: codes[0] || '',
+    message: [...new Set(messages)].join(' '),
+  };
+}
+
+function classifyBackfillFailure(error: unknown): {
+  category: string;
+  code: string;
+  message: string;
+} {
+  const failure = extractFailure(error);
+  const material = `${failure.code} ${failure.message}`.toLowerCase();
+  const missingSchema = /pgrst20[45]|42p01|42703/.test(material)
+    || /relation .* does not exist|schema cache.*(table|column)|could not find the .* in the schema cache/i.test(material);
+  if (missingSchema) {
+    return {
+      category: 'secure_schema_not_applied',
+      code: failure.code || 'SCHEMA_MISSING',
+      message: 'O banco não tem todas as tabelas/colunas exigidas. Aplique as migrações do projeto até 0015, especialmente 0014_secure_tag_ledger.sql e 0015_legacy_tag_network_backfill.sql no Supabase; nenhum registro confirmado foi apagado.',
+    };
+  }
+  if (/42501|pgrst30[12]|401|403/.test(material) || /permission denied|invalid jwt|invalid api key|row-level security|not authorized/i.test(material)) {
+    return {
+      category: 'database_write_authorization',
+      code: failure.code || 'DATABASE_AUTH',
+      message: 'O Supabase recusou a escrita. A variável SUPABASE_SERVICE_ROLE_KEY do servidor está ausente, inválida ou sem acesso de escrita.',
+    };
+  }
+  if (/econn|etimedout|enotfound|fetch failed|network|socket/i.test(material)) {
+    return {
+      category: 'database_unreachable',
+      code: failure.code || 'DATABASE_NETWORK',
+      message: 'O servidor não conseguiu alcançar o Supabase. Verifique a URL e a conectividade do projeto e recarregue para retomar.',
+    };
+  }
+  return {
+    category: 'backfill_failed',
+    code: failure.code || 'UNCLASSIFIED',
+    message: `A incorporação foi interrompida com o código ${failure.code || 'sem código'}; os recibos já confirmados foram preservados. Consulte os logs do servidor para a etapa exata e recarregue depois da correção.`,
+  };
+}
+
 async function fetchAllTags(): Promise<LegacyTagRow[]> {
   const rows: LegacyTagRow[] = [];
   for (let from = 0; ; from += TAG_PAGE_SIZE) {
@@ -185,6 +268,7 @@ async function fetchAllTags(): Promise<LegacyTagRow[]> {
       .from('tags')
       .select('id, obra_id, nucleo_id, tag_original, tag_normalizada, grupo_tematico, status, criado_em')
       .order('criado_em', { ascending: true })
+      .order('id', { ascending: true })
       .range(from, from + TAG_PAGE_SIZE - 1);
     if (error) throw error;
     const page = (data || []) as LegacyTagRow[];
@@ -243,20 +327,21 @@ async function fetchLegacyContributionIds(submissionIds: string[]): Promise<Set<
 async function loadLegacyEntries(): Promise<LegacyEntry[]> {
   const tags = await fetchAllTags();
   const nucleusIds = [...new Set(tags.map(tag => plainString(tag.nucleo_id)).filter(Boolean))];
-  const artworkIds = [...new Set(tags.map(tag => plainString(tag.obra_id)).filter(Boolean))];
-  const [nuclei, artworks] = await Promise.all([
-    fetchRowsByIds(
-      'nucleos',
-      'id, obra_id, conteudo_original, conteudo_normalizado, contexto, metadados, origem, assinatura_hash, status_validacao, confianca, novidade, tensao, ressonancia, visitante_id, criado_em',
-      nucleusIds,
-    ),
-    fetchRowsByIds(
-      'obras',
-      'id, titulo, artista, ano, tipo, descricao, material, tecnica, dimensoes, origem, imagem_url, metadados, publicado, criado_em',
-      artworkIds,
-    ),
-  ]);
+  const nuclei = await fetchRowsByIds(
+    'nucleos',
+    'id, obra_id, conteudo_original, conteudo_normalizado, contexto, metadados, origem, assinatura_hash, status_validacao, confianca, novidade, tensao, ressonancia, visitante_id, criado_em',
+    nucleusIds,
+  );
   const nucleiById = new Map((nuclei as LegacyNucleusRow[]).map(row => [String(row.id), row]));
+  const artworkIds = [...new Set([
+    ...tags.map(tag => plainString(tag.obra_id)),
+    ...(nuclei as LegacyNucleusRow[]).map(row => plainString(row.obra_id)),
+  ].filter(Boolean))];
+  const artworks = await fetchRowsByIds(
+    'obras',
+    'id, titulo, artista, ano, tipo, descricao, material, tecnica, dimensoes, origem, imagem_url, metadados, publicado, criado_em',
+    artworkIds,
+  );
   const artworksById = new Map((artworks as LegacyArtworkRow[]).map(row => [String(row.id), row]));
 
   return tags.map(tag => {
@@ -601,6 +686,79 @@ async function loadLegacyRelations(): Promise<any[]> {
   return data || [];
 }
 
+/**
+ * Mantém o acervo visível enquanto a infraestrutura do cofre está sendo
+ * corrigida. Esses nós são explicitamente pendentes: não são apresentados
+ * como selados, auditados ou como resultados de inferência visual.
+ */
+export async function loadLegacyTagNetworkPreview(): Promise<LegacyNetworkPreview> {
+  const entries = await loadLegacyEntries();
+  const nodes = entries
+    .map(entry => ({
+      id: entry.tag.id,
+      label: entry.label,
+      normalizedLabel: entry.normalizedTag,
+      eixo: entry.eixo,
+      familia: `${entry.eixo.toLocaleLowerCase('pt-BR')}.${entry.normalizedTag}`,
+      createdAt: entry.createdAt,
+    }));
+
+  const edges = new Map<string, LegacyNetworkPreview['edges'][number]>();
+  const addEdge = (a: string, b: string, weight: number, relation: string, preserveStoredRelation = false) => {
+    if (!a || !b || a === b) return;
+    const [from, to] = [a, b].sort();
+    const key = `${from}::${to}`;
+    const current = edges.get(key);
+    if (!current || preserveStoredRelation || weight > current.weight) {
+      edges.set(key, {
+        from,
+        to,
+        weight,
+        skosRelation: relation,
+        discovered: false,
+        auditPending: true,
+      });
+    }
+  };
+
+  const byNucleus = new Map<string, string[]>();
+  const byArtwork = new Map<string, string[]>();
+  const byNormalizedTag = new Map<string, string[]>();
+  for (const entry of entries) {
+    const nucleusId = plainString(entry.tag.nucleo_id);
+    const artworkId = plainString(entry.tag.obra_id || entry.artwork?.id);
+    if (nucleusId) byNucleus.set(nucleusId, [...(byNucleus.get(nucleusId) || []), entry.tag.id]);
+    if (artworkId) byArtwork.set(artworkId, [...(byArtwork.get(artworkId) || []), entry.tag.id]);
+    byNormalizedTag.set(entry.normalizedTag, [...(byNormalizedTag.get(entry.normalizedTag) || []), entry.tag.id]);
+  }
+
+  const addGroup = (groups: Map<string, string[]>, relation: string, weight: number) => {
+    for (const memberIds of groups.values()) {
+      const sample = memberIds.slice(0, MAX_GROUP_MEMBERS);
+      for (let i = 0; i < sample.length; i++) {
+        for (let j = i + 1; j < sample.length; j++) addEdge(sample[i], sample[j], weight, relation);
+      }
+    }
+  };
+  addGroup(byNucleus, 'interop:sharedNucleusContext', 0.86);
+  addGroup(byArtwork, 'interop:sharedArtworkContext', 0.78);
+  addGroup(byNormalizedTag, 'skos:exactMatch', 0.99);
+
+  const legacyRelations = await loadLegacyRelations();
+  for (const relation of legacyRelations) {
+    const origins = byNucleus.get(String(relation.origem_id || '')) || [];
+    const targets = byNucleus.get(String(relation.destino_id || '')) || [];
+    const type = plainString(relation.tipo_relacao, 'skos:related');
+    const weight = clampConfidence(relation.peso, 0.72);
+    for (const source of origins.slice(0, MAX_GROUP_MEMBERS)) {
+      for (const target of targets.slice(0, MAX_GROUP_MEMBERS)) addEdge(source, target, weight, type, true);
+    }
+    if (edges.size >= MAX_GENERATED_RELATIONS) break;
+  }
+
+  return { nodes, edges: [...edges.values()].slice(0, MAX_GENERATED_RELATIONS) };
+}
+
 function buildLegacyRelationCandidates(
   entries: LegacyEntry[],
   secureRecords: SecureRecordRow[],
@@ -778,8 +936,15 @@ async function syncLegacyRelationships(entries: LegacyEntry[], secureRecords: Se
 
 async function runLegacyBackfill(): Promise<LegacyBackfillProgress> {
   let entries: LegacyEntry[] = [];
+  let sealedTagCount = 0;
+  let remainingTagCount = 0;
+  let visualAnalysisCount = 0;
+  let remainingVisualCount = 0;
+  let recordedCorrelationCount = 0;
+  let remainingCorrelationCount = 0;
   try {
     entries = await loadLegacyEntries();
+    remainingTagCount = entries.length;
     const encryption = getEncryptionStatus();
     if (!encryption.configured) {
       return {
@@ -803,6 +968,7 @@ async function runLegacyBackfill(): Promise<LegacyBackfillProgress> {
     const tagIds = entries.map(entry => entry.tag.id);
     let secureRecords = await fetchSecureRecords(tagIds);
     let sealed = new Set(secureRecords.map(row => String(row.submission_id)));
+    sealedTagCount = sealed.size;
     let legacyContributions = await fetchLegacyContributionIds(tagIds);
     const secureBySubmission = new Map(secureRecords.map(row => [String(row.submission_id), row]));
     const pendingEntries = entries.filter(entry => !sealed.has(entry.tag.id)
@@ -823,12 +989,18 @@ async function runLegacyBackfill(): Promise<LegacyBackfillProgress> {
     const sealedTags = sealed.size;
     const remainingTags = entries.filter(entry => !sealed.has(entry.tag.id)
       || !legacyContributions.has(`legacy_submission_${entry.tag.id}`)).length;
+    sealedTagCount = sealedTags;
+    remainingTagCount = remainingTags;
 
     const visualProcessed = await enrichLegacyVisualBatch(entries, secureRecords);
     const visualAnalyses = await countVisualAnalyses();
     const visualEligible = entries.filter(entry => Boolean(plainString(entry.artwork?.imagem_url))).length;
     const visualRemaining = Math.max(0, Math.min(sealedTags, visualEligible) - visualAnalyses);
+    visualAnalysisCount = visualAnalyses;
+    remainingVisualCount = visualRemaining;
     const relationState = await syncLegacyRelationships(entries, secureRecords);
+    recordedCorrelationCount = relationState.total - relationState.remaining;
+    remainingCorrelationCount = relationState.remaining;
     const processedThisRun = structuralBatch.length + visualProcessed + relationState.processed;
     const structuralComplete = remainingTags === 0 && relationState.remaining === 0;
     const visionBlocked = structuralComplete && visualRemaining > 0 && !GEMINI_API_KEY.trim();
@@ -851,16 +1023,39 @@ async function runLegacyBackfill(): Promise<LegacyBackfillProgress> {
           : 'A rede está incorporando automaticamente as tags e vínculos já existentes.',
     };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'erro desconhecido';
-    const missingSchema = /tag_secure_records|tag_visual_analyses|tag_context_correlations|tag_context_correlation_events|semantic_vault_audit/i.test(detail);
+    const failure = classifyBackfillFailure(error);
+    // Se um lote teve sucesso parcial, recalcula os recibos já confirmados
+    // antes de responder. O próximo GET só trabalha o que realmente falta.
+    if (entries.length > 0 && isServiceRoleConfigured()) {
+      try {
+        const tagIds = entries.map(entry => entry.tag.id);
+        const secureRecords = await fetchSecureRecords(tagIds);
+        const sealed = new Set(secureRecords.map(row => String(row.submission_id)));
+        sealedTagCount = sealed.size;
+        try {
+          const legacyContributions = await fetchLegacyContributionIds(tagIds);
+          remainingTagCount = entries.filter(entry => !sealed.has(entry.tag.id)
+            || !legacyContributions.has(`legacy_submission_${entry.tag.id}`)).length;
+        } catch {
+          remainingTagCount = Math.max(0, entries.length - sealed.size);
+        }
+      } catch {
+        // O próprio schema/serviço pode ser a falha; os contadores anteriores
+        // continuam sendo a melhor confirmação disponível.
+      }
+    }
+    console.error('[LegacyTagBackfill] Falha na incorporação', {
+      category: failure.category,
+      code: failure.code || 'unknown',
+    });
     return {
-      state: 'blocked', totalTags: entries.length, sealedTags: 0, remainingTags: entries.length,
-      visualAnalyses: 0, visualRemaining: 0, correlations: 0, correlationsRemaining: 0,
+      state: 'blocked', totalTags: entries.length, sealedTags: sealedTagCount, remainingTags: remainingTagCount,
+      visualAnalyses: visualAnalysisCount, visualRemaining: remainingVisualCount,
+      correlations: recordedCorrelationCount, correlationsRemaining: remainingCorrelationCount,
       processedThisRun: 0,
-      code: missingSchema ? 'secure_schema_not_applied' : 'backfill_failed',
-      message: missingSchema
-        ? `A estrutura segura do cofre ainda não está aplicada no banco; ${entries.length} tags históricas foram encontradas e aguardam a migração.`
-        : 'A incorporação automática encontrou uma falha. Corrija a configuração e recarregue a tela para retomar do último registro confirmado.',
+      code: failure.category,
+      diagnosticCode: failure.code || undefined,
+      message: failure.message,
     };
   }
 }

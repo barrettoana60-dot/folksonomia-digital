@@ -23,7 +23,11 @@ import {
 } from '@/lib/core/semantic-vault';
 import { searchCulturalDerivatives, discoverCulturalRelations } from '@/lib/connectors/cultural-interop';
 import { generateTagId, toDisplayFormat } from '@/lib/core/tag-identity';
-import { ensureLegacyTagNetworkBackfill } from '@/lib/core/legacy-tag-network-backfill';
+import {
+  ensureLegacyTagNetworkBackfill,
+  loadLegacyTagNetworkPreview,
+  type LegacyNetworkPreview,
+} from '@/lib/core/legacy-tag-network-backfill';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -55,6 +59,16 @@ interface UserContribution {
     lastChainHash: string | null;
     lastEvent: string | null;
   };
+  secureState?: 'sealed' | 'pending_seal';
+}
+
+interface LiveContributionEdge {
+  from: string;
+  to: string;
+  weight: number;
+  skosRelation: string;
+  discovered: boolean;
+  auditPending?: boolean;
 }
 
 function isValidCulturalTag(label?: string): boolean {
@@ -174,7 +188,10 @@ async function fetchUserContributions(): Promise<UserContribution[]> {
       const label = String(tag.tag_original || tag.tag_normalizada || '').trim();
       const normalizedLabel = normalizeForComparison(label).replace(/\s+/g, '_');
       const submissionId = String(tag.id || '');
-      if (!isUuid(submissionId) || !sealedIds.has(submissionId) || !isValidCulturalTag(label) || !normalizedLabel) continue;
+      // Tags existentes são dados do acervo, não sugestões de entrada. A rede
+      // precisa incluir todas as 150 contribuições históricas, inclusive termos
+      // que o filtro de ruído bloquearia em um cadastro novo.
+      if (!isUuid(submissionId) || !sealedIds.has(submissionId) || !label || !normalizedLabel) continue;
 
       const eixo = tag.grupo_tematico || inferEixo(label);
       const auditState = auditsBySubmission.get(submissionId);
@@ -186,6 +203,7 @@ async function fetchUserContributions(): Promise<UserContribution[]> {
         eixo,
         familia: `${String(eixo).toLowerCase()}.${normalizedLabel}`,
         createdAt: tag.criado_em || tag.created_at || undefined,
+        secureState: 'sealed',
         heartbeat: auditState
           ? {
               pulseCount: auditState.pulseCount,
@@ -308,22 +326,25 @@ async function fetchPersistedCorrelationEdges(contributions: UserContribution[])
   return result;
 }
 
-function mergeContributionEdges(
-  persisted: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>,
-  inferred: Array<{ from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>,
-) {
-  const merged = new Map<string, { from: string; to: string; weight: number; skosRelation: string; discovered: boolean }>();
-  for (const edge of [...persisted, ...inferred]) {
+function mergeContributionEdges(...groups: LiveContributionEdge[][]): LiveContributionEdge[] {
+  const merged = new Map<string, LiveContributionEdge>();
+  const edges = groups.flat();
+  const priority = (edge: LiveContributionEdge) => edge.discovered ? 3 : edge.auditPending ? 2 : 1;
+  for (const edge of edges) {
     const key = [edge.from, edge.to].sort().join('::');
     const current = merged.get(key);
-    // A relação registrada no banco tem precedência, mesmo que uma heurística
-    // local encontre outra afinidade para o mesmo par.
-    if (!current || (edge.discovered && !current.discovered) ||
-      (edge.discovered === current.discovered && edge.weight > current.weight)) {
+    // Relações seladas têm precedência; vínculos do banco legado aparecem
+    // antes de qualquer sugestão calculada, com auditoria explicitamente pendente.
+    if (!current || priority(edge) > priority(current) ||
+      (priority(edge) === priority(current) && edge.weight > current.weight)) {
       merged.set(key, edge);
     }
   }
   return [...merged.values()].slice(0, 320);
+}
+
+function emptyLegacyPreview(): LegacyNetworkPreview {
+  return { nodes: [], edges: [] };
 }
 
 function isNoiseTerm(s: string): boolean {
@@ -1108,29 +1129,53 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: dossier });
     }
 
-    const [persistedEdges, inferredEdges] = await Promise.all([
-      fetchPersistedCorrelationEdges(contributions),
-      Promise.resolve(buildContributionEdges(contributions)),
-    ]);
-    const edges = mergeContributionEdges(persistedEdges, inferredEdges);
+    let legacyPreview = emptyLegacyPreview();
+    try {
+      legacyPreview = await loadLegacyTagNetworkPreview();
+    } catch {
+      console.warn('[LiveVault] Não foi possível montar a prévia do acervo legado.');
+    }
+    const sealedSubmissionIds = new Set(contributions.map(contribution => contribution.id));
+    const pendingLegacyContributions: UserContribution[] = legacyPreview.nodes
+      .filter(node => !sealedSubmissionIds.has(node.id) && Boolean(node.label.trim()))
+      .map(node => ({
+        id: node.id,
+        label: node.label,
+        normalizedLabel: node.normalizedLabel,
+        eixo: node.eixo || inferEixo(node.label),
+        familia: node.familia,
+        createdAt: node.createdAt,
+        secureState: 'pending_seal',
+      }));
+    const networkContributions = [...contributions, ...pendingLegacyContributions];
+    const graphIds = new Set(networkContributions.map(contribution => contribution.id));
+    const legacyEdges = legacyPreview.edges.filter(edge => graphIds.has(edge.from) && graphIds.has(edge.to));
+    const persistedEdges = await fetchPersistedCorrelationEdges(contributions);
+    const inferredEdges = buildContributionEdges(networkContributions);
+    const edges = mergeContributionEdges(persistedEdges, legacyEdges, inferredEdges);
 
     return NextResponse.json({
       success: true,
       data: {
-        nodes: contributions.map(contribution => ({
+        nodes: networkContributions.map(contribution => ({
           id: contribution.id,
           label: contribution.label,
-          description: 'Tag-código registrada por usuário na rede cultural.',
+          description: contribution.secureState === 'pending_seal'
+            ? 'Tag histórica do acervo. Aguardando selagem criptográfica e registro auditável.'
+            : 'Tag-código registrada por usuário na rede cultural.',
           eixo: contribution.eixo,
           familia: contribution.familia,
           cor: EIXO_COLORS[contribution.eixo] || EIXO_COLORS.default,
           isFromUser: true,
+          secureState: contribution.secureState || 'sealed',
           createdAt: contribution.createdAt,
           heartbeat: contribution.heartbeat || null,
           auditState: contribution.auditState || null,
         })),
         edges,
-        total: contributions.length,
+        total: networkContributions.length,
+        sealedTotal: contributions.length,
+        pendingSealTotal: pendingLegacyContributions.length,
         backfill,
         humanAudit: {
           required: true,

@@ -329,9 +329,38 @@ function buildInstantDossier(
       targetId: otherId,
       targetLabel: otherNode?.label || otherId,
       relationType: c.skosRelation || 'skos:related',
-      evidence: 'Conexão ativa e validada na rede de conexões culturais',
+      evidence: c.auditPending
+        ? 'Vínculo preservado do banco histórico; aguarda selagem e auditoria.'
+        : c.discovered
+          ? 'Relação persistida no circuito auditável.'
+          : 'Afinidade calculada para exploração; ainda não validada por curadoria.',
     };
   });
+
+  if (targetNode?.secureState === 'pending_seal') {
+    return {
+      id: nodeId,
+      tag: nodeLabel,
+      dataCriacao: targetNode.createdAt,
+      eixo: targetNode.eixo || 'PATRIMONIO',
+      cor: targetNode.fill || EIXO_COLORS.default,
+      familia: targetNode.familia || 'acervo_historico',
+      descricao: 'Tag encontrada no banco original. O registro criptográfico e a cadeia de auditoria ainda aguardam a migração segura do Supabase.',
+      autor: 'Acervo histórico do sistema',
+      tripla: {
+        sujeito: nodeLabel,
+        predicado: 'aguarda selagem criptográfica',
+        objeto: 'cofre auditável',
+      },
+      artigo: null,
+      acervos: [],
+      conexoesTextuais,
+      tagIdentity: null,
+      vault: null,
+      heartbeat: null,
+      legacyStatus: 'awaiting_secure_seal',
+    };
+  }
 
   const isCubismo = /guernica|picasso|cubismo|guerra civil|preto e branco|dor/i.test(norm);
   const isPopular = /vitalino|popular|barroco|talha|capoeira|cultura/i.test(norm);
@@ -596,6 +625,7 @@ export default function CulturalInteroperabilityView() {
         }
 
         const allFetched: any[] = json.data?.nodes || [];
+        const denseNetwork = allFetched.length > 80;
         const fetchedEdges: GraphMathEdge[] = (json.data?.edges || []).map((edge: any) => ({
           from: edge.from,
           to: edge.to,
@@ -603,22 +633,33 @@ export default function CulturalInteroperabilityView() {
           skosRelation: edge.skosRelation || 'skos:related',
           mechanism: 'inferred' as const,
           discovered: Boolean(edge.discovered),
+          auditPending: Boolean(edge.auditPending),
         }));
         const userNodes: GraphMathNode[] = allFetched.map((node, index) => {
-          const angle = (index / Math.max(allFetched.length, 1)) * Math.PI * 2 - Math.PI / 2;
-          const radius = allFetched.length > 1 ? 175 + (index % 3) * 30 : 0;
+          // Distribuição em espiral mantém até 150 tags dentro do canvas sem
+          // empilhar três círculos estreitos no mesmo raio.
+          const angle = denseNetwork
+            ? index * 2.399963229728653
+            : (index / Math.max(allFetched.length, 1)) * Math.PI * 2 - Math.PI / 2;
+          const radius = denseNetwork
+            ? Math.min(190, 15.5 * Math.sqrt(index + 1))
+            : allFetched.length > 1 ? 175 + (index % 3) * 30 : 0;
           const eixo = node.eixo || 'PATRIMONIO';
           return {
             id: node.id,
             label: node.label,
             x: 400 + Math.cos(angle) * radius,
             y: 215 + Math.sin(angle) * radius,
-            size: 14,
+            size: denseNetwork ? 7 : 14,
             fill: node.cor || EIXO_COLORS[eixo] || EIXO_COLORS.default,
             eixo,
             desc: node.description || 'Contribuicao cultural registrada por usuario.',
-            type: 'Contribuicao de usuario',
+            type: node.secureState === 'pending_seal'
+              ? 'Tag histórica — aguardando selagem'
+              : 'Contribuicao de usuario',
             familia: node.familia,
+            secureState: node.secureState || 'sealed',
+            createdAt: node.createdAt,
             activation: 0.5,
           };
         });
@@ -933,6 +974,10 @@ export default function CulturalInteroperabilityView() {
       setVaultFeedback('Selecione uma contribuicao antes de exportar o pacote JSON-LD.');
       return;
     }
+    if (currentDossier?.legacyStatus === 'awaiting_secure_seal') {
+      setVaultFeedback('Este registro histórico já aparece na rede, mas só poderá ser exportado após a selagem criptográfica no Supabase.');
+      return;
+    }
     setIsTestingTransfer(true);
     try {
       const res = await fetch(`/api/interop/jsonld?submission_id=${encodeURIComponent(selectedNodeId)}`, {
@@ -954,6 +999,7 @@ export default function CulturalInteroperabilityView() {
     const t = searchTerm.toLowerCase();
     return nodes.filter(n => n.label.toLowerCase().includes(t) || (n.familia || '').includes(t));
   }, [nodes, searchTerm]);
+  const denseGraph = nodes.length > 80;
 
   const interligacoesList = useMemo(() => {
     return getInterligacoesGridForTag(currentDossier?.tag || selectedTagLabel, currentDossier);
@@ -1180,7 +1226,8 @@ export default function CulturalInteroperabilityView() {
                                    normalizeForComparison(tn.label) === normalizeForComparison(selectedTagLabel);
                   const isPulsing = activePulseKey === `${conn.from}__${conn.to}` || activePulseKey === `${conn.to}__${conn.from}`;
                   const isNew = conn.discovered;
-                  const strokeColor = isPulsing ? '#a855f7' : isNew ? '#22c55e' : isSource ? '#f59e0b' : 'rgba(255,255,255,0.15)';
+                  const auditPending = Boolean(conn.auditPending);
+                  const strokeColor = isPulsing ? '#a855f7' : isNew ? '#22c55e' : auditPending || isSource ? '#f59e0b' : 'rgba(255,255,255,0.15)';
 
                   return (
                     <g key={idx}>
@@ -1191,8 +1238,8 @@ export default function CulturalInteroperabilityView() {
                         y2={tn.y ?? 215}
                         stroke={strokeColor}
                         strokeWidth={isPulsing ? 3.5 : isSource ? 2.4 : 1.2}
-                        strokeDasharray={isSource && !isPulsing ? '5,4' : undefined}
-                        opacity={isPulsing ? 1 : isSource ? 0.92 : 0.22}
+                        strokeDasharray={(auditPending || isSource) && !isPulsing ? '5,4' : undefined}
+                        opacity={isPulsing ? 1 : auditPending ? 0.55 : isSource ? 0.92 : 0.22}
                         className={isPulsing ? 'animate-pulse' : ''}
                       />
                     </g>
@@ -1203,6 +1250,7 @@ export default function CulturalInteroperabilityView() {
                 {filteredNodes.map(node => {
                   const isSel = node.id === selectedNodeId || normalizeForComparison(node.label) === normalizeForComparison(selectedTagLabel);
                   const act = nodeActivations[node.id] || node.activation || 0.5;
+                  const showDenseLabel = !denseGraph || isSel || filteredNodes.length < 80;
                   const r = isSel ? (node.size || 15) + 5 : (node.size || 15);
                   const nx = node.x ?? 400;
                   const ny = node.y ?? 215;
@@ -1215,6 +1263,7 @@ export default function CulturalInteroperabilityView() {
                       onMouseDown={e => handleMouseDown(node.id, node.label, e)}
                       onClick={() => handleSelectNode(node.id, node.label)}
                     >
+                      <title>{node.label}{node.secureState === 'pending_seal' ? ' — aguardando selagem criptográfica' : ''}</title>
                       <circle
                         cx={nx}
                         cy={ny}
@@ -1229,22 +1278,25 @@ export default function CulturalInteroperabilityView() {
                         cy={ny}
                         r={r}
                         fill={nodeColor}
-                        stroke={isSel ? '#ffffff' : 'rgba(255,255,255,0.4)'}
+                        stroke={isSel ? '#ffffff' : node.secureState === 'pending_seal' ? '#f59e0b' : 'rgba(255,255,255,0.4)'}
+                        strokeDasharray={!isSel && node.secureState === 'pending_seal' ? '2,2' : undefined}
                         strokeWidth={isSel ? 2.5 : 1}
                         filter={isSel ? 'url(#civ-glow)' : undefined}
                         className="transition-all duration-200"
                       />
-                      <text
-                        x={nx}
-                        y={ny + r + 14}
-                        textAnchor="middle"
-                        fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.85)'}
-                        fontSize={isSel ? '11' : '9'}
-                        fontWeight={isSel ? '700' : '500'}
-                        className="pointer-events-none select-none"
-                      >
-                        {node.label}
-                      </text>
+                      {showDenseLabel && (
+                        <text
+                          x={nx}
+                          y={ny + r + (denseGraph ? 10 : 14)}
+                          textAnchor="middle"
+                          fill={isSel ? '#ffffff' : 'rgba(255,255,255,0.85)'}
+                          fontSize={isSel ? '11' : denseGraph ? '7' : '9'}
+                          fontWeight={isSel ? '700' : '500'}
+                          className="pointer-events-none select-none"
+                        >
+                          {node.label}
+                        </text>
+                      )}
                     </g>
                   );
                 })}
@@ -1306,7 +1358,7 @@ export default function CulturalInteroperabilityView() {
                       className="text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md text-white shadow-xs"
                       style={{ background: currentDossier.cor || '#1A6B3A' }}
                     >
-                      REGISTRO PRESERVADO
+                      {currentDossier.legacyStatus ? 'TAG HISTÓRICA · AGUARDANDO SELO' : 'REGISTRO PRESERVADO'}
                     </span>
                     <span className="text-[10px] text-black/50 font-mono truncate">
                       {currentDossier.familia}
