@@ -119,7 +119,7 @@ TAGS NÃO APLICADAS SUGERIDAS:
 CONTEXTO CULTURAL:
 [1 frase acadêmica sobre o enquadramento etnográfico e histórico da tipologia]`;
 
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
           const geminiRes = await fetch(geminiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -130,14 +130,14 @@ CONTEXTO CULTURAL:
                   { inline_data: { mime_type: imageMimeType, data: imageBase64 } },
                 ],
               }],
-              generationConfig: { temperature: 0.15, maxOutputTokens: 800 },
+              generationConfig: { temperature: 0.15, maxOutputTokens: 2048 },
             }),
             signal: AbortSignal.timeout(15000),
           });
 
           if (geminiRes.ok) {
             const geminiJson = await geminiRes.json();
-            const rawText: string = geminiJson?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            const rawText: string = (geminiJson?.candidates?.[0]?.content?.parts || []).map((part: { text?: string }) => part.text || '').join('\n');
 
             const parse = (label: string): string => {
               const regex = new RegExp(`${label}:\\s*([\\s\\S]*?)(?=\\n[A-Z ]+:|$)`, 'i');
@@ -168,7 +168,7 @@ CONTEXTO CULTURAL:
               .filter(t => t.length > 1 && !tagsAplicadas.includes(t))
               .slice(0, 5);
 
-            if (coesaoTags.length > 0) {
+            if (contextoVisual && coesaoTags.length > 0) {
               return NextResponse.json({
                 success: true,
                 data: {
