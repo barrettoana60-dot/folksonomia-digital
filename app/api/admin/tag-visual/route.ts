@@ -12,118 +12,28 @@ function generateAcademicVisualAnalysis(
   tagsAplicadas: string[],
   feedbackHistorico: string[]
 ) {
-  const tituloNorm = (obra.titulo || '').toLowerCase();
-  const descNorm = (obra.descricao || '').toLowerCase();
-  const artistaNorm = (obra.artista || '').toLowerCase();
-  const combinedContext = `${tituloNorm} ${descNorm} ${artistaNorm}`;
-
+  // Sem processamento efetivo da imagem, não atribuir evidência iconográfica.
+  // A ficha catalográfica constitui contexto documental, não comprovação visual.
+  const contextoCultural = obra.descricao || 'Contexto cultural não documentado na ficha disponível.';
   const coesaoTags = tagsAplicadas.map(tag => {
     const t = tag.toLowerCase().trim();
-
-    // Verificação de calibração histórica prévia
     const feedVal = feedbackHistorico.find(f => f.includes(`tag "${t}" validada`));
     const feedRej = feedbackHistorico.find(f => f.includes(`tag "${t}" rejeitada`));
-    if (feedVal) {
-      return {
-        tag: t,
-        status: 'COERENTE',
-        motivo: 'Validado por curadoria no histórico de calibração continuada.',
-      };
-    }
-    if (feedRej) {
-      return {
-        tag: t,
-        status: 'SEM_RESPALDO',
-        motivo: 'Desclassificado por curadoria no histórico de calibração.',
-      };
-    }
-
-    // Atributos materiais e técnicos
-    const isMaterial = ['barro', 'ceramica', 'policromia', 'madeira', 'argila', 'escultura', 'artesanato', 'modelagem'].some(m => t.includes(m));
-    if (isMaterial) {
-      return {
-        tag: t,
-        status: 'COERENTE',
-        motivo: 'Atributo material e suporte corroborado na técnica escultórica.',
-      };
-    }
-
-    // Indumentária e adornos corporais
-    const isIndumentaria = ['chapeu', 'vestido', 'chapeu longo', 'bolsa', 'adornos', 'brincos', 'cocar', 'traje', 'indumentaria', 'aderecos'].some(m => t.includes(m));
-    if (isIndumentaria) {
-      if (t === 'bolsa' && !combinedContext.includes('bolsa')) {
-        return {
-          tag: t,
-          status: 'PARCIAL',
-          motivo: 'Elemento acessório com incidência morfológica pontual.',
-        };
-      }
-      return {
-        tag: t,
-        status: 'COERENTE',
-        motivo: 'Atributo vestimentário e indumentária identificada na modelagem.',
-      };
-    }
-
-    // Instrumentos e gestualidade
-    const isInstrumento = ['megafone', 'violao', 'corneta', 'arco e flecha', 'instrumento', 'musica', 'comunicacao verbal'].some(m => t.includes(m));
-    if (isInstrumento) {
-      return {
-        tag: t,
-        status: 'COERENTE',
-        motivo: 'Atributo funcional e gestual evidente na representação iconográfica.',
-      };
-    }
-
-    // Figuração humana e identitária
-    const isFigurativo = ['homem', 'mulher', 'indigena', 'musico', 'boneco', 'negro', 'homem negro', 'artesao', 'caboclo', 'figura'].some(m => t.includes(m));
-    if (isFigurativo) {
-      return {
-        tag: t,
-        status: 'COERENTE',
-        motivo: 'Representação antropomórfica condizente com a modelagem do tipo social.',
-      };
-    }
-
-    // Categorias conceituais e culturais
-    const isCultural = ['popular', 'cultura popular', 'cultura populae', 'ancestralidade', 'tradicao', 'nordeste', 'identidade', 'trabalho', 'religiosidade'].some(m => t.includes(m));
-    if (isCultural) {
-      return {
-        tag: t,
-        status: 'COERENTE',
-        motivo: 'Convergência taxonômica com a matriz cultural e tipologia do acervo.',
-      };
-    }
-
-    // Consonância textual documental
-    if (combinedContext.includes(t)) {
-      return {
-        tag: t,
-        status: 'COERENTE',
-        motivo: 'Consonância documental identificada na ficha catalográfica.',
-      };
-    }
-
-    // Classificação associativa
     return {
       tag: t,
-      status: 'PARCIAL',
-      motivo: 'Correlação semântica associativa com a temática etnográfica da obra.',
+      status: 'PENDENTE',
+      motivo: feedVal
+        ? 'Há validação curatorial anterior; evidência visual não verificada nesta análise.'
+        : feedRej
+          ? 'Há rejeição curatorial anterior; evidência visual não verificada nesta análise.'
+          : 'Sem análise efetiva da imagem; requer exame visual e validação curatorial.',
     };
   });
-
-  const descricaoVisual = `Composição tridimensional figurativa em cerâmica policromada representativa do patrimônio escultórico popular. A peça articula elementos anatômicos e indumentária regional, estruturando narrativas visuais associadas a práticas e ofícios culturais.`;
-
-  const contextoCultural = obra.descricao || `Inserção documental no acervo etnográfico e museológico, vinculada à catalogação descritiva de matrizes da arte popular brasileira.`;
-
-  const todasSugeridas = ['cerâmica figurativa', 'arte popular', 'policromia', 'patrimônio imaterial', 'ofício tradicional', 'escultura popular'];
-  const tagsSugeridas = todasSugeridas.filter(s => !tagsAplicadas.includes(s)).slice(0, 5);
-
   return {
-    descricaoVisual,
+    descricaoVisual: 'Análise visual indisponível. Não foi possível verificar a morfologia ou a iconografia desta obra a partir da imagem.',
     contextoCultural,
     coesaoTags,
-    tagsSugeridas,
+    tagsSugeridas: [] as string[],
   };
 }
 
@@ -150,21 +60,25 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Buscar tags aplicadas nesta obra
-    const { data: tagsData } = await supabaseAdmin
+    const { data: tagsData, error: tagsError } = await supabaseAdmin
       .from('tags')
       .select('tag_original, tag_normalizada, visitante_hash, grupo_tematico')
       .eq('obra_id', obra_id)
       .limit(200);
 
+    if (tagsError) throw tagsError;
+
     const tagsAplicadas = [...new Set((tagsData || []).map(t => (t.tag_normalizada || t.tag_original || '').toLowerCase().trim()).filter(Boolean))];
 
     // 3. Buscar histórico de feedback de treinamento (calibração contínua)
-    const { data: feedbackData } = await supabaseAdmin
+    const { data: feedbackData, error: feedbackError } = await supabaseAdmin
       .from('eventos')
       .select('resumo')
       .eq('tipo_evento', 'treinamento_visual')
       .eq('entidade_id', obra_id)
       .limit(20);
+
+    if (feedbackError) throw feedbackError;
 
     const feedbackHistorico = (feedbackData || []).map(e => e.resumo).filter(Boolean);
     const totalVisitantes = new Set((tagsData || []).map(t => t.visitante_hash).filter(Boolean)).size;
@@ -294,7 +208,7 @@ CONTEXTO CULTURAL:
         coesao_tags: analise.coesaoTags,
         tags_sugeridas: analise.tagsSugeridas,
         contexto_cultural: analise.contextoCultural,
-        fonte: 'Inferência Iconográfica e Semântica Autônoma',
+        fonte: 'Análise visual indisponível — avaliação pendente',
         feedback_historico: feedbackHistorico.length,
         total_visitantes: totalVisitantes,
       },
@@ -313,8 +227,8 @@ CONTEXTO CULTURAL:
 export async function PUT(req: NextRequest) {
   try {
     const { obra_id, tag, status, usuario } = await req.json();
-    if (!obra_id || !tag || !status) {
-      return NextResponse.json({ success: false, error: 'obra_id, tag e status obrigatórios' }, { status: 400 });
+    if (!obra_id || !tag || !['validado', 'rejeitado'].includes(status)) {
+      return NextResponse.json({ success: false, error: 'obra_id, tag e status válido obrigatórios' }, { status: 400 });
     }
 
     const { error } = await supabaseAdmin
