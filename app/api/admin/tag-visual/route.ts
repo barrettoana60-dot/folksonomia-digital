@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/client';
+import { createHash } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -231,15 +232,34 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'obra_id, tag e status válido obrigatórios' }, { status: 400 });
     }
 
+    const tagNormalizada = String(tag).toLowerCase().trim();
+    if (!tagNormalizada) {
+      return NextResponse.json({ success: false, error: 'Tag vazia' }, { status: 400 });
+    }
+    const criadoEm = new Date().toISOString();
+    const payload = {
+      obra_id,
+      tag: tagNormalizada,
+      decisao: status,
+      responsavel: usuario || 'curadoria',
+      metodo: 'revisao_humana',
+      evidencia_visual: 'decisao_curatorial',
+      criado_em: criadoEm,
+    };
+    const hashEvento = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+
+    // O registro documenta uma decisão humana e não comprova, isoladamente,
+    // a integridade de uma cadeia criptográfica de auditoria.
     const { error } = await supabaseAdmin
       .from('eventos')
       .insert({
         tipo_evento: 'treinamento_visual',
         entidade_tipo: 'obra',
         entidade_id: obra_id,
-        resumo: `tag "${tag}" ${status === 'validado' ? 'validada' : 'rejeitada'} para obra ${obra_id.slice(0, 8)} por ${usuario || 'curadoria'}`,
-        origem: 'admin:tag-visual',
-        criado_em: new Date().toISOString(),
+        resumo: `tag "${tagNormalizada}" ${status === 'validado' ? 'validada' : 'rejeitada'} para obra ${obra_id.slice(0, 8)} por ${usuario || 'curadoria'}`,
+        payload,
+        hash_evento: hashEvento,
+        criado_em: criadoEm,
       });
 
     if (error) {
