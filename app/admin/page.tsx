@@ -1159,13 +1159,19 @@ export default function AdminPage() {
   // Registra feedback de validação de coesão visual
   const handleVisualFeedback = async (obraId: string, tag: string, status: 'validado' | 'rejeitado') => {
     try {
-      await fetch('/api/admin/tag-visual', {
+      const res = await fetch('/api/admin/tag-visual', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ obra_id: obraId, tag, status }),
       });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Não foi possível persistir a validação.');
+      }
+      await handleVisualAnalysis(obraId);
     } catch (err) {
       console.error('Erro ao registrar feedback visual:', err);
+      alert(err instanceof Error ? err.message : 'Erro ao registrar feedback visual.');
     }
   };
 
